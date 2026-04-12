@@ -10,7 +10,7 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false }));
+app.use(express.static(path.join(__currentname, 'public')));
 
 let state = {
     balance: 50.75,
@@ -18,10 +18,12 @@ let state = {
     verified_phone: "+256 755 386 680"
 };
 
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 app.post('/api/payout', (req, res) => {
-    const txnId = "MEMPHIS-" + Math.random().toString(36).toUpperCase().slice(2, 10);
+    const txnId = "MEMPHIS-" + Math.random().toString(36).substr(2, 9).toUpperCase();
     res.json({
         success: true,
         total_ugx: "192,850 UGX",
@@ -30,4 +32,11 @@ app.post('/api/payout', (req, res) => {
     });
 });
 
-app.listen(3000, () => console.log('\n[10X SYSTEM UPDATED]\nRESTARTING AT http://localhost:3000'));
+// --- RENDER COMPATIBLE LISTEN BLOCK ---
+// We use process.env.PORT because Render assigns a random port dynamically.
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n[10X SYSTEM UPDATED]`);
+    console.log(`SERVER LIVE ON PORT: ${PORT}`);
+});
