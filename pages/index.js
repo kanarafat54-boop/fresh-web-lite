@@ -1,9 +1,16 @@
+import Link from 'next/link'
+import Layout from '../components/Layout'
+
 export default function Home() {
   return (
-    <main style={{padding:40, fontFamily:'system-ui, -apple-system, Segoe UI, Roboto'}}>
+    <Layout>
       <h1>fresh-web-lite</h1>
-      <p>Monorepo aggregator and starter scaffold. Use the import workflow to bring in your repositories under <code>projects/</code>.</p>
-      <p>After import, run <code>npm install</code> and <code>npm run dev</code> to start the Next.js dev server.</p>
-    </main>
+      <p>Monorepo aggregator and starter scaffold.</p>
+      <nav style={{ display: 'flex', gap: 12 }}>
+        <Link href="/feed">Feed</Link>
+        <Link href="/auth/signin">Sign in</Link>
+        <Link href="/auth/signup">Sign up</Link>
+      </nav>
+    </Layout>
   )
 }
