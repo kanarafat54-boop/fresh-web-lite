@@ -15,10 +15,25 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify IMPORT_PAT
+        env:
+          IMPORT_PAT: ${{ secrets.IMPORT_PAT }}
+        run: |
+          if [ -z "${IMPORT_PAT}" ]; then
+            echo "ERROR: IMPORT_PAT secret is not set. Please add it to repository secrets as IMPORT_PAT."
+            exit 1
+          fi
+          http_code=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token ${IMPORT_PAT}" https://api.github.com/user)
+          if [ "$http_code" != "200" ]; then
+            echo "ERROR: IMPORT_PAT is not valid or lacks correct scope (HTTP $http_code). Ensure it has 'repo' scope."
+            exit 1
+          fi
+
       - name: Ensure git and tools available
         run: |
           git --version
-          git subtree --version || true
+          # jq is used in the script
+          sudo apt-get update && sudo apt-get install -y jq
 
       - name: Make import script executable
         run: chmod +x scripts/import-repos.sh
@@ -26,10 +41,13 @@ jobs:
       - name: Run import script
         env:
           IMPORT_PAT: ${{ secrets.IMPORT_PAT }}
-          GITHUB_ACTOR: ${{ github.actor }}
         run: |
           ./scripts/import-repos.sh
 
       - name: Push changes back
         run: |
+          git config user.email "actions@github.com"
+          git config user.name "github-actions[bot]"
+          git add .
+          git commit -m "Import external repositories into projects/ (automated)" || echo "No changes to commit"
           git push origin main
