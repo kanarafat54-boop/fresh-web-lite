@@ -1,0 +1,6 @@
+{
+  "appId": "com.kanarafat54boop.fresh",
+  "appName": "fresh-web-lite",
+  "webDir": "out",
+  "bundledWebRuntime": false
+}

@@ -1,0 +1,35 @@
+name: Import repositories (preserve history)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure git and tools available
+        run: |
+          git --version
+          git subtree --version || true
+
+      - name: Make import script executable
+        run: chmod +x scripts/import-repos.sh
+
+      - name: Run import script
+        env:
+          IMPORT_PAT: ${{ secrets.IMPORT_PAT }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: |
+          ./scripts/import-repos.sh
+
+      - name: Push changes back
+        run: |
+          git push origin main
