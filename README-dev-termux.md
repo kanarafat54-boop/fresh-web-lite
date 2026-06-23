@@ -25,4 +25,5 @@ This guide describes how to run the project on Android Termux with SQLite and a 
 Troubleshooting:
 - If prisma binary fails on Termux, run npx prisma generate on a laptop and commit generated client to repository (not recommended) or use a remote Postgres DB.
 - If a port is in use, change PORT or WS_PORT env vars in .env before running.
+- If you need to copy files from shared storage, run termux-setup-storage first and use cp to copy to public/uploads.
 
