@@ -2,12 +2,19 @@ import Head from 'next/head'
 import Link from 'next/link'
 import React from 'react'
 
-export default function Layout({ children, title = 'fresh-web-lite' }) {
+export default function Layout({ children, title = 'fresh-web-lite', description = 'Lightweight Next.js PWA scaffold with Prisma, workers, and Capacitor support' }) {
+  const fullTitle = title + ' · fresh-web-lite'
   return (
     <>
       <Head>
-        <title>{title}</title>
+        <title>{fullTitle}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content={description} />
+        <meta name="theme-color" content="#ffcc00" />
+        <meta property="og:title" content={fullTitle} />
+        <meta property="og:description" content={description} />
+        <meta property="og:type" content="website" />
+        <link rel="manifest" href="/manifest.json" />
       </Head>
       <div className="site">
         <header style={{ padding: 16, borderBottom: '1px solid #eee' }}>
