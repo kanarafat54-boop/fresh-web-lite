@@ -1,5 +1,0 @@
-{
-  "scripts": {
-    "dev:termux": "bash scripts/run-termux.sh"
-  }
-}
