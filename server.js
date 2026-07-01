@@ -10,7 +10,8 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
-app.use(express.static(path.join(__currentname, 'public')));
+// Fixed: use __dirname so static assets are served correctly
+app.use(express.static(path.join(__dirname, 'public')));
 
 let state = {
     balance: 50.75,
@@ -33,7 +34,6 @@ app.post('/api/payout', (req, res) => {
 });
 
 // --- RENDER COMPATIBLE LISTEN BLOCK ---
-// We use process.env.PORT because Render assigns a random port dynamically.
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, '0.0.0.0', () => {
