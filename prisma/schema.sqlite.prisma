@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  email     String    @unique
+  name      String?
+  password  String?
+  posts     Post[]
+  followers Follow[]  @relation("following")
+  following Follow[]  @relation("followers")
+  likes     Like[]
+  comments  Comment[]
+  notifications Notification[]
+}
+
+model Post {
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  author    User      @relation(fields: [authorId], references: [id])
+  authorId  Int
+  content   String
+  media     Media[]
+  likes     Like[]
+  comments  Comment[]
+  visibility String  @default("public")
+  hashtag   String?
+}
+
+model Media {
+  id        Int      @id @default(autoincrement())
+  url       String
+  mime      String
+  post      Post?    @relation(fields: [postId], references: [id])
+  postId    Int?
+  uploadedAt DateTime @default(now())
+}
+
+model Follow {
+  id        Int    @id @default(autoincrement())
+  follower  User   @relation("followers", fields: [followerId], references: [id])
+  followerId Int
+  following User   @relation("following", fields: [followingId], references: [id])
+  followingId Int
+  createdAt DateTime @default(now())
+}
+
+model Like {
+  id      Int   @id @default(autoincrement())
+  user    User  @relation(fields: [userId], references: [id])
+  userId  Int
+  post    Post  @relation(fields: [postId], references: [id])
+  postId  Int
+  createdAt DateTime @default(now())
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  Int
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    Int
+  parentId  Int?
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        Int     @id @default(autoincrement())
+  user      User    @relation(fields: [userId], references: [id])
+  userId    Int
+  type      String
+  payload   String?
+  read      Boolean @default(false)
+  createdAt DateTime @default(now())
+}
