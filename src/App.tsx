@@ -4,6 +4,7 @@ import AppConfig from './config/app.config'
 import { useFreshId } from './features/fresh-id/context/FreshIdContext'
 import { AuthForm } from './features/fresh-id/components/AuthForm'
 import { AdminPanel } from './features/admin/AdminPanel'
+import { FeedModule } from './features/feed/components/FeedModule'
 
 type ModuleKey = 'notes' | 'tasks' | 'calculator' | 'log' | 'feed' | 'admin'
 
@@ -129,12 +130,10 @@ function App() {
           <main className="app-main">
             {active === 'notes' && <NotesModule />}
             {active === 'admin' && <AdminPanel />}
-            {active === 'admin' && <AdminPanel />}
-            {active === 'admin' && <AdminPanel />}
             {active === 'tasks' && <Placeholder name="Tasks" />}
             {active === 'calculator' && <Placeholder name="Calculator" />}
             {active === 'log' && <Placeholder name="Log" />}
-            {active === 'feed' && <Placeholder name="Feed" />}
+            {active === 'feed' && <FeedModule />}
           </main>
         </>
       )}

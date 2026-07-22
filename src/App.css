@@ -239,3 +239,48 @@ body {
   color: #6c5ce7;
   font-size: 0.9rem;
 }
+
+/* Feed */
+.post-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 0;
+  border-bottom: 1px solid #333;
+}
+.post-header {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 0.85rem;
+}
+.post-author {
+  font-weight: 600;
+}
+.post-username, .post-time {
+  color: #888;
+}
+.post-content {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+.post-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 0.85rem;
+}
+.like-btn {
+  background: none;
+  border: 1px solid #444;
+  color: #ccc;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.like-btn.liked {
+  color: #ff6b6b;
+  border-color: #ff6b6b;
+}
+.post-comment-count {
+  color: #888;
+}
