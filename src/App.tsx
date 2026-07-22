@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import AppConfig from './config/app.config'
 import { useFreshId } from './features/fresh-id/context/FreshIdContext'
+import { AuthForm } from './features/fresh-id/components/AuthForm'
+import { AdminPanel } from './features/admin/AdminPanel'
 
-type ModuleKey = 'notes' | 'tasks' | 'calculator' | 'log' | 'feed'
+type ModuleKey = 'notes' | 'tasks' | 'calculator' | 'log' | 'feed' | 'admin'
 
 interface Note {
   id: string
@@ -67,7 +69,7 @@ function Placeholder({ name }: { name: string }) {
 }
 
 function FreshIdBadge() {
-  const { user, logout } = useFreshId()
+  const { user, isGuest, logout } = useFreshId()
   if (!user) return null
 
   const shortId = user.id.split('-')[0]
@@ -76,7 +78,7 @@ function FreshIdBadge() {
     <div className="fresh-id-badge">
       <div className="fresh-id-row">
         <span className="fresh-id-name">{user.fullName}</span>
-        <span className="fresh-id-tier">{user.subscription.tier}</span>
+        <span className="fresh-id-tier">{isGuest ? 'guest' : user.subscription.tier}</span>
       </div>
       <div className="fresh-id-row fresh-id-meta">
         <span>@{user.username}</span>
@@ -89,7 +91,7 @@ function FreshIdBadge() {
 }
 
 function App() {
-  const { user, loginAsGuest } = useFreshId()
+  const { user, loading } = useFreshId()
   const [active, setActive] = useState<ModuleKey>('notes')
 
   const modules: { key: ModuleKey; label: string }[] = [
@@ -98,6 +100,7 @@ function App() {
     { key: 'calculator', label: 'Calculator' },
     { key: 'log', label: 'Log' },
     { key: 'feed', label: 'Feed' },
+    ...(user?.role === 'admin' ? [{ key: 'admin' as ModuleKey, label: 'Admin' }] : []),
   ]
 
   return (
@@ -105,27 +108,36 @@ function App() {
       <header className="app-header">
         <h1>{AppConfig.app.name}</h1>
         <p className="app-slogan">{AppConfig.app.slogan}</p>
-        {user && <FreshIdBadge />}
-        {!user && <button className="guest-btn" onClick={loginAsGuest}>Continue as Guest</button>}
+        {loading && <p className="app-user">Loading...</p>}
+        {!loading && user && <FreshIdBadge />}
+        {!loading && !user && <AuthForm />}
       </header>
-      <nav className="app-nav">
-        {modules.map((m) => (
-          <button
-            key={m.key}
-            className={active === m.key ? 'nav-btn active' : 'nav-btn'}
-            onClick={() => setActive(m.key)}
-          >
-            {m.label}
-          </button>
-        ))}
-      </nav>
-      <main className="app-main">
-        {active === 'notes' && <NotesModule />}
-        {active === 'tasks' && <Placeholder name="Tasks" />}
-        {active === 'calculator' && <Placeholder name="Calculator" />}
-        {active === 'log' && <Placeholder name="Log" />}
-        {active === 'feed' && <Placeholder name="Feed" />}
-      </main>
+
+      {user && (
+        <>
+          <nav className="app-nav">
+            {modules.map((m) => (
+              <button
+                key={m.key}
+                className={active === m.key ? 'nav-btn active' : 'nav-btn'}
+                onClick={() => setActive(m.key)}
+              >
+                {m.label}
+              </button>
+            ))}
+          </nav>
+          <main className="app-main">
+            {active === 'notes' && <NotesModule />}
+            {active === 'admin' && <AdminPanel />}
+            {active === 'admin' && <AdminPanel />}
+            {active === 'admin' && <AdminPanel />}
+            {active === 'tasks' && <Placeholder name="Tasks" />}
+            {active === 'calculator' && <Placeholder name="Calculator" />}
+            {active === 'log' && <Placeholder name="Log" />}
+            {active === 'feed' && <Placeholder name="Feed" />}
+          </main>
+        </>
+      )}
     </div>
   )
 }
