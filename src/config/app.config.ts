@@ -42,6 +42,8 @@ export const AppConfig = {
     software: false,
     ara6: false,
     admin: true,
+    shorts: true,
+    saved: true,
   },
 
   security: {

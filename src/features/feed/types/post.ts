@@ -4,8 +4,9 @@ export interface Post {
   authorName: string;
   authorUsername: string;
   content: string;
+  imageUrl: string | null;
   likeCount: number;
   commentCount: number;
-  likedByMe: boolean;
+  myReaction: string | null;
   createdAt: string;
 }
