@@ -1,0 +1,83 @@
+.feed-card{
+
+  background:#181818;
+
+  border-radius:16px;
+
+  padding:16px;
+
+  margin-bottom:16px;
+
+  border:1px solid #2d2d2d;
+
+}
+
+.feed-card-header{
+
+  display:flex;
+
+  justify-content:space-between;
+
+  margin-bottom:12px;
+
+}
+
+.feed-card h3{
+
+  margin:8px 0;
+
+}
+
+.feed-card p{
+
+  opacity:.8;
+
+}
+
+.feed-tabs{
+
+display:flex;
+
+overflow-x:auto;
+
+gap:12px;
+
+padding:12px;
+
+margin-bottom:18px;
+
+}
+
+.feed-tab{
+
+display:flex;
+
+align-items:center;
+
+gap:8px;
+
+padding:10px 18px;
+
+border:none;
+
+border-radius:999px;
+
+background:#202020;
+
+color:white;
+
+white-space:nowrap;
+
+cursor:pointer;
+
+}
+
+.feed-tab.active{
+
+background:#00c853;
+
+color:white;
+
+font-weight:bold;
+
+}

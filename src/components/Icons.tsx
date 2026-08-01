@@ -164,3 +164,51 @@ export const RewindIcon = ({ size, className }: IconProps) => (
 export const TypeIcon = ({ size, className }: IconProps) => (
   <svg {...base(size)} className={className}><path d="M4 7V4h16v3"/><path d="M9 20h6M12 4v16"/></svg>
 );
+
+export const FreshIdIcon = ({ size, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <circle cx="12" cy="8" r="4"/>
+    <path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/>
+    <path d="M18 5l2 2 3-3"/>
+  </svg>
+);
+
+export const AIIcon = ({ size, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <circle cx="12" cy="12" r="8"/>
+    <path d="M9 10h.01M15 10h.01"/>
+    <path d="M8 15c2 2 6 2 8 0"/>
+    <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+  </svg>
+);
+
+export const WalletIcon = ({ size, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <path d="M4 7h15a2 2 0 0 1 2 2v10H4z"/>
+    <path d="M4 7V5a2 2 0 0 1 2-2h12"/>
+    <circle cx="17" cy="14" r="1"/>
+  </svg>
+);
+
+export const FeedIcon = ({ size, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <rect x="4" y="5" width="16" height="14" rx="3"/>
+    <path d="M8 9h8M8 13h6"/>
+    <circle cx="8" cy="17" r="1"/>
+  </svg>
+);
+
+export const ProfileIcon = ({ size, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <circle cx="12" cy="8" r="4"/>
+    <path d="M5 21c1.5-4 4-6 7-6s5.5 2 7 6"/>
+  </svg>
+);
+
+export const SparkAIIcon = ({ size, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/>
+    <path d="M19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8z"/>
+  </svg>
+);
+

@@ -1,0 +1,23 @@
+import {
+  NotesIcon, TasksIcon, CalcIcon, LogIcon,
+  FeedIcon, FilmIcon, BookmarkIcon, SettingsIcon,
+  SearchIcon, BellIcon, ChevronDownIcon,
+  PlusIcon, EditIcon, BackIcon,
+  FreshIdIcon, AIIcon, WalletIcon, ProfileIcon,
+} from './components/Icons'
+
+import { ProfileNavProvider, useProfileNav } from './features/profile/context/ProfileNavContext'
+import { ProfileView } from './features/profile/components/ProfileView'
+
+type ModuleKey =
+  | 'notes'
+  | 'tasks'
+  | 'calculator'
+  | 'log'
+  | 'feed'
+  | 'shorts'
+  | 'saved'
+  | 'profile'
+  | 'wallet'
+  | 'ai'
+  | 'admin'

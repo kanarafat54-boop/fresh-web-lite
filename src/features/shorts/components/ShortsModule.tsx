@@ -15,7 +15,7 @@ import { PostMenu } from "../../moderation/components/PostMenu";
 import { ShortsOnboarding } from "./ShortsOnboarding";
 import { useProfileNav } from "../../profile/context/ProfileNavContext";
 import {
-  FilmIcon, ScissorsIcon, CommentIcon, BookmarkIcon, PlusIcon, BackIcon, ShareIcon,
+  FilmIcon, ScissorsIcon, CommentIcon, BookmarkIcon, BackIcon, ShareIcon,
   RepostIcon, BrokenHeartIcon, SearchIcon, XCircleIcon, ListIcon,
 } from "../../../components/Icons";
 import type { Short } from "../types/short";

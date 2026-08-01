@@ -108,10 +108,16 @@ export function VideoEditor({ file, onCancel, onEdited }: VideoEditorProps) {
 
         await new Promise<void>((resolve) => {
           function frameLoop() {
+            if (!video) {
+              resolve();
+              return;
+            }
+
             if (video.ended || video.paused) {
               resolve();
               return;
             }
+
             drawFrame(ctx, video, canvas.width, canvas.height);
             setProgress(Math.round((video.currentTime / video.duration) * 100));
             requestAnimationFrame(frameLoop);

@@ -3,10 +3,10 @@
  * Profile View — shown as a full overlay over the current tab
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
-import { BackIcon } from "../../../components/Icons";
+import { BackIcon, SearchIcon } from "../../../components/Icons";
 
 interface ProfileData {
   id: string;
@@ -21,6 +21,21 @@ interface ShortSummary {
   likeCount: number;
 }
 
+const PROFILE_SECTIONS = [
+  { id: "overview", label: "Overview", icon: "🏠" },
+  { id: "stories", label: "Stories", icon: "⭕" },
+  { id: "posts", label: "Posts", icon: "📝" },
+  { id: "shorts", label: "Shorts", icon: "🎬" },
+  { id: "videos", label: "Videos", icon: "📺" },
+  { id: "live", label: "Live", icon: "🔴" },
+  { id: "photos", label: "Photos", icon: "🖼️" },
+  { id: "communities", label: "Communities", icon: "👥" },
+  { id: "projects", label: "Projects", icon: "🚀" },
+  { id: "portfolio", label: "Portfolio", icon: "💼" },
+] as const;
+
+type ProfileSection = (typeof PROFILE_SECTIONS)[number]["id"];
+
 export function ProfileView({ userId, onClose }: { userId: string; onClose: () => void }) {
   const { user } = useFreshId();
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -30,6 +45,8 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
   const [shorts, setShorts] = useState<ShortSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<ProfileSection>("overview");
+  const [profileSearch, setProfileSearch] = useState("");
 
   useEffect(() => {
     loadProfile();
@@ -108,6 +125,13 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
     }
   }
 
+  const visibleSections = useMemo(() => {
+    if (!profileSearch.trim()) return PROFILE_SECTIONS;
+    return PROFILE_SECTIONS.filter((section) =>
+      section.label.toLowerCase().includes(profileSearch.toLowerCase())
+    );
+  }, [profileSearch]);
+
   return (
     <div className="profile-view">
       <div className="profile-header-bar">
@@ -144,12 +168,50 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
             )}
           </div>
 
-          <div className="profile-shorts-grid">
-            {shorts.length === 0 && <p className="empty-state">No shorts posted yet.</p>}
-            {shorts.map((s) => (
-              <video key={s.id} src={s.videoUrl} className="profile-grid-video" muted />
+          <div className="profile-section-search">
+            <SearchIcon size={16} />
+            <input
+              type="text"
+              value={profileSearch}
+              onChange={(e) => setProfileSearch(e.target.value)}
+              placeholder="Search sections..."
+              className="auth-input"
+            />
+          </div>
+
+          <div className="profile-section-tabs">
+            {visibleSections.map((section) => (
+              <button
+                key={section.id}
+                className={activeSection === section.id ? "nav-btn active" : "nav-btn"}
+                onClick={() => setActiveSection(section.id)}
+              >
+                <span>{section.icon}</span>
+                <span>{section.label}</span>
+              </button>
             ))}
           </div>
+
+          {activeSection === "overview" && (
+            <p className="empty-state">
+              {profile.fullName}'s profile overview — {shorts.length} shorts, {followerCount} followers.
+            </p>
+          )}
+
+          {activeSection === "shorts" && (
+            <div className="profile-shorts-grid">
+              {shorts.length === 0 && <p className="empty-state">No shorts posted yet.</p>}
+              {shorts.map((s) => (
+                <video key={s.id} src={s.videoUrl} className="profile-grid-video" muted />
+              ))}
+            </div>
+          )}
+
+          {!["overview", "shorts"].includes(activeSection) && (
+            <p className="empty-state">
+              {PROFILE_SECTIONS.find((s) => s.id === activeSection)?.label} — coming soon.
+            </p>
+          )}
         </>
       )}
     </div>
