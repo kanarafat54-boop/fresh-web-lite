@@ -8,6 +8,7 @@ export type FeatureMeta = {
   permissions?: string[];
   searchable?: boolean;
   sdkVersion?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lazyLoader: () => Promise<{ default: ComponentType<any> }>;
 };
 
@@ -17,7 +18,6 @@ class Registry {
   register(feature: FeatureMeta): void {
     if (this.features.has(feature.id)) {
       // override allowed during development
-      // eslint-disable-next-line no-console
       console.warn(`FeatureRegistry: overriding feature ${feature.id}`);
     }
     this.features.set(feature.id, feature);
