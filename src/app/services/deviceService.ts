@@ -38,7 +38,7 @@ class DeviceService {
     this.listeners.add(fn);
     // call immediately with current
     fn(this.current);
-    return () => this.listeners.delete(fn);
+    return () => { this.listeners.delete(fn); };
   }
 }
 

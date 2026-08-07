@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import type { ReactElement, ComponentType } from "react";
 
 export type FeatureMeta = {
   id: string;
@@ -8,7 +8,7 @@ export type FeatureMeta = {
   permissions?: string[];
   searchable?: boolean;
   sdkVersion?: string;
-  lazyLoader: () => Promise<{ default: React.ComponentType<any> }>;
+  lazyLoader: () => Promise<{ default: ComponentType<any> }>;
 };
 
 class Registry {
@@ -64,7 +64,7 @@ FeatureRegistry.register({
   name: "Shorts",
   route: "/shorts",
   searchable: false,
-  lazyLoader: () => import("../../features/shorts/components/ShortsModule").then((m) => ({ default: m.default })),
+  lazyLoader: () => import("../../features/shorts/components/ShortsModule").then((m) => ({ default: m.ShortsModule })),
 });
 
 FeatureRegistry.register({
@@ -72,7 +72,7 @@ FeatureRegistry.register({
   name: "Saved",
   route: "/saved",
   searchable: false,
-  lazyLoader: () => import("../../features/saved/components/SavedModule").then((m) => ({ default: m.default })),
+  lazyLoader: () => import("../../features/saved/components/SavedModule").then((m) => ({ default: m.SavedModule })),
 });
 
 FeatureRegistry.register({
@@ -80,7 +80,7 @@ FeatureRegistry.register({
   name: "Profile",
   route: "/profile",
   searchable: false,
-  lazyLoader: () => import("../../features/profile/components/ProfileView").then((m) => ({ default: m.default || m.ProfileView })),
+  lazyLoader: () => import("../../features/profile/components/ProfileView").then((m) => ({ default: m.ProfileView })),
 });
 
 FeatureRegistry.register({
@@ -88,5 +88,5 @@ FeatureRegistry.register({
   name: "Admin",
   route: "/admin",
   searchable: false,
-  lazyLoader: () => import("../../features/admin/AdminPanel").then((m) => ({ default: m.AdminPanel || m.default })),
+  lazyLoader: () => import("../../features/admin/AdminPanel").then((m) => ({ default: m.AdminPanel })),
 });

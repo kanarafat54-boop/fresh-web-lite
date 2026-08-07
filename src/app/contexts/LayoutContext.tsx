@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { contextService } from "../../core/fresh-core";
-import { deviceService, DeviceType } from "../services/deviceService";
-import { NotificationService, UINotification } from "../services/notificationService";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { deviceService } from "../services/deviceService";
+import type { DeviceType } from "../services/deviceService";
+import { NotificationService } from "../services/notificationService";
+import type { UINotification } from "../services/notificationService";
 import { FeatureRegistry } from "../registry/FeatureRegistry";
 
 export type LayoutState = {
@@ -37,7 +38,6 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [searchOverlayOpen, setSearchOverlayOpen] = useState<boolean>(false);
 
   // read-only access to ContextEngine
-  const engineContext = useMemo(() => contextService.get(), []);
 
   useEffect(() => {
     const unsub = deviceService.subscribe((dt) => setDeviceType(dt));

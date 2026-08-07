@@ -1,4 +1,3 @@
-import React from "react";
 import TopBar from "./components/TopBar";
 import SideNav from "./components/SideNav";
 import BottomNav from "./components/BottomNav";
@@ -9,7 +8,7 @@ import { FeatureRegistry } from "./registry/FeatureRegistry";
 import { useLayout } from "./contexts/LayoutContext";
 import FeatureLoader from "./services/featureLoader";
 
-export default function AppRouter(): JSX.Element {
+export default function AppRouter() {
   const { activeRoute } = useLayout();
 
   const activeFeature = FeatureRegistry.getFeature(activeRoute);
