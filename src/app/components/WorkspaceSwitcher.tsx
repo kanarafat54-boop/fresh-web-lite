@@ -1,12 +1,15 @@
-import { useLayout } from "../contexts/LayoutContext";
+import { useFreshId } from "../../features/fresh-id/context/FreshIdContext";
 
 export default function WorkspaceSwitcher() {
-  const { activeRoute } = useLayout();
+  const { user, isGuest } = useFreshId();
+  if (!user) return null;
 
   return (
-    <section className="workspace-switcher">
-      <h3>Workspace</h3>
-      <p>Current: {activeRoute ?? "None"}</p>
-    </section>
+    <div className="fresh-id-badge" style={{ margin: 0 }}>
+      <div className="fresh-id-row">
+        <span className="fresh-id-name">{user.fullName}</span>
+        <span className="fresh-id-tier">{isGuest ? "guest" : user.subscription.tier}</span>
+      </div>
+    </div>
   );
 }

@@ -11,7 +11,7 @@ export default function FeatureLoader({ feature }: { feature: FeatureMeta }) {
 
   return (
     <Suspense fallback={<div className="feature-loading">Loading {feature.name}…</div>}>
-      <ErrorBoundary featureName={feature.name}>
+      <ErrorBoundary>
         <LazyComp />
       </ErrorBoundary>
     </Suspense>

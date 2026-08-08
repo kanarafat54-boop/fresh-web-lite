@@ -1,28 +1,31 @@
-export type UINotification = {
+export interface UINotification {
   id: string;
-  message: string;
+  title: string;
+  message?: string;
   type?: "info" | "success" | "warning" | "error";
-  createdAt?: number;
-};
+  createdAt: string;
+}
 
-type Listener = (notification: UINotification) => void;
+type Listener = (n: UINotification) => void;
 
-class NotificationServiceClass {
-  private listeners = new Set<Listener>();
+class NotificationServiceImpl {
+  private listeners: Set<Listener> = new Set();
 
-  subscribe(listener: Listener) {
+  subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
-
     return () => {
       this.listeners.delete(listener);
     };
   }
 
-  publish(notification: UINotification) {
-    this.listeners.forEach((listener) => {
-      listener(notification);
-    });
+  notify(notification: Omit<UINotification, "id" | "createdAt">) {
+    const full: UINotification = {
+      ...notification,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    this.listeners.forEach((listener) => listener(full));
   }
 }
 
-export const NotificationService = new NotificationServiceClass();
+export const NotificationService = new NotificationServiceImpl();

@@ -1,44 +1,30 @@
-import { Component } from "react";
-import type { ReactNode } from "react";
+import { Component, type ReactNode } from "react";
 
-type Props = {
-  featureName?: string;
+interface Props {
   children: ReactNode;
-};
+}
 
-type State = {
+interface State {
   hasError: boolean;
-};
+  message?: string;
+}
 
 export default class ErrorBoundary extends Component<Props, State> {
-  state: State = {
-    hasError: false,
-  };
+  state: State = { hasError: false };
 
-  static getDerivedStateFromError(): State {
-    return {
-      hasError: true,
-    };
-  }
-
-  componentDidCatch(error: Error) {
-    console.error("ErrorBoundary:", error);
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, message: error.message };
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div>
-          <h2>{this.props.featureName ?? "Application"} failed to load</h2>
-          <button
-            onClick={() => window.location.reload()}
-          >
-            Reload
-          </button>
+        <div className="empty-state">
+          Something went wrong loading this section.
+          {this.state.message && <p>{this.state.message}</p>}
         </div>
       );
     }
-
     return this.props.children;
   }
 }

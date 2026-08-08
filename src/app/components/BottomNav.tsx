@@ -4,17 +4,15 @@ import { useLayout } from "../contexts/LayoutContext";
 export default function BottomNav() {
   const { activeRoute, setActiveRoute } = useLayout();
 
-  const entries = FeatureRegistry.getNavEntries();
-
   return (
-    <nav className="bottom-nav">
-      {entries.map((feature) => (
+    <nav className="app-nav">
+      {FeatureRegistry.getNavEntries().map((f) => (
         <button
-          key={feature.id}
-          className={activeRoute === feature.id ? "active" : ""}
-          onClick={() => setActiveRoute(feature.id)}
+          key={f.id}
+          className={activeRoute === f.id ? "nav-btn active" : "nav-btn"}
+          onClick={() => setActiveRoute(f.id)}
         >
-          {feature.icon ? feature.icon({ size: 18 }) : "•"} {feature.name}
+          <span>{f.name}</span>
         </button>
       ))}
     </nav>

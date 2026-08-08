@@ -2,23 +2,20 @@ import { FeatureRegistry } from "../registry/FeatureRegistry";
 import { useLayout } from "../contexts/LayoutContext";
 
 export default function SideNav() {
-  const { activeRoute, setActiveRoute } = useLayout();
-
-  const features = FeatureRegistry.getNavEntries();
+  const { sidebarOpen, activeRoute, setActiveRoute } = useLayout();
+  if (!sidebarOpen) return null;
 
   return (
-    <aside className="side-nav">
-      <nav>
-        {features.map((feature) => (
-          <button
-            key={feature.id}
-            className={activeRoute === feature.id ? "active" : ""}
-            onClick={() => setActiveRoute(feature.id)}
-          >
-            {feature.name}
-          </button>
-        ))}
-      </nav>
-    </aside>
+    <nav className="app-nav" style={{ position: "static", flexDirection: "column" }}>
+      {FeatureRegistry.getNavEntries().map((f) => (
+        <button
+          key={f.id}
+          className={activeRoute === f.id ? "nav-btn active" : "nav-btn"}
+          onClick={() => setActiveRoute(f.id)}
+        >
+          <span>{f.name}</span>
+        </button>
+      ))}
+    </nav>
   );
 }
