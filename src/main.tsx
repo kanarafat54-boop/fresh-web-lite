@@ -1,20 +1,92 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { StrictMode, Component, type ReactNode } from "react";
+import { createRoot, type Root } from "react-dom/client";
 
-import './index.css'
-import './design-system/design-system.css'
+import "./index.css";
+import "./design-system/design-system.css";
 
-import App from './App'
+type BootState = "loading" | "ready" | "error";
 
-import { FreshIdProvider } from './features/fresh-id/context/FreshIdContext'
-import { FreshCoreProvider } from './app/providers/FreshCoreProvider'
+class RuntimeErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  state = { hasError: false, error: undefined as Error | undefined };
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <FreshCoreProvider>
-      <FreshIdProvider>
-        <App />
-      </FreshIdProvider>
-    </FreshCoreProvider>
-  </StrictMode>
-)
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <BootFailure error={this.state.error} />;
+    }
+
+    return this.props.children;
+  }
+}
+
+function BootScreen({ state, error }: { state: BootState; error?: Error }) {
+  if (state === "ready") return null;
+
+  return (
+    <div className="boot-screen" role={state === "error" ? "alert" : undefined}>
+      <div className="boot-card">
+        <div className="boot-mark">F</div>
+        <h1>Fresh Web Lite</h1>
+        {state === "loading" ? (
+          <p>Starting the platform…</p>
+        ) : (
+          <>
+            <p>Fresh Web Lite could not start.</p>
+            <pre>{error?.message ?? "Unknown startup error"}</pre>
+            <p className="boot-help">
+              Open the browser console for the full diagnostic. This screen is
+              intentional: a production startup failure must never appear as a
+              blank page.
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BootFailure({ error }: { error?: Error }) {
+  return <BootScreen state="error" error={error} />;
+}
+
+async function bootstrap(root: Root) {
+  try {
+    const [{ default: App }, { FreshIdProvider }, { FreshCoreProvider }] =
+      await Promise.all([
+        import("./App"),
+        import("./features/fresh-id/context/FreshIdContext"),
+        import("./app/providers/FreshCoreProvider"),
+      ]);
+
+    root.render(
+      <StrictMode>
+        <RuntimeErrorBoundary>
+          <FreshCoreProvider>
+            <FreshIdProvider>
+              <App />
+            </FreshIdProvider>
+          </FreshCoreProvider>
+        </RuntimeErrorBoundary>
+      </StrictMode>
+    );
+  } catch (error) {
+    console.error("Fresh Web Lite startup failed", error);
+    root.render(<BootFailure error={error instanceof Error ? error : undefined} />);
+  }
+}
+
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  throw new Error("Fresh Web Lite root element (#root) is missing.");
+}
+
+const root = createRoot(rootElement);
+root.render(<BootScreen state="loading" />);
+void bootstrap(root);
