@@ -44,6 +44,16 @@ export type TreasuryBucket = {
   assetKind: AssetKind;
 };
 
+/** Exact integer monetary quantity in the smallest supported unit. */
+export type MinorUnits = bigint;
+
+export type RevenueAllocation = {
+  grossAmount: MinorUnits;
+  ownerAmount: MinorUnits;
+  platformAmount: MinorUnits;
+  currency: string;
+};
+
 /**
  * A movement is not considered settled merely because the UI requested it.
  * Settlement must be confirmed by a trusted ledger/rail adapter.
