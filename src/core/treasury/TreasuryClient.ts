@@ -7,7 +7,8 @@ export type TreasuryBalance = {
   asset_code: string;
   asset_kind: TreasuryAssetKind;
   display_name: string;
-  balance_minor: number;
+  /** PostgreSQL bigint is kept as text at the browser boundary. */
+  balance_minor: string;
 };
 
 export type TreasuryAccount = {
@@ -31,9 +32,9 @@ export class TreasuryClientError extends Error {
 /**
  * Browser-side boundary for Fresh Treasury.
  *
- * This class never computes balances, never writes ledger entries directly,
- * and never receives a service-role credential. Supabase RPCs enforce the
- * ownership and accounting rules server-side.
+ * It never computes authoritative balances, never writes ledger entries
+ * directly, and never receives a service-role credential. Supabase RPCs
+ * enforce ownership, concurrency, and accounting rules server-side.
  */
 export class TreasuryClient {
   async ensureUserAccount(
@@ -47,13 +48,8 @@ export class TreasuryClient {
       p_display_name: displayName ?? null,
     });
 
-    if (error) {
-      throw new TreasuryClientError(error.message);
-    }
-
-    if (!data) {
-      throw new TreasuryClientError("Treasury account was not created");
-    }
+    if (error) throw new TreasuryClientError(error.message);
+    if (!data) throw new TreasuryClientError("Treasury account was not created");
 
     return data as string;
   }
@@ -64,11 +60,12 @@ export class TreasuryClient {
       .select("account_id, asset_code, asset_kind, display_name, balance_minor")
       .order("asset_code");
 
-    if (error) {
-      throw new TreasuryClientError(error.message);
-    }
+    if (error) throw new TreasuryClientError(error.message);
 
-    return (data ?? []) as TreasuryBalance[];
+    return (data ?? []).map((row) => ({
+      ...row,
+      balance_minor: String(row.balance_minor),
+    })) as TreasuryBalance[];
   }
 
   async getMyAccounts(): Promise<TreasuryAccount[]> {
@@ -79,9 +76,7 @@ export class TreasuryClient {
       .eq("active", true)
       .order("asset_code");
 
-    if (error) {
-      throw new TreasuryClientError(error.message);
-    }
+    if (error) throw new TreasuryClientError(error.message);
 
     return (data ?? []) as TreasuryAccount[];
   }
@@ -89,12 +84,15 @@ export class TreasuryClient {
   async transferInternal(params: {
     fromAccountId: string;
     toAccountId: string;
-    amountMinor: number;
+    amountMinor: string;
     idempotencyKey: string;
     description?: string;
   }): Promise<string> {
-    if (!Number.isSafeInteger(params.amountMinor) || params.amountMinor <= 0) {
-      throw new TreasuryClientError("Transfer amount must be a positive safe integer");
+    if (!/^\d+$/.test(params.amountMinor) || BigInt(params.amountMinor) <= 0n) {
+      throw new TreasuryClientError("Transfer amount must be a positive integer minor-unit value");
+    }
+    if (params.idempotencyKey.trim().length < 8) {
+      throw new TreasuryClientError("A strong idempotency key is required");
     }
 
     const { data, error } = await supabase.rpc("treasury_transfer_internal", {
@@ -105,13 +103,8 @@ export class TreasuryClient {
       p_description: params.description ?? "Fresh internal transfer",
     });
 
-    if (error) {
-      throw new TreasuryClientError(error.message);
-    }
-
-    if (!data) {
-      throw new TreasuryClientError("Treasury transfer did not return a transaction id");
-    }
+    if (error) throw new TreasuryClientError(error.message);
+    if (!data) throw new TreasuryClientError("Treasury transfer did not return a transaction id");
 
     return data as string;
   }
