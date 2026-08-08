@@ -17,7 +17,6 @@ class Registry {
 
   register(feature: FeatureMeta): void {
     if (this.features.has(feature.id)) {
-      // override allowed during development
       console.warn(`FeatureRegistry: overriding feature ${feature.id}`);
     }
     this.features.set(feature.id, feature);
@@ -40,9 +39,6 @@ class Registry {
 export const FeatureRegistry = new Registry();
 export default FeatureRegistry;
 
-// Register core features lazily here so the registry is populated at app startup.
-// Each lazyLoader uses dynamic import so features are code-split.
-
 FeatureRegistry.register({
   id: "feed",
   name: "Home",
@@ -57,6 +53,15 @@ FeatureRegistry.register({
   route: "/ai",
   searchable: false,
   lazyLoader: () => import("../../features/ai/components/FreshAIHome").then((m) => ({ default: m.default })),
+});
+
+FeatureRegistry.register({
+  id: "wallet",
+  name: "Fresh Wallet",
+  route: "/wallet",
+  searchable: true,
+  permissions: ["wallet:read"],
+  lazyLoader: () => import("../../features/wallet/WalletDashboard").then((m) => ({ default: m.default })),
 });
 
 FeatureRegistry.register({
