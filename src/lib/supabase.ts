@@ -12,4 +12,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Check your .env file.')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Passkeys/WebAuthn are intentionally opted in here so the rest of the
+// application can use one authenticated identity without handling biometric
+// material itself. The browser/device owns the private credential.
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    experimental: { passkey: true },
+  },
+})
