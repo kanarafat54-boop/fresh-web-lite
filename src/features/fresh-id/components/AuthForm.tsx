@@ -10,6 +10,7 @@ export function AuthForm() {
   const {
     register,
     login,
+    loginWithPasskey,
     loginAsGuest,
     loading,
     error,
@@ -29,9 +30,9 @@ export function AuthForm() {
 
   function handleSubmit() {
     if (mode === "login") {
-      login(email, password);
+      void login(email, password);
     } else {
-      register(email, password, username, fullName);
+      void register(email, password, username, fullName);
     }
   }
 
@@ -50,25 +51,13 @@ export function AuthForm() {
     return (
       <div className="auth-form">
         <h3>Reset your password</h3>
-        <input
-          className="auth-input"
-          placeholder="Email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <input className="auth-input" placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         {error && <p className="auth-error">{error}</p>}
         {message && <p className="auth-message">{message}</p>}
-        <button
-          className="auth-submit-btn"
-          onClick={() => requestPasswordReset(email)}
-          disabled={loading}
-        >
+        <button className="auth-submit-btn" onClick={() => void requestPasswordReset(email)} disabled={loading}>
           {loading ? "Sending..." : "Send Reset Link"}
         </button>
-        <button className="auth-tab" onClick={() => setAuthView("form")}>
-          Back to Log In
-        </button>
+        <button className="auth-tab" onClick={() => setAuthView("form")}>Back to Log In</button>
       </div>
     );
   }
@@ -77,20 +66,10 @@ export function AuthForm() {
     return (
       <div className="auth-form">
         <h3>Choose a new password</h3>
-        <input
-          className="auth-input"
-          placeholder="New password"
-          type="password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-        />
+        <input className="auth-input" placeholder="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
         {error && <p className="auth-error">{error}</p>}
         {message && <p className="auth-message">{message}</p>}
-        <button
-          className="auth-submit-btn"
-          onClick={() => updatePassword(newPassword)}
-          disabled={loading}
-        >
+        <button className="auth-submit-btn" onClick={() => void updatePassword(newPassword)} disabled={loading}>
           {loading ? "Updating..." : "Update Password"}
         </button>
       </div>
@@ -100,51 +79,19 @@ export function AuthForm() {
   return (
     <div className="auth-form">
       <div className="auth-tabs">
-        <button
-          className={mode === "login" ? "auth-tab active" : "auth-tab"}
-          onClick={() => setMode("login")}
-        >
-          Log In
-        </button>
-        <button
-          className={mode === "register" ? "auth-tab active" : "auth-tab"}
-          onClick={() => setMode("register")}
-        >
-          Register
-        </button>
+        <button className={mode === "login" ? "auth-tab active" : "auth-tab"} onClick={() => setMode("login")}>Log In</button>
+        <button className={mode === "register" ? "auth-tab active" : "auth-tab"} onClick={() => setMode("register")}>Register</button>
       </div>
 
       {mode === "register" && (
         <>
-          <input
-            className="auth-input"
-            placeholder="Full name"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          />
-          <input
-            className="auth-input"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
+          <input className="auth-input" placeholder="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          <input className="auth-input" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
         </>
       )}
 
-      <input
-        className="auth-input"
-        placeholder="Email"
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <input
-        className="auth-input"
-        placeholder="Password"
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+      <input className="auth-input" placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <input className="auth-input" placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
 
       {error && <p className="auth-error">{error}</p>}
       {message && <p className="auth-message">{message}</p>}
@@ -154,17 +101,15 @@ export function AuthForm() {
       </button>
 
       {mode === "login" && (
-        <button
-          className="auth-tab"
-          onClick={() => setAuthView("forgot-password")}
-        >
-          Forgot password?
-        </button>
+        <>
+          <button className="auth-submit-btn" onClick={() => void loginWithPasskey()} disabled={loading}>
+            {loading ? "Verifying..." : "Sign in with biometrics"}
+          </button>
+          <button className="auth-tab" onClick={() => setAuthView("forgot-password")}>Forgot password?</button>
+        </>
       )}
 
-      <button className="guest-btn" onClick={loginAsGuest}>
-        Continue as Guest
-      </button>
+      <button className="guest-btn" onClick={loginAsGuest}>Continue as Guest</button>
     </div>
   );
 }
