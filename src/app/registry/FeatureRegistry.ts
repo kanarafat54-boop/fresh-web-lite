@@ -16,82 +16,22 @@ class Registry {
   private features = new Map<string, FeatureMeta>();
 
   register(feature: FeatureMeta): void {
-    if (this.features.has(feature.id)) {
-      console.warn(`FeatureRegistry: overriding feature ${feature.id}`);
-    }
+    if (this.features.has(feature.id)) console.warn(`FeatureRegistry: overriding feature ${feature.id}`);
     this.features.set(feature.id, feature);
   }
-
-  getFeature(id?: string): FeatureMeta | undefined {
-    if (!id) return undefined;
-    return this.features.get(id);
-  }
-
-  getNavEntries(): FeatureMeta[] {
-    return Array.from(this.features.values()).filter((f) => !!f.route);
-  }
-
-  getAll(): FeatureMeta[] {
-    return Array.from(this.features.values());
-  }
+  getFeature(id?: string): FeatureMeta | undefined { return id ? this.features.get(id) : undefined; }
+  getNavEntries(): FeatureMeta[] { return Array.from(this.features.values()).filter((f) => !!f.route); }
+  getAll(): FeatureMeta[] { return Array.from(this.features.values()); }
 }
 
 export const FeatureRegistry = new Registry();
 export default FeatureRegistry;
 
-FeatureRegistry.register({
-  id: "feed",
-  name: "Home",
-  route: "/",
-  searchable: true,
-  lazyLoader: () => import("../../features/home/HomeDashboard").then((m) => ({ default: m.default })),
-});
-
-FeatureRegistry.register({
-  id: "ai",
-  name: "Fresh AI",
-  route: "/ai",
-  searchable: false,
-  lazyLoader: () => import("../../features/ai/components/FreshAIHome").then((m) => ({ default: m.default })),
-});
-
-FeatureRegistry.register({
-  id: "wallet",
-  name: "Fresh Wallet",
-  route: "/wallet",
-  searchable: true,
-  permissions: ["wallet:read"],
-  lazyLoader: () => import("../../features/wallet/WalletDashboard").then((m) => ({ default: m.default })),
-});
-
-FeatureRegistry.register({
-  id: "shorts",
-  name: "Shorts",
-  route: "/shorts",
-  searchable: false,
-  lazyLoader: () => import("../../features/shorts/components/ShortsModule").then((m) => ({ default: m.ShortsModule })),
-});
-
-FeatureRegistry.register({
-  id: "saved",
-  name: "Saved",
-  route: "/saved",
-  searchable: false,
-  lazyLoader: () => import("../../features/saved/components/SavedModule").then((m) => ({ default: m.SavedModule })),
-});
-
-FeatureRegistry.register({
-  id: "profile",
-  name: "Profile",
-  route: "/profile",
-  searchable: false,
-  lazyLoader: () => import("../../features/profile/components/ProfileView").then((m) => ({ default: m.ProfileView })),
-});
-
-FeatureRegistry.register({
-  id: "admin",
-  name: "Admin",
-  route: "/admin",
-  searchable: false,
-  lazyLoader: () => import("../../features/admin/AdminPanel").then((m) => ({ default: m.AdminPanel })),
-});
+FeatureRegistry.register({ id: "first-experience", name: "Fresh First Experience", searchable: false, lazyLoader: () => import("../../features/fresh-first-experience/FreshFirstExperience").then((m) => ({ default: m.default })) });
+FeatureRegistry.register({ id: "feed", name: "Home", route: "/", searchable: true, lazyLoader: () => import("../../features/home/HomeDashboard").then((m) => ({ default: m.default })) });
+FeatureRegistry.register({ id: "ai", name: "Fresh AI", route: "/ai", searchable: false, lazyLoader: () => import("../../features/ai/components/FreshAIHome").then((m) => ({ default: m.default })) });
+FeatureRegistry.register({ id: "wallet", name: "Fresh Wallet", route: "/wallet", searchable: true, permissions: ["wallet:read"], lazyLoader: () => import("../../features/wallet/WalletDashboard").then((m) => ({ default: m.default })) });
+FeatureRegistry.register({ id: "shorts", name: "Shorts", route: "/shorts", searchable: false, lazyLoader: () => import("../../features/shorts/components/ShortsModule").then((m) => ({ default: m.ShortsModule })) });
+FeatureRegistry.register({ id: "saved", name: "Saved", route: "/saved", searchable: false, lazyLoader: () => import("../../features/saved/components/SavedModule").then((m) => ({ default: m.SavedModule })) });
+FeatureRegistry.register({ id: "profile", name: "Profile", route: "/profile", searchable: false, lazyLoader: () => import("../../features/profile/components/ProfileView").then((m) => ({ default: m.ProfileView })) });
+FeatureRegistry.register({ id: "admin", name: "Admin", route: "/admin", searchable: false, lazyLoader: () => import("../../features/admin/AdminPanel").then((m) => ({ default: m.AdminPanel })) });
