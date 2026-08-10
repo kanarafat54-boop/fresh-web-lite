@@ -1,5 +1,5 @@
 import { FeatureRegistry } from "../registry/FeatureRegistry";
-import { useLayout } from "../contexts/LayoutContext";
+import { useLayout } from "../contexts/useLayout";
 
 export default function BottomNav() {
   const { activeRoute, setActiveRoute } = useLayout();
