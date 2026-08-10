@@ -4,6 +4,7 @@
  */
 
 import { useState } from "react";
+import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../context/FreshIdContext";
 
 export function AuthForm() {
@@ -28,6 +29,29 @@ export function AuthForm() {
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+
+  async function handleGoogleSignIn() {
+    setGoogleError(null);
+    setGoogleLoading(true);
+
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: {
+          access_type: "offline",
+          prompt: "select_account",
+        },
+      },
+    });
+
+    if (oauthError) {
+      setGoogleError(oauthError.message);
+      setGoogleLoading(false);
+    }
+  }
 
   function handleSubmit() {
     if (mode === "login") {
@@ -96,17 +120,26 @@ export function AuthForm() {
 
       {error && <p className="auth-error">{error}</p>}
       {message && <p className="auth-message">{message}</p>}
+      {googleError && <p className="auth-error">Google sign-in: {googleError}</p>}
 
-      <button className="auth-submit-btn" onClick={handleSubmit} disabled={loading}>
+      <button className="auth-submit-btn" onClick={handleSubmit} disabled={loading || googleLoading}>
         {loading ? "Please wait..." : mode === "login" ? "Log In" : "Create Account"}
       </button>
 
       {mode === "login" && (
         <>
           <button
+            className="auth-submit-btn google-auth-btn"
+            onClick={() => void handleGoogleSignIn()}
+            disabled={loading || googleLoading}
+          >
+            {googleLoading ? "Connecting to Google..." : "Continue with Google"}
+          </button>
+
+          <button
             className="auth-submit-btn"
             onClick={() => void loginWithPasskey()}
-            disabled={loading || !passkeySupported}
+            disabled={loading || googleLoading || !passkeySupported}
             title={!passkeySupported ? "Passkeys require HTTPS/localhost and browser support" : "Use your device biometric, PIN, or security key"}
           >
             {loading ? "Verifying..." : passkeySupported ? "Sign in with biometrics" : "Biometrics unavailable here"}
