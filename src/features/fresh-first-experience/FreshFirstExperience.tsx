@@ -1,14 +1,10 @@
 import { useMemo, useState } from "react";
 import { useFreshCore } from "../../app/providers/FreshCoreProvider";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
+import { useLayout } from "../../app/contexts/useLayout";
 import "./FreshFirstExperience.css";
 
-type Intent = {
-  id: string;
-  title: string;
-  description: string;
-  prompt: string;
-};
+type Intent = { id: string; title: string; description: string; prompt: string };
 
 const intents: Intent[] = [
   { id: "build", title: "Build something", description: "Turn an idea into a project, product, or plan.", prompt: "I want to build something" },
@@ -24,6 +20,7 @@ const intents: Intent[] = [
 export default function FreshFirstExperience() {
   const { ready } = useFreshCore();
   const { user, loading } = useFreshId();
+  const { setActiveRoute } = useLayout();
   const [intent, setIntent] = useState<Intent | null>(null);
   const [input, setInput] = useState("");
 
@@ -34,6 +31,11 @@ export default function FreshFirstExperience() {
 
   if (!ready || loading) return null;
 
+  function continueToFresh() {
+    localStorage.setItem("fresh.firstExperience.completed", "true");
+    setActiveRoute("feed");
+  }
+
   return (
     <section className="fresh-first" aria-label="Fresh first experience">
       <div className="fresh-first__hero">
@@ -41,52 +43,25 @@ export default function FreshFirstExperience() {
         <h1>{greeting}</h1>
         <p className="fresh-first__headline">One account. One intelligent world.</p>
         <p className="fresh-first__intro">
-          Tell Fresh what you want to accomplish. We will help you find the right tools,
+          Tell Fresh what you want to accomplish. Fresh can connect the right tools,
           knowledge, people, and workspace instead of making you learn where everything lives.
         </p>
-
         <div className="fresh-first__composer">
-          <textarea
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder="Tell Fresh what you want to accomplish…"
-            rows={3}
-            aria-label="Tell Fresh what you want to accomplish"
-          />
-          <button
-            type="button"
-            disabled={!input.trim()}
-            onClick={() => setIntent({
-              id: "custom",
-              title: "Your goal",
-              description: "Fresh will use this as the starting context for your next step.",
-              prompt: input.trim(),
-            })}
-          >
-            Start with Fresh AI
-          </button>
+          <textarea value={input} onChange={(event) => setInput(event.target.value)} placeholder="Tell Fresh what you want to accomplish…" rows={3} aria-label="Tell Fresh what you want to accomplish" />
+          <button type="button" disabled={!input.trim()} onClick={() => setIntent({ id: "custom", title: "Your goal", description: "Fresh will use this as the starting context for your next step.", prompt: input.trim() })}>Start with Fresh AI</button>
         </div>
+        <button type="button" className="fresh-first__enter" onClick={continueToFresh}>Enter Fresh</button>
       </div>
 
       <div className="fresh-first__section">
         <div className="fresh-first__section-heading">
-          <div>
-            <span className="fresh-first__eyebrow">Start anywhere</span>
-            <h2>What are you here to do?</h2>
-          </div>
+          <div><span className="fresh-first__eyebrow">Start anywhere</span><h2>What are you here to do?</h2></div>
           <span className="fresh-first__privacy">You stay in control of what Fresh remembers.</span>
         </div>
-
         <div className="fresh-first__grid">
           {intents.map((item) => (
-            <button
-              type="button"
-              className="fresh-first__intent"
-              key={item.id}
-              onClick={() => setIntent(item)}
-            >
-              <strong>{item.title}</strong>
-              <span>{item.description}</span>
+            <button type="button" className="fresh-first__intent" key={item.id} onClick={() => setIntent(item)}>
+              <strong>{item.title}</strong><span>{item.description}</span>
             </button>
           ))}
         </div>
@@ -94,13 +69,8 @@ export default function FreshFirstExperience() {
 
       {intent && (
         <div className="fresh-first__next" role="status">
-          <div>
-            <span className="fresh-first__eyebrow">Fresh understood</span>
-            <h2>{intent.title}</h2>
-            <p>{intent.description}</p>
-            <code>{intent.prompt}</code>
-          </div>
-          <button type="button" onClick={() => setIntent(null)}>Change direction</button>
+          <div><span className="fresh-first__eyebrow">Fresh understood</span><h2>{intent.title}</h2><p>{intent.description}</p><code>{intent.prompt}</code></div>
+          <div className="fresh-first__actions"><button type="button" onClick={() => setIntent(null)}>Change direction</button><button type="button" onClick={continueToFresh}>Continue</button></div>
         </div>
       )}
     </section>
