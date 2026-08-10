@@ -5,12 +5,11 @@ import NotificationCenter from "./components/NotificationCenter";
 import GlobalSearchEntry from "./components/GlobalSearchEntry";
 import WorkspaceSwitcher from "./components/WorkspaceSwitcher";
 import { FeatureRegistry } from "./registry/FeatureRegistry";
-import { useLayout } from "./contexts/LayoutContext";
+import { useLayout } from "./contexts/useLayout";
 import FeatureLoader from "./services/featureLoader";
 
 export default function AppRouter() {
   const { activeRoute } = useLayout();
-
   const activeFeature = FeatureRegistry.getFeature(activeRoute);
 
   return (
