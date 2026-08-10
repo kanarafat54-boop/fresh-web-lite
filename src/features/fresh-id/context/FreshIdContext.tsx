@@ -10,9 +10,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { User } from "@supabase/supabase-js";
 
 import { supabase } from "../../../lib/supabase";
-import type { FreshUser } from "../types/user";
+import type { FreshUser, LinkedAccount } from "../types/user";
 
 type Passkey = {
   id: string;
@@ -45,7 +46,7 @@ function defaultUserFields() {
       tier: "free" as const,
       isTrial: false,
     },
-    linkedAccounts: [],
+    linkedAccounts: [] as LinkedAccount[],
     createdAt: now,
     updatedAt: now,
   };
@@ -170,7 +171,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
 
     supabase.auth.getSession().then(async ({ data }) => {
       if (data.session?.user) {
-        await loadUserProfile(data.session.user.id);
+        await loadUserProfile(data.session.user);
       } else {
         setLoading(false);
       }
@@ -183,7 +184,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (session?.user) {
-        await loadUserProfile(session.user.id);
+        await loadUserProfile(session.user);
       } else if (!isGuest) {
         setUser(null);
       }
@@ -192,12 +193,56 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  async function loadUserProfile(userId: string) {
+  async function provisionUserProfile(authUser: User): Promise<boolean> {
+    const defaults = defaultUserFields();
+    const email = authUser.email ?? "";
+    const metadata = authUser.user_metadata ?? {};
+    const baseUsername = String(metadata.user_name ?? metadata.preferred_username ?? email.split("@")[0] ?? "user")
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, "")
+      .slice(0, 24) || "user";
+    const username = `${baseUsername}_${authUser.id.slice(0, 8)}`;
+    const fullName = String(metadata.full_name ?? metadata.name ?? baseUsername);
+    const googleIdentity = authUser.identities?.find((identity) => identity.provider === "google");
+    const provider = authUser.app_metadata?.provider;
+    const linkedAccounts: LinkedAccount[] = provider === "google"
+      ? [{
+          provider: "google",
+          providerId: googleIdentity?.id ?? authUser.id,
+          linkedAt: new Date().toISOString(),
+        }]
+      : defaults.linkedAccounts;
+
+    const { error: insertError } = await supabase.from("users").insert({
+      id: authUser.id,
+      username,
+      email,
+      full_name: fullName,
+      role: "user",
+      verified: Boolean(authUser.email_confirmed_at),
+      presence: "online",
+      identity: defaults.identity,
+      preferences: defaults.preferences,
+      stats: defaults.stats,
+      security: defaults.security,
+      subscription: defaults.subscription,
+      linked_accounts: linkedAccounts,
+    });
+
+    if (insertError) {
+      setError("Your sign-in succeeded, but Fresh ID could not create your profile. Please contact support.");
+      return false;
+    }
+
+    return true;
+  }
+
+  async function loadUserProfile(authUser: User) {
     setLoading(true);
     const { data, error: fetchError } = await supabase
       .from("users")
       .select("*")
-      .eq("id", userId)
+      .eq("id", authUser.id)
       .maybeSingle();
 
     if (fetchError) {
@@ -207,13 +252,57 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
 
     if (!data) {
-      setError("We couldn't find a profile for this account. Please contact support.");
-      await supabase.auth.signOut();
+      const created = await provisionUserProfile(authUser);
+      if (!created) {
+        await supabase.auth.signOut();
+        setLoading(false);
+        return;
+      }
+
+      const { data: createdProfile, error: createdFetchError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", authUser.id)
+        .maybeSingle();
+
+      if (createdFetchError || !createdProfile) {
+        setError("Your account was authenticated, but your Fresh ID profile is not available yet.");
+        setLoading(false);
+        return;
+      }
+
+      setUser(dbRowToFreshUser(createdProfile as Record<string, unknown>));
+      setIsGuest(false);
+      setError(null);
+      setMessage("Your Fresh ID account is connected.");
       setLoading(false);
       return;
     }
 
-    setUser(dbRowToFreshUser(data as Record<string, unknown>));
+    const currentUser = dbRowToFreshUser(data as Record<string, unknown>);
+    const provider = authUser.app_metadata?.provider;
+    if (provider === "google") {
+      const googleIdentity = authUser.identities?.find((identity) => identity.provider === "google");
+      const linked = currentUser.linkedAccounts ?? [];
+      const alreadyLinked = linked.some((account) => account.provider === "google");
+      if (!alreadyLinked) {
+        const nextLinkedAccounts: LinkedAccount[] = [
+          ...linked,
+          {
+            provider: "google",
+            providerId: googleIdentity?.id ?? authUser.id,
+            linkedAt: new Date().toISOString(),
+          },
+        ];
+        const { error: linkError } = await supabase
+          .from("users")
+          .update({ linked_accounts: nextLinkedAccounts })
+          .eq("id", authUser.id);
+        if (!linkError) currentUser.linkedAccounts = nextLinkedAccounts;
+      }
+    }
+
+    setUser(currentUser);
     setIsGuest(false);
     setError(null);
     setLoading(false);
@@ -272,7 +361,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    await loadUserProfile(data.user.id);
+    await loadUserProfile(data.user);
   }
 
   async function login(email: string, password: string) {
@@ -294,7 +383,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    await loadUserProfile(data.user.id);
+    await loadUserProfile(data.user);
   }
 
   async function loginWithPasskey() {
@@ -315,7 +404,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    await loadUserProfile(data.user.id);
+    await loadUserProfile(data.user);
   }
 
   async function registerPasskey(): Promise<Passkey | null> {
