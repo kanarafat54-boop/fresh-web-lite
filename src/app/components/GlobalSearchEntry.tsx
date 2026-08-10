@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { FeatureRegistry } from "../registry/FeatureRegistry";
-import { useLayout } from "../contexts/LayoutContext";
+import { useLayout } from "../contexts/useLayout";
 import { SearchIcon, XCircleIcon } from "../../components/Icons";
 
 export default function GlobalSearchEntry() {
