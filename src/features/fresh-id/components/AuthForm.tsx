@@ -19,6 +19,7 @@ export function AuthForm() {
     setAuthView,
     requestPasswordReset,
     updatePassword,
+    passkeySupported,
   } = useFreshId();
 
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -102,9 +103,17 @@ export function AuthForm() {
 
       {mode === "login" && (
         <>
-          <button className="auth-submit-btn" onClick={() => void loginWithPasskey()} disabled={loading}>
-            {loading ? "Verifying..." : "Sign in with biometrics"}
+          <button
+            className="auth-submit-btn"
+            onClick={() => void loginWithPasskey()}
+            disabled={loading || !passkeySupported}
+            title={!passkeySupported ? "Passkeys require HTTPS/localhost and browser support" : "Use your device biometric, PIN, or security key"}
+          >
+            {loading ? "Verifying..." : passkeySupported ? "Sign in with biometrics" : "Biometrics unavailable here"}
           </button>
+          {!passkeySupported && (
+            <p className="auth-message">Use the HTTPS Vercel deployment and enable a screen lock, fingerprint, or other passkey authenticator on this device.</p>
+          )}
           <button className="auth-tab" onClick={() => setAuthView("forgot-password")}>Forgot password?</button>
         </>
       )}
