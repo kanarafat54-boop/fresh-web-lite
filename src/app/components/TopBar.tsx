@@ -1,4 +1,4 @@
-import { useLayout } from "../contexts/LayoutContext";
+import { useLayout } from "../contexts/useLayout";
 
 export default function TopBar() {
   const { toggleSidebar } = useLayout();
