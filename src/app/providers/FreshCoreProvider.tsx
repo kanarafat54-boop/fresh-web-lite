@@ -1,94 +1,46 @@
+import { useContext, useEffect, useState, type ReactNode } from "react";
+import { contextService } from "../../core/fresh-core";
+import { FreshCoreContext } from "./FreshCoreContext";
 
-import {
-createContext,
-useContext,
-useEffect,
-useState
-} from "react";
+export function FreshCoreProvider({ children }: { children: ReactNode }) {
+  const [ready, setReady] = useState(false);
 
-import {
-contextService
-} from "../../core/fresh-core";
+  useEffect(() => {
+    contextService.initialize({
+      userId: "guest",
+      activeSpace: "ai",
+      goals: [],
+      interests: [],
+      skills: [],
+      projects: [],
+      device: {
+        platform: navigator.platform,
+        type: "web",
+      },
+      timestamp: new Date().toISOString(),
+    });
 
+    setReady(true);
+  }, []);
 
-const FreshCoreContext =
-createContext<any>(null);
-
-
-
-export function FreshCoreProvider(
-{
-children
-}:{
-children:React.ReactNode
-}
-){
-
-
-const [ready,setReady]=useState(false);
-
-
-
-useEffect(()=>{
-
-
-contextService.initialize({
-
-userId:"guest",
-
-activeSpace:"ai",
-
-goals:[],
-
-interests:[],
-
-skills:[],
-
-projects:[],
-
-device:{
-platform:navigator.platform,
-type:"web"
-},
-
-timestamp:
-new Date().toISOString()
-
-});
-
-
-setReady(true);
-
-
-},[]);
-
-
-
-return (
-
-<FreshCoreContext.Provider
-value={{
-ready,
-context:contextService.get()
-}}
->
-
-{children}
-
-</FreshCoreContext.Provider>
-
-);
-
-
+  return (
+    <FreshCoreContext.Provider
+      value={{
+        ready,
+        context: contextService.get(),
+      }}
+    >
+      {children}
+    </FreshCoreContext.Provider>
+  );
 }
 
+export function useFreshCore() {
+  const value = useContext(FreshCoreContext);
 
+  if (!value) {
+    throw new Error("useFreshCore must be used inside FreshCoreProvider");
+  }
 
-export function useFreshCore(){
-
-return useContext(
-FreshCoreContext
-);
-
+  return value;
 }
-
