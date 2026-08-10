@@ -87,6 +87,36 @@ function createMockUser(): FreshUser {
 
 type AuthView = "form" | "check-email" | "reset-password" | "forgot-password";
 
+function passkeyErrorMessage(error: { message?: string; code?: string } | null, action: "sign-in" | "register") {
+  const code = error?.code ?? "";
+  const message = error?.message ?? "";
+  const normalized = `${code} ${message}`.toLowerCase();
+
+  if (normalized.includes("passkey_disabled")) {
+    return "Fresh ID biometric sign-in is not enabled for this deployment yet. Enable Passkeys in the Supabase Authentication settings, then try again.";
+  }
+  if (normalized.includes("not supported") || normalized.includes("webauthn") && normalized.includes("support")) {
+    return "This browser or device does not support passkey authentication. Try a current HTTPS browser with a screen lock or biometric authenticator enabled.";
+  }
+  if (normalized.includes("credential_not_found")) {
+    return "No registered Fresh ID passkey was found on this device. Sign in with your password first, then enable biometric sign-in from your account security panel.";
+  }
+  if (normalized.includes("credential_exists")) {
+    return "This device is already registered for Fresh ID biometric sign-in.";
+  }
+  if (normalized.includes("origin") || normalized.includes("rp_id") || normalized.includes("relying party")) {
+    return "The biometric security configuration does not match this website's domain. Check the Supabase WebAuthn relying-party ID and allowed origins.";
+  }
+  if (normalized.includes("cancel") || normalized.includes("abort")) {
+    return action === "register"
+      ? "Biometric registration was cancelled. No credential was added."
+      : "Biometric sign-in was cancelled.";
+  }
+  return message || (action === "register"
+    ? "Could not register this device for Fresh ID biometric sign-in."
+    : "Biometric sign-in failed. Please try again.");
+}
+
 interface FreshIdContextValue {
   user: FreshUser | null;
   isAuthenticated: boolean;
@@ -95,6 +125,7 @@ interface FreshIdContextValue {
   error: string | null;
   message: string | null;
   authView: AuthView;
+  passkeySupported: boolean;
   setAuthView: (view: AuthView) => void;
   register: (email: string, password: string, username: string, fullName: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
@@ -118,6 +149,16 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [authView, setAuthView] = useState<AuthView>("form");
+  const [passkeySupported, setPasskeySupported] = useState(false);
+
+  useEffect(() => {
+    const supported =
+      window.isSecureContext &&
+      typeof window.PublicKeyCredential !== "undefined" &&
+      typeof navigator.credentials?.create === "function" &&
+      typeof navigator.credentials?.get === "function";
+    setPasskeySupported(supported);
+  }, []);
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -259,17 +300,17 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
   async function loginWithPasskey() {
     setError(null);
     setMessage(null);
-    setLoading(true);
 
-    if (!window.isSecureContext) {
-      setError("Biometric sign-in requires HTTPS. Use the deployed Fresh Web Lite site or localhost.");
-      setLoading(false);
+    if (!passkeySupported) {
+      setError("Biometric sign-in is unavailable here. Use HTTPS (or localhost) and a browser/device that supports passkeys.");
       return;
     }
 
+    setLoading(true);
     const { data, error: passkeyError } = await supabase.auth.signInWithPasskey();
+
     if (passkeyError || !data.user) {
-      setError(passkeyError?.message ?? "Biometric sign-in failed or was cancelled.");
+      setError(passkeyErrorMessage(passkeyError, "sign-in"));
       setLoading(false);
       return;
     }
@@ -286,8 +327,8 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       return null;
     }
 
-    if (!window.isSecureContext) {
-      setError("Biometric setup requires HTTPS. Use the deployed Fresh Web Lite site or localhost.");
+    if (!passkeySupported) {
+      setError("Biometric setup is unavailable here. Use the deployed HTTPS Fresh Web Lite site or localhost with a supported browser/device.");
       return null;
     }
 
@@ -296,7 +337,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     setLoading(false);
 
     if (passkeyError || !data) {
-      setError(passkeyError?.message ?? "Could not register this device for biometric sign-in.");
+      setError(passkeyErrorMessage(passkeyError, "register"));
       return null;
     }
 
@@ -308,7 +349,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     if (!user || isGuest) return [];
     const { data, error: passkeyError } = await supabase.auth.passkey.list();
     if (passkeyError) {
-      setError(passkeyError.message);
+      setError(passkeyErrorMessage(passkeyError, "register"));
       return [];
     }
     return (data ?? []) as Passkey[];
@@ -385,7 +426,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <FreshIdContext.Provider value={{ user, isAuthenticated: user !== null, isGuest, loading, error, message, authView, setAuthView, register, login, loginWithPasskey, registerPasskey, listPasskeys, removePasskey, loginAsGuest, logout, updateUser, requestPasswordReset, updatePassword }}>
+    <FreshIdContext.Provider value={{ user, isAuthenticated: user !== null, isGuest, loading, error, message, authView, passkeySupported, setAuthView, register, login, loginWithPasskey, registerPasskey, listPasskeys, removePasskey, loginAsGuest, logout, updateUser, requestPasswordReset, updatePassword }}>
       {children}
     </FreshIdContext.Provider>
   );
