@@ -2,17 +2,26 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 
 type Theme = "dark" | "light";
 
-const THEME_KEY = "fresh_theme";
+type ThemeContextValue = {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+  toggle: () => void;
+};
 
-const ThemeContext = createContext<{ theme: Theme; setTheme: (t: Theme) => void; toggle: () => void } | null>(null);
+const THEME_KEY = "fresh_theme";
+const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+function getSystemTheme(): Theme {
+  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+
+function getStoredTheme(): Theme | null {
+  const stored = localStorage.getItem(THEME_KEY);
+  return stored === "light" || stored === "dark" ? stored : null;
+}
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const getSystem = (): Theme => (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-
-  const [theme, setThemeState] = useState<Theme>(() => {
-    const saved = localStorage.getItem(THEME_KEY) as Theme | null;
-    return saved ?? getSystem();
-  });
+  const [theme, setThemeState] = useState<Theme>(() => getStoredTheme() ?? getSystemTheme());
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -20,25 +29,34 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [theme]);
 
   useEffect(() => {
-    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+
     const onChange = () => {
-      const saved = localStorage.getItem(THEME_KEY);
-      if (!saved) {
-        setThemeState(getSystem());
+      if (getStoredTheme() === null) {
+        setThemeState(getSystemTheme());
       }
     };
-    mq.addEventListener ? mq.addEventListener("change", onChange) : mq.addListener(onChange as any);
-    return () => (mq.removeEventListener ? mq.removeEventListener("change", onChange) : mq.removeListener(onChange as any));
+
+    mediaQuery.addEventListener("change", onChange);
+    return () => mediaQuery.removeEventListener("change", onChange);
   }, []);
 
-  const setTheme = (t: Theme) => setThemeState(t);
-  const toggle = () => setThemeState((t) => (t === "dark" ? "light" : "dark"));
+  const setTheme = (nextTheme: Theme) => setThemeState(nextTheme);
+  const toggle = () => setThemeState((current) => (current === "dark" ? "light" : "dark"));
 
-  return <ThemeContext.Provider value={{ theme, setTheme, toggle }}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme, toggle }}>
+      {children}
+    </ThemeContext.Provider>
+  );
 };
 
 export function useTheme() {
-  const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error("useTheme must be used inside ThemeProvider");
-  return ctx;
+  const context = useContext(ThemeContext);
+
+  if (!context) {
+    throw new Error("useTheme must be used inside ThemeProvider");
+  }
+
+  return context;
 }
