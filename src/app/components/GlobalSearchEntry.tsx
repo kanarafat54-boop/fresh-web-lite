@@ -2,11 +2,26 @@ import { useState } from "react";
 import { FeatureRegistry } from "../registry/FeatureRegistry";
 import { useLayout } from "../contexts/useLayout";
 import { SearchIcon, XCircleIcon } from "../../components/Icons";
-import { runIntelligence, type IntelligenceResponse } from "../../features/ai/intelligence";
+import {
+  runIntelligence,
+  type IntelligenceResponse,
+  type ResearchMode,
+} from "../../features/ai/intelligence";
+
+const RESEARCH_MODES: Array<{ id: ResearchMode; label: string }> = [
+  { id: "global", label: "Global" },
+  { id: "deep", label: "Deep" },
+  { id: "live", label: "Live" },
+  { id: "academic", label: "Academic" },
+  { id: "business", label: "Business" },
+  { id: "people", label: "People" },
+  { id: "local", label: "Local" },
+];
 
 export default function GlobalSearchEntry() {
   const { searchOverlayOpen, openSearch, closeSearch, setActiveRoute } = useLayout();
   const [query, setQuery] = useState("");
+  const [researchMode, setResearchMode] = useState<ResearchMode>("global");
   const [research, setResearch] = useState<IntelligenceResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +43,8 @@ export default function GlobalSearchEntry() {
         prompt: trimmed,
         query: trimmed,
         task: "research",
-        maxSources: 12,
+        researchMode,
+        maxSources: researchMode === "deep" || researchMode === "global" ? 12 : 8,
       });
       setResearch(response);
     } catch (reason) {
@@ -69,6 +85,19 @@ export default function GlobalSearchEntry() {
           </button>
         </div>
 
+        <div className="fresh-search-modes" aria-label="Research mode">
+          {RESEARCH_MODES.map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              className={researchMode === mode.id ? "search-mode active" : "search-mode"}
+              onClick={() => setResearchMode(mode.id)}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+
         {query.trim() && (
           <button className="share-option-btn" onClick={() => void searchWorld()} disabled={loading}>
             {loading ? "Fresh is researching..." : `Search the world for “${query.trim()}”`}
@@ -79,7 +108,7 @@ export default function GlobalSearchEntry() {
 
         {research && (
           <div className="fresh-global-research" onClick={(e) => e.stopPropagation()}>
-            <strong>Fresh Global Research</strong>
+            <strong>Fresh Global Research · {research.researchMode ?? researchMode}</strong>
             <p>{research.text}</p>
             {research.sources?.map((source) => (
               <a key={`${source.url}-${source.title}`} href={source.url} target="_blank" rel="noreferrer">
