@@ -1,5 +1,6 @@
 import { semanticStore } from "./semanticStore";
 import type { SemanticClaim, SemanticEvidence } from "./types";
+import { classifyEvidenceForClaim } from "./evidenceStance";
 
 export type ClaimRelation = "same" | "supporting" | "contradictory" | "unrelated";
 export type Claim = {
@@ -31,7 +32,7 @@ const similarity = (a: string, b: string): number => {
   let intersection = 0; for (const token of left) if (right.has(token)) intersection++;
   return intersection / new Set([...left, ...right]).size;
 };
-const evidenceForClaim = (statement: string): SemanticEvidence[] => semanticStore.getEvidence().filter((item) => similarity(item.claim, statement) >= 0.35);
+const evidenceForClaim = (statement: string): SemanticEvidence[] => semanticStore.getEvidence().filter((item) => similarity(item.claim, statement) >= 0.22);
 const evidenceBalance = (supporting: SemanticEvidence[], counter: SemanticEvidence[]): number => {
   const total = supporting.length + counter.length; return total === 0 ? 0 : (supporting.length - counter.length) / total;
 };
@@ -61,8 +62,9 @@ export function compareClaims(left: Claim, right: Claim): { relation: ClaimRelat
 export function assessClaim(input: Omit<Claim, "normalizedStatement">): ClaimAssessment {
   const claim = createClaim(input);
   const evidence = evidenceForClaim(claim.statement);
-  const supportingEvidence = evidence.filter((item) => item.supports !== false);
-  const counterEvidence = evidence.filter((item) => item.supports === false);
+  const stance = classifyEvidenceForClaim(claim, evidence);
+  const supportingEvidence = evidence.filter((item) => stance.find((assessment) => assessment.evidenceId === item.id)?.stance === "supports");
+  const counterEvidence = evidence.filter((item) => stance.find((assessment) => assessment.evidenceId === item.id)?.stance === "contradicts");
   let relationToExisting: ClaimRelation = "unrelated";
   let bestSimilarity = 0;
   let rationale = "No sufficiently related existing claim was found.";
@@ -89,12 +91,13 @@ export function assessClaim(input: Omit<Claim, "normalizedStatement">): ClaimAss
 
   if (supportingEvidence.length && counterEvidence.length) {
     relationToExisting = "contradictory";
-    rationale = "Evidence currently contains both supporting and counter-evidence; the claim remains contested.";
+    rationale = "Claim-relative evidence contains both supporting and contradictory signals; the claim remains contested.";
   }
   const balance = evidenceBalance(supportingEvidence, counterEvidence);
-  const sourceCount = new Set(evidence.map((item) => item.sourceUrl)).size;
+  const sourceCount = new Set(supportingEvidence.concat(counterEvidence).map((item) => item.sourceUrl)).size;
   const diversityBonus = Math.min(0.12, Math.max(0, sourceCount - 1) * 0.03);
-  const confidence = Math.max(0, Math.min(1, input.confidence * 0.65 + (balance + 1) * 0.17 + diversityBonus));
+  const stanceConfidence = stance.length ? stance.reduce((sum, item) => sum + item.confidence, 0) / stance.length : 0;
+  const confidence = Math.max(0, Math.min(1, input.confidence * 0.45 + stanceConfidence * 0.25 + (balance + 1) * 0.17 + diversityBonus));
   return { claim, relationToExisting, similarity: bestSimilarity, supportingEvidence, counterEvidence, confidence, rationale };
 }
 
