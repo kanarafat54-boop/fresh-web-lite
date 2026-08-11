@@ -1,13 +1,16 @@
-import type { SemanticClaim, SemanticEvidence } from "./types";
+import type { ClaimAssessment, SemanticClaim, SemanticEvidence } from "./types";
 import { semanticStore } from "./semanticStore";
 import { ingestWebResearch, type WebResearchIngestion } from "./webResearchBridge";
-import { assessClaim, registerClaim, type Claim } from "./claimIntelligence";
+import { assessClaim, compareClaims, registerClaim, type Claim } from "./claimIntelligence";
 import { assessClaimConfidence } from "./claimConfidence";
 import { buildEvidenceLineage } from "./evidenceLineage";
 import { arbitrateClaimSet, type BeliefArbitration } from "./beliefArbitration";
 import { assessClaimInTemporalContext, type TemporalClaimRecord } from "./temporalClaimEngine";
 
-export type ResearchClaimInput = Omit<Claim, "normalizedStatement"> & { evidenceIds?: string[]; counterEvidenceIds?: string[] };
+export type ResearchClaimInput = Omit<Claim, "normalizedStatement"> & {
+  evidenceIds?: string[];
+  counterEvidenceIds?: string[];
+};
 
 export type SemanticResearchPipelineResult = {
   knowledge: ReturnType<typeof ingestWebResearch>;
@@ -23,6 +26,25 @@ function evidenceForClaim(claim: SemanticClaim): SemanticEvidence[] {
   return semanticStore.getEvidence().filter((item) => ids.has(item.id));
 }
 
+function toClaimInput(claim: SemanticClaim): Omit<Claim, "normalizedStatement"> {
+  return {
+    id: claim.id,
+    subjectEntityId: claim.subjectEntityId ?? "",
+    predicate: claim.predicate,
+    object: String(claim.object),
+    statement: `${claim.predicate} ${String(claim.object)}`,
+    observedAt: claim.lastObservedAt,
+    validFrom: claim.validFrom,
+    validTo: claim.validTo,
+    confidence: claim.confidence,
+  };
+}
+
+function toTemporalAssessment(assessment: ReturnType<typeof compareClaims>): ClaimAssessment {
+  const relation = assessment.relation === "supporting" ? "supports" : assessment.relation === "contradictory" ? "contradicts" : assessment.relation;
+  return { relation, confidence: assessment.confidence, reasons: [assessment.rationale] };
+}
+
 export function runSemanticResearchPipeline(
   research: WebResearchIngestion,
   extractedClaims: ResearchClaimInput[],
@@ -32,25 +54,31 @@ export function runSemanticResearchPipeline(
   const claims: SemanticClaim[] = [];
 
   for (const input of extractedClaims) {
-    const assessment = assessClaim({ ...input, observedAt: input.observedAt ?? assessedAt });
-    const evidenceIds = input.evidenceIds ?? assessment.supportingEvidence.map((item) => item.id);
-    const counterEvidenceIds = input.counterEvidenceIds ?? assessment.counterEvidence.map((item) => item.id);
+    const initial = assessClaim({ ...input, observedAt: input.observedAt ?? assessedAt });
+    const evidenceIds = input.evidenceIds ?? initial.supportingEvidence.map((item) => item.id);
+    const counterEvidenceIds = input.counterEvidenceIds ?? initial.counterEvidence.map((item) => item.id);
     const claim: SemanticClaim = {
-      ...assessment.claim,
-      subjectEntityId: assessment.claim.subjectEntityId || undefined,
-      status: assessment.counterEvidence.length && assessment.supportingEvidence.length ? "contested" : assessment.supportingEvidence.length ? "supported" : "uncertain",
-      confidence: assessment.confidence,
+      ...initial.claim,
+      subjectEntityId: initial.claim.subjectEntityId || undefined,
+      status: initial.counterEvidence.length && initial.supportingEvidence.length ? "contested" : initial.supportingEvidence.length ? "supported" : "uncertain",
+      confidence: initial.confidence,
       evidenceIds,
       counterEvidenceIds,
     };
-    registerClaim({ ...assessment, claim });
+    registerClaim({ ...initial, claim });
     claims.push(claim);
   }
 
   const confidence = claims.map((claim) => assessClaimConfidence(claim, evidenceForClaim(claim), new Map(), assessedAt));
   const lineage = buildEvidenceLineage(semanticStore.getEvidence());
   const arbitration = arbitrateClaimSet(claims);
-  const temporal = claims.map((claim) => assessClaimInTemporalContext(claim, [] as Array<{ claim: SemanticClaim; assessment: import("./types").ClaimAssessment }>, assessedAt));
+
+  const temporal = claims.map((claim) => {
+    const relatedClaims = claims
+      .filter((other) => other.id !== claim.id)
+      .map((other) => ({ claim: other, assessment: toTemporalAssessment(compareClaims(toClaimInput(claim), toClaimInput(other))) }));
+    return assessClaimInTemporalContext(claim, relatedClaims, assessedAt);
+  });
 
   return { knowledge, claims, confidence, lineage, arbitration, temporal };
 }
