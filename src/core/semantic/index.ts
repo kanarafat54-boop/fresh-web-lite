@@ -8,3 +8,4 @@ export * from "./worldKnowledge";
 export * from "./entityResolution";
 export * from "./claimIntelligence";
 export * from "./claimGraph";
+export * from "./temporalTruth";
