@@ -13,3 +13,4 @@ export * from "./temporalClaimEngine";
 export * from "./temporalRevision";
 export * from "./temporalHistory";
 export * from "./temporalQuery";
+export * from "./temporalExplanation";
