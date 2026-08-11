@@ -16,12 +16,15 @@ export type IntelligenceTask =
   | "planning"
   | "orchestration";
 
+export type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
+
 export type IntelligenceRequest = {
   prompt: string;
   task?: IntelligenceTask;
   query?: string;
   context?: readonly string[];
   maxSources?: number;
+  researchMode?: ResearchMode;
 };
 
 export type IntelligenceSource = {
@@ -37,6 +40,7 @@ export type IntelligenceResponse = {
   provider: string;
   sources?: readonly IntelligenceSource[];
   confidence?: "low" | "medium" | "high";
+  researchMode?: ResearchMode;
 };
 
 export interface IntelligenceConnector {
