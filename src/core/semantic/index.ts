@@ -10,3 +10,4 @@ export * from "./claimIntelligence";
 export * from "./claimGraph";
 export * from "./temporalTruth";
 export * from "./temporalClaimEngine";
+export * from "./temporalRevision";
