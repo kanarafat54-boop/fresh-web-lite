@@ -15,14 +15,16 @@ export type SemanticEntityType =
   | "custom";
 
 export type SemanticValue = string | number | boolean | null;
+export type SemanticSource = "user" | "system" | "connector" | "ai" | "inferred" | "imported" | "web";
 
 export type SemanticAttribute = {
   key: string;
   value: SemanticValue;
-  source: "user" | "system" | "connector" | "ai" | "inferred" | "imported";
+  source: SemanticSource;
   confidence?: number;
   observedAt: string;
   verified?: boolean;
+  provenance?: string[];
 };
 
 export type SemanticEntity = {
@@ -39,13 +41,26 @@ export type SemanticRelation = {
   fromEntityId: string;
   relation: string;
   toEntityId: string;
-  source: SemanticAttribute["source"];
+  source: SemanticSource;
   confidence?: number;
   observedAt: string;
+  provenance?: string[];
 };
 
 export type SemanticObservation = {
   id: string;
   entityId: string;
   attribute: SemanticAttribute;
+};
+
+export type SemanticEvidence = {
+  id: string;
+  claim: string;
+  sourceUrl: string;
+  sourceTitle?: string;
+  provider: string;
+  observedAt: string;
+  publishedAt?: string;
+  confidence?: number;
+  supports?: boolean;
 };
