@@ -6,6 +6,7 @@ export * from "./webResearchBridge";
 export * from "./researchIngestion";
 export * from "./worldKnowledge";
 export * from "./entityResolution";
+export * from "./evidenceStance";
 export * from "./claimIntelligence";
 export * from "./claimGraph";
 export * from "./temporalTruth";
