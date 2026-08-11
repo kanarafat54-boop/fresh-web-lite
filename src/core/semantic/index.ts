@@ -5,3 +5,4 @@ export * from "./researchOrchestrator";
 export * from "./webResearchBridge";
 export * from "./researchIngestion";
 export * from "./worldKnowledge";
+export * from "./entityResolution";
