@@ -1,7 +1,10 @@
+type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
+
 type SearchRequest = {
   query?: string;
   maxSources?: number;
   context?: string[];
+  mode?: ResearchMode;
 };
 
 type TavilyResult = {
@@ -9,6 +12,17 @@ type TavilyResult = {
   url?: string;
   content?: string;
   published_date?: string;
+};
+
+const MODE_CONFIG: Record<ResearchMode, { searchDepth: "basic" | "advanced"; topic: "general" | "news"; prefix?: string }> = {
+  quick: { searchDepth: "basic", topic: "general" },
+  deep: { searchDepth: "advanced", topic: "general" },
+  global: { searchDepth: "advanced", topic: "general", prefix: "Search broadly across the global public web. Prefer diverse, authoritative sources from multiple regions and languages where relevant." },
+  live: { searchDepth: "advanced", topic: "news", prefix: "Prioritize current and recently published information." },
+  academic: { searchDepth: "advanced", topic: "general", prefix: "Prioritize academic, scientific, technical, institutional, and primary sources." },
+  business: { searchDepth: "advanced", topic: "general", prefix: "Prioritize company, market, regulatory, financial, and primary business sources." },
+  people: { searchDepth: "advanced", topic: "general", prefix: "Use public, relevant information only. Do not seek private or sensitive personal information." },
+  local: { searchDepth: "advanced", topic: "general", prefix: "Prioritize geographically relevant and local sources when the query contains a location." },
 };
 
 export default async function handler(req: Request): Promise<Response> {
@@ -36,11 +50,12 @@ export default async function handler(req: Request): Promise<Response> {
     return Response.json({ error: "query is required" }, { status: 400 });
   }
 
-  const maxResults = Math.min(Math.max(body.maxSources ?? 8, 1), 20);
+  const mode = body.mode ?? "global";
+  const config = MODE_CONFIG[mode];
+  const maxResults = Math.min(Math.max(body.maxSources ?? (mode === "deep" || mode === "global" ? 12 : 8), 1), 20);
   const context = (body.context ?? []).filter(Boolean).slice(0, 8);
-  const enrichedQuery = context.length
-    ? `${query}\nContext:\n${context.join("\n")}`
-    : query;
+  const modeInstruction = config.prefix ? `${config.prefix}\n` : "";
+  const enrichedQuery = `${modeInstruction}${query}${context.length ? `\nContext:\n${context.join("\n")}` : ""}`;
 
   try {
     const upstream = await fetch("https://api.tavily.com/search", {
@@ -49,8 +64,8 @@ export default async function handler(req: Request): Promise<Response> {
       body: JSON.stringify({
         api_key: apiKey,
         query: enrichedQuery,
-        search_depth: "advanced",
-        topic: "general",
+        search_depth: config.searchDepth,
+        topic: config.topic,
         max_results: maxResults,
         include_answer: true,
         include_raw_content: false,
@@ -82,6 +97,8 @@ export default async function handler(req: Request): Promise<Response> {
     return Response.json({
       answer: payload.answer ?? "",
       sources,
+      mode,
+      searchedAt: new Date().toISOString(),
     });
   } catch (error) {
     console.error("Fresh Web Research error", error);
