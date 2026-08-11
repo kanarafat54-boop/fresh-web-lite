@@ -20,16 +20,20 @@ export type ResearchSynthesis = {
     uniqueDomains: number;
     sourceDiversity: "low" | "medium" | "high";
     confidence: "low" | "medium" | "high";
+    independentPasses: number;
+    contradictionsDetected: boolean;
   };
 };
 
 const domainOf = (url: string): string => {
   try {
-    return new URL(url).hostname.replace(/^www\./, "");
+    return new URL(url).hostname.replace(/^www\\./, "");
   } catch {
     return "unknown";
   }
 };
+
+const normalize = (value: string): string => value.toLowerCase().replace(/[^a-z0-9\\s]/g, " ").replace(/\\s+/g, " ").trim();
 
 const uniqueByUrl = (sources: ResearchEvidence[]): ResearchEvidence[] => {
   const seen = new Set<string>();
@@ -40,6 +44,23 @@ const uniqueByUrl = (sources: ResearchEvidence[]): ResearchEvidence[] => {
   });
 };
 
+function detectContradictions(passes: ResearchPass[]): boolean {
+  const answers = passes.map((pass) => normalize(pass.answer)).filter(Boolean);
+  if (answers.length < 2) return false;
+
+  // Conservative heuristic: if independent passes have substantial lexical
+  // disagreement, flag the result for review rather than claiming certainty.
+  const tokenSets = answers.map((answer) => new Set(answer.split(" ").filter((token) => token.length > 3)));
+  for (let i = 0; i < tokenSets.length; i += 1) {
+    for (let j = i + 1; j < tokenSets.length; j += 1) {
+      const intersection = [...tokenSets[i]].filter((token) => tokenSets[j].has(token)).length;
+      const union = new Set([...tokenSets[i], ...tokenSets[j]]).size;
+      if (union > 20 && intersection / union < 0.12) return true;
+    }
+  }
+  return false;
+}
+
 export function synthesizeResearch(passes: ResearchPass[]): ResearchSynthesis {
   const usable = passes.filter((pass) => pass.answer || pass.sources.length > 0);
   const sources = uniqueByUrl(usable.flatMap((pass) => pass.sources));
@@ -47,16 +68,26 @@ export function synthesizeResearch(passes: ResearchPass[]): ResearchSynthesis {
     sources.map((source) => domainOf(source.url)).filter((domain) => domain !== "unknown"),
   );
   const passCount = usable.length;
+  const independentPasses = new Set(usable.flatMap((pass) => pass.sources.map((source) => source.provider))).size;
   const sourceDiversity = domains.size >= 6 ? "high" : domains.size >= 3 ? "medium" : "low";
+  const contradictionsDetected = detectContradictions(usable);
   const confidence =
-    sources.length >= 8 && domains.size >= 5 && passCount >= 2
+    !contradictionsDetected && sources.length >= 8 && domains.size >= 5 && passCount >= 2
       ? "high"
       : sources.length >= 3
         ? "medium"
         : "low";
 
+  // Keep provider-generated answers intact; the orchestration layer adds an
+  // explicit verification status rather than inventing facts or pretending
+  // that deterministic source aggregation is an LLM synthesis.
+  const primary = usable[0]?.answer ?? "Fresh found sources but could not produce a synthesized answer.";
+  const answer = contradictionsDetected
+    ? `${primary}\n\nFresh found potentially conflicting evidence across independent research passes. Review the cited sources before treating the result as settled.`
+    : primary;
+
   return {
-    answer: usable[0]?.answer ?? "Fresh found sources but could not produce a synthesized answer.",
+    answer,
     sources,
     verification: {
       passes: passCount,
@@ -64,6 +95,8 @@ export function synthesizeResearch(passes: ResearchPass[]): ResearchSynthesis {
       uniqueDomains: domains.size,
       sourceDiversity,
       confidence,
+      independentPasses,
+      contradictionsDetected,
     },
   };
 }
