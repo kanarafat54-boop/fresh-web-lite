@@ -1,0 +1,76 @@
+import type { TemporalTruthAssessment } from "./temporalTruth";
+import type { TemporalHistory, TemporalHistoryEvent } from "./temporalHistory";
+
+export type TemporalQueryResult<T> = {
+  data: T;
+  asOf: string;
+  generatedAt: string;
+};
+
+export type TemporalChange = {
+  claimId: string;
+  occurredAt: string;
+  previous?: TemporalTruthAssessment;
+  next: TemporalTruthAssessment;
+  reason?: string;
+};
+
+const now = () => new Date().toISOString();
+
+export function current(history: TemporalHistory, claimId: string, asOf = now()): TemporalQueryResult<TemporalTruthAssessment | undefined> {
+  const events = history.events.filter((event) => event.claimId === claimId && event.occurredAt <= asOf && event.assessment).sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
+  return { data: events.at(-1)?.assessment, asOf, generatedAt: now() };
+}
+
+export function asOf(history: TemporalHistory, claimId: string, timestamp: string): TemporalQueryResult<TemporalTruthAssessment | undefined> {
+  return current(history, claimId, timestamp);
+}
+
+export function historyOf(history: TemporalHistory, claimId: string): TemporalQueryResult<TemporalHistoryEvent[]> {
+  return { data: history.events.filter((event) => event.claimId === claimId).sort((a, b) => a.occurredAt.localeCompare(b.occurredAt)), asOf: now(), generatedAt: now() };
+}
+
+export function whenChanged(history: TemporalHistory, claimId: string): TemporalQueryResult<TemporalChange[]> {
+  const events = history.events.filter((event) => event.claimId === claimId && event.assessment).sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
+  const changes: TemporalChange[] = [];
+  for (let i = 0; i < events.length; i += 1) {
+    const event = events[i];
+    if (!event.assessment) continue;
+    const previous = i > 0 ? events[i - 1]?.assessment : undefined;
+    if (!previous || previous.status !== event.assessment.status || Math.abs(previous.confidence - event.assessment.confidence) >= 0.05) {
+      changes.push({ claimId, occurredAt: event.occurredAt, previous, next: event.assessment, reason: event.revision?.reason });
+    }
+  }
+  return { data: changes, asOf: now(), generatedAt: now() };
+}
+
+export function disputed(history: TemporalHistory, asOf = now()): TemporalQueryResult<TemporalTruthAssessment[]> {
+  const latest = new Map<string, TemporalTruthAssessment>();
+  for (const event of history.events) {
+    if (event.occurredAt <= asOf && event.assessment) latest.set(event.claimId, event.assessment);
+  }
+  return { data: [...latest.values()].filter((assessment) => assessment.status === "DISPUTED"), asOf, generatedAt: now() };
+}
+
+export function unknown(history: TemporalHistory, asOf = now()): TemporalQueryResult<TemporalTruthAssessment[]> {
+  const latest = new Map<string, TemporalTruthAssessment>();
+  for (const event of history.events) {
+    if (event.occurredAt <= asOf && event.assessment) latest.set(event.claimId, event.assessment);
+  }
+  return { data: [...latest.values()].filter((assessment) => assessment.status.startsWith("UNKNOWN")), asOf, generatedAt: now() };
+}
+
+export function changedBetween(history: TemporalHistory, from: string, to: string): TemporalQueryResult<TemporalChange[]> {
+  const events = history.events.filter((event) => event.occurredAt >= from && event.occurredAt <= to && event.assessment).sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
+  return { data: events.map((event) => ({ claimId: event.claimId, occurredAt: event.occurredAt, next: event.assessment!, reason: event.revision?.reason })), asOf: to, generatedAt: now() };
+}
+
+export function whyChanged(history: TemporalHistory, claimId: string, timestamp?: string): TemporalQueryResult<TemporalChange[]> {
+  const changes = whenChanged(history, claimId).data;
+  const filtered = timestamp ? changes.filter((change) => change.occurredAt <= timestamp) : changes;
+  return { data: filtered, asOf: timestamp ?? now(), generatedAt: now() };
+}
+
+export function whatIsUnknown(history: TemporalHistory, asOf = now()): TemporalQueryResult<string[]> {
+  return { data: unknown(history, asOf).data.map((assessment) => assessment.claimId), asOf, generatedAt: now() };
+}
