@@ -3,14 +3,14 @@ import type {
   IntelligenceRequest,
   IntelligenceResponse,
   IntelligenceSource,
+  ResearchMode,
 } from "./intelligenceConnectors";
 
 /**
- * Web research adapter.
+ * Global web research adapter.
  *
- * The browser must never receive search-provider secrets. The production
- * implementation therefore calls Fresh Web Lite's own server-side research
- * endpoint. That endpoint can fan out to authorized search/index providers.
+ * Provider credentials stay server-side. The browser talks only to Fresh's
+ * research endpoint, which can fan out to authorized search providers.
  */
 export const webResearchConnector: IntelligenceConnector = {
   id: "fresh-web-research",
@@ -21,30 +21,41 @@ export const webResearchConnector: IntelligenceConnector = {
     const query = (request.query ?? request.prompt).trim();
     if (!query) throw new Error("A research query is required.");
 
+    const researchMode: ResearchMode = request.researchMode ?? "global";
     const response = await fetch("/api/research/search", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         query,
-        maxSources: Math.min(Math.max(request.maxSources ?? 8, 1), 20),
+        maxSources: Math.min(Math.max(request.maxSources ?? (researchMode === "deep" || researchMode === "global" ? 12 : 8), 1), 20),
         context: request.context ?? [],
+        mode: researchMode,
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`Fresh Web Research failed with HTTP ${response.status}.`);
+      let message = `Fresh Web Research failed with HTTP ${response.status}.`;
+      try {
+        const failure = (await response.json()) as { error?: string };
+        if (failure.error) message = failure.error;
+      } catch {
+        // Preserve the HTTP-level diagnostic when the provider returns no JSON.
+      }
+      throw new Error(message);
     }
 
     const payload = (await response.json()) as {
       answer?: string;
       sources?: IntelligenceSource[];
+      mode?: ResearchMode;
     };
 
     return {
       provider: this.name,
       text: payload.answer ?? "Research results received without a synthesized answer.",
       sources: payload.sources ?? [],
-      confidence: payload.sources?.length ? "medium" : "low",
+      confidence: payload.sources?.length && payload.sources.length >= 3 ? "medium" : "low",
+      researchMode: payload.mode ?? researchMode,
     };
   },
 };
