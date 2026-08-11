@@ -19,3 +19,4 @@ export * from "./evidenceLineage";
 export * from "./claimConfidence";
 export * from "./contradictionResolution";
 export * from "./beliefArbitration";
+export * from "./semanticPipeline";
