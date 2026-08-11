@@ -3,3 +3,5 @@ export * from "./semanticStore";
 export * from "./researchProvenance";
 export * from "./researchOrchestrator";
 export * from "./webResearchBridge";
+export * from "./researchIngestion";
+export * from "./worldKnowledge";
