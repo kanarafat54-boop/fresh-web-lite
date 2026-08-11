@@ -1,5 +1,6 @@
 import { runIntelligence, type IntelligenceSource, type ResearchMode } from "../../features/ai/intelligence";
 import { createResearchEvidence, type ResearchEvidence } from "./researchProvenance";
+import { ingestWebResearch } from "./webResearchBridge";
 
 export type ResearchRun = {
   query: string;
@@ -8,6 +9,7 @@ export type ResearchRun = {
   sources: IntelligenceSource[];
   confidence: "low" | "medium" | "high";
   evidence: ResearchEvidence;
+  knowledge: ReturnType<typeof ingestWebResearch>;
 };
 
 export async function runGlobalResearch(
@@ -28,6 +30,12 @@ export async function runGlobalResearch(
 
   const sources = [...(response.sources ?? [])];
   const confidence = response.confidence ?? (sources.length >= 5 ? "medium" : "low");
+  const knowledge = ingestWebResearch({
+    query: normalized,
+    searchedAt: response.searchedAt ?? new Date().toISOString(),
+    sources,
+    confidence,
+  });
 
   return {
     query: normalized,
@@ -36,5 +44,6 @@ export async function runGlobalResearch(
     sources,
     confidence,
     evidence: createResearchEvidence(response.text, sources, confidence),
+    knowledge,
   };
 }
