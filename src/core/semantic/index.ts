@@ -17,3 +17,4 @@ export * from "./temporalExplanation";
 export * from "./sourceIntelligence";
 export * from "./evidenceLineage";
 export * from "./claimConfidence";
+export * from "./contradictionResolution";
