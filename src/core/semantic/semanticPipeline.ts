@@ -2,13 +2,13 @@ import type { ClaimAssessment, SemanticClaim, SemanticEvidence } from "./types";
 import { semanticStore } from "./semanticStore";
 import { ingestWebResearch, type WebResearchIngestion } from "./webResearchBridge";
 import { assessClaim, compareClaims, registerClaim, type Claim } from "./claimIntelligence";
-import { assessClaimConfidence } from "./claimConfidence";
+import { calibrateClaimConfidence } from "./confidenceCalibration";
 import { buildEvidenceLineage } from "./evidenceLineage";
 import { arbitrateClaimSet, type BeliefArbitration } from "./beliefArbitration";
 import { assessClaimInTemporalContext, type TemporalClaimRecord } from "./temporalClaimEngine";
 
 export type ResearchClaimInput = Omit<Claim, "normalizedStatement"> & { evidenceIds?: string[]; counterEvidenceIds?: string[] };
-export type SemanticResearchPipelineResult = { knowledge: ReturnType<typeof ingestWebResearch>; claims: SemanticClaim[]; confidence: ReturnType<typeof assessClaimConfidence>[]; lineage: ReturnType<typeof buildEvidenceLineage>; arbitration: BeliefArbitration[]; temporal: TemporalClaimRecord[] };
+export type SemanticResearchPipelineResult = { knowledge: ReturnType<typeof ingestWebResearch>; claims: SemanticClaim[]; confidence: ReturnType<typeof calibrateClaimConfidence>[]; lineage: ReturnType<typeof buildEvidenceLineage>; arbitration: BeliefArbitration[]; temporal: TemporalClaimRecord[] };
 
 function evidenceForClaim(claim: SemanticClaim): SemanticEvidence[] {
   const ids = new Set([...claim.evidenceIds, ...claim.counterEvidenceIds]);
@@ -38,10 +38,11 @@ export function runSemanticResearchPipeline(research: WebResearchIngestion, extr
   }
 
   const evidence = semanticStore.getEvidence();
-  const confidence = claims.map((claim) => assessClaimConfidence(claim, evidenceForClaim(claim), new Map(), assessedAt));
+  const confidence = claims.map((claim) => calibrateClaimConfidence(claim, evidenceForClaim(claim), [], [], claims, assessedAt));
   for (let i = 0; i < claims.length; i += 1) {
     const assessment = confidence[i];
-    claims[i] = { ...claims[i], confidence: assessment.confidence, status: assessment.counterEvidenceIds.length > 0 && assessment.supportingEvidenceIds.length > 0 ? "contested" : assessment.supportingEvidenceIds.length > 0 ? "supported" : "uncertain" };
+    const status = assessment.decision === "contested" ? "contested" : assessment.decision === "supported" ? "supported" : "uncertain";
+    claims[i] = { ...claims[i], confidence: assessment.confidence, status };
     semanticStore.upsertClaim(claims[i]);
   }
 
