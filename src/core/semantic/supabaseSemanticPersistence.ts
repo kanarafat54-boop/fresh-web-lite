@@ -7,14 +7,8 @@ type PersistenceInput = Parameters<SemanticPersistence["persistResearchGraph"]>[
 export function createSupabaseSemanticPersistence(): SemanticPersistence {
   const url = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !serviceRoleKey) {
-    throw new Error("Missing server Supabase environment variables.");
-  }
-
-  const client = createClient(url, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  if (!url || !serviceRoleKey) throw new Error("Missing server Supabase environment variables.");
+  const client = createClient(url, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
   return {
     async persistResearchGraph(input: PersistenceInput) {
