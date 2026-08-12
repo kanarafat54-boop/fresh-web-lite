@@ -37,15 +37,16 @@ export function runSemanticResearchPipeline(research: WebResearchIngestion, extr
     claims.push(claim);
   }
 
+  const evidence = semanticStore.getEvidence();
   const confidence = claims.map((claim) => assessClaimConfidence(claim, evidenceForClaim(claim), new Map(), assessedAt));
   for (let i = 0; i < claims.length; i += 1) {
     const assessment = confidence[i];
-    claims[i] = { ...claims[i], confidence: assessment.confidence };
+    claims[i] = { ...claims[i], confidence: assessment.confidence, status: assessment.counterEvidenceIds.length > 0 && assessment.supportingEvidenceIds.length > 0 ? "contested" : assessment.supportingEvidenceIds.length > 0 ? "supported" : "uncertain" };
     semanticStore.upsertClaim(claims[i]);
   }
 
-  const lineage = buildEvidenceLineage(semanticStore.getEvidence());
-  const arbitration = arbitrateClaimSet(claims);
+  const lineage = buildEvidenceLineage(evidence);
+  const arbitration = arbitrateClaimSet(claims, evidence, new Map(), assessedAt);
 
   const temporal = claims.map((claim) => {
     const relatedClaims = claims.filter((other) => other.id !== claim.id).map((other) => ({ claim: other, assessment: toTemporalAssessment(compareClaims(toClaimInput(claim), toClaimInput(other))) }));
