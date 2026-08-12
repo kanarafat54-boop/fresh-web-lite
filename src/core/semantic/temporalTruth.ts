@@ -8,9 +8,10 @@ export type TemporalTruthStatus =
   | "UNKNOWN_LOW_CONFIDENCE" | "UNKNOWN_OUTDATED" | "SUPPORTED";
 
 export type TemporalTruthAssessment = {
-  status: TemporalTruthStatus; validNow: boolean; historical: boolean; confidence: number;
+  claimId: string; status: TemporalTruthStatus; validNow: boolean; historical: boolean; confidence: number;
   observedAt: string; validFrom?: string; validTo?: string; reasons: string[];
   supportingClaimIds: string[]; conflictingClaimIds: string[];
+  supportingEvidenceIds: string[]; counterEvidenceIds: string[];
 };
 
 const toMs = (value?: string): number | undefined => value ? Date.parse(value) : undefined;
@@ -35,10 +36,11 @@ export function assessTemporalTruth(claim: SemanticClaim, now = new Date().toISO
     { start: other.validFrom ?? other.firstObservedAt, end: other.validTo },
   ));
   const supportingClaimIds = [claim.id]; const conflictingClaimIds = activeConflicts.map((item) => item.id);
-  if (claim.status === "contested" || activeConflicts.length > 0) return { status: "DISPUTED", validNow, historical, confidence: claim.confidence, observedAt: claim.lastObservedAt, validFrom: claim.validFrom, validTo: claim.validTo, reasons: ["Competing claims overlap the same temporal context."], supportingClaimIds, conflictingClaimIds };
-  if (claim.status === "unsubstantiated") return { status: "UNKNOWN_NO_DATA", validNow, historical, confidence: claim.confidence, observedAt: claim.lastObservedAt, validFrom: claim.validFrom, validTo: claim.validTo, reasons: ["No sufficient supporting evidence is available."], supportingClaimIds: [], conflictingClaimIds };
-  if (claim.status === "uncertain") return { status: "UNKNOWN_LOW_CONFIDENCE", validNow, historical, confidence: claim.confidence, observedAt: claim.lastObservedAt, validFrom: claim.validFrom, validTo: claim.validTo, reasons: ["Evidence exists but confidence is insufficient."], supportingClaimIds, conflictingClaimIds };
-  if (historical) return { status: "HISTORICAL", validNow: false, historical: true, confidence: claim.confidence, observedAt: claim.lastObservedAt, validFrom: claim.validFrom, validTo: claim.validTo, reasons: ["The validity window has ended."], supportingClaimIds, conflictingClaimIds };
-  if (validNow) return { status: "CURRENT", validNow: true, historical: false, confidence: claim.confidence, observedAt: claim.lastObservedAt, validFrom: claim.validFrom, validTo: claim.validTo, reasons: ["The validity window includes the requested time."], supportingClaimIds, conflictingClaimIds };
-  return { status: "UNKNOWN_OUTDATED", validNow: false, historical: false, confidence: claim.confidence, observedAt: claim.lastObservedAt, validFrom: claim.validFrom, validTo: claim.validTo, reasons: ["The claim does not cover the requested time."], supportingClaimIds, conflictingClaimIds };
+  const base = { claimId: claim.id, validNow, historical, confidence: claim.confidence, observedAt: claim.lastObservedAt, validFrom: claim.validFrom, validTo: claim.validTo, supportingClaimIds, conflictingClaimIds, supportingEvidenceIds: claim.evidenceIds, counterEvidenceIds: claim.counterEvidenceIds };
+  if (claim.status === "contested" || activeConflicts.length > 0) return { ...base, status: "DISPUTED", reasons: ["Competing claims overlap the same temporal context."] };
+  if (claim.status === "unsubstantiated") return { ...base, status: "UNKNOWN_NO_DATA", supportingClaimIds: [], reasons: ["No sufficient supporting evidence is available."] };
+  if (claim.status === "uncertain") return { ...base, status: "UNKNOWN_LOW_CONFIDENCE", reasons: ["Evidence exists but confidence is insufficient."] };
+  if (historical) return { ...base, status: "HISTORICAL", validNow: false, historical: true, reasons: ["The validity window has ended."] };
+  if (validNow) return { ...base, status: "CURRENT", validNow: true, historical: false, reasons: ["The validity window includes the requested time."] };
+  return { ...base, status: "UNKNOWN_OUTDATED", validNow: false, historical: false, reasons: ["The claim does not cover the requested time."] };
 }
