@@ -9,7 +9,9 @@ export type CalibratedConfidence = ClaimConfidenceAssessment & {
   independenceClusters: number;
   provenanceIndependentSources: number;
   relationPenalty: number;
-  calibrationVersion: "v2";
+  actionable: boolean;
+  decision: "supported" | "contested" | "insufficient_evidence";
+  calibrationVersion: "v3";
 };
 
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
@@ -36,5 +38,8 @@ export function calibrateClaimConfidence(
     return penalty;
   }, 0);
   const calibrated = clamp(base.confidence - relationPenalty);
-  return { ...base, rawConfidence: base.confidence, confidence: calibrated, independenceClusters: clusters.length, provenanceIndependentSources: independentSources, relationPenalty, calibrationVersion: "v2" };
+  const hasCounterEvidence = claim.counterEvidenceIds.some((id) => relevant.some((item) => item.id === id));
+  const decision = relevant.length === 0 ? "insufficient_evidence" : hasCounterEvidence ? "contested" : "supported";
+  const actionable = decision === "supported" && calibrated >= 0.80 && independentSources >= 1 && clusters.length >= 1;
+  return { ...base, rawConfidence: base.confidence, confidence: calibrated, independenceClusters: clusters.length, provenanceIndependentSources: independentSources, relationPenalty, actionable, decision, calibrationVersion: "v3" };
 }
