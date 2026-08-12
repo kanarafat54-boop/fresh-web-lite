@@ -1,75 +1,92 @@
 import { createSupabaseSemanticPersistence } from "../../src/core/semantic/supabaseSemanticPersistence";
+import { assessEvidenceStance } from "../../src/core/semantic/evidenceStance";
+import { assessClaimConfidence } from "../../src/core/semantic/claimConfidence";
+import { arbitrateClaimSet } from "../../src/core/semantic/beliefArbitration";
+import { compareClaims, type Claim } from "../../src/core/semantic/claimIntelligence";
 import type { SemanticClaim, SemanticEvidence } from "../../src/core/semantic/types";
 import type { ResearchResult } from "../../src/core/research/contracts";
 
-/**
- * Converts the trusted research boundary into the durable Fresh Intelligence graph.
- * This module is server-only: it uses SUPABASE_SERVICE_ROLE_KEY indirectly through
- * createSupabaseSemanticPersistence and must never be imported by browser code.
- */
+/** Server-only bridge: research -> claim intelligence -> durable semantic graph. */
 export async function persistSemanticResearch(result: ResearchResult): Promise<void> {
+  const researchedAt = result.researchedAt;
+  const sources = result.sources.map((source) => ({ id: `research-source-${hash(source.url)}`, provider: source.provider, name: source.title, url: source.url, metadata: { publishedAt: source.publishedAt } }));
+  const sourceIdByUrl = new Map(sources.filter((s) => s.url).map((s) => [s.url as string, s.id]));
   const evidence: SemanticEvidence[] = result.sources.map((source, index) => ({
     id: `research-evidence-${hash(`${result.query}:${source.url}:${index}`)}`,
     claim: source.snippet ?? source.title,
     sourceUrl: source.url,
     sourceTitle: source.title,
     provider: source.provider,
-    observedAt: result.researchedAt,
+    sourceId: sourceIdByUrl.get(source.url),
+    observedAt: researchedAt,
     publishedAt: source.publishedAt,
     confidence: source.snippet ? 0.6 : 0.35,
   }));
 
-  const evidenceByUrl = new Map(result.sources.map((source, index) => [source.url, evidence[index]]));
-  const claims: SemanticClaim[] = result.claims.map((claim) => {
-    const ids = claim.sourceUrls.map((url) => evidenceByUrl.get(url)?.id).filter((id): id is string => Boolean(id));
-    return {
-      id: claim.id,
-      predicate: "research_finding",
-      object: claim.text,
-      normalizedText: claim.text.toLocaleLowerCase().normalize("NFKC").trim(),
-      status: claim.status === "supported" ? "supported" : "uncertain",
-      confidence: claim.confidence,
-      firstObservedAt: result.researchedAt,
-      lastObservedAt: result.researchedAt,
-      evidenceIds: ids,
-      counterEvidenceIds: [],
-    };
-  });
-
-  const claimEvidence = claims.flatMap((claim) => claim.evidenceIds.map((evidenceId) => ({
-    claimId: claim.id,
-    evidenceId,
-    stance: "uncertain" as const,
-    stanceConfidence: 0,
-  })));
-
-  const entities = claims.map((claim) => ({ id: `research-claim-entity-${hash(claim.id)}`, entityType: "concept", label: claim.object, attributes: [] }));
-  const claimsWithEntities = claims.map((claim) => ({ ...claim, subjectEntityId: `research-claim-entity-${hash(claim.id)}` }));
-
-  const sources = result.sources.map((source) => ({
-    id: `research-source-${hash(source.url)}`,
-    provider: source.provider,
-    name: source.title,
-    url: source.url,
-    metadata: { publishedAt: source.publishedAt },
+  // Keep one stable research subject per query so claims from independent passes can be compared.
+  const subjectEntityId = `research-subject-${hash(result.query)}`;
+  const claims: SemanticClaim[] = result.claims.map((finding) => ({
+    id: finding.id,
+    subjectEntityId,
+    predicate: "research_finding",
+    object: finding.text,
+    normalizedText: finding.text.toLocaleLowerCase().normalize("NFKC").trim(),
+    status: finding.status === "conflicted" ? "contested" : finding.status === "supported" ? "supported" : "uncertain",
+    confidence: finding.confidence,
+    firstObservedAt: researchedAt,
+    lastObservedAt: researchedAt,
+    evidenceIds: [],
+    counterEvidenceIds: [],
   }));
 
-  await createSupabaseSemanticPersistence().persistResearchGraph({
-    entities,
-    sources,
-    claims: claimsWithEntities,
-    evidence,
-    claimEvidence,
-    relations: [],
-    arbitrations: [],
+  const evidenceByUrl = new Map(result.sources.map((source, index) => [source.url, evidence[index]]));
+  for (const claim of claims) {
+    const related = result.claims.find((finding) => finding.id === claim.id)?.sourceUrls.map((url) => evidenceByUrl.get(url)).filter((item): item is SemanticEvidence => Boolean(item)) ?? [];
+    const claimModel: Claim = { id: claim.id, subjectEntityId, predicate: claim.predicate, object: String(claim.object), statement: String(claim.object), normalizedStatement: claim.normalizedText, observedAt: researchedAt, confidence: claim.confidence };
+    const stances = related.map((item) => assessEvidenceStance(claimModel, item));
+    claim.evidenceIds = stances.filter((s) => s.stance === "supports").map((s) => s.evidenceId);
+    claim.counterEvidenceIds = stances.filter((s) => s.stance === "contradicts").map((s) => s.evidenceId);
+    const assessment = assessClaimConfidence(claim, related, new Map(), researchedAt);
+    claim.confidence = assessment.confidence;
+    claim.status = assessment.counterEvidenceIds.length && assessment.supportingEvidenceIds.length ? "contested" : assessment.supportingEvidenceIds.length ? "supported" : "uncertain";
+  }
+
+  const claimEvidence = claims.flatMap((claim) => {
+    const all = [...claim.evidenceIds, ...claim.counterEvidenceIds];
+    return all.map((evidenceId) => {
+      const claimModel: Claim = { id: claim.id, subjectEntityId, predicate: claim.predicate, object: String(claim.object), statement: String(claim.object), normalizedStatement: claim.normalizedText, observedAt: researchedAt, confidence: claim.confidence };
+      const evidenceItem = evidence.find((item) => item.id === evidenceId)!;
+      const stance = assessEvidenceStance(claimModel, evidenceItem);
+      return { claimId: claim.id, evidenceId, stance: stance.stance, stanceConfidence: stance.confidence };
+    });
   });
+
+  const relations: Array<{ leftClaimId: string; rightClaimId: string; relation: "same" | "supports" | "contradicts" | "unrelated" | "conditional_contradiction"; confidence: number; rationale?: string }> = [];
+  for (let i = 0; i < claims.length; i += 1) for (let j = i + 1; j < claims.length; j += 1) {
+    const left: Claim = { id: claims[i].id, subjectEntityId, predicate: claims[i].predicate, object: String(claims[i].object), statement: String(claims[i].object), normalizedStatement: claims[i].normalizedText, observedAt: researchedAt, confidence: claims[i].confidence };
+    const right: Claim = { id: claims[j].id, subjectEntityId, predicate: claims[j].predicate, object: String(claims[j].object), statement: String(claims[j].object), normalizedStatement: claims[j].normalizedText, observedAt: researchedAt, confidence: claims[j].confidence };
+    const comparison = compareClaims(left, right);
+    relations.push({ leftClaimId: left.id, rightClaimId: right.id, relation: comparison.relation === "supporting" ? "supports" : comparison.relation === "contradictory" ? "contradicts" : comparison.relation, confidence: comparison.confidence, rationale: comparison.rationale });
+  }
+
+  const arbitrations = arbitrateClaimSet(claims, evidence, new Map(), researchedAt).map((decision) => ({
+    leftClaimId: decision.leftClaimId,
+    rightClaimId: decision.rightClaimId,
+    decision: decision.decision,
+    confidence: decision.confidence,
+    rationale: decision.rationale,
+    requiresHumanReview: decision.requiresHumanReview,
+    retainedClaimIds: decision.retainedClaimIds,
+    supersededClaimIds: decision.supersededClaimIds,
+  }));
+
+  const entities = [{ id: subjectEntityId, entityType: "concept", label: result.query, attributes: [{ key: "mode", value: result.mode, source: "web", confidence: 1, observedAt: researchedAt }] }];
+
+  await createSupabaseSemanticPersistence().persistResearchGraph({ entities, sources, claims, evidence, claimEvidence, relations, arbitrations });
 }
 
 function hash(value: string): string {
   let h = 2166136261;
-  for (let i = 0; i < value.length; i += 1) {
-    h ^= value.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
+  for (let i = 0; i < value.length; i += 1) { h ^= value.charCodeAt(i); h = Math.imul(h, 16777619); }
   return (h >>> 0).toString(36);
 }
