@@ -1,5 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import type { SemanticClaim, SemanticEvidence } from "./types";
 import type { SemanticPersistence } from "./semanticPersistence";
 
 type PersistenceInput = Parameters<SemanticPersistence["persistResearchGraph"]>[0];
@@ -19,14 +18,14 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
       }
       if (input.sources.length) {
         const { error } = await client.from("fresh_intelligence_sources").upsert(input.sources.map((s) => ({ id: s.id, provider: s.provider, name: s.name ?? null, url: s.url ?? null, reliability: s.reliability ?? null, metadata: s.metadata ?? {} })), { onConflict: "id" });
-        if (error) throw error;
       }
       if (input.claims.length) {
-        const { error } = await client.from("fresh_intelligence_claims").upsert(input.claims.map((c) => ({ id: c.id, subject_entity_id: c.subjectEntityId ?? null, predicate: c.predicate, object: c.object, normalized_text: c.statement, status: c.status, confidence: c.confidence, first_observed_at: c.firstObservedAt, last_observed_at: c.lastObservedAt, valid_from: c.validFrom ?? null, valid_to: c.validTo ?? null, updated_at: new Date().toISOString() })), { onConflict: "id" });
+        const { error } = await client.from("fresh_intelligence_claims").upsert(input.claims.map((c) => ({ id: c.id, subject_entity_id: c.subjectEntityId ?? null, predicate: c.predicate, object: c.object, normalized_text: c.normalizedText, status: c.status, confidence: c.confidence, first_observed_at: c.firstObservedAt, last_observed_at: c.lastObservedAt, valid_from: c.validFrom ?? null, valid_to: c.validTo ?? null, updated_at: new Date().toISOString() })), { onConflict: "id" }));
         if (error) throw error;
       }
       if (input.evidence.length) {
-        const { error } = await client.from("fresh_intelligence_evidence").upsert(input.evidence.map((e) => ({ id: e.id, claim_text: e.claimText, source_url: e.sourceUrl, source_title: e.sourceTitle ?? null, provider: e.provider, observed_at: e.observedAt, published_at: e.publishedAt ?? null, confidence: e.confidence ?? null, supports: e.supports ?? null })), { onConflict: "id" });
+        const sourceIdByUrl = new Map(input.sources.filter((s) => s.url).map((s) => [s.url as string, s.id]));
+        const { error } = await client.from("fresh_intelligence_evidence").upsert(input.evidence.map((e) => ({ id: e.id, claim_text: e.claim, source_id: e.sourceId ?? sourceIdByUrl.get(e.sourceUrl) ?? null, source_url: e.sourceUrl, source_title: e.sourceTitle ?? null, provider: e.provider, observed_at: e.observedAt, published_at: e.publishedAt ?? null, confidence: e.confidence ?? null, supports: e.supports ?? null })), { onConflict: "id" });
         if (error) throw error;
       }
       if (input.claimEvidence.length) {
