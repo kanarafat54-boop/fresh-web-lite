@@ -14,8 +14,17 @@ export type TemporalTruthAssessment = {
   confidence: number;
   validFrom?: string;
   validTo?: string;
+  evaluatedAt: string;
   reason: string;
   evidenceClaimIds: string[];
+  requiresHumanReview: boolean;
+};
+
+type TruthContext = {
+  hasContradiction?: boolean;
+  superseded?: boolean;
+  requiresReview?: boolean;
+  relatedClaimIds?: string[];
 };
 
 function asTime(value?: string): number | undefined {
@@ -25,42 +34,59 @@ function asTime(value?: string): number | undefined {
 }
 
 /**
- * Converts a calibrated claim + arbitration context into an explicit temporal truth state.
- * Historical truth is preserved: expiration does not erase the fact.
+ * Deterministic policy layer for temporal truth.
+ * It never deletes evidence or converts uncertainty into truth.
  */
 export function assessTemporalTruth(
   claim: SemanticClaim,
   now = new Date().toISOString(),
-  context: { hasContradiction?: boolean; superseded?: boolean; requiresReview?: boolean; relatedClaimIds?: string[] } = {},
+  context: TruthContext = {},
 ): TemporalTruthAssessment {
   const nowMs = Date.parse(now);
   const from = asTime(claim.validFrom);
   const to = asTime(claim.validTo);
+  const relatedClaimIds = context.relatedClaimIds ?? [];
+
+  const base = {
+    claimId: claim.id,
+    confidence: claim.confidence,
+    validFrom: claim.validFrom,
+    validTo: claim.validTo,
+    evaluatedAt: now,
+    evidenceClaimIds: relatedClaimIds,
+  };
 
   if (context.requiresReview) {
-    return { claimId: claim.id, status: "DEFERRED", confidence: claim.confidence, validFrom: claim.validFrom, validTo: claim.validTo, reason: "The evidence or arbitration requires human review before Fresh treats the claim as settled.", evidenceClaimIds: context.relatedClaimIds ?? [] };
-  }
-
-  if (context.hasContradiction) {
-    return { claimId: claim.id, status: "CONTESTED", confidence: claim.confidence, validFrom: claim.validFrom, validTo: claim.validTo, reason: "Credible contradictory claim evidence overlaps the current validity window.", evidenceClaimIds: context.relatedClaimIds ?? [] };
+    return { ...base, status: "DEFERRED", requiresHumanReview: true, reason: "Evidence or arbitration requires human review before the claim can be settled." };
   }
 
   if (context.superseded) {
-    return { claimId: claim.id, status: "SUPERSEDED", confidence: claim.confidence, validFrom: claim.validFrom, validTo: claim.validTo, reason: "A later or stronger claim superseded this belief while its historical record remains preserved.", evidenceClaimIds: context.relatedClaimIds ?? [] };
+    return { ...base, status: "SUPERSEDED", requiresHumanReview: false, reason: "A later or stronger claim superseded this belief; the historical record remains preserved." };
+  }
+
+  if (context.hasContradiction || claim.status === "contested") {
+    return { ...base, status: "CONTESTED", requiresHumanReview: true, reason: "Credible contradictory evidence overlaps the claim's temporal context." };
   }
 
   if (to !== undefined && to <= nowMs) {
-    return { claimId: claim.id, status: "HISTORICALLY_TRUE", confidence: claim.confidence, validFrom: claim.validFrom, validTo: claim.validTo, reason: "The claim's validity window has ended; the historical claim remains preserved.", evidenceClaimIds: context.relatedClaimIds ?? [] };
+    return { ...base, status: "HISTORICALLY_TRUE", requiresHumanReview: false, reason: "The claim's validity window has ended; its historical truth remains preserved." };
   }
 
-  if ((from === undefined || from <= nowMs) && (to === undefined || nowMs < to)) {
-    if (claim.status === "supported" && claim.confidence >= 0.7) {
-      return { claimId: claim.id, status: "CURRENTLY_TRUE", confidence: claim.confidence, validFrom: claim.validFrom, validTo: claim.validTo, reason: "The claim is currently within its validity window and has sufficient calibrated support.", evidenceClaimIds: context.relatedClaimIds ?? [] };
-    }
-    if (claim.status === "contested") {
-      return { claimId: claim.id, status: "CONTESTED", confidence: claim.confidence, validFrom: claim.validFrom, validTo: claim.validTo, reason: "The claim is currently valid but competing evidence prevents a settled truth status.", evidenceClaimIds: context.relatedClaimIds ?? [] };
-    }
+  const validNow = (from === undefined || from <= nowMs) && (to === undefined || nowMs < to);
+  if (validNow && claim.status === "supported" && claim.confidence >= 0.7) {
+    return { ...base, status: "CURRENTLY_TRUE", requiresHumanReview: false, reason: "The claim is temporally valid and has sufficient calibrated support." };
   }
 
-  return { claimId: claim.id, status: "UNKNOWN", confidence: claim.confidence, validFrom: claim.validFrom, validTo: claim.validTo, reason: "Fresh does not have enough temporally valid evidence to classify the claim.", evidenceClaimIds: context.relatedClaimIds ?? [] };
+  if (validNow && claim.status === "supported") {
+    return { ...base, status: "DEFERRED", requiresHumanReview: true, reason: "The claim has support, but its calibrated confidence is below the automatic truth threshold." };
+  }
+
+  return { ...base, status: "UNKNOWN", requiresHumanReview: false, reason: "Fresh lacks sufficient temporally valid evidence to classify this claim." };
+}
+
+export function summarizeTemporalTruth(results: TemporalTruthAssessment[]) {
+  return results.reduce<Record<TemporalTruthStatus, number>>((summary, result) => {
+    summary[result.status] = (summary[result.status] ?? 0) + 1;
+    return summary;
+  }, {} as Record<TemporalTruthStatus, number>);
 }
