@@ -26,9 +26,7 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
           attributes: entity.attributes ?? [],
           updated_at: new Date().toISOString(),
         }));
-        const { error } = await client
-          .from("fresh_intelligence_entities")
-          .upsert(rows, { onConflict: "id" });
+        const { error } = await client.from("fresh_intelligence_entities").upsert(rows, { onConflict: "id" });
         if (error) throw error;
       }
 
@@ -41,9 +39,7 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
           reliability: source.reliability ?? null,
           metadata: source.metadata ?? {},
         }));
-        const { error } = await client
-          .from("fresh_intelligence_sources")
-          .upsert(rows, { onConflict: "id" });
+        const { error } = await client.from("fresh_intelligence_sources").upsert(rows, { onConflict: "id" });
         if (error) throw error;
       }
 
@@ -62,17 +58,13 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
           valid_to: claim.validTo ?? null,
           updated_at: new Date().toISOString(),
         }));
-        const { error } = await client
-          .from("fresh_intelligence_claims")
-          .upsert(rows, { onConflict: "id" });
+        const { error } = await client.from("fresh_intelligence_claims").upsert(rows, { onConflict: "id" });
         if (error) throw error;
       }
 
       if (input.evidence.length) {
         const sourceIdByUrl = new Map(
-          input.sources
-            .filter((source) => source.url)
-            .map((source) => [source.url as string, source.id]),
+          input.sources.filter((source) => source.url).map((source) => [source.url as string, source.id]),
         );
         const rows = input.evidence.map((evidence) => ({
           id: evidence.id,
@@ -86,9 +78,7 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
           confidence: evidence.confidence ?? null,
           supports: evidence.supports ?? null,
         }));
-        const { error } = await client
-          .from("fresh_intelligence_evidence")
-          .upsert(rows, { onConflict: "id" });
+        const { error } = await client.from("fresh_intelligence_evidence").upsert(rows, { onConflict: "id" });
         if (error) throw error;
       }
 
@@ -99,9 +89,7 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
           stance: relation.stance,
           stance_confidence: relation.stanceConfidence ?? null,
         }));
-        const { error } = await client
-          .from("fresh_intelligence_claim_evidence")
-          .upsert(rows, { onConflict: "claim_id,evidence_id" });
+        const { error } = await client.from("fresh_intelligence_claim_evidence").upsert(rows, { onConflict: "claim_id,evidence_id" });
         if (error) throw error;
       }
 
@@ -113,9 +101,7 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
           confidence: relation.confidence,
           rationale: relation.rationale ?? null,
         }));
-        const { error } = await client
-          .from("fresh_intelligence_claim_relations")
-          .upsert(rows, { onConflict: "left_claim_id,right_claim_id,relation" });
+        const { error } = await client.from("fresh_intelligence_claim_relations").upsert(rows, { onConflict: "left_claim_id,right_claim_id,relation" });
         if (error) throw error;
       }
 
@@ -130,9 +116,7 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
           retained_claim_ids: arbitration.retainedClaimIds ?? [],
           superseded_claim_ids: arbitration.supersededClaimIds ?? [],
         }));
-        const { error } = await client
-          .from("fresh_intelligence_arbitrations")
-          .insert(rows);
+        const { error } = await client.from("fresh_intelligence_arbitrations").insert(rows);
         if (error) throw error;
       }
     },
