@@ -8,7 +8,10 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
   const url = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceRoleKey) throw new Error("Missing server Supabase environment variables.");
-  const client = createClient(url, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+
+  const client = createClient(url, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 
   return {
     async persistResearchGraph(input: PersistenceInput) {
@@ -57,9 +60,10 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
       }
 
       if (input.evidence.length) {
-        const sourceIdByUrl = new Map(
-          input.sources.filter((source) => source.url).map((source) => [source.url as string, source.id]),
-        );
+        const sourceIdByUrl = new Map<string, string>();
+        for (const source of input.sources) {
+          if (source.url) sourceIdByUrl.set(source.url, source.id);
+        }
         const rows = input.evidence.map((evidence) => ({
           id: evidence.id,
           claim_text: evidence.claim,
