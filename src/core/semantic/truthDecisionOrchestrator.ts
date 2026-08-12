@@ -1,7 +1,7 @@
 import type { SemanticClaim, SemanticEvidence } from "./types";
 import { assessTemporalTruth, isActionableTemporalTruth, type TemporalTruthAssessment } from "./temporalTruth";
 import { calibrateClaimConfidence, type CalibratedConfidence } from "./confidenceCalibration";
-import type { SourceProvenanceGraph } from "./sourceProvenance";
+import type { SourceProvenanceEdge, SourceProvenanceNode } from "./sourceProvenance";
 
 export type TruthDecision = {
   claimId: string;
@@ -12,16 +12,15 @@ export type TruthDecision = {
   reasons: string[];
 };
 
-/** Final read-only decision boundary before important Fresh AI automation. */
 export function decideTruth(
   claim: SemanticClaim,
   allClaims: SemanticClaim[],
   evidence: SemanticEvidence[],
-  provenance: SourceProvenanceGraph,
-  profiles?: Map<string, import("./sourceIntelligence").SourceProfile>,
+  provenanceNodes: SourceProvenanceNode[] = [],
+  provenanceEdges: SourceProvenanceEdge[] = [],
   now = new Date().toISOString(),
 ): TruthDecision {
-  const calibration = calibrateClaimConfidence(claim, evidence, provenance, profiles, now);
+  const calibration = calibrateClaimConfidence(claim, evidence, provenanceNodes, provenanceEdges, allClaims, now);
   const calibratedClaim = { ...claim, confidence: calibration.confidence };
   const assessment = assessTemporalTruth(calibratedClaim, now, allClaims);
   const actionable = isActionableTemporalTruth(assessment) && calibration.actionable;
@@ -29,20 +28,20 @@ export function decideTruth(
   const reasons = [
     ...assessment.reasons,
     `Calibrated confidence: ${Math.round(calibration.confidence * 100)}%.`,
-    `Independent evidence clusters: ${calibration.independentEvidenceCount}.`,
-    `Provenance independence: ${Math.round(calibration.provenanceIndependence * 100)}%.`,
+    `Independent evidence clusters: ${calibration.independenceClusters}.`,
+    `Provenance-independent sources: ${calibration.provenanceIndependentSources}.`,
+    `Calibration decision: ${calibration.decision}.`,
   ];
-  if (calibration.actionable) reasons.push("Confidence calibration permits automated action.");
-  else reasons.push("Confidence calibration does not permit automated action.");
+  reasons.push(calibration.actionable ? "Confidence calibration permits automated action." : "Confidence calibration does not permit automated action.");
   return { claimId: claim.id, assessment, calibration, actionable, decision, reasons };
 }
 
 export function decideTruthBatch(
   claims: SemanticClaim[],
   evidence: SemanticEvidence[],
-  provenance: SourceProvenanceGraph,
-  profiles?: Map<string, import("./sourceIntelligence").SourceProfile>,
+  provenanceNodes: SourceProvenanceNode[] = [],
+  provenanceEdges: SourceProvenanceEdge[] = [],
   now = new Date().toISOString(),
 ): TruthDecision[] {
-  return claims.map((claim) => decideTruth(claim, claims, evidence, provenance, profiles, now));
+  return claims.map((claim) => decideTruth(claim, claims, evidence, provenanceNodes, provenanceEdges, now));
 }
