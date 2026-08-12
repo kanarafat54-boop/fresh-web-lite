@@ -28,3 +28,13 @@ export function classifyTemporalTransition(previous: TemporalTruthAssessment | u
   if (previous.status === "SUPPORTED" && current.status === "SUPERSEDED") return { status: "SUPERSEDED", changed: true, reason: "A later arbitration superseded the previous belief." };
   return { status: current.status, changed: true, reason: `Temporal state changed from ${previous.status} to ${current.status}.` };
 }
+
+/** Final safety gate: only a current, uncontested, high-confidence claim may drive an automatic action. */
+export function isActionableTemporalTruth(assessment: TemporalTruthAssessment, minimumConfidence = 0.8): boolean {
+  return assessment.status === "CURRENT" && assessment.validNow && assessment.confidence >= minimumConfidence && assessment.conflictingClaimIds.length === 0;
+}
+
+export function explainTemporalTruth(assessment: TemporalTruthAssessment): string {
+  const conflict = assessment.conflictingClaimIds.length ? ` ${assessment.conflictingClaimIds.length} conflicting claim(s) detected.` : "";
+  return `${assessment.status}: ${Math.round(assessment.confidence * 100)}% confidence.${conflict} ${assessment.reasons.join(" ")}`.trim();
+}
