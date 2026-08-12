@@ -10,7 +10,7 @@ export type SemanticAttribute = { key: string; value: SemanticValue; source: Sem
 export type SemanticEntity = { id: string; type: SemanticEntityType; label: string; attributes: SemanticAttribute[]; createdAt: string; updatedAt: string };
 export type SemanticRelation = { id: string; fromEntityId: string; relation: string; toEntityId: string; source: SemanticSource; confidence?: number; observedAt: string; provenance?: string[] };
 export type SemanticObservation = { id: string; entityId: string; attribute: SemanticAttribute };
-export type SemanticEvidence = { id: string; claim: string; sourceUrl: string; sourceTitle?: string; provider: string; observedAt: string; publishedAt?: string; confidence?: number; supports?: boolean };
+export type SemanticEvidence = { id: string; claim: string; sourceUrl: string; sourceTitle?: string; provider: string; sourceId?: string; observedAt: string; publishedAt?: string; confidence?: number; supports?: boolean };
 
 export type ClaimRelation = "same" | "supports" | "contradicts" | "unrelated";
 export type SemanticClaim = {
