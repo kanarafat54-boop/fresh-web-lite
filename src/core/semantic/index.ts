@@ -7,7 +7,7 @@ export * from "./researchIngestion";
 export * from "./worldKnowledge";
 export * from "./entityResolution";
 export * from "./evidenceStance";
-export * from "./claimIntelligence";
+export { createClaim, compareClaims, assessClaim, registerClaim, assessStoredClaim, normalizeClaim, claimSimilarity } from "./claimIntelligence";
 export * from "./claimGraph";
 export * from "./temporalTruth";
 export * from "./temporalClaimEngine";
