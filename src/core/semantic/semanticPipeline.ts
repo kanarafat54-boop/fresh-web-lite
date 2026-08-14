@@ -32,9 +32,13 @@ export function runSemanticResearchPipeline(research: WebResearchIngestion, extr
     const initial = assessClaim({ ...input, observedAt: input.observedAt ?? assessedAt });
     const evidenceIds = input.evidenceIds ?? initial.supportingEvidence.map((item) => item.id);
     const counterEvidenceIds = input.counterEvidenceIds ?? initial.counterEvidence.map((item) => item.id);
-    const claim: SemanticClaim = { ...initial.claim, subjectEntityId: initial.claim.subjectEntityId || undefined, status: initial.counterEvidence.length && initial.supportingEvidence.length ? "contested" : initial.supportingEvidence.length ? "supported" : "uncertain", confidence: initial.confidence, evidenceIds, counterEvidenceIds };
-    registerClaim({ ...initial, claim });
-    claims.push(claim);
+    registerClaim(initial);
+    const stored = semanticStore.getClaim(initial.claim.id);
+    if (stored) {
+      const claim: SemanticClaim = { ...stored, evidenceIds, counterEvidenceIds };
+      claims.push(claim);
+      semanticStore.upsertClaim(claim);
+    }
   }
 
   const evidence = semanticStore.getEvidence();
