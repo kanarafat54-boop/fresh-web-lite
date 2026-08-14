@@ -15,8 +15,8 @@ function evidenceForClaim(claim: SemanticClaim): SemanticEvidence[] {
   return semanticStore.getEvidence().filter((item) => ids.has(item.id));
 }
 
-function toClaimInput(claim: SemanticClaim): Omit<Claim, "normalizedStatement"> {
-  return { id: claim.id, subjectEntityId: claim.subjectEntityId ?? "", predicate: claim.predicate, object: String(claim.object), statement: `${claim.predicate} ${String(claim.object)}`, observedAt: claim.lastObservedAt, validFrom: claim.validFrom, validTo: claim.validTo, confidence: claim.confidence };
+function toClaimInput(claim: SemanticClaim): Claim {
+  return { id: claim.id, subjectEntityId: claim.subjectEntityId ?? "", predicate: claim.predicate, object: String(claim.object), statement: `${claim.predicate} ${String(claim.object)}`, normalizedStatement: claim.normalizedText, observedAt: claim.lastObservedAt, validFrom: claim.validFrom, validTo: claim.validTo, confidence: claim.confidence };
 }
 
 function toTemporalAssessment(assessment: ReturnType<typeof compareClaims>): ClaimAssessment {
