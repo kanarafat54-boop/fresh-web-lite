@@ -13,9 +13,9 @@ export type FreshSessionBoundary = {
   evaluation: SessionEvaluation;
 };
 
-const safeSessionSignals = (session: Session): SessionRiskSignals => ({
+const safeSessionSignals = (): SessionRiskSignals => ({
   deviceContinuity: 1,
-  credentialContinuity: session.user.aud ?? "authenticated" ? 1 : 0,
+  credentialContinuity: 1,
   networkAnomaly: 0,
   userAgentAnomaly: 0,
   geographicAnomaly: 0,
@@ -26,6 +26,10 @@ const safeSessionSignals = (session: Session): SessionRiskSignals => ({
  * Real Fresh authentication boundary.
  * Supabase remains authoritative for authentication/session validity;
  * Session Shield is an additional policy layer and never replaces it.
+ *
+ * Current client signals intentionally start conservative. Server-side
+ * telemetry and cryptographic proof must supply anomaly signals before a
+ * session can be treated as compromised.
  */
 export async function getFreshSessionBoundary(
   action: SessionActionSensitivity = "normal",
@@ -34,7 +38,7 @@ export async function getFreshSessionBoundary(
   if (error || !data.session?.user) return null;
 
   const session = data.session;
-  const evaluation = evaluateSessionIntegrity(safeSessionSignals(session), action);
+  const evaluation = evaluateSessionIntegrity(safeSessionSignals(), action);
 
   return {
     session,
@@ -48,10 +52,7 @@ export async function requireFreshSession(
 ): Promise<FreshSessionBoundary> {
   const boundary = await getFreshSessionBoundary(action);
   if (!boundary) throw new Error("FRESH_SESSION_REQUIRED");
-  if (action === "critical" && boundary.evaluation.requiresStepUp) {
-    throw new Error("FRESH_SESSION_STEP_UP_REQUIRED");
-  }
-  if (action === "sensitive" && boundary.evaluation.requiresStepUp) {
+  if ((action === "critical" || action === "sensitive") && boundary.evaluation.requiresStepUp) {
     throw new Error("FRESH_SESSION_STEP_UP_REQUIRED");
   }
   return boundary;
