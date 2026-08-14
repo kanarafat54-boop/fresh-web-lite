@@ -1,7 +1,7 @@
 import type { SemanticClaim, SemanticEvidence } from "./types";
 import { assessTemporalTruth, isActionableTemporalTruth, type TemporalTruthAssessment } from "./temporalTruth";
 import { calibrateClaimConfidence, type CalibratedConfidence } from "./confidenceCalibration";
-import type { SourceProvenanceEdge, SourceProvenanceNode } from "./sourceProvenance";
+import type { ProvenanceEdge, ProvenanceNode } from "./sourceProvenance";
 
 export type TruthDecision = {
   claimId: string;
@@ -16,8 +16,8 @@ export function decideTruth(
   claim: SemanticClaim,
   allClaims: SemanticClaim[],
   evidence: SemanticEvidence[],
-  provenanceNodes: SourceProvenanceNode[] = [],
-  provenanceEdges: SourceProvenanceEdge[] = [],
+  provenanceNodes: ProvenanceNode[] = [],
+  provenanceEdges: ProvenanceEdge[] = [],
   now = new Date().toISOString(),
 ): TruthDecision {
   const calibration = calibrateClaimConfidence(claim, evidence, provenanceNodes, provenanceEdges, allClaims, now);
@@ -39,8 +39,8 @@ export function decideTruth(
 export function decideTruthBatch(
   claims: SemanticClaim[],
   evidence: SemanticEvidence[],
-  provenanceNodes: SourceProvenanceNode[] = [],
-  provenanceEdges: SourceProvenanceEdge[] = [],
+  provenanceNodes: ProvenanceNode[] = [],
+  provenanceEdges: ProvenanceEdge[] = [],
   now = new Date().toISOString(),
 ): TruthDecision[] {
   return claims.map((claim) => decideTruth(claim, claims, evidence, provenanceNodes, provenanceEdges, now));
