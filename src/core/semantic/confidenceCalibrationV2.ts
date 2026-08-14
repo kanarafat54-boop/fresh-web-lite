@@ -1,7 +1,7 @@
 import type { SemanticClaim, SemanticEvidence } from "./types";
 import { assessClaimConfidence, type ClaimConfidenceAssessment } from "./claimConfidence";
 import { compareEvidence, type SourceProfile } from "./sourceIntelligence";
-import { provenanceAdjustedIndependence, type SourceProvenanceGraph } from "./sourceProvenance";
+import { provenanceAdjustedIndependence, type ProvenanceGraph } from "./sourceProvenance";
 
 export type CalibrationDecision = "high_confidence" | "moderate_confidence" | "contested" | "insufficient_evidence";
 
@@ -23,7 +23,7 @@ export function calibrateClaimConfidenceV2(
   evidence: SemanticEvidence[],
   profiles = new Map<string, SourceProfile>(),
   assessedAt = new Date().toISOString(),
-  provenance?: SourceProvenanceGraph,
+  provenance?: ProvenanceGraph,
 ): ConfidenceCalibrationV2 {
   const base = assessClaimConfidence(claim, evidence, profiles, assessedAt);
   const relevant = evidence.filter((e) => claim.evidenceIds.includes(e.id) || claim.counterEvidenceIds.includes(e.id));
