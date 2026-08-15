@@ -4,8 +4,11 @@ import {
   AIIcon,
   ProfileIcon,
 } from "../../components/Icons";
+import { useLayout } from "../../app/contexts/useLayout";
 
 export default function TopBar() {
+  const { openSearch, setActiveRoute } = useLayout();
+
   return (
     <header className="fresh-topbar">
       <div className="fresh-logo">
@@ -14,19 +17,31 @@ export default function TopBar() {
       </div>
 
       <div className="top-actions">
-        <button className="icon-btn">
+        <button
+          className="icon-btn"
+          aria-label="Search the world"
+          onClick={openSearch}
+        >
           <SearchIcon />
         </button>
 
-        <button className="icon-btn">
+        <button
+          className="icon-btn"
+          aria-label="Fresh AI"
+          onClick={() => setActiveRoute("ai")}
+        >
           <AIIcon />
         </button>
 
-        <button className="icon-btn">
+        <button className="icon-btn" aria-label="Notifications">
           <BellIcon />
         </button>
 
-        <button className="icon-btn">
+        <button
+          className="icon-btn"
+          aria-label="Profile"
+          onClick={() => setActiveRoute("profile")}
+        >
           <ProfileIcon />
         </button>
       </div>

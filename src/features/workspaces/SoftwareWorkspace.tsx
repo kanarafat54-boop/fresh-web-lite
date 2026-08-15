@@ -3,8 +3,8 @@ import { ara6Engine } from "../../core/ara6/engine";
 import { ara6Orchestrator, type Workflow } from "../../core/ara6/orchestrator";
 import { toolRegistry } from "../../core/ara6/toolRegistry";
 import { capabilityRegistry } from "../../core/ara6/capabilityRegistry";
-import "../../core/ara6/defaultTools";
-import "../../core/ara6/defaultCapabilities";
+import { evolutionGraph } from "../../core/ara6/evolution/evolutionGraph";
+import "../../core/ara6/bootstrap";
 import type { AraTask } from "../../core/ara6/task";
 import "./WorkspacePage.css";
 
@@ -29,6 +29,7 @@ export default function SoftwareWorkspace() {
   const tasks = ara6Engine.list();
   const tools = toolRegistry.list();
   const capabilities = capabilityRegistry.list();
+  const evolution = evolutionGraph.getAll();
 
   function addTask() {
     const trimmed = title.trim();
@@ -160,6 +161,22 @@ export default function SoftwareWorkspace() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="workspace-section">
+        <h2>Evolution</h2>
+        <ul className="workspace-list">
+          {evolution.map((n) => (
+            <li key={n.id}>
+              <h3>{n.title} <span className="workspace-badge">v{n.version}</span></h3>
+              <p>{n.description}</p>
+              <div className="workspace-meta">
+                <span className="workspace-pill">{n.ecosystem}</span>
+                {n.parentId && <span className="workspace-badge">forks {n.parentId}</span>}
+              </div>
+            </li>
+          ))}
+        </ul>
       </section>
     </section>
   );

@@ -4,6 +4,7 @@ import DashboardLayout from "./dashboard/DashboardLayout";
 
 import { DashboardProvider } from "../providers/DashboardProvider";
 import "../intelligence";
+import "../../../core/ara6/bootstrap";
 
 export default function FreshAIHome() {
   return (
