@@ -1,0 +1,135 @@
+/**
+ * Fresh Web Lite
+ * Shared styling for pillar workspace pages
+ */
+
+.workspace-page {
+  animation: fadeInUp 0.28s ease;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.workspace-hero {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+
+.workspace-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.workspace-hero h1 {
+  font-family: var(--font-display);
+  margin: 4px 0 6px;
+  font-size: 1.5rem;
+}
+
+.workspace-hero p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.workspace-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.workspace-section h2 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.workspace-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.workspace-card h3 {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+}
+
+.workspace-card p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.workspace-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.workspace-list li {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+
+.workspace-list li h3 {
+  margin: 0 0 2px;
+  font-size: 0.92rem;
+}
+
+.workspace-list li p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.workspace-pill {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(108, 92, 231, 0.18);
+  color: var(--accent-2);
+  border: 1px solid rgba(108, 92, 231, 0.35);
+}
+
+.workspace-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+
+.workspace-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.workspace-empty {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 24px 0;
+}

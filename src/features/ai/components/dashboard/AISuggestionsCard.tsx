@@ -6,13 +6,13 @@ export default function AISuggestionsCard() {
 
       <ul>
 
-        <li>💡 Continue building the Feed ecosystem.</li>
+        <li>💡 Ask Fresh AI to research a topic — global search routes through the Fresh Intelligence ecosystem.</li>
 
-        <li>💡 Connect Mission System to the dashboard.</li>
+        <li>💡 Run an Ara6 workflow from Software Studio to put Fresh AI in control of the runtime.</li>
 
-        <li>💡 Complete Ara6 orchestration.</li>
+        <li>💡 Connect an external model connector (OpenAI, Anthropic, Gemini) to expand intelligence routing.</li>
 
-        <li>💡 Start Fresh Wallet integration.</li>
+        <li>💡 Track a mission from the dashboard to link goals to Ara6 execution.</li>
 
       </ul>
 
