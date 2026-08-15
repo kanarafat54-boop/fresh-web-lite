@@ -1,22 +1,4 @@
-import type { SemanticEntity, SemanticRelation, SemanticEntityType, SemanticObservation, SemanticEvidence, SemanticClaim } from "./types";
-
+import type { SemanticEntity, SemanticRelation, SemanticEntityType, SemanticObservation, SemanticEvidence, SemanticClaim } from "./types.js";
 export type SemanticQuery = { type?: SemanticEntityType; labelIncludes?: string };
-class SemanticStore {
-  private entities = new Map<string, SemanticEntity>(); private relations = new Map<string, SemanticRelation>(); private observations = new Map<string, SemanticObservation>(); private evidence = new Map<string, SemanticEvidence>(); private claims = new Map<string, SemanticClaim>();
-  upsertEntity(entity: SemanticEntity): void { this.entities.set(entity.id, entity); }
-  getEntity(id: string): SemanticEntity | undefined { return this.entities.get(id); }
-  queryEntities(query: SemanticQuery = {}): SemanticEntity[] { const label = query.labelIncludes?.toLowerCase(); return Array.from(this.entities.values()).filter((e) => (!query.type || e.type === query.type) && (!label || e.label.toLowerCase().includes(label))); }
-  upsertRelation(relation: SemanticRelation): void { this.relations.set(relation.id, relation); }
-  getRelationsFor(entityId: string): SemanticRelation[] { return Array.from(this.relations.values()).filter((r) => r.fromEntityId === entityId || r.toEntityId === entityId); }
-  recordObservation(observation: SemanticObservation): void { this.observations.set(observation.id, observation); }
-  getObservations(entityId: string): SemanticObservation[] { return Array.from(this.observations.values()).filter((o) => o.entityId === entityId); }
-  recordEvidence(item: SemanticEvidence): void { this.evidence.set(item.id, item); }
-  getEvidence(): SemanticEvidence[] { return Array.from(this.evidence.values()); }
-  getEvidenceForUrl(sourceUrl: string): SemanticEvidence[] { return Array.from(this.evidence.values()).filter((item) => item.sourceUrl === sourceUrl); }
-  upsertClaim(claim: SemanticClaim): void { this.claims.set(claim.id, claim); }
-  getClaim(id: string): SemanticClaim | undefined { return this.claims.get(id); }
-  getClaimsForEntity(entityId: string): SemanticClaim[] { return Array.from(this.claims.values()).filter((claim) => claim.subjectEntityId === entityId); }
-  getClaims(): SemanticClaim[] { return Array.from(this.claims.values()); }
-  clear(): void { this.entities.clear(); this.relations.clear(); this.observations.clear(); this.evidence.clear(); this.claims.clear(); }
-}
+class SemanticStore { private entities = new Map<string, SemanticEntity>(); private relations = new Map<string, SemanticRelation>(); private observations = new Map<string, SemanticObservation>(); private evidence = new Map<string, SemanticEvidence>(); private claims = new Map<string, SemanticClaim>(); upsertEntity(entity: SemanticEntity): void { this.entities.set(entity.id, entity); } getEntity(id: string): SemanticEntity | undefined { return this.entities.get(id); } queryEntities(query: SemanticQuery = {}): SemanticEntity[] { const label = query.labelIncludes?.toLowerCase(); return Array.from(this.entities.values()).filter((e) => (!query.type || e.type === query.type) && (!label || e.label.toLowerCase().includes(label))); } upsertRelation(relation: SemanticRelation): void { this.relations.set(relation.id, relation); } getRelationsFor(entityId: string): SemanticRelation[] { return Array.from(this.relations.values()).filter((r) => r.fromEntityId === entityId || r.toEntityId === entityId); } recordObservation(observation: SemanticObservation): void { this.observations.set(observation.id, observation); } getObservations(entityId: string): SemanticObservation[] { return Array.from(this.observations.values()).filter((o) => o.entityId === entityId); } recordEvidence(item: SemanticEvidence): void { this.evidence.set(item.id, item); } getEvidence(): SemanticEvidence[] { return Array.from(this.evidence.values()); } getEvidenceForUrl(sourceUrl: string): SemanticEvidence[] { return Array.from(this.evidence.values()).filter((item) => item.sourceUrl === sourceUrl); } upsertClaim(claim: SemanticClaim): void { this.claims.set(claim.id, claim); } getClaim(id: string): SemanticClaim | undefined { return this.claims.get(id); } getClaimsForEntity(entityId: string): SemanticClaim[] { return Array.from(this.claims.values()).filter((claim) => claim.subjectEntityId === entityId); } getClaims(): SemanticClaim[] { return Array.from(this.claims.values()); } clear(): void { this.entities.clear(); this.relations.clear(); this.observations.clear(); this.evidence.clear(); this.claims.clear(); } }
 export const semanticStore = new SemanticStore();
