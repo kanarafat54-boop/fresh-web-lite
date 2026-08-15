@@ -1,48 +1,17 @@
-import type { SemanticClaim, SemanticEvidence } from "./types";
-import { effectiveEvidenceWeights, type SourceProfile } from "./sourceIntelligence";
+import type { SemanticClaim, SemanticEvidence } from "./types.js";
+import { effectiveEvidenceWeights, type SourceProfile, type EvidenceWeight } from "./sourceIntelligence.js";
 
-export type ConfidenceComponent = {
-  name: "evidence" | "independence" | "source_reliability" | "freshness" | "agreement" | "contradiction";
-  score: number;
-  weight: number;
-  contribution: number;
-  reason: string;
-};
-
-export type ClaimConfidenceAssessment = {
-  claimId: string;
-  confidence: number;
-  calibrated: boolean;
-  components: ConfidenceComponent[];
-  supportingEvidenceIds: string[];
-  counterEvidenceIds: string[];
-  assessedAt: string;
-};
-
+export type ConfidenceComponent = { name: "evidence" | "independence" | "source_reliability" | "freshness" | "agreement" | "contradiction"; score: number; weight: number; contribution: number; reason: string };
+export type ClaimConfidenceAssessment = { claimId: string; confidence: number; calibrated: boolean; components: ConfidenceComponent[]; supportingEvidenceIds: string[]; counterEvidenceIds: string[]; assessedAt: string };
 const clamp = (v: number) => Math.max(0, Math.min(1, v));
+function freshness(observedAt: string, now: number): number { const timestamp = new Date(observedAt).getTime(); if (!Number.isFinite(timestamp)) return 0; const ageDays = Math.max(0, (now - timestamp) / 86_400_000); return Math.exp(-ageDays / 30); }
 
-function freshness(observedAt: string, now: number): number {
-  const timestamp = new Date(observedAt).getTime();
-  if (!Number.isFinite(timestamp)) return 0;
-  const ageDays = Math.max(0, (now - timestamp) / 86_400_000);
-  return Math.exp(-ageDays / 30);
-}
-
-/**
- * Confidence is deliberately multi-dimensional. Repeated copies do not count
- * as independent confirmation, and counter-evidence is preserved separately.
- */
-export function assessClaimConfidence(
-  claim: SemanticClaim,
-  evidence: SemanticEvidence[],
-  profiles = new Map<string, SourceProfile>(),
-  assessedAt = new Date().toISOString(),
-): ClaimConfidenceAssessment {
+export function assessClaimConfidence(claim: SemanticClaim, evidence: SemanticEvidence[], profiles = new Map<string, SourceProfile>(), assessedAt = new Date().toISOString()): ClaimConfidenceAssessment {
   const relevant = evidence.filter((item) => claim.evidenceIds.includes(item.id) || claim.counterEvidenceIds.includes(item.id));
   const supporting = relevant.filter((item) => claim.evidenceIds.includes(item.id) && item.supports !== false);
   const counter = relevant.filter((item) => claim.counterEvidenceIds.includes(item.id) || item.supports === false);
-  const weights = effectiveEvidenceWeights(relevant, profiles);
-  const weightById = new Map(weights.map((w) => [w.evidenceId, w]));
+  const weights: EvidenceWeight[] = effectiveEvidenceWeights(relevant, profiles);
+  const weightById = new Map<string, EvidenceWeight>(weights.map((w) => [w.evidenceId, w]));
   const now = new Date(assessedAt).getTime();
   const supportScore = supporting.length ? 1 - supporting.reduce((p, item) => p * (1 - (weightById.get(item.id)?.effectiveWeight ?? 0)), 1) : 0;
   const counterScore = counter.length ? 1 - counter.reduce((p, item) => p * (1 - (weightById.get(item.id)?.effectiveWeight ?? 0)), 1) : 0;
@@ -63,8 +32,4 @@ export function assessClaimConfidence(
   const confidence = clamp(components.reduce((sum, c) => sum + c.contribution, 0));
   return { claimId: claim.id, confidence, calibrated: relevant.length > 0, components, supportingEvidenceIds: supporting.map((e) => e.id), counterEvidenceIds: counter.map((e) => e.id), assessedAt };
 }
-
-export function isConfidenceActionable(assessment: ClaimConfidenceAssessment, threshold = 0.8): boolean {
-  return assessment.calibrated && assessment.confidence >= threshold &&
-    assessment.components.find((c) => c.name === "contradiction")!.score >= 0.7;
-}
+export function isConfidenceActionable(assessment: ClaimConfidenceAssessment, threshold = 0.8): boolean { return assessment.calibrated && assessment.confidence >= threshold && assessment.components.find((c) => c.name === "contradiction")!.score >= 0.7; }
