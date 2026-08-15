@@ -1,13 +1,21 @@
-import { createSupabaseSemanticPersistence } from "../../src/core/semantic/supabaseSemanticPersistence";
-import { assessEvidenceStance } from "../../src/core/semantic/evidenceStance";
-import { assessClaimConfidence } from "../../src/core/semantic/claimConfidence";
-import { arbitrateClaimSet } from "../../src/core/semantic/beliefArbitration";
-import { compareClaims, type Claim } from "../../src/core/semantic/claimIntelligence";
-import type { SemanticClaim, SemanticEvidence } from "../../src/core/semantic/types";
-import type { ResearchResult } from "../../src/core/research/contracts";
+import { createSupabaseSemanticPersistence } from "../../src/core/semantic/supabaseSemanticPersistence.js";
+import { assessEvidenceStance } from "../../src/core/semantic/evidenceStance.js";
+import { assessClaimConfidence } from "../../src/core/semantic/claimConfidence.js";
+import { arbitrateClaimSet } from "../../src/core/semantic/beliefArbitration.js";
+import { compareClaims, type Claim } from "../../src/core/semantic/claimIntelligence.js";
+import type { SemanticClaim, SemanticEvidence } from "../../src/core/semantic/types.js";
+import type { ResearchResult } from "../../src/core/research/contracts.js";
+
+type PersistenceSummary = { entities: number; sources: number; claims: number; evidence: number; claimEvidence: number; relations: number; arbitrations: number; dryRun: boolean };
+type PersistenceOptions = { dryRun?: boolean; runId?: string };
+
+function logStage(runId: string | undefined, stage: string, details: Record<string, unknown> = {}): void {
+  console.info("TRUEMODE", { runId, stage, ...details });
+}
 
 /** Server-only bridge: research -> claim intelligence -> durable semantic graph. */
-export async function persistSemanticResearch(result: ResearchResult): Promise<void> {
+export async function persistSemanticResearch(result: ResearchResult, options: PersistenceOptions = {}): Promise<PersistenceSummary> {
+  const runId = options.runId;
   const researchedAt = result.researchedAt;
   const sources = result.sources.map((source) => ({ id: `research-source-${hash(source.url)}`, provider: source.provider, name: source.title, url: source.url, metadata: { publishedAt: source.publishedAt } }));
   const sourceIdByUrl = new Map(sources.filter((s) => s.url).map((s) => [s.url as string, s.id]));
@@ -23,7 +31,6 @@ export async function persistSemanticResearch(result: ResearchResult): Promise<v
     confidence: source.snippet ? 0.6 : 0.35,
   }));
 
-  // Keep one stable research subject per query so claims from independent passes can be compared.
   const subjectEntityId = `research-subject-${hash(result.query)}`;
   const claims: SemanticClaim[] = result.claims.map((finding) => ({
     id: finding.id,
@@ -81,8 +88,13 @@ export async function persistSemanticResearch(result: ResearchResult): Promise<v
   }));
 
   const entities = [{ id: subjectEntityId, entityType: "concept", label: result.query, attributes: [{ key: "mode", value: result.mode, source: "web", confidence: 1, observedAt: researchedAt }] }];
+  const summary: PersistenceSummary = { entities: entities.length, sources: sources.length, claims: claims.length, evidence: evidence.length, claimEvidence: claimEvidence.length, relations: relations.length, arbitrations: arbitrations.length, dryRun: Boolean(options.dryRun) };
+  logStage(runId, "research.persistence.prepared", summary);
+  if (options.dryRun) return summary;
 
   await createSupabaseSemanticPersistence().persistResearchGraph({ entities, sources, claims, evidence, claimEvidence, relations, arbitrations });
+  logStage(runId, "research.persistence.supabase.complete", summary);
+  return summary;
 }
 
 function hash(value: string): string {
