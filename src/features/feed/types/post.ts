@@ -5,6 +5,7 @@ export interface Post {
   authorUsername: string;
   content: string;
   imageUrl: string | null;
+  videoUrl: string | null;
   likeCount: number;
   commentCount: number;
   myReaction: string | null;
