@@ -1,5 +1,5 @@
 import { FeedModule } from "../feed/components/FeedModule";
-import { FilmIcon, SearchIcon, RadioIcon } from "../../components/Icons";
+import { FilmIcon, SearchIcon } from "../../components/Icons";
 
 /**
  * Home is the public media surface of Fresh Web Lite.
@@ -18,18 +18,18 @@ export default function HomeDashboard() {
       </section>
 
       <section className="dashboard-grid" aria-label="Media shortcuts">
-        <button className="dashboard-card creator" onClick={() => window.history.pushState({}, "", "/shorts")}>
+        <button className="dashboard-card creator" onClick={() => { window.location.href = "/shorts"; }}>
           <FilmIcon size={30} />
           <h3>Short Videos</h3>
           <p>Open the Shorts experience.</p>
         </button>
-        <button className="dashboard-card search" onClick={() => window.history.pushState({}, "", "/software")}>
+        <button className="dashboard-card search" onClick={() => { window.location.href = "/software"; }}>
           <SearchIcon size={30} />
           <h3>Discover</h3>
           <p>Find Fresh content and software.</p>
         </button>
-        <button className="dashboard-card wallet" onClick={() => window.history.pushState({}, "", "/studio")}>
-          <RadioIcon size={30} />
+        <button className="dashboard-card wallet" onClick={() => { window.location.href = "/studio"; }}>
+          <FilmIcon size={30} />
           <h3>Creator Studio</h3>
           <p>Create and publish media.</p>
         </button>
