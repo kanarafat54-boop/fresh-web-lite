@@ -2,11 +2,7 @@ import { useRef, useState } from "react";
 import { validateCommentAttachments } from "../../../core/interactions/attachmentValidation";
 import type { UniversalCommentAttachment } from "../../../core/interactions/FreshReactionModel";
 
-export function UniversalMediaCommentComposer({
-  onSubmit,
-  placeholder = "Add a comment...",
-  disabled = false,
-}: {
+export function UniversalMediaCommentComposer({ onSubmit, placeholder = "Add a comment...", disabled = false }: {
   onSubmit: (payload: { body: string; attachments: UniversalCommentAttachment[] }) => Promise<void> | void;
   placeholder?: string;
   disabled?: boolean;
@@ -23,12 +19,10 @@ export function UniversalMediaCommentComposer({
     const invalid = results.find((r) => !r.ok);
     if (invalid && !invalid.ok) { setError(invalid.reason); return; }
     setError(null);
-    setFiles((current) => [...current, ...incoming].slice(0, 6).map(file => ({ file, preview: URL.createObjectURL(file) })));
+    setFiles(current => [...current, ...incoming].slice(0, 6).map(file => ({ file, preview: URL.createObjectURL(file) })));
   }
 
-  function remove(index: number) {
-    setFiles(current => current.filter((_, i) => i !== index));
-  }
+  function remove(index: number) { setFiles(current => current.filter((_, i) => i !== index)); }
 
   async function submit() {
     if (disabled || (!body.trim() && files.length === 0)) return;
@@ -51,7 +45,7 @@ export function UniversalMediaCommentComposer({
         {file.type.startsWith("image/") && <img src={preview} alt="Comment attachment preview" />}
         {file.type.startsWith("video/") && <video src={preview} controls />}
         {file.type.startsWith("audio/") && <audio src={preview} controls />}
-        {!/^((image|video|audio)\/)$/i.test(file.type) && <span>{file.name}</span>}
+        {!file.type.startsWith("image/") && !file.type.startsWith("video/") && !file.type.startsWith("audio/") && <span>{file.name}</span>}
         <button type="button" aria-label={`Remove ${file.name}`} onClick={() => remove(index)}>×</button>
       </div>)}
     </div>}
