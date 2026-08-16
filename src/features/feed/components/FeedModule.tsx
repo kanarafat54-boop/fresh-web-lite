@@ -1,8 +1,3 @@
-/**
- * Fresh Web Lite
- * Social Feed Module
- */
-
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
@@ -14,7 +9,7 @@ import { PostMenu } from "../../moderation/components/PostMenu";
 import { useProfileNav } from "../../profile/context/ProfileNavContext";
 import type { Post } from "../types/post";
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 export function FeedModule() {
@@ -32,9 +27,7 @@ export function FeedModule() {
   const [shareTarget, setShareTarget] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    loadPosts();
-  }, []);
+  useEffect(() => { void loadPosts(); }, []);
 
   async function loadPosts() {
     setLoading(true);
@@ -42,7 +35,7 @@ export function FeedModule() {
 
     const { data: postsData, error: postsError } = await supabase
       .from("posts")
-      .select("id, author_id, content, image_url, like_count, comment_count, created_at")
+      .select("id, author_id, content, image_url, video_url, like_count, comment_count, created_at")
       .order("created_at", { ascending: false })
       .limit(50);
 
@@ -52,21 +45,19 @@ export function FeedModule() {
       return;
     }
 
-    const authorIds = [...new Set((postsData ?? []).map((p: any) => p.author_id))];
-
+    const authorIds = [...new Set((postsData ?? []).map((p: any) => p.author_id).filter(Boolean))];
     let profileMap = new Map<string, { full_name: string; username: string }>();
+
     if (authorIds.length > 0) {
       const { data: profilesData, error: profilesError } = await supabase
         .from("users")
         .select("id, full_name, username")
         .in("id", authorIds);
-
       if (profilesError) {
         setError(`Couldn't load author profiles: ${profilesError.message}`);
         setLoading(false);
         return;
       }
-
       profileMap = new Map((profilesData ?? []).map((u: any) => [u.id, u]));
     }
 
@@ -93,10 +84,11 @@ export function FeedModule() {
         authorId: p.author_id,
         authorName: profile?.full_name ?? "Unknown",
         authorUsername: profile?.username ?? "unknown",
-        content: p.content,
-        imageUrl: p.image_url,
-        likeCount: p.like_count,
-        commentCount: p.comment_count,
+        content: p.content ?? "",
+        imageUrl: p.image_url ?? null,
+        videoUrl: p.video_url ?? null,
+        likeCount: p.like_count ?? 0,
+        commentCount: p.comment_count ?? 0,
         myReaction: reactionMap.get(p.id) ?? null,
         createdAt: p.created_at,
       };
@@ -110,7 +102,6 @@ export function FeedModule() {
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-
     if (!ALLOWED_TYPES.includes(file.type)) {
       setError("Please choose a JPEG, PNG, WEBP, or GIF image.");
       return;
@@ -119,7 +110,6 @@ export function FeedModule() {
       setError("Image must be under 5MB.");
       return;
     }
-
     setError(null);
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
@@ -133,26 +123,19 @@ export function FeedModule() {
 
   async function addPost() {
     if ((!draft.trim() && !imageFile) || !user || isGuest) return;
-
     setUploading(true);
     setError(null);
-
     let imageUrl: string | null = null;
 
     if (imageFile) {
       const ext = imageFile.name.split(".").pop();
       const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("post-images")
-        .upload(path, imageFile);
-
+      const { error: uploadError } = await supabase.storage.from("post-images").upload(path, imageFile);
       if (uploadError) {
         setError(`Image upload failed: ${uploadError.message}`);
         setUploading(false);
         return;
       }
-
       const { data: publicUrlData } = supabase.storage.from("post-images").getPublicUrl(path);
       imageUrl = publicUrlData.publicUrl;
     }
@@ -161,6 +144,7 @@ export function FeedModule() {
       author_id: user.id,
       content: draft.trim(),
       image_url: imageUrl,
+      video_url: null,
     });
 
     if (insertError) {
@@ -172,37 +156,29 @@ export function FeedModule() {
     setDraft("");
     clearImageSelection();
     setUploading(false);
-    loadPosts();
+    void loadPosts();
   }
 
   async function reactToPost(post: Post, type: string) {
     if (!user || isGuest) return;
-
     if (post.myReaction === type) {
       await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
     } else if (post.myReaction) {
-      await supabase
-        .from("post_likes")
-        .update({ reaction_type: type })
-        .eq("post_id", post.id)
-        .eq("user_id", user.id);
+      await supabase.from("post_likes").update({ reaction_type: type }).eq("post_id", post.id).eq("user_id", user.id);
     } else {
       await supabase.from("post_likes").insert({ post_id: post.id, user_id: user.id, reaction_type: type });
     }
-
-    loadPosts();
+    void loadPosts();
   }
 
   async function toggleSave(postId: string) {
     if (!user || isGuest) return;
-
     if (savedIds.has(postId)) {
       await supabase.from("saved_posts").delete().eq("post_id", postId).eq("user_id", user.id);
     } else {
       await supabase.from("saved_posts").insert({ post_id: postId, user_id: user.id });
     }
-
-    loadPosts();
+    void loadPosts();
   }
 
   function timeAgo(iso: string) {
@@ -218,41 +194,22 @@ export function FeedModule() {
   return (
     <div className="module">
       <h2>Feed</h2>
-
-      {isGuest && (
-        <p className="empty-state">Register a real account to post and react to content.</p>
-      )}
-
+      {isGuest && <p className="empty-state">Register a real account to post and react to content.</p>}
       {!isGuest && user && (
         <div className="post-composer">
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="What's on your mind?"
-            className="note-input"
-          />
-
+          <textarea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="What's on your mind?" className="note-input" />
           {imagePreview && (
             <div className="image-preview-wrap">
               <img src={imagePreview} alt="Selected" className="image-preview" />
               <button className="remove-image-btn" onClick={clearImageSelection}>Remove</button>
             </div>
           )}
-
           <div className="composer-actions">
             <label className="icon-btn-outline">
               <CameraIcon size={18} />
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                style={{ display: "none" }}
-              />
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} style={{ display: "none" }} />
             </label>
-            <button className="add-note-btn" onClick={addPost} disabled={uploading}>
-              {uploading ? "Posting..." : "Post"}
-            </button>
+            <button className="add-note-btn" onClick={addPost} disabled={uploading}>{uploading ? "Posting..." : "Post"}</button>
           </div>
         </div>
       )}
@@ -268,56 +225,27 @@ export function FeedModule() {
               <span className="post-author" onClick={() => openProfile(p.authorId)} style={{ cursor: "pointer" }}>{p.authorName}</span>
               <span className="post-username">@{p.authorUsername}</span>
               <span className="post-time">{timeAgo(p.createdAt)}</span>
-              <span style={{ marginLeft: "auto" }}>
-                <PostMenu targetType="post" targetId={p.id} onHide={() => setPosts((prev) => prev.filter((x) => x.id !== p.id))} />
-              </span>
+              <span style={{ marginLeft: "auto" }}><PostMenu targetType="post" targetId={p.id} onHide={() => setPosts((prev) => prev.filter((x) => x.id !== p.id))} /></span>
             </div>
             {p.content && <p className="post-content">{p.content}</p>}
-            {p.imageUrl && (
-              <img src={p.imageUrl} alt="Post attachment" className="post-image" />
+            {p.imageUrl && <img src={p.imageUrl} alt="Post attachment" className="post-image" />}
+            {p.videoUrl && (
+              <video src={p.videoUrl} controls preload="metadata" className="post-video" aria-label="Post video" />
             )}
             <div className="post-actions">
-              <ReactionPicker
-                myReaction={p.myReaction}
-                count={p.likeCount}
-                disabled={isGuest}
-                onReact={(type) => reactToPost(p, type)}
-              />
-              <button
-                className="like-btn"
-                onClick={() => setOpenCommentsFor(p.id)}
-              >
-                <CommentIcon size={18} /> {p.commentCount}
-              </button>
-              <button
-                className={savedIds.has(p.id) ? "like-btn liked" : "like-btn"}
-                onClick={() => toggleSave(p.id)}
-                disabled={isGuest}
-              >
-                <BookmarkIcon size={18} filled={savedIds.has(p.id)} />
-              </button>
-              <button className="like-btn" onClick={() => setShareTarget(p.content || "Check this out")}>
-                <ShareIcon size={18} />
-              </button>
+              <ReactionPicker myReaction={p.myReaction} count={p.likeCount} disabled={isGuest} onReact={(type) => reactToPost(p, type)} />
+              <button className="like-btn" onClick={() => setOpenCommentsFor(p.id)}><CommentIcon size={18} /> {p.commentCount}</button>
+              <button className={savedIds.has(p.id) ? "like-btn liked" : "like-btn"} onClick={() => toggleSave(p.id)} disabled={isGuest}><BookmarkIcon size={18} filled={savedIds.has(p.id)} /></button>
+              <button className="like-btn" onClick={() => setShareTarget(p.content || "Check this out")}><ShareIcon size={18} /></button>
             </div>
           </li>
         ))}
       </ul>
 
       {openCommentsFor && (
-        <CommentPanel
-          targetType="post"
-          targetId={openCommentsFor}
-          onClose={() => {
-            setOpenCommentsFor(null);
-            loadPosts();
-          }}
-        />
+        <CommentPanel targetType="post" targetId={openCommentsFor} onClose={() => { setOpenCommentsFor(null); void loadPosts(); }} />
       )}
-
-      {shareTarget && (
-        <ShareSheet title={shareTarget} onClose={() => setShareTarget(null)} />
-      )}
+      {shareTarget && <ShareSheet title={shareTarget} onClose={() => setShareTarget(null)} />}
     </div>
   );
 }
