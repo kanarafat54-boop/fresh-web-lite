@@ -1,77 +1,41 @@
-import { useState } from "react";
-import {
-  AIIcon,
-  WalletIcon,
-  FilmIcon,
-  SearchIcon
-} from "../../components/Icons";
+import { FeedModule } from "../feed/components/FeedModule";
+import { FilmIcon, SearchIcon, RadioIcon } from "../../components/Icons";
 
+/**
+ * Home is the public media surface of Fresh Web Lite.
+ * Keep the existing FeedModule as the source of truth for posts instead of
+ * replacing the feed with a static dashboard.
+ */
 export default function HomeDashboard() {
-
-  const [active, setActive] = useState("");
-
-  const cards = [
-    {
-      title:"Fresh AI",
-      text:"Your intelligent digital assistant",
-      icon:<AIIcon size={30}/>,
-      color:"ai"
-    },
-    {
-      title:"Fresh Wallet",
-      text:"Your digital economy",
-      icon:<WalletIcon size={30}/>,
-      color:"wallet"
-    },
-    {
-      title:"Creator Studio",
-      text:"Create and publish",
-      icon:<FilmIcon size={30}/>,
-      color:"creator"
-    },
-    {
-      title:"Smart Search",
-      text:"Discover with AI",
-      icon:<SearchIcon size={30}/>,
-      color:"search"
-    }
-  ];
-
   return (
     <div className="home-dashboard">
-
       <section className="welcome-card">
-        <AIIcon size={36}/>
+        <FilmIcon size={36} />
         <div>
-          <h2>Fresh Web Lite</h2>
-          <p>Your personal digital ecosystem.</p>
+          <h2>Fresh Media</h2>
+          <p>Posts, photos, short videos, long videos, news and live content.</p>
         </div>
       </section>
 
-
-      <section className="dashboard-grid">
-
-      {cards.map(card => (
-        <button
-          key={card.title}
-          className={`dashboard-card ${card.color}`}
-          onClick={() => setActive(card.title)}
-        >
-          {card.icon}
-          <h3>{card.title}</h3>
-          <p>{card.text}</p>
+      <section className="dashboard-grid" aria-label="Media shortcuts">
+        <button className="dashboard-card creator" onClick={() => window.history.pushState({}, "", "/shorts")}>
+          <FilmIcon size={30} />
+          <h3>Short Videos</h3>
+          <p>Open the Shorts experience.</p>
         </button>
-      ))}
-
+        <button className="dashboard-card search" onClick={() => window.history.pushState({}, "", "/software")}>
+          <SearchIcon size={30} />
+          <h3>Discover</h3>
+          <p>Find Fresh content and software.</p>
+        </button>
+        <button className="dashboard-card wallet" onClick={() => window.history.pushState({}, "", "/studio")}>
+          <RadioIcon size={30} />
+          <h3>Creator Studio</h3>
+          <p>Create and publish media.</p>
+        </button>
       </section>
 
-
-      {active && (
-        <div className="module-preview">
-          Opening <strong>{active}</strong>...
-        </div>
-      )}
-
+      <FeedModule />
     </div>
   );
 }
