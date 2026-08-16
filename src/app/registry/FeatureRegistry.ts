@@ -13,8 +13,6 @@ export type FeatureMeta = {
   lazyLoader: () => Promise<{ default: ComponentType<any> }>;
 };
 
-// Maps a feature id to its AppConfig.features flag. Features without a flag
-// (core surfaces like first-experience and the home feed) are always enabled.
 const FEATURE_FLAG: Record<string, keyof typeof AppConfig.features | undefined> = {
   ai: "intelligence",
   wallet: "wallet",
@@ -33,7 +31,6 @@ const FEATURE_FLAG: Record<string, keyof typeof AppConfig.features | undefined> 
 
 class Registry {
   private features = new Map<string, FeatureMeta>();
-
   register(feature: FeatureMeta): void {
     const flag = FEATURE_FLAG[feature.id];
     if (flag && !AppConfig.features[flag]) return;
@@ -63,3 +60,4 @@ FeatureRegistry.register({ id: "software", name: "Software Studio", route: "/sof
 FeatureRegistry.register({ id: "studio", name: "Studio", route: "/studio", searchable: true, lazyLoader: () => import("../../features/workspaces/StudioWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "marketplace", name: "Marketplace", route: "/marketplace", searchable: true, lazyLoader: () => import("../../features/workspaces/MarketplaceWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "crypto", name: "Crypto", route: "/crypto", searchable: true, lazyLoader: () => import("../../features/workspaces/CryptoWorkspace").then((m) => ({ default: m.default })) });
+FeatureRegistry.register({ id: "truemode", name: "TrueMode", route: "/true-mode", searchable: true, lazyLoader: () => import("../../features/truemode/TrueModeHub").then((m) => ({ default: m.default })) });
