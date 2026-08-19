@@ -1,4 +1,3 @@
-import React from "react";
 import { UNIVERSAL_REACTIONS, type UniversalReactionKind } from "./FreshReactionModel";
 import { announceInteraction, interactionButtonProps } from "./FreshInteractionA11y";
 
