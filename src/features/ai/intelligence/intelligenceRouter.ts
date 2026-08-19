@@ -1,3 +1,4 @@
+import { nativeFreshConnector } from "./nativeFreshConnector";
 import { type IntelligenceRequest, type IntelligenceResponse, intelligenceConnectors, type IntelligenceTask, type ResearchMode } from "./intelligenceConnectors";
 
 export type RoutingDecision = { connectorId: string; reason: string; task: IntelligenceTask; researchMode?: ResearchMode };
@@ -33,6 +34,19 @@ function inferResearchMode(request: IntelligenceRequest): ResearchMode | undefin
 export function routeIntelligence(request: IntelligenceRequest): RoutingDecision {
   const task = inferTask(request);
   const researchMode = task === "research" || request.researchMode ? inferResearchMode(request) : undefined;
+
+  // First-party reasoning takes precedence for capabilities currently
+  // implemented by the native Fresh reasoning substrate. This keeps planning
+  // and orchestration independent of external model credentials.
+  if (nativeFreshConnector.tasks.includes(task)) {
+    return {
+      connectorId: nativeFreshConnector.id,
+      task,
+      researchMode,
+      reason: `Selected ${nativeFreshConnector.name} for native ${task}.`,
+    };
+  }
+
   const available = intelligenceConnectors.all().filter((connector) => connector.isAvailable() && connector.tasks.includes(task));
   const selected = available[0];
   if (!selected) throw new Error(`No authorized intelligence connector is available for task: ${task}`);
@@ -41,6 +55,10 @@ export function routeIntelligence(request: IntelligenceRequest): RoutingDecision
 
 export async function runIntelligence(request: IntelligenceRequest): Promise<IntelligenceResponse> {
   const decision = routeIntelligence(request);
+  if (decision.connectorId === nativeFreshConnector.id) {
+    return nativeFreshConnector.run({ ...request, task: decision.task, researchMode: decision.researchMode });
+  }
+
   const connector = intelligenceConnectors.get(decision.connectorId);
   if (!connector) throw new Error(`Connector ${decision.connectorId} disappeared during routing.`);
   return connector.run({ ...request, task: decision.task, researchMode: decision.researchMode });
