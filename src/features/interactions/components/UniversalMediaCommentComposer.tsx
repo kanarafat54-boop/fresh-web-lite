@@ -19,7 +19,10 @@ export function UniversalMediaCommentComposer({ onSubmit, placeholder = "Add a c
     const invalid = results.find((r) => !r.ok);
     if (invalid && !invalid.ok) { setError(invalid.reason); return; }
     setError(null);
-    setFiles(current => [...current, ...incoming].slice(0, 6).map(file => ({ file, preview: URL.createObjectURL(file) })));
+    setFiles(current => {
+      const combined = [...current.map(item => item.file), ...incoming].slice(0, 6);
+      return combined.map(file => ({ file, preview: URL.createObjectURL(file) }));
+    });
   }
 
   function remove(index: number) { setFiles(current => current.filter((_, i) => i !== index)); }
