@@ -1,8 +1,11 @@
+import type { ResearchClaim } from "../../src/core/research/contracts.js";
+
 export type ResearchEvidence = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string };
 export type ResearchPass = { answer: string; sources: ResearchEvidence[] };
 export type ResearchSynthesis = {
   answer: string;
   sources: ResearchEvidence[];
+  claims: ResearchClaim[];
   verification: { passes: number; uniqueSources: number; uniqueDomains: number; sourceDiversity: "low" | "medium" | "high"; confidence: "low" | "medium" | "high"; independentPasses: number; contradictionsDetected: boolean };
 };
 
@@ -25,6 +28,18 @@ function detectContradictions(passes: ResearchPass[]): boolean {
   return false;
 }
 
+function buildClaims(passes: ResearchPass[], contradictionsDetected: boolean): ResearchClaim[] {
+  return passes
+    .filter((pass) => pass.answer.trim())
+    .map((pass, index) => ({
+      id: `research-pass-claim-${index + 1}`,
+      text: pass.answer.trim(),
+      sourceUrls: pass.sources.map((source) => source.url),
+      confidence: contradictionsDetected ? 0.45 : pass.sources.length >= 3 ? 0.7 : 0.5,
+      status: contradictionsDetected ? "conflicted" : "supported",
+    }));
+}
+
 export function synthesizeResearch(passes: ResearchPass[]): ResearchSynthesis {
   const usable = passes.filter((pass) => pass.answer || pass.sources.length > 0);
   const sources = uniqueByUrl(usable.flatMap((pass) => pass.sources));
@@ -36,5 +51,6 @@ export function synthesizeResearch(passes: ResearchPass[]): ResearchSynthesis {
   const confidence = !contradictionsDetected && sources.length >= 8 && domains.size >= 5 && passCount >= 2 ? "high" : sources.length >= 3 ? "medium" : "low";
   const primary = usable[0]?.answer ?? "Fresh found sources but could not produce a synthesized answer.";
   const answer = contradictionsDetected ? `${primary}\n\nFresh found potentially conflicting evidence across independent research passes. Review the cited sources before treating the result as settled.` : primary;
-  return { answer, sources, verification: { passes: passCount, uniqueSources: sources.length, uniqueDomains: domains.size, sourceDiversity, confidence, independentPasses, contradictionsDetected } };
+  const claims = buildClaims(usable, contradictionsDetected);
+  return { answer, sources, claims, verification: { passes: passCount, uniqueSources: sources.length, uniqueDomains: domains.size, sourceDiversity, confidence, independentPasses, contradictionsDetected } };
 }
