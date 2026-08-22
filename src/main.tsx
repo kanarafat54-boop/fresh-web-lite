@@ -57,19 +57,26 @@ function BootFailure({ error }: { error?: Error }) {
 
 async function bootstrap(root: Root) {
   try {
-    const [{ default: App }, { FreshIdProvider }, { FreshCoreProvider }] =
-      await Promise.all([
-        import("./App"),
-        import("./features/fresh-id/context/FreshIdContext"),
-        import("./app/providers/FreshCoreProvider"),
-      ]);
+    const [
+      { default: App },
+      { FreshIdProvider },
+      { FreshCoreProvider },
+      { ProfileNavProvider },
+    ] = await Promise.all([
+      import("./App"),
+      import("./features/fresh-id/context/FreshIdContext"),
+      import("./app/providers/FreshCoreProvider"),
+      import("./features/profile/context/ProfileNavContext"),
+    ]);
 
     root.render(
       <StrictMode>
         <RuntimeErrorBoundary>
           <FreshCoreProvider>
             <FreshIdProvider>
-              <App />
+              <ProfileNavProvider>
+                <App />
+              </ProfileNavProvider>
             </FreshIdProvider>
           </FreshCoreProvider>
         </RuntimeErrorBoundary>
