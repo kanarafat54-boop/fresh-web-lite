@@ -1,4 +1,4 @@
-import type { SemanticEvidence } from "./types";
+import type { SemanticEvidence } from "./types.js";
 
 export type SourceProfile = { id: string; provider: string; canonicalHost?: string; reliability: number; independence: number; observations: number; lastObservedAt?: string };
 export type EvidenceRelationship = "independent" | "same_source" | "same_origin" | "likely_copy" | "possible_copy" | "unknown";
