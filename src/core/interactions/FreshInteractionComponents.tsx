@@ -1,4 +1,3 @@
-import React from "react";
 import { UNIVERSAL_REACTIONS, type UniversalReactionKind } from "./FreshReactionModel";
 import { announceInteraction, interactionButtonProps } from "./FreshInteractionA11y";
 
@@ -39,7 +38,11 @@ export function UniversalCommentAttachmentPreview({
   return (
     <div role="group" aria-label={`${kind} attachment ${name}`}>
       <span>{name}</span>
-      {onRemove && <button {...interactionButtonProps({ label: `Remove ${name}` })} onClick={onRemove}>Remove</button>}
+      {onRemove && (
+        <button {...interactionButtonProps({ label: `Remove ${name}` })} onClick={onRemove}>
+          Remove
+        </button>
+      )}
     </div>
   );
 }
