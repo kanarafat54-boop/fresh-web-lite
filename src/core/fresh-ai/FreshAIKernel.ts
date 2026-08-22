@@ -35,11 +35,15 @@ export type FreshTruthEngine = {
  * No API key is read or required by the kernel.
  */
 export class FreshAIKernel implements FreshIntelligenceEngine {
-  constructor(
-    private readonly skills: FreshSkillRegistry,
-    private readonly memory: FreshMemoryStore,
-    private readonly truth: FreshTruthEngine,
-  ) {}
+  private readonly skills: FreshSkillRegistry;
+  private readonly memory: FreshMemoryStore;
+  private readonly truth: FreshTruthEngine;
+
+  constructor(skills: FreshSkillRegistry, memory: FreshMemoryStore, truth: FreshTruthEngine) {
+    this.skills = skills;
+    this.memory = memory;
+    this.truth = truth;
+  }
 
   async understand(request: FreshReasoningRequest) {
     const intent: FreshIntent = request.intent ?? inferIntent(request.input);
@@ -79,7 +83,7 @@ export class FreshAIKernel implements FreshIntelligenceEngine {
     };
   }
 
-  async plan(request: FreshReasoningRequest, result: FreshReasoningResult) {
+  async plan(_request: FreshReasoningRequest, result: FreshReasoningResult) {
     return result.plan;
   }
 
