@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { SemanticPersistence } from "./semanticPersistence";
+import type { SemanticPersistence } from "./semanticPersistence.js";
 
 type PersistenceInput = Parameters<SemanticPersistence["persistResearchGraph"]>[0];
 
