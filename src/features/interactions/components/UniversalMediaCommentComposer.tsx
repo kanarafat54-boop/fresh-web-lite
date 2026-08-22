@@ -17,12 +17,24 @@ export function UniversalMediaCommentComposer({ onSubmit, placeholder = "Add a c
     const incoming = Array.from(selected);
     const results = validateCommentAttachments(incoming);
     const invalid = results.find((r) => !r.ok);
-    if (invalid && !invalid.ok) { setError(invalid.reason); return; }
+    if (invalid && !invalid.ok) {
+      setError(invalid.reason);
+      return;
+    }
     setError(null);
-    setFiles(current => [...current, ...incoming].slice(0, 6).map(file => ({ file, preview: URL.createObjectURL(file) })));
+    setFiles((current) => {
+      const next = [...current.map(({ file }) => file), ...incoming].slice(0, 6);
+      return next.map((file) => ({ file, preview: URL.createObjectURL(file) }));
+    });
   }
 
-  function remove(index: number) { setFiles(current => current.filter((_, i) => i !== index)); }
+  function remove(index: number) {
+    setFiles((current) => {
+      const removed = current[index];
+      if (removed) URL.revokeObjectURL(removed.preview);
+      return current.filter((_, i) => i !== index);
+    });
+  }
 
   async function submit() {
     if (disabled || (!body.trim() && files.length === 0)) return;
@@ -50,10 +62,10 @@ export function UniversalMediaCommentComposer({ onSubmit, placeholder = "Add a c
       </div>)}
     </div>}
     <div className="comment-input-row">
-      <input ref={inputRef} type="file" hidden multiple accept="image/*,video/*,audio/*,.pdf,.txt,.doc,.docx" onChange={e => addFiles(e.target.files)} />
+      <input ref={inputRef} type="file" hidden multiple accept="image/*,video/*,audio/*,.pdf,.txt,.doc,.docx" onChange={(e) => addFiles(e.target.files)} />
       <button type="button" className="icon-only-btn" aria-label="Attach image, video, audio or file" onClick={() => inputRef.current?.click()}>＋</button>
-      <textarea value={body} onChange={e => setBody(e.target.value)} placeholder={placeholder} aria-label={placeholder} />
-      <button type="button" className="add-note-btn" disabled={disabled || (!body.trim() && files.length === 0)} onClick={submit}>Send</button>
+      <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder={placeholder} aria-label={placeholder} />
+      <button type="button" className="add-note-btn" disabled={disabled || (!body.trim() && files.length === 0)} onClick={() => void submit()}>Send</button>
     </div>
   </div>;
 }
