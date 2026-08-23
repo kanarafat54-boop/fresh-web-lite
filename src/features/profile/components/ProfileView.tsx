@@ -242,15 +242,6 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
   const media = useMemo(() => posts.filter((post) => post.imageUrl || post.videoUrl), [posts]);
   const initials = (profile?.fullName ?? "F").trim().split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 
-  function timeAgo(iso: string) {
-    const diff = Math.max(0, Date.now() - new Date(iso).getTime());
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "Just now";
-    if (mins < 60) return `${mins}m`;
-    if (mins < 1440) return `${Math.floor(mins / 60)}h`;
-    return `${Math.floor(mins / 1440)}d`;
-  }
-
   return (
     <div className="profile-view" style={{ maxWidth: 980, margin: "0 auto", paddingBottom: 48 }}>
       <div className="profile-header-bar" style={{ position: "sticky", top: 0, zIndex: 4, backdropFilter: "blur(16px)" }}>
