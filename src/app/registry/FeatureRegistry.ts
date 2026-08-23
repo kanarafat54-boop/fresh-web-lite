@@ -60,4 +60,4 @@ FeatureRegistry.register({ id: "software", name: "Software Studio", route: "/sof
 FeatureRegistry.register({ id: "studio", name: "Studio", route: "/studio", searchable: true, lazyLoader: () => import("../../features/workspaces/StudioWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "marketplace", name: "Marketplace", route: "/marketplace", searchable: true, lazyLoader: () => import("../../features/workspaces/MarketplaceWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "crypto", name: "Crypto", route: "/crypto", searchable: true, lazyLoader: () => import("../../features/workspaces/CryptoWorkspace").then((m) => ({ default: m.default })) });
-FeatureRegistry.register({ id: "truemode", name: "TrueMode", route: "/true-mode", searchable: true, lazyLoader: () => import("../../features/truemode/TrueModeHub").then((m) => ({ default: m.TrueModeHub })) });
+FeatureRegistry.register({ id: "truemode", name: "TrueMode", route: "/true-mode", searchable: true, lazyLoader: () => import("../../features/truemode/TrueModeHub").then((m) => ({ default: m.default })) });
