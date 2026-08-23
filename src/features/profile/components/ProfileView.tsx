@@ -1,8 +1,3 @@
-/**
- * Fresh Web Lite
- * Profile View — shown as a full overlay over the current tab
- */
-
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
@@ -37,19 +32,23 @@ const PROFILE_SECTIONS = [
 type ProfileSection = (typeof PROFILE_SECTIONS)[number]["id"];
 
 export function ProfileView({ userId, onClose }: { userId: string; onClose: () => void }) {
-  const { user } = useFreshId();
+  const { user, updateUser } = useFreshId();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
   const [shorts, setShorts] = useState<ShortSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editFullName, setEditFullName] = useState("");
+  const [editUsername, setEditUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<ProfileSection>("overview");
   const [profileSearch, setProfileSearch] = useState("");
 
   useEffect(() => {
-    loadProfile();
+    void loadProfile();
   }, [userId]);
 
   async function loadProfile() {
@@ -68,58 +67,59 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
       return;
     }
 
-    setProfile({
-      id: profileData.id,
-      fullName: profileData.full_name,
-      username: profileData.username,
-      role: profileData.role,
-    });
+    setProfile({ id: profileData.id, fullName: profileData.full_name, username: profileData.username, role: profileData.role });
+    setEditFullName(profileData.full_name);
+    setEditUsername(profileData.username);
 
-    const { count: followers } = await supabase
-      .from("follows")
-      .select("*", { count: "exact", head: true })
-      .eq("followed_id", userId);
+    const { count: followers } = await supabase.from("follows").select("*", { count: "exact", head: true }).eq("followed_id", userId);
     setFollowerCount(followers ?? 0);
 
-    const { count: following } = await supabase
-      .from("follows")
-      .select("*", { count: "exact", head: true })
-      .eq("follower_id", userId);
+    const { count: following } = await supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", userId);
     setFollowingCount(following ?? 0);
 
     if (user && user.id !== userId) {
-      const { data: followRow } = await supabase
-        .from("follows")
-        .select("follower_id")
-        .eq("follower_id", user.id)
-        .eq("followed_id", userId)
-        .maybeSingle();
+      const { data: followRow } = await supabase.from("follows").select("follower_id").eq("follower_id", user.id).eq("followed_id", userId).maybeSingle();
       setIsFollowing(!!followRow);
     }
 
-    const { data: shortsData } = await supabase
-      .from("shorts")
-      .select("id, video_url, like_count")
-      .eq("author_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(30);
-
-    setShorts(
-      (shortsData ?? []).map((s: any) => ({ id: s.id, videoUrl: s.video_url, likeCount: s.like_count }))
-    );
-
+    const { data: shortsData } = await supabase.from("shorts").select("id, video_url, like_count").eq("author_id", userId).order("created_at", { ascending: false }).limit(30);
+    setShorts((shortsData ?? []).map((s: { id: string; video_url: string; like_count: number }) => ({ id: s.id, videoUrl: s.video_url, likeCount: s.like_count })));
     setLoading(false);
+  }
+
+  async function saveProfile() {
+    if (!user || user.id !== userId || !profile) return;
+    const fullName = editFullName.trim();
+    const username = editUsername.trim().toLowerCase();
+    if (!fullName || !username) {
+      setError("Full name and username are required.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    const { error: updateError } = await supabase.from("users").update({ full_name: fullName, username }).eq("id", user.id);
+    if (updateError) {
+      setError(updateError.code === "23505" ? "That username is already taken." : updateError.message);
+      setSaving(false);
+      return;
+    }
+    const nextProfile = { ...profile, fullName, username };
+    setProfile(nextProfile);
+    updateUser({ fullName, username });
+    setEditing(false);
+    setSaving(false);
   }
 
   async function toggleFollow() {
     if (!user || user.id === userId) return;
-
     if (isFollowing) {
-      await supabase.from("follows").delete().eq("follower_id", user.id).eq("followed_id", userId);
+      const { error: deleteError } = await supabase.from("follows").delete().eq("follower_id", user.id).eq("followed_id", userId);
+      if (deleteError) { setError(deleteError.message); return; }
       setIsFollowing(false);
-      setFollowerCount((c) => c - 1);
+      setFollowerCount((c) => Math.max(0, c - 1));
     } else {
-      await supabase.from("follows").insert({ follower_id: user.id, followed_id: userId });
+      const { error: insertError } = await supabase.from("follows").insert({ follower_id: user.id, followed_id: userId });
+      if (insertError) { setError(insertError.message); return; }
       setIsFollowing(true);
       setFollowerCount((c) => c + 1);
     }
@@ -127,9 +127,7 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
 
   const visibleSections = useMemo(() => {
     if (!profileSearch.trim()) return PROFILE_SECTIONS;
-    return PROFILE_SECTIONS.filter((section) =>
-      section.label.toLowerCase().includes(profileSearch.toLowerCase())
-    );
+    return PROFILE_SECTIONS.filter((section) => section.label.toLowerCase().includes(profileSearch.toLowerCase()));
   }, [profileSearch]);
 
   return (
@@ -145,12 +143,22 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
       {!loading && profile && (
         <>
           <div className="profile-info-block">
-            <div className="avatar-circle profile-avatar-large">
-              {profile.fullName[0]?.toUpperCase()}
-            </div>
-            <h2>{profile.fullName}</h2>
-            <p className="post-username">@{profile.username}</p>
-            {profile.role === "admin" && <span className="fresh-id-tier">admin</span>}
+            <div className="avatar-circle profile-avatar-large">{profile.fullName[0]?.toUpperCase()}</div>
+            {editing && user?.id === userId ? (
+              <div className="profile-edit-form">
+                <input className="auth-input" value={editFullName} onChange={(event) => setEditFullName(event.target.value)} placeholder="Full name" />
+                <input className="auth-input" value={editUsername} onChange={(event) => setEditUsername(event.target.value)} placeholder="Username" />
+                <button className="auth-submit-btn" onClick={() => void saveProfile()} disabled={saving}>{saving ? "Saving..." : "Save profile"}</button>
+                <button className="auth-tab" onClick={() => setEditing(false)} disabled={saving}>Cancel</button>
+              </div>
+            ) : (
+              <>
+                <h2>{profile.fullName}</h2>
+                <p className="post-username">@{profile.username}</p>
+                {profile.role === "admin" && <span className="fresh-id-tier">admin</span>}
+                {user?.id === userId && <button className="auth-tab" onClick={() => setEditing(true)}>Edit profile</button>}
+              </>
+            )}
 
             <div className="profile-stats-row">
               <div><strong>{followerCount}</strong><span>Followers</span></div>
@@ -159,10 +167,7 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
             </div>
 
             {user && user.id !== userId && (
-              <button
-                className={isFollowing ? "follow-chip following profile-follow-btn" : "follow-chip profile-follow-btn"}
-                onClick={toggleFollow}
-              >
+              <button className={isFollowing ? "follow-chip following profile-follow-btn" : "follow-chip profile-follow-btn"} onClick={() => void toggleFollow()}>
                 {isFollowing ? "Following" : "Follow"}
               </button>
             )}
@@ -170,48 +175,25 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
 
           <div className="profile-section-search">
             <SearchIcon size={16} />
-            <input
-              type="text"
-              value={profileSearch}
-              onChange={(e) => setProfileSearch(e.target.value)}
-              placeholder="Search sections..."
-              className="auth-input"
-            />
+            <input type="text" value={profileSearch} onChange={(e) => setProfileSearch(e.target.value)} placeholder="Search sections..." className="auth-input" />
           </div>
 
           <div className="profile-section-tabs">
             {visibleSections.map((section) => (
-              <button
-                key={section.id}
-                className={activeSection === section.id ? "nav-btn active" : "nav-btn"}
-                onClick={() => setActiveSection(section.id)}
-              >
-                <span>{section.icon}</span>
-                <span>{section.label}</span>
+              <button key={section.id} className={activeSection === section.id ? "nav-btn active" : "nav-btn"} onClick={() => setActiveSection(section.id)}>
+                <span>{section.icon}</span><span>{section.label}</span>
               </button>
             ))}
           </div>
 
-          {activeSection === "overview" && (
-            <p className="empty-state">
-              {profile.fullName}'s profile overview — {shorts.length} shorts, {followerCount} followers.
-            </p>
-          )}
-
+          {activeSection === "overview" && <p className="empty-state">{profile.fullName}'s profile overview — {shorts.length} shorts, {followerCount} followers.</p>}
           {activeSection === "shorts" && (
             <div className="profile-shorts-grid">
               {shorts.length === 0 && <p className="empty-state">No shorts posted yet.</p>}
-              {shorts.map((s) => (
-                <video key={s.id} src={s.videoUrl} className="profile-grid-video" muted />
-              ))}
+              {shorts.map((s) => <video key={s.id} src={s.videoUrl} className="profile-grid-video" muted controls />)}
             </div>
           )}
-
-          {!["overview", "shorts"].includes(activeSection) && (
-            <p className="empty-state">
-              {PROFILE_SECTIONS.find((s) => s.id === activeSection)?.label} — coming soon.
-            </p>
-          )}
+          {!(["overview", "shorts"] as string[]).includes(activeSection) && <p className="empty-state">{PROFILE_SECTIONS.find((s) => s.id === activeSection)?.label} — this section is not wired to its data source yet.</p>}
         </>
       )}
     </div>
