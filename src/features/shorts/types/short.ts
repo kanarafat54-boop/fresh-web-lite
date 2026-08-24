@@ -3,6 +3,17 @@ export interface Chapter {
   label: string;
 }
 
+export type ShortsInteractionMode = "standard" | "ar" | "vr" | "spatial";
+
+export interface ImmersiveMetadata {
+  sceneId?: string;
+  anchorId?: string;
+  projection?: "flat" | "360" | "180" | "spatial";
+  supportsHandTracking?: boolean;
+  supportsHeadTracking?: boolean;
+  metadataVersion?: number;
+}
+
 export interface Short {
   id: string;
   authorId: string;
@@ -22,4 +33,8 @@ export interface Short {
   isHot: boolean;
   chapters: Chapter[];
   createdAt: string;
+  remixOfShortId?: string | null;
+  duetOfShortId?: string | null;
+  interactionMode?: ShortsInteractionMode;
+  immersiveMetadata?: ImmersiveMetadata;
 }
