@@ -28,7 +28,8 @@ export class ShortsFeedNavigationRuntime {
     this.container.style.scrollSnapType = "y mandatory";
     this.container.style.scrollBehavior = "smooth";
     this.container.style.overscrollBehaviorY = "contain";
-    (this.container.style as CSSStyleDeclaration & { webkitOverflowScrolling?: string }).webkitOverflowScrolling = "touch";
+    const style = this.container.style as CSSStyleDeclaration & { webkitOverflowScrolling?: string };
+    style.webkitOverflowScrolling = "touch";
     this.container.setAttribute("aria-label", "Fresh Shorts feed");
     this.container.setAttribute("role", "region");
   }
