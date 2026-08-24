@@ -108,3 +108,32 @@ export async function toggleCommentReaction(
   if (current.reaction === reaction) return clearCommentReaction(commentId, userId);
   return setCommentReaction(commentId, userId, reaction);
 }
+
+export function subscribeToShortCommentReactions(
+  commentIds: string[],
+  onChange: (commentId: string) => void,
+): () => void {
+  const ids = [...new Set(commentIds.filter(Boolean))];
+  if (!ids.length) return () => undefined;
+
+  const channel = supabase
+    .channel(`short-comment-reactions:${ids.slice().sort().join(",")}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "short_comment_reactions",
+        filter: `comment_id=in.(${ids.join(",")})`,
+      },
+      (payload) => {
+        const row = (payload.new ?? payload.old) as Partial<ReactionRow>;
+        if (row.comment_id) onChange(row.comment_id);
+      },
+    )
+    .subscribe();
+
+  return () => {
+    void supabase.removeChannel(channel);
+  };
+}
