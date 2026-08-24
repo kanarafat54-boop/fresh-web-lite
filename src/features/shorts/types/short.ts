@@ -3,6 +3,18 @@ export interface Chapter {
   label: string;
 }
 
+export type ShortsImmersiveMode = "ar" | "vr" | "spatial";
+export type ShortsRemixMode = "remix" | "duet";
+export type ShortsRemixLayout = "side_by_side" | "top_bottom" | "overlay" | "sequence";
+
+export interface ShortLineage {
+  sourceShortId: string;
+  mode: ShortsRemixMode;
+  layout?: ShortsRemixLayout;
+  sourceStartMs?: number;
+  sourceEndMs?: number;
+}
+
 export interface Short {
   id: string;
   authorId: string;
@@ -22,4 +34,6 @@ export interface Short {
   isHot: boolean;
   chapters: Chapter[];
   createdAt: string;
+  lineage?: ShortLineage;
+  immersiveModes?: ShortsImmersiveMode[];
 }
