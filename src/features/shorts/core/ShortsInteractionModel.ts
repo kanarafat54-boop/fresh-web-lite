@@ -2,6 +2,7 @@ export type ShortsMediaKind = "video" | "image" | "audio" | "gallery" | "text" |
 
 export type ReactionKind =
   | "like"
+  | "dislike"
   | "love"
   | "laugh"
   | "wow"
@@ -65,7 +66,7 @@ export const DEFAULT_SHORTS_INTERACTION_POLICY: ShortsInteractionPolicy = {
 };
 
 export const REACTION_KINDS: ReactionKind[] = [
-  "like", "love", "laugh", "wow", "celebrate", "support", "curious",
+  "like", "dislike", "love", "laugh", "wow", "celebrate", "support", "curious",
   "inspire", "insightful", "agree", "disagree", "helpful", "question",
   "respect", "fire", "sad", "angry", "custom",
 ];
