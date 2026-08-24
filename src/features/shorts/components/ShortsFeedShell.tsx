@@ -13,20 +13,25 @@ type ShortsFeedShellProps = {
  */
 export default function ShortsFeedShell(props: ShortsFeedShellProps) {
   const runtimeRef = useRef<ShortsFeedNavigationRuntime | null>(null);
+  const containerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    let frame = 0;
+    let attachFrame = 0;
 
     const attach = () => {
       if (cancelled) return;
       const container = document.querySelector<HTMLElement>(".shorts-scroll-container");
       if (!container) {
-        frame = requestAnimationFrame(attach);
+        attachFrame = requestAnimationFrame(attach);
+        return;
+      }
+      if (containerRef.current === container && runtimeRef.current) {
         return;
       }
 
       runtimeRef.current?.destroy();
+      containerRef.current = container;
       runtimeRef.current = new ShortsFeedNavigationRuntime(container, {
         onActiveChange: (index) => {
           const items = Array.from(container.querySelectorAll<HTMLElement>(".short-item"));
@@ -34,8 +39,8 @@ export default function ShortsFeedShell(props: ShortsFeedShellProps) {
             item.setAttribute("aria-current", itemIndex === index ? "true" : "false");
           });
 
-          // Keep the browser's media pipeline warm for adjacent items without
-          // forcing playback outside the existing Shorts IntersectionObserver.
+          // Warm adjacent media metadata without taking playback ownership away
+          // from ShortsModule's existing IntersectionObserver.
           [index - 1, index + 1].forEach((adjacentIndex) => {
             const video = items[adjacentIndex]?.querySelector<HTMLVideoElement>("video[data-short-id]");
             if (video) video.preload = "metadata";
@@ -44,14 +49,19 @@ export default function ShortsFeedShell(props: ShortsFeedShellProps) {
       });
     };
 
-    frame = requestAnimationFrame(attach);
+    const mutationObserver = new MutationObserver(() => attach());
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
+    attach();
+
     return () => {
       cancelled = true;
-      cancelAnimationFrame(frame);
+      cancelAnimationFrame(attachFrame);
+      mutationObserver.disconnect();
       runtimeRef.current?.destroy();
       runtimeRef.current = null;
+      containerRef.current = null;
     };
-  });
+  }, []);
 
   return <ShortsModule {...props} />;
 }
