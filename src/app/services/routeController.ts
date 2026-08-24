@@ -10,14 +10,14 @@ function normalizePath(pathname: string): string {
 
 export function routeToPath(routeId: string): string {
   if (routeId === FIRST_EXPERIENCE_ID) return "/";
-  const feature = FeatureRegistry.get(routeId);
+  const feature = FeatureRegistry.getFeature(routeId);
   return feature?.route ?? "/";
 }
 
 export function pathToRoute(pathname: string): string | undefined {
   const path = normalizePath(pathname);
   if (path === "/") return undefined;
-  return FeatureRegistry.getNavEntries().find((feature) => normalizePath(feature.route) === path)?.id;
+  return FeatureRegistry.getNavEntries().find((feature) => normalizePath(feature.route ?? "/") === path)?.id;
 }
 
 export function getInitialRoute(): string {
