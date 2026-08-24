@@ -9,6 +9,7 @@ export type ShortsFeedNavigationOptions = {
 export class ShortsFeedNavigationRuntime {
   private container: HTMLElement;
   private observer?: IntersectionObserver;
+  private mutationObserver?: MutationObserver;
   private cleanupFns: Array<() => void> = [];
   private activeIndex = 0;
   private wheelLockUntil = 0;
@@ -20,13 +21,14 @@ export class ShortsFeedNavigationRuntime {
     this.installKeyboardNavigation();
     this.installWheelNavigation();
     this.installIntersectionTracking(options.onActiveChange);
+    this.installMutationTracking();
   }
 
   private configureContainer() {
     this.container.style.scrollSnapType = "y mandatory";
     this.container.style.scrollBehavior = "smooth";
     this.container.style.overscrollBehaviorY = "contain";
-    this.container.style.webkitOverflowScrolling = "touch";
+    (this.container.style as CSSStyleDeclaration & { webkitOverflowScrolling?: string }).webkitOverflowScrolling = "touch";
     this.container.setAttribute("aria-label", "Fresh Shorts feed");
     this.container.setAttribute("role", "region");
   }
@@ -130,6 +132,13 @@ export class ShortsFeedNavigationRuntime {
     items.forEach((item) => this.observer?.observe(item));
   }
 
+  private installMutationTracking() {
+    if (typeof MutationObserver === "undefined") return;
+    this.mutationObserver = new MutationObserver(() => this.refresh());
+    this.mutationObserver.observe(this.container, { childList: true });
+    this.cleanupFns.push(() => this.mutationObserver?.disconnect());
+  }
+
   refresh() {
     this.configureItems();
     const items = this.getItems();
@@ -138,6 +147,7 @@ export class ShortsFeedNavigationRuntime {
 
   destroy() {
     this.observer?.disconnect();
+    this.mutationObserver?.disconnect();
     this.cleanupFns.splice(0).forEach((cleanup) => cleanup());
   }
 }
