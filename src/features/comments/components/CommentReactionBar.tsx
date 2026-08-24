@@ -23,15 +23,21 @@ const REACTION_LABELS: Record<ShortCommentReaction, string> = {
 
 interface CommentReactionBarProps {
   commentId: string;
+  initialState?: CommentReactionState;
+  onStateChange?: (state: CommentReactionState) => void;
 }
 
-export function CommentReactionBar({ commentId }: CommentReactionBarProps) {
+export function CommentReactionBar({ commentId, initialState, onStateChange }: CommentReactionBarProps) {
   const { user, isGuest } = useFreshId();
-  const [state, setState] = useState<CommentReactionState>({ reaction: null, counts: {} });
+  const [state, setState] = useState<CommentReactionState>(initialState ?? { reaction: null, counts: {} });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialState) {
+      setState(initialState);
+      return;
+    }
     let active = true;
     void getCommentReactionState(commentId, user?.id).then((next) => {
       if (active) setState(next);
@@ -39,14 +45,16 @@ export function CommentReactionBar({ commentId }: CommentReactionBarProps) {
       if (active) setError(reason instanceof Error ? reason.message : "Couldn't load reactions");
     });
     return () => { active = false; };
-  }, [commentId, user?.id]);
+  }, [commentId, user?.id, initialState]);
 
   async function react(reaction: ShortCommentReaction) {
     if (!user || isGuest || busy) return;
     setBusy(true);
     setError(null);
     try {
-      setState(await toggleCommentReaction(commentId, user.id, reaction));
+      const next = await toggleCommentReaction(commentId, user.id, reaction);
+      setState(next);
+      onStateChange?.(next);
     } catch (reason: unknown) {
       setError(reason instanceof Error ? reason.message : "Couldn't update reaction");
     } finally {
