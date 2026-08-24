@@ -38,6 +38,7 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     openSidebar: () => setSidebarOpen(true),
     closeSidebar: () => setSidebarOpen(false),
     setActiveRoute: (route) => {
+      if (!route) return;
       setActiveRouteState(route);
       navigateToRoute(route);
     },
