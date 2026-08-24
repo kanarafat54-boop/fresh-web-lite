@@ -13,6 +13,8 @@ export class ShortsFeedNavigationRuntime {
   private cleanupFns: Array<() => void> = [];
   private activeIndex = 0;
   private wheelLockUntil = 0;
+  private touchStartX: number | null = null;
+  private touchStartY: number | null = null;
 
   constructor(container: HTMLElement, options: ShortsFeedNavigationOptions = {}) {
     this.container = container;
@@ -20,6 +22,7 @@ export class ShortsFeedNavigationRuntime {
     this.configureItems();
     this.installKeyboardNavigation();
     this.installWheelNavigation();
+    this.installTouchNavigation();
     this.installIntersectionTracking(options.onActiveChange);
     this.installMutationTracking();
   }
@@ -32,6 +35,7 @@ export class ShortsFeedNavigationRuntime {
     style.webkitOverflowScrolling = "touch";
     this.container.setAttribute("aria-label", "Fresh Shorts feed");
     this.container.setAttribute("role", "region");
+    this.container.tabIndex = 0;
   }
 
   private getItems(): HTMLElement[] {
@@ -67,7 +71,7 @@ export class ShortsFeedNavigationRuntime {
   private installKeyboardNavigation() {
     const handler = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      if (target?.matches("input, textarea, select, [contenteditable='true']")) return;
+      if (target?.matches("input, textarea, select, [contenteditable='true'], button, a")) return;
 
       if (event.key === "ArrowDown" || event.key === "PageDown") {
         event.preventDefault();
@@ -106,6 +110,37 @@ export class ShortsFeedNavigationRuntime {
 
     this.container.addEventListener("wheel", handler, { passive: false });
     this.cleanupFns.push(() => this.container.removeEventListener("wheel", handler));
+  }
+
+  private installTouchNavigation() {
+    const start = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("button, a, input, textarea, select, [contenteditable='true'], video")) return;
+      const touch = event.touches[0];
+      this.touchStartX = touch.clientX;
+      this.touchStartY = touch.clientY;
+    };
+
+    const end = (event: TouchEvent) => {
+      if (this.touchStartX === null || this.touchStartY === null) return;
+      const touch = event.changedTouches[0];
+      const dx = touch.clientX - this.touchStartX;
+      const dy = touch.clientY - this.touchStartY;
+      this.touchStartX = null;
+      this.touchStartY = null;
+
+      // Horizontal gestures belong to the horizontal context layer; only
+      // decisive vertical gestures advance the Shorts feed.
+      if (Math.abs(dy) < 48 || Math.abs(dy) <= Math.abs(dx) * 1.2) return;
+      if (dy < 0) this.next();
+      else this.previous();
+    };
+
+    this.container.addEventListener("touchstart", start, { passive: true });
+    this.container.addEventListener("touchend", end, { passive: true });
+    this.cleanupFns.push(() => this.container.removeEventListener("touchstart", start));
+    this.cleanupFns.push(() => this.container.removeEventListener("touchend", end));
   }
 
   private installIntersectionTracking(onActiveChange?: (index: number, shortId: string | null) => void) {
