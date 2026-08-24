@@ -1,14 +1,25 @@
 import { FeedModule } from "../feed/components/FeedModule";
 import { FilmIcon, SearchIcon } from "../../components/Icons";
+import UniversalCommandBar from "./components/UniversalCommandBar";
+
+type SearchMode = "instant" | "ai" | "research" | "private";
 
 /**
- * Home is the public media surface of Fresh Web Lite.
- * Keep the existing FeedModule as the source of truth for posts instead of
- * replacing the feed with a static dashboard.
+ * Home is the universal launch surface of Fresh Web Lite.
+ * The feed remains the source of truth for media while the command bar
+ * provides the shared entry point for search, AI, voice and translation.
  */
 export default function HomeDashboard() {
+  const handleSearch = (query: string, mode: SearchMode) => {
+    const params = new URLSearchParams({ q: query, mode });
+    window.history.pushState({}, "", `/?${params.toString()}`);
+    window.dispatchEvent(new CustomEvent("fresh:universal-search", { detail: { query, mode } }));
+  };
+
   return (
     <div className="home-dashboard">
+      <UniversalCommandBar onSearch={handleSearch} />
+
       <section className="welcome-card">
         <FilmIcon size={36} />
         <div>
