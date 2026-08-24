@@ -20,8 +20,16 @@ export interface CommentReactionState {
   counts: Partial<Record<ShortCommentReaction, number>>;
 }
 
+export type CommentReactionStateMap = Record<string, CommentReactionState>;
+
+type ReactionRow = { comment_id: string; reaction_type: string; user_id: string };
+
 function isReaction(value: string): value is ShortCommentReaction {
   return (SHORT_COMMENT_REACTIONS as readonly string[]).includes(value);
+}
+
+function emptyState(): CommentReactionState {
+  return { reaction: null, counts: {} };
 }
 
 function normalizeCounts(rows: Array<{ reaction_type: string }>): Partial<Record<ShortCommentReaction, number>> {
@@ -32,20 +40,40 @@ function normalizeCounts(rows: Array<{ reaction_type: string }>): Partial<Record
   return counts;
 }
 
-export async function getCommentReactionState(commentId: string, userId?: string | null): Promise<CommentReactionState> {
+export async function getCommentReactionStates(commentIds: string[], userId?: string | null): Promise<CommentReactionStateMap> {
+  const ids = [...new Set(commentIds.filter(Boolean))];
+  const states: CommentReactionStateMap = Object.fromEntries(ids.map((id) => [id, emptyState()]));
+  if (!ids.length) return states;
+
   const { data, error } = await supabase
     .from("short_comment_reactions")
-    .select("reaction_type,user_id")
-    .eq("comment_id", commentId);
+    .select("comment_id,reaction_type,user_id")
+    .in("comment_id", ids);
 
   if (error) throw error;
 
-  const rows = (data ?? []) as Array<{ reaction_type: string; user_id: string }>;
-  const reaction = userId
-    ? rows.find((row) => row.user_id === userId && isReaction(row.reaction_type))?.reaction_type ?? null
-    : null;
+  const grouped = new Map<string, ReactionRow[]>();
+  for (const raw of (data ?? []) as ReactionRow[]) {
+    if (!grouped.has(raw.comment_id)) grouped.set(raw.comment_id, []);
+    grouped.get(raw.comment_id)!.push(raw);
+  }
 
-  return { reaction, counts: normalizeCounts(rows) };
+  for (const id of ids) {
+    const rows = grouped.get(id) ?? [];
+    states[id] = {
+      reaction: userId
+        ? rows.find((row) => row.user_id === userId && isReaction(row.reaction_type))?.reaction_type ?? null
+        : null,
+      counts: normalizeCounts(rows),
+    };
+  }
+
+  return states;
+}
+
+export async function getCommentReactionState(commentId: string, userId?: string | null): Promise<CommentReactionState> {
+  const states = await getCommentReactionStates([commentId], userId);
+  return states[commentId] ?? emptyState();
 }
 
 export async function setCommentReaction(
