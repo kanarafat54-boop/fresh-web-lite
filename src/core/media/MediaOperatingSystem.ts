@@ -1,23 +1,11 @@
 /**
  * Fresh Media Operating System
  *
- * A shared semantic contract for media across Fresh Flow, Live, long-form video,
- * news, audio, images, posts, and future immersive experiences. Existing feature
+ * Shared semantic primitives for media across Fresh Flow, Live, long-form video,
+ * news, audio, images, posts, and immersive experiences. Existing feature
  * modules remain the source of truth while they progressively adopt these primitives.
  */
-export type MediaKind =
-  | 'short'
-  | 'live'
-  | 'video'
-  | 'news'
-  | 'audio'
-  | 'podcast'
-  | 'image'
-  | 'gallery'
-  | 'post'
-  | 'story'
-  | 'learning'
-  | 'immersive';
+import type { MediaKind } from './freshFlow';
 
 export type MediaInteraction =
   | 'view'
@@ -49,7 +37,7 @@ export interface MediaProvenance {
   createdAt: string;
   derivativeDepth: number;
   policy: MediaDerivativePolicy;
-}
+};
 
 export interface MediaKnowledgeDescriptor {
   topics: string[];
@@ -57,7 +45,7 @@ export interface MediaKnowledgeDescriptor {
   languages: string[];
   transcriptAvailable: boolean;
   claims?: string[];
-}
+};
 
 export interface MediaObject {
   id: string;
@@ -71,7 +59,7 @@ export interface MediaObject {
     audioDescription: boolean;
     altText: boolean;
   };
-}
+};
 
 export interface MediaInteractionEvent {
   id: string;
@@ -81,18 +69,14 @@ export interface MediaInteractionEvent {
   occurredAt: string;
   ephemeral: boolean;
   metadata?: Record<string, unknown>;
-}
+};
 
-/**
- * Keeps high-frequency ephemeral events separate from durable engagement.
- * Live implementations can stream these events without turning every visual
- * reaction into an individual durable database write.
- */
+/** High-frequency media events can be streamed/batched separately from durable engagement. */
 export interface MediaEventIngestionPolicy {
   mode: 'durable' | 'ephemeral' | 'batched';
   aggregationWindowMs?: number;
   dedupeKey?: string;
-}
+};
 
 export const DEFAULT_LIVE_REACTION_POLICY: MediaEventIngestionPolicy = {
   mode: 'batched',
