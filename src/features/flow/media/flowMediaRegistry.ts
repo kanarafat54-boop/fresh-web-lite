@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import type { MediaContextDescriptor } from "../../../core/media";
-import { ShortsModule } from "../../shorts/components/ShortsModule";
+import { ShortsFlowExperience } from "./ShortsFlowExperience";
 
 export type FlowMediaKind =
   | "short"
@@ -34,15 +34,15 @@ export interface FlowMediaDefinition {
  * until their production implementation exists.
  */
 export const FLOW_MEDIA_REGISTRY: readonly FlowMediaDefinition[] = [
-  { kind: "short", label: "Shorts", component: ShortsModule, enabled: true },
-  { kind: "long_form", label: "Long-form", component: ShortsModule, enabled: false },
-  { kind: "live", label: "Live", component: ShortsModule, enabled: false },
-  { kind: "news", label: "News", component: ShortsModule, enabled: false },
-  { kind: "audio", label: "Audio", component: ShortsModule, enabled: false },
-  { kind: "image", label: "Images", component: ShortsModule, enabled: false },
-  { kind: "gallery", label: "Galleries", component: ShortsModule, enabled: false },
-  { kind: "knowledge", label: "Knowledge", component: ShortsModule, enabled: false },
-  { kind: "immersive", label: "Immersive", component: ShortsModule, enabled: false },
+  { kind: "short", label: "Shorts", component: ShortsFlowExperience, enabled: true },
+  { kind: "long_form", label: "Long-form", component: ShortsFlowExperience, enabled: false },
+  { kind: "live", label: "Live", component: ShortsFlowExperience, enabled: false },
+  { kind: "news", label: "News", component: ShortsFlowExperience, enabled: false },
+  { kind: "audio", label: "Audio", component: ShortsFlowExperience, enabled: false },
+  { kind: "image", label: "Images", component: ShortsFlowExperience, enabled: false },
+  { kind: "gallery", label: "Galleries", component: ShortsFlowExperience, enabled: false },
+  { kind: "knowledge", label: "Knowledge", component: ShortsFlowExperience, enabled: false },
+  { kind: "immersive", label: "Immersive", component: ShortsFlowExperience, enabled: false },
 ];
 
 export function getFlowMediaDefinition(kind: FlowMediaKind): FlowMediaDefinition {
