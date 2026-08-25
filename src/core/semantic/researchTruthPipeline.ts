@@ -55,7 +55,7 @@ export function evaluateResearchTruth(input: ResearchTruthInput): ResearchTruthR
     provider: source.provider,
     url: source.url,
     title: source.title,
-    kind: "original",
+    kind: "unknown",
     observedAt: input.searchedAt,
   }));
 
