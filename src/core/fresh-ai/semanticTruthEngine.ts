@@ -29,32 +29,34 @@ export class SemanticTruthEngine implements FreshTruthEngine {
   }
 
   private evaluateDecisions(evidence: Evidence[]): TruthDecision[] {
+    if (!evidence.length) return [];
+
+    const now = new Date().toISOString();
     const semanticEvidence: SemanticEvidence[] = evidence.map((item) => ({
       id: item.id,
       claim: item.claim,
       sourceUrl: item.source,
       sourceTitle: item.source,
       provider: "fresh-ai",
-      observedAt: item.observedAt ?? new Date().toISOString(),
+      observedAt: item.observedAt ?? now,
       confidence: Math.max(0, Math.min(1, item.confidence)),
       supports: true,
     }));
 
-    return semanticEvidence.map((item) => {
-      const claim: SemanticClaim = {
-        id: `fresh-claim:${item.id}`,
-        predicate: "fresh.evidence",
-        object: item.claim,
-        normalizedText: normalize(item.claim),
-        status: "supported",
-        confidence: item.confidence ?? 0,
-        firstObservedAt: item.observedAt,
-        lastObservedAt: item.observedAt,
-        evidenceIds: [item.id],
-        counterEvidenceIds: [],
-      };
-      return decideTruth(claim, [claim], [item], [], [], item.observedAt);
-    });
+    const claims: SemanticClaim[] = semanticEvidence.map((item) => ({
+      id: `fresh-claim:${item.id}`,
+      predicate: "fresh.evidence",
+      object: item.claim,
+      normalizedText: normalize(item.claim),
+      status: "supported",
+      confidence: item.confidence ?? 0,
+      firstObservedAt: item.observedAt,
+      lastObservedAt: item.observedAt,
+      evidenceIds: [item.id],
+      counterEvidenceIds: [],
+    }));
+
+    return claims.map((claim) => decideTruth(claim, claims, semanticEvidence, [], [], now));
   }
 }
 
