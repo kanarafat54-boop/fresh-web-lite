@@ -1,4 +1,4 @@
-import type { Evidence, FreshTruthEngine } from "./FreshAIArchitecture";
+import type { Evidence } from "./FreshAIArchitecture";
 import { decideTruth, type TruthDecision } from "../semantic/truthDecisionOrchestrator";
 import type { SemanticClaim, SemanticEvidence } from "../semantic/types";
 
@@ -11,7 +11,7 @@ import type { SemanticClaim, SemanticEvidence } from "../semantic/types";
  * ALLOW/CAUTION/BLOCK result can use decide(). No second truth algorithm is
  * introduced here.
  */
-export class SemanticTruthEngine implements FreshTruthEngine {
+export class SemanticTruthEngine {
   private lastDecisions: TruthDecision[] = [];
 
   async evaluate(evidence: Evidence[]): Promise<Evidence[]> {
