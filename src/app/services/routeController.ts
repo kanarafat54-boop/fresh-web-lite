@@ -2,6 +2,7 @@ import { FeatureRegistry } from "../registry/FeatureRegistry";
 
 const FIRST_EXPERIENCE_ID = "first-experience";
 const DEFAULT_ROUTE = "feed";
+const LEGACY_FLOW_PATHS: Record<string, string> = { "/shorts": "shorts" };
 
 function normalizePath(pathname: string): string {
   const path = pathname.replace(/^\/+|\/+$/g, "");
@@ -17,6 +18,7 @@ export function routeToPath(routeId: string): string {
 export function pathToRoute(pathname: string): string | undefined {
   const path = normalizePath(pathname);
   if (path === "/") return undefined;
+  if (LEGACY_FLOW_PATHS[path]) return LEGACY_FLOW_PATHS[path];
   return FeatureRegistry.getNavEntries().find((feature) => normalizePath(feature.route ?? "/") === path)?.id;
 }
 
