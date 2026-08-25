@@ -1,19 +1,22 @@
 /**
  * Fresh Media Operating System
  *
- * A shared semantic contract for media across Shorts, Live, long-form video,
- * audio, images, posts, and future immersive experiences. This is deliberately
- * UI-agnostic: existing feature modules remain the source of truth while they
- * progressively adopt these primitives.
+ * A shared semantic contract for media across Fresh Flow, Live, long-form video,
+ * news, audio, images, posts, and future immersive experiences. Existing feature
+ * modules remain the source of truth while they progressively adopt these primitives.
  */
 export type MediaKind =
   | 'short'
   | 'live'
   | 'video'
+  | 'news'
   | 'audio'
+  | 'podcast'
   | 'image'
   | 'gallery'
   | 'post'
+  | 'story'
+  | 'learning'
   | 'immersive';
 
 export type MediaInteraction =
