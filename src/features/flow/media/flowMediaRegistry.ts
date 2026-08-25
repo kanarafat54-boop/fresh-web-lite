@@ -4,7 +4,7 @@ import {
   type FreshFlowMediaDefinition,
 } from "../../../core/media/FreshFlowRegistry";
 import type { MediaKind } from "../../../core/media/freshFlow";
-import { ShortsModule } from "../../shorts/components/ShortsModule";
+import ShortsFeedShell from "../../shorts/components/ShortsFeedShell";
 
 /**
  * UI adapter between the Fresh Media OS registry and feature components.
@@ -25,14 +25,16 @@ export interface FlowMediaDefinition {
 }
 
 const FLOW_COMPONENTS: Partial<Record<MediaKind, ComponentType<any>>> = {
-  short: ShortsModule,
+  // Fresh Flow owns the product boundary; ShortsFeedShell owns the mature
+  // Shorts playback/navigation engine beneath it.
+  short: ShortsFeedShell,
 };
 
 function toFlowDefinition(definition: FreshFlowMediaDefinition): FlowMediaDefinition {
   return {
     kind: definition.kind,
     label: definition.label,
-    component: FLOW_COMPONENTS[definition.kind] ?? ShortsModule,
+    component: FLOW_COMPONENTS[definition.kind] ?? ShortsFeedShell,
     enabled: definition.status === "active" && Boolean(FLOW_COMPONENTS[definition.kind]),
     capabilities: definition.capabilities,
     realtime: definition.realtime,
