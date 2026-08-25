@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import type { MediaContextDescriptor } from "../../../core/media";
 import { ShortsModule } from "../../shorts/components/ShortsModule";
 
 export type FlowMediaKind =
@@ -12,10 +13,16 @@ export type FlowMediaKind =
   | "knowledge"
   | "immersive";
 
+export interface FlowMediaComponentProps {
+  openComposerSignal?: number;
+  onExit?: () => void;
+  mediaContext?: MediaContextDescriptor;
+}
+
 export interface FlowMediaDefinition {
   kind: FlowMediaKind;
   label: string;
-  component: ComponentType<any>;
+  component: ComponentType<FlowMediaComponentProps>;
   enabled: boolean;
 }
 
