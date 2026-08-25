@@ -1,4 +1,5 @@
 import { getFlowMediaDefinition, type FlowMediaKind } from "./media/flowMediaRegistry";
+import { FlowMediaExperience } from "./components/FlowMediaExperience";
 
 /**
  * Fresh Flow
@@ -19,6 +20,11 @@ export default function FreshFlow(props: {
     throw new Error(`Fresh Flow media kind is not enabled: ${mediaKind}`);
   }
 
-  const MediaComponent = definition.component;
-  return <MediaComponent openComposerSignal={props.openComposerSignal} onExit={props.onExit} />;
+  return (
+    <FlowMediaExperience
+      definition={definition}
+      openComposerSignal={props.openComposerSignal}
+      onExit={props.onExit}
+    />
+  );
 }
