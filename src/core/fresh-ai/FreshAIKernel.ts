@@ -6,6 +6,7 @@ import type {
   FreshSkill,
   FreshIntelligenceEngine,
 } from "./FreshAIArchitecture";
+import { SemanticTruthEngine } from "./semanticTruthEngine";
 
 export type FreshMemoryRecord = {
   id: string;
@@ -33,13 +34,16 @@ export type FreshTruthEngine = {
  * Provider-free orchestration kernel. This is deliberately a deterministic
  * shell around pluggable native reasoning, memory, truth and skill services.
  * No API key is read or required by the kernel.
+ *
+ * The truth service defaults to the semantic TRUEMODE bridge so callers do
+ * not accidentally instantiate a legacy/competing truth implementation.
  */
 export class FreshAIKernel implements FreshIntelligenceEngine {
   private readonly skills: FreshSkillRegistry;
   private readonly memory: FreshMemoryStore;
   private readonly truth: FreshTruthEngine;
 
-  constructor(skills: FreshSkillRegistry, memory: FreshMemoryStore, truth: FreshTruthEngine) {
+  constructor(skills: FreshSkillRegistry, memory: FreshMemoryStore, truth: FreshTruthEngine = new SemanticTruthEngine()) {
     this.skills = skills;
     this.memory = memory;
     this.truth = truth;
