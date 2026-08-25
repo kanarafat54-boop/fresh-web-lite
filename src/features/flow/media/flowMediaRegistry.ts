@@ -1,42 +1,46 @@
 import type { ComponentType } from "react";
+import {
+  FRESH_FLOW_MEDIA_REGISTRY,
+  type FreshFlowMediaDefinition,
+} from "../../../core/media/FreshFlowRegistry";
+import type { MediaKind } from "../../../core/media/freshFlow";
 import { ShortsModule } from "../../shorts/components/ShortsModule";
 
-export type FlowMediaKind =
-  | "short"
-  | "long_form"
-  | "live"
-  | "news"
-  | "audio"
-  | "image"
-  | "gallery"
-  | "knowledge"
-  | "immersive";
+/**
+ * UI adapter between the Fresh Media OS registry and feature components.
+ *
+ * The Media OS owns the canonical media taxonomy, capabilities, surfaces and
+ * lifecycle status. This layer only resolves an enabled media kind to its
+ * concrete UI implementation. It must never maintain a second taxonomy.
+ */
+export type FlowMediaKind = MediaKind;
 
 export interface FlowMediaDefinition {
   kind: FlowMediaKind;
   label: string;
   component: ComponentType<any>;
   enabled: boolean;
+  capabilities: readonly string[];
+  realtime: boolean;
 }
 
-/**
- * Single registry for media experiences rendered by Fresh Flow.
- *
- * New media kinds must enter through this registry rather than creating a
- * second discovery surface. Unsupported kinds remain declared but disabled
- * until their production implementation exists.
- */
-export const FLOW_MEDIA_REGISTRY: readonly FlowMediaDefinition[] = [
-  { kind: "short", label: "Shorts", component: ShortsModule, enabled: true },
-  { kind: "long_form", label: "Long-form", component: ShortsModule, enabled: false },
-  { kind: "live", label: "Live", component: ShortsModule, enabled: false },
-  { kind: "news", label: "News", component: ShortsModule, enabled: false },
-  { kind: "audio", label: "Audio", component: ShortsModule, enabled: false },
-  { kind: "image", label: "Images", component: ShortsModule, enabled: false },
-  { kind: "gallery", label: "Galleries", component: ShortsModule, enabled: false },
-  { kind: "knowledge", label: "Knowledge", component: ShortsModule, enabled: false },
-  { kind: "immersive", label: "Immersive", component: ShortsModule, enabled: false },
-];
+const FLOW_COMPONENTS: Partial<Record<MediaKind, ComponentType<any>>> = {
+  short: ShortsModule,
+};
+
+function toFlowDefinition(definition: FreshFlowMediaDefinition): FlowMediaDefinition {
+  return {
+    kind: definition.kind,
+    label: definition.label,
+    component: FLOW_COMPONENTS[definition.kind] ?? ShortsModule,
+    enabled: definition.status === "active" && Boolean(FLOW_COMPONENTS[definition.kind]),
+    capabilities: definition.capabilities,
+    realtime: definition.realtime,
+  };
+}
+
+export const FLOW_MEDIA_REGISTRY: readonly FlowMediaDefinition[] =
+  FRESH_FLOW_MEDIA_REGISTRY.map(toFlowDefinition);
 
 export function getFlowMediaDefinition(kind: FlowMediaKind): FlowMediaDefinition {
   const definition = FLOW_MEDIA_REGISTRY.find((item) => item.kind === kind);
