@@ -1,19 +1,25 @@
 import { useEffect, useRef } from "react";
 import { ShortsModule } from "./ShortsModule";
 import { ShortsFeedNavigationRuntime } from "../core/ShortsFeedNavigationRuntime";
+import {
+  attachShortsMediaContext,
+  type ShortsMediaContext,
+} from "../core/ShortsMediaContextBridge";
 
 type ShortsFeedShellProps = {
   openComposerSignal?: number;
   onExit?: () => void;
+  mediaContext?: ShortsMediaContext;
 };
 
 /**
  * Keeps ShortsModule as the source of truth and adds the production navigation
- * runtime around its existing feed DOM.
+ * runtime plus the optional Fresh Media OS context boundary around its feed DOM.
  */
-export default function ShortsFeedShell(props: ShortsFeedShellProps) {
+export default function ShortsFeedShell({ mediaContext, ...props }: ShortsFeedShellProps) {
   const runtimeRef = useRef<ShortsFeedNavigationRuntime | null>(null);
   const containerRef = useRef<HTMLElement | null>(null);
+  const detachContextRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,7 +37,14 @@ export default function ShortsFeedShell(props: ShortsFeedShellProps) {
       }
 
       runtimeRef.current?.destroy();
+      detachContextRef.current?.();
+      detachContextRef.current = null;
       containerRef.current = container;
+
+      if (mediaContext) {
+        detachContextRef.current = attachShortsMediaContext(container, mediaContext);
+      }
+
       runtimeRef.current = new ShortsFeedNavigationRuntime(container, {
         onActiveChange: (index) => {
           const items = Array.from(container.querySelectorAll<HTMLElement>(".short-item"));
@@ -59,9 +72,11 @@ export default function ShortsFeedShell(props: ShortsFeedShellProps) {
       mutationObserver.disconnect();
       runtimeRef.current?.destroy();
       runtimeRef.current = null;
+      detachContextRef.current?.();
+      detachContextRef.current = null;
       containerRef.current = null;
     };
-  }, []);
+  }, [mediaContext]);
 
   return <ShortsModule {...props} />;
 }
