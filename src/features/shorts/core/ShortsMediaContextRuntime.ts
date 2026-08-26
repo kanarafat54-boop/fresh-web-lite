@@ -57,12 +57,15 @@ export class ShortsMediaContextRuntime {
 
   private async hydrateVisibleItems(): Promise<void> {
     const items = Array.from(this.container.querySelectorAll<HTMLElement>(".short-item"));
-    const ids = items
-      .map((item) => item.querySelector<HTMLVideoElement>("video[data-short-id]")?.dataset.shortId)
-      .filter((id): id is string => Boolean(id) && !this.pending.has(id));
+    const ids: string[] = [];
+
+    for (const item of items) {
+      const shortId = item.querySelector<HTMLVideoElement>("video[data-short-id]")?.dataset.shortId;
+      if (shortId && !this.pending.has(shortId)) ids.push(shortId);
+    }
 
     if (ids.length === 0) return;
-    ids.forEach((id) => this.pending.add(id));
+    for (const id of ids) this.pending.add(id);
 
     try {
       const { data, error } = await supabase
@@ -80,12 +83,12 @@ export class ShortsMediaContextRuntime {
       }>;
       const rowMap = new Map(rows.map((row) => [row.id, row]));
 
-      items.forEach((item) => {
-        const video = item.querySelector<HTMLVideoElement>("video[data-short-id]");
-        const id = video?.dataset.shortId;
-        if (!id) return;
-        const row = rowMap.get(id);
-        if (!row || !row.author_id) return;
+      for (const item of items) {
+        const shortId = item.querySelector<HTMLVideoElement>("video[data-short-id]")?.dataset.shortId;
+        if (!shortId) continue;
+
+        const row = rowMap.get(shortId);
+        if (!row?.author_id) continue;
 
         const short: Short = {
           ...DEFAULT_SHORT,
@@ -108,9 +111,9 @@ export class ShortsMediaContextRuntime {
         item.dataset.mediaTopicCount = String(context.knowledge.topics.length);
         item.dataset.mediaDerivativeDepth = String(context.provenance.derivativeDepth);
         item.dataset.mediaCapabilities = capabilities.join(",");
-      });
+      }
     } finally {
-      ids.forEach((id) => this.pending.delete(id));
+      for (const id of ids) this.pending.delete(id);
     }
   }
 }
