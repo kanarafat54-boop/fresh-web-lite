@@ -1,5 +1,5 @@
 import { supabase } from "../../../lib/supabase";
-import { createShortMediaContext } from "./ShortMediaContextAdapter";
+import { createShortMediaContext, getShortMediaContextCapabilities } from "./ShortMediaContextAdapter";
 import type { Short } from "../types/short";
 
 const DEFAULT_SHORT: Omit<Short, "id" | "authorId" | "caption" | "createdAt"> = {
@@ -21,8 +21,8 @@ const DEFAULT_SHORT: Omit<Short, "id" | "authorId" | "caption" | "createdAt"> = 
 
 /**
  * Bridges the mature Shorts DOM to the Fresh Media OS without changing the
- * ShortsModule data contract. It hydrates only the context fields that the
- * existing feed can truthfully provide today.
+ * ShortsModule data contract. It hydrates only context fields the existing
+ * feed can truthfully provide today.
  */
 export class ShortsMediaContextRuntime {
   private observer: MutationObserver | null = null;
@@ -92,6 +92,7 @@ export class ShortsMediaContextRuntime {
           createdAt: row.created_at,
         };
         const context = createShortMediaContext(short);
+        const capabilities = getShortMediaContextCapabilities(short);
 
         item.dataset.mediaId = context.mediaId;
         item.dataset.mediaKind = context.kind;
@@ -99,12 +100,7 @@ export class ShortsMediaContextRuntime {
         item.dataset.mediaContextSurface = context.surface ?? "discovery";
         item.dataset.mediaTopicCount = String(context.knowledge.topics.length);
         item.dataset.mediaDerivativeDepth = String(context.provenance.derivativeDepth);
-        item.dataset.mediaCapabilities = [
-          "interaction",
-          "remix",
-          "duet",
-          ...context.knowledge.topics.map(() => "topic"),
-        ].join(",");
+        item.dataset.mediaCapabilities = capabilities.join(",");
       });
     } finally {
       ids.forEach((id) => this.pending.delete(id));
