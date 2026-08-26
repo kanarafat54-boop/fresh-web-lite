@@ -11,6 +11,8 @@ const DEFAULT_SHORT: Omit<Short, "id" | "authorId" | "caption" | "createdAt"> = 
   commentCount: 0,
   viewCount: 0,
   repostCount: 0,
+  viewCount: 0,
+  repostCount: 0,
   myReaction: null,
   repostedByMe: false,
   isFollowingAuthor: false,
