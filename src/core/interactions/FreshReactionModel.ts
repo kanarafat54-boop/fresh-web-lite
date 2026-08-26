@@ -4,7 +4,26 @@ export type UniversalReactionKind =
   | "helpful" | "question" | "respect" | "fire" | "sad" | "angry"
   | "custom";
 
+/** Every Fresh object that may participate in universal interactions. */
+export type UniversalInteractionTargetType =
+  | "short" | "video" | "post" | "text" | "image" | "gallery"
+  | "audio" | "podcast" | "live" | "news" | "article" | "story"
+  | "poll" | "comment" | "reply" | "quote" | "remix" | "duet"
+  | "learning" | "knowledge" | "marketplace" | "profile" | "ar"
+  | "vr" | "mixed";
+
+/** Target-specific capabilities remain separate from reactions. */
+export type UniversalInteractionCapability =
+  | "react" | "comment" | "reply" | "save" | "share" | "repost"
+  | "quote" | "vote" | "remix" | "duet" | "collaborate";
+
 export type InteractionMediaKind = "text" | "image" | "gallery" | "video" | "audio" | "file" | "live" | "poll" | "article" | "mixed";
+
+export type UniversalInteractionTarget = {
+  id: string;
+  type: UniversalInteractionTargetType;
+  capabilities: readonly UniversalInteractionCapability[];
+};
 
 export type UniversalCommentAttachment = {
   kind: InteractionMediaKind;
@@ -20,7 +39,7 @@ export type UniversalComment = {
   id: string;
   actorId: string;
   targetId: string;
-  targetType: string;
+  targetType: UniversalInteractionTargetType;
   body?: string;
   attachments: UniversalCommentAttachment[];
   replyToId?: string;
@@ -39,11 +58,22 @@ export const INTERACTION_MEDIA_KINDS: readonly InteractionMediaKind[] = [
   "text", "image", "gallery", "video", "audio", "file", "live", "poll", "article", "mixed",
 ];
 
-/**
- * Platform-wide interaction contract. Shorts consumes this model, but the
- * same contract is intentionally available to posts, videos, news, live,
- * stories, photos, audio, articles and future Fresh media types.
- */
 export function supportsAttachment(kind: InteractionMediaKind): boolean {
   return INTERACTION_MEDIA_KINDS.includes(kind);
+}
+
+export function canInteractWithTarget(
+  target: UniversalInteractionTarget,
+  capability: UniversalInteractionCapability,
+): boolean {
+  return target.capabilities.includes(capability);
+}
+
+export function canReactToTarget(target: UniversalInteractionTarget): boolean {
+  return canInteractWithTarget(target, "react");
+}
+
+/** Poll voting is a separate action; reacting to a poll never casts a vote. */
+export function canVoteOnTarget(target: UniversalInteractionTarget): boolean {
+  return target.type === "poll" && canInteractWithTarget(target, "vote");
 }
