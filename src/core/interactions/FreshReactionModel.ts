@@ -15,7 +15,7 @@ export type UniversalInteractionTargetType =
 /** Target-specific capabilities remain separate from reactions. */
 export type UniversalInteractionCapability =
   | "react" | "comment" | "reply" | "save" | "share" | "repost"
-  | "quote" | "vote" | "remix" | "duet" | "collaborate";
+  | "quote" | "vote" | "remix" | "duet" | "collaborate" | "follow";
 
 export type InteractionMediaKind = "text" | "image" | "gallery" | "video" | "audio" | "file" | "live" | "poll" | "article" | "mixed";
 
