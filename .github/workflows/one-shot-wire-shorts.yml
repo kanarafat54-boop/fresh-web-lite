@@ -1,0 +1,44 @@
+name: One-shot Shorts interaction wiring
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    if: contains(github.event.head_commit.message, 'chore: wire Shorts interactions through canonical service')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch Shorts interaction entry points
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/features/shorts/components/ShortsModule.tsx')
+          s = p.read_text()
+          imp = 'import { interactWithShort } from "../core/ShortsUniversalInteractionAdapter";\n'
+          anchor = 'import { rankForYou } from "../core/ForYouRanking";\n'
+          if imp not in s:
+              s = s.replace(anchor, anchor + imp)
+          replacements = {
+          '''async function reactToShort(short: Short, type: string) {\n    if (!user || isGuest) return;\n\n    if (short.myReaction === type) {\n      await supabase.from("short_likes").delete().eq("short_id", short.id).eq("user_id", user.id);\n    } else if (short.myReaction) {\n      await supabase\n        .from("short_likes")\n        .update({ reaction_type: type })\n        .eq("short_id", short.id)\n        .eq("user_id", user.id);\n    } else {\n      await supabase.from("short_likes").insert({ short_id: short.id, user_id: user.id, reaction_type: type });\n    }\n\n    searchActive ? runSearch(searchQuery) : loadShorts();\n  }''': '''async function reactToShort(short: Short, type: string) {\n    if (!user || isGuest) return;\n    const result = await interactWithShort(user.id, short.id, "react", {\n      reaction: type as Parameters<typeof interactWithShort>[3]["reaction"],\n      payload: { active: short.myReaction !== type },\n    });\n    if (!result.accepted) { setError(result.reason); return; }\n    searchActive ? runSearch(searchQuery) : loadShorts();\n  }''',
+          '''async function toggleSave(shortId: string) {\n    if (!user || isGuest) return;\n\n    if (savedIds.has(shortId)) {\n      await supabase.from("saved_shorts").delete().eq("short_id", shortId).eq("user_id", user.id);\n    } else {\n      await supabase.from("saved_shorts").insert({ short_id: shortId, user_id: user.id });\n    }\n\n    searchActive ? runSearch(searchQuery) : loadShorts();\n  }''': '''async function toggleSave(shortId: string) {\n    if (!user || isGuest) return;\n    const result = await interactWithShort(user.id, shortId, "save", {\n      payload: { active: !savedIds.has(shortId) },\n    });\n    if (!result.accepted) { setError(result.reason); return; }\n    searchActive ? runSearch(searchQuery) : loadShorts();\n  }''',
+          '''async function toggleRepost(short: Short) {\n    if (!user || isGuest) return;\n\n    if (short.repostedByMe) {\n      await supabase.from("short_reposts").delete().eq("short_id", short.id).eq("user_id", user.id);\n    } else {\n      await supabase.from("short_reposts").insert({ short_id: short.id, user_id: user.id });\n    }\n\n    searchActive ? runSearch(searchQuery) : loadShorts();\n  }''': '''async function toggleRepost(short: Short) {\n    if (!user || isGuest) return;\n    const result = await interactWithShort(user.id, short.id, "repost", {\n      payload: { active: !short.repostedByMe },\n    });\n    if (!result.accepted) { setError(result.reason); return; }\n    searchActive ? runSearch(searchQuery) : loadShorts();\n  }''',
+          '''async function toggleFollow(short: Short) {\n    if (!user || isGuest || short.authorId === user.id) return;\n\n    if (short.isFollowingAuthor) {\n      await supabase.from("follows").delete().eq("follower_id", user.id).eq("followed_id", short.authorId);\n    } else {\n      await supabase.from("follows").insert({ follower_id: user.id, followed_id: short.authorId });\n    }\n\n    searchActive ? runSearch(searchQuery) : loadShorts();\n  }''': '''async function toggleFollow(short: Short) {\n    if (!user || isGuest || short.authorId === user.id) return;\n    const result = await interactWithShort(user.id, short.id, "follow", {\n      payload: { followedId: short.authorId, active: !short.isFollowingAuthor },\n    });\n    if (!result.accepted) { setError(result.reason); return; }\n    searchActive ? runSearch(searchQuery) : loadShorts();\n  }'''
+          }
+          for old, new in replacements.items():
+              if old not in s:
+                  raise SystemExit('Expected Shorts handler was not found; aborting without changes')
+              s = s.replace(old, new)
+          p.write_text(s)
+          Path('.github/workflows/one-shot-wire-shorts.yml').unlink()
+      - name: Commit wired Shorts module
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/features/shorts/components/ShortsModule.tsx .github/workflows/one-shot-wire-shorts.yml
+          git commit -m 'feat: wire Shorts mutations to universal interactions'
+          git push

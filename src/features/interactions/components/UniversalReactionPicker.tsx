@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { UNIVERSAL_REACTIONS, type UniversalReactionKind } from "../../../core/interactions/FreshReactionModel";
+import {
+  UNIVERSAL_REACTIONS,
+  canReactToTarget,
+  type UniversalInteractionTarget,
+  type UniversalReactionKind,
+} from "../../../core/interactions/FreshReactionModel";
 import { interactionA11y, onActivation } from "../../../core/interactions/InteractionA11y";
 
 const EMOJI: Record<UniversalReactionKind, string> = {
@@ -13,29 +18,34 @@ export function UniversalReactionPicker({
   count = 0,
   onChange,
   label = "React",
+  target,
 }: {
   value?: UniversalReactionKind | null;
   count?: number;
   onChange: (reaction: UniversalReactionKind) => void;
   label?: string;
+  target?: UniversalInteractionTarget;
 }) {
   const [open, setOpen] = useState(false);
+  const canReact = !target || canReactToTarget(target);
   const choose = (reaction: UniversalReactionKind) => { onChange(reaction); setOpen(false); };
+
   return (
-    <div className="reaction-wrap">
+    <div className="reaction-wrap" data-interaction-target={target?.type}>
       <button
         type="button"
-        aria-label={`${label}: ${value ?? "like"}, ${count} reactions`}
+        aria-label={canReact ? `${label}: ${value ?? "like"}, ${count} reactions` : `${label}: unavailable`}
         aria-haspopup="menu"
         aria-expanded={open}
+        disabled={!canReact}
         className={value ? "like-btn liked" : "like-btn"}
-        onClick={() => setOpen((v) => !v)}
-        onKeyDown={(e) => onActivation(e, () => setOpen((v) => !v))}
+        onClick={() => canReact && setOpen((v) => !v)}
+        onKeyDown={(e) => canReact && onActivation(e, () => setOpen((v) => !v))}
       >
         <span aria-hidden="true">{EMOJI[value ?? "like"]}</span> {count}
       </button>
-      {open && (
-        <div className="reaction-popup" role="menu" aria-label="Choose a reaction">
+      {open && canReact && (
+        <div className="reaction-popup" role="menu" aria-label={`Choose a reaction for ${target?.type ?? "content"}`}>
           {UNIVERSAL_REACTIONS.map((reaction) => (
             <button
               key={reaction}

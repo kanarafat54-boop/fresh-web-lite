@@ -10,6 +10,13 @@ const STATEFUL_INTERACTIONS = new Set([
   'quote',
 ])
 
+function getStateKey(command: FreshInteractionCommand): string | null {
+  if (command.type === 'react') return `reaction:${command.reaction}`
+  if (command.type === 'vote') return `vote:${command.optionId}`
+  if (STATEFUL_INTERACTIONS.has(command.type)) return command.type
+  return null
+}
+
 export async function persistUniversalInteraction(
   command: FreshInteractionCommand,
 ): Promise<void> {
@@ -24,6 +31,7 @@ export async function persistUniversalInteraction(
         : command.type === 'vote'
           ? command.optionId
           : null,
+    state_key: getStateKey(command),
     parent_id: 'replyToId' in command ? command.replyToId ?? null : null,
     payload: {
       ...('body' in command && command.body ? { body: command.body } : {}),
@@ -36,7 +44,7 @@ export async function persistUniversalInteraction(
     ? supabase
         .from('universal_interactions')
         .upsert(row, {
-          onConflict: 'actor_id,target_type,target_id,state_key',
+          onConflict: 'actor_id,target_type,target_id,interaction_type',
           ignoreDuplicates: false,
         })
     : supabase.from('universal_interactions').insert(row)
