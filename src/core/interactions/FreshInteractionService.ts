@@ -5,7 +5,20 @@ import {
   type UniversalInteractionCapability,
   type UniversalInteractionTarget,
   type UniversalReactionKind,
+  type InteractionMediaKind,
 } from './FreshReactionModel'
+
+export type FreshInteractionAttachment = {
+  kind: InteractionMediaKind
+  url: string
+  mimeType?: string
+  durationMs?: number
+  thumbnailUrl?: string
+  altText?: string
+  metadata?: Record<string, unknown>
+}
+
+export type FreshInteractionPayload = Record<string, unknown>
 
 export type FreshInteractionCommand =
   | {
@@ -13,17 +26,23 @@ export type FreshInteractionCommand =
       actorId: string
       target: UniversalInteractionTarget
       reaction: UniversalReactionKind
+      payload?: FreshInteractionPayload
     }
   | {
       type: 'vote'
       actorId: string
       target: UniversalInteractionTarget
       optionId: string
+      payload?: FreshInteractionPayload
     }
   | {
       type: 'comment' | 'reply' | 'save' | 'share' | 'repost' | 'quote' | 'remix' | 'duet' | 'collaborate'
       actorId: string
       target: UniversalInteractionTarget
+      body?: string
+      attachments?: readonly FreshInteractionAttachment[]
+      replyToId?: string
+      payload?: FreshInteractionPayload
     }
 
 export type FreshInteractionResult =
@@ -42,10 +61,15 @@ const commandCapability: Record<Exclude<FreshInteractionCommand['type'], 'react'
   collaborate: 'collaborate',
 }
 
-/**
- * Validates interaction intent before a feature adapter or persistence layer executes it.
- * This is deliberately persistence-agnostic: adapters decide how an accepted command is stored.
- */
+function validateAttachments(attachments: readonly FreshInteractionAttachment[] | undefined): string | null {
+  if (!attachments) return null
+  for (const attachment of attachments) {
+    if (!attachment.url.trim()) return 'Attachment url is required'
+    if (!attachment.kind) return 'Attachment kind is required'
+  }
+  return null
+}
+
 export function validateInteractionCommand(command: FreshInteractionCommand): FreshInteractionResult {
   if (!command.actorId.trim() || !command.target.id.trim()) {
     return { accepted: false, reason: 'actorId and target.id are required' }
@@ -63,6 +87,17 @@ export function validateInteractionCommand(command: FreshInteractionCommand): Fr
       : { accepted: false, reason: 'Target is not a votable poll or optionId is missing' }
   }
 
+  const attachmentError = validateAttachments(command.attachments)
+  if (attachmentError) return { accepted: false, reason: attachmentError }
+
+  if (command.type === 'reply' && !command.replyToId?.trim()) {
+    return { accepted: false, reason: 'replyToId is required for replies' }
+  }
+
+  if ((command.type === 'comment' || command.type === 'reply') && !command.body?.trim() && !command.attachments?.length) {
+    return { accepted: false, reason: 'Comment or reply requires body or attachment' }
+  }
+
   const capability = commandCapability[command.type]
   return canInteractWithTarget(command.target, capability)
     ? { accepted: true, command }
@@ -73,10 +108,6 @@ export type FreshInteractionExecutor = {
   execute(command: FreshInteractionCommand): Promise<FreshInteractionResult>
 }
 
-/**
- * Small execution boundary for ecosystem adapters. It prevents UI code from
- * bypassing capability checks and makes Shorts/Flow share the same command path.
- */
 export function createInteractionExecutor(
   persist: (command: FreshInteractionCommand) => Promise<void>,
 ): FreshInteractionExecutor {
@@ -84,7 +115,6 @@ export function createInteractionExecutor(
     async execute(command) {
       const validation = validateInteractionCommand(command)
       if (!validation.accepted) return validation
-
       await persist(command)
       return validation
     },
