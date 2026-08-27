@@ -18,31 +18,23 @@ import type {
 export function createShortsInteractionTarget(
   shortId: string,
   capabilities: readonly UniversalInteractionCapability[] = [
-    "react",
-    "comment",
-    "reply",
-    "save",
-    "share",
-    "repost",
-    "quote",
-    "remix",
-    "duet",
-    "collaborate",
+    "react", "comment", "reply", "save", "share", "repost", "quote",
+    "remix", "duet", "collaborate", "follow",
   ],
 ) {
-  return {
-    id: shortId,
-    type: "short" as const,
-    capabilities,
-  };
+  return { id: shortId, type: "short" as const, capabilities };
 }
 
 const execute = createInteractionExecutor(createSupabaseInteractionPersistence());
 
+type ShortsInteractionType =
+  | "react" | "comment" | "reply" | "save" | "share" | "repost"
+  | "quote" | "remix" | "duet" | "collaborate" | "follow";
+
 export async function interactWithShort(
   actorId: string,
   shortId: string,
-  type: "react" | "comment" | "reply" | "save" | "share" | "repost" | "quote" | "remix" | "duet" | "collaborate",
+  type: ShortsInteractionType,
   options: {
     reaction?: UniversalReactionKind;
     body?: string;
@@ -52,24 +44,8 @@ export async function interactWithShort(
   } = {},
 ): Promise<FreshInteractionResult> {
   const target = createShortsInteractionTarget(shortId);
-
   const command = type === "react"
-    ? {
-        type,
-        actorId,
-        target,
-        reaction: options.reaction ?? "like",
-        payload: options.payload,
-      }
-    : {
-        type,
-        actorId,
-        target,
-        body: options.body,
-        attachments: options.attachments,
-        replyToId: options.replyToId,
-        payload: options.payload,
-      };
-
+    ? { type, actorId, target, reaction: options.reaction ?? "like", payload: options.payload }
+    : { type, actorId, target, body: options.body, attachments: options.attachments, replyToId: options.replyToId, payload: options.payload };
   return execute.execute(command as FreshInteractionCommand);
 }
