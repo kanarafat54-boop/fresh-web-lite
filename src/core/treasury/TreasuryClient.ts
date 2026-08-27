@@ -22,6 +22,23 @@ export type TreasuryAccount = {
   active: boolean;
 };
 
+export type TreasuryTransactionRow = {
+  transaction_id: string;
+  reference: string;
+  description: string;
+  created_at: string;
+  account_id: string;
+  direction: "debit" | "credit";
+  amount_minor: string;
+  asset_code: string;
+  asset_kind: TreasuryAssetKind;
+};
+
+export type TreasuryRecipient = {
+  accountId: string;
+  displayName: string;
+};
+
 export class TreasuryClientError extends Error {
   constructor(message: string) {
     super(message);
@@ -50,7 +67,6 @@ export class TreasuryClient {
 
     if (error) throw new TreasuryClientError(error.message);
     if (!data) throw new TreasuryClientError("Treasury account was not created");
-
     return data as string;
   }
 
@@ -59,7 +75,6 @@ export class TreasuryClient {
       .from("treasury_my_balances")
       .select("account_id, asset_code, asset_kind, display_name, balance_minor")
       .order("asset_code");
-
     if (error) throw new TreasuryClientError(error.message);
 
     return (data ?? []).map((row) => ({
@@ -79,6 +94,38 @@ export class TreasuryClient {
     if (error) throw new TreasuryClientError(error.message);
 
     return (data ?? []) as TreasuryAccount[];
+  }
+
+  async getMyTransactions(limit = 50): Promise<TreasuryTransactionRow[]> {
+    const { data, error } = await supabase
+      .from("treasury_my_transactions")
+      .select("transaction_id, reference, description, created_at, account_id, direction, amount_minor, asset_code, asset_kind")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) throw new TreasuryClientError(error.message);
+
+    return (data ?? []).map((row) => ({
+      ...row,
+      amount_minor: String(row.amount_minor),
+    })) as TreasuryTransactionRow[];
+  }
+
+  /**
+   * Resolves a recipient's treasury account by username. Only an account id
+   * and display name are ever returned — never a balance, email, or any
+   * other user data.
+   */
+  async resolveRecipient(username: string, assetCode: string = "FRESH"): Promise<TreasuryRecipient> {
+    const { data, error } = await supabase.rpc("treasury_resolve_recipient", {
+      p_username: username,
+      p_asset_code: assetCode,
+    });
+
+    if (error) throw new TreasuryClientError(error.message);
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) throw new TreasuryClientError("No matching Fresh account found for that username");
+    return { accountId: row.account_id as string, displayName: row.display_name as string };
   }
 
   async transferInternal(params: {

@@ -19,6 +19,7 @@ import {
   RepostIcon, BrokenHeartIcon, SearchIcon, XCircleIcon, ListIcon,
 } from "../../../components/Icons";
 import type { Short } from "../types/short";
+import { rankForYou } from "../core/ForYouRanking";
 
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50MB
 const MAX_VIDEO_SECONDS = 90;
@@ -100,6 +101,13 @@ export function ShortsModule({ openComposerSignal, onExit }: { openComposerSigna
             if (!viewedRef.current.has(shortId)) {
               viewedRef.current.add(shortId);
               supabase.rpc("increment_short_views", { short_id_input: shortId }).then(() => {});
+              try {
+                const stored = new Set<string>(JSON.parse(sessionStorage.getItem("fresh_shorts_viewed") ?? "[]"));
+                stored.add(shortId);
+                sessionStorage.setItem("fresh_shorts_viewed", JSON.stringify([...stored]));
+              } catch {
+                // sessionStorage unavailable; ranking just skips the seen-penalty this session.
+              }
             }
           } else {
             video.pause();
@@ -237,7 +245,14 @@ export function ShortsModule({ openComposerSignal, onExit }: { openComposerSigna
       };
     });
 
-    setShorts(mapped);
+    const viewedIds = (() => {
+      try {
+        return new Set<string>(JSON.parse(sessionStorage.getItem("fresh_shorts_viewed") ?? "[]"));
+      } catch {
+        return new Set<string>();
+      }
+    })();
+    setShorts(searchActive ? mapped : rankForYou(mapped, viewedIds));
     setSavedIds(savedShortIds);
     setLoading(false);
   }
