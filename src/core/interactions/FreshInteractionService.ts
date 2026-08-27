@@ -36,7 +36,7 @@ export type FreshInteractionCommand =
       payload?: FreshInteractionPayload
     }
   | {
-      type: 'comment' | 'reply' | 'save' | 'share' | 'repost' | 'quote' | 'remix' | 'duet' | 'collaborate'
+      type: 'comment' | 'reply' | 'save' | 'share' | 'repost' | 'quote' | 'remix' | 'duet' | 'collaborate' | 'follow'
       actorId: string
       target: UniversalInteractionTarget
       body?: string
@@ -59,6 +59,7 @@ const commandCapability: Record<Exclude<FreshInteractionCommand['type'], 'react'
   remix: 'remix',
   duet: 'duet',
   collaborate: 'collaborate',
+  follow: 'follow',
 }
 
 function validateAttachments(attachments: readonly FreshInteractionAttachment[] | undefined): string | null {
