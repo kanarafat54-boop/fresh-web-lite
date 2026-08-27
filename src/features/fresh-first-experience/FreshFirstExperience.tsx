@@ -6,6 +6,7 @@ import { useLayout } from "../../app/contexts/useLayout";
 import "./FreshFirstExperience.css";
 
 type Intent = { id: string; title: string; description: string; prompt: string };
+type FreshSpace = "social" | "ai" | "creator" | "finance" | "learning" | "business" | "developer" | "lifestyle";
 
 const intents: Intent[] = [
   { id: "build", title: "Build something", description: "Turn an idea into a project, product, or plan.", prompt: "I want to build something" },
@@ -17,6 +18,18 @@ const intents: Intent[] = [
   { id: "money", title: "Manage money", description: "Explore Fresh Wallet, treasury, payments, and financial tools.", prompt: "I want to manage money" },
   { id: "explore", title: "Explore Fresh", description: "See what the connected Fresh ecosystem can do for you.", prompt: "I want to explore Fresh" },
 ];
+
+const intentSpaces: Record<string, FreshSpace> = {
+  build: "developer",
+  learn: "learning",
+  find: "lifestyle",
+  create: "creator",
+  connect: "social",
+  business: "business",
+  money: "finance",
+  explore: "lifestyle",
+  custom: "ai",
+};
 
 export default function FreshFirstExperience() {
   const { ready } = useFreshCore();
@@ -30,7 +43,7 @@ export default function FreshFirstExperience() {
 
   function beginWith(nextIntent: Intent, route: string = "feed") {
     contextService.update({
-      activeSpace: nextIntent.id,
+      activeSpace: intentSpaces[nextIntent.id] ?? "ai",
       goals: [nextIntent.prompt],
     });
     localStorage.setItem("fresh.firstExperience.intent", nextIntent.id);
