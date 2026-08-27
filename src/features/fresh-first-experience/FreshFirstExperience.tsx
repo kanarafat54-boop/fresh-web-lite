@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useFreshCore } from "../../app/providers/FreshCoreProvider";
+import { contextService } from "../../core/context/contextService";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
 import { useLayout } from "../../app/contexts/useLayout";
 import "./FreshFirstExperience.css";
@@ -27,9 +28,34 @@ export default function FreshFirstExperience() {
   const greeting = useMemo(() => user?.fullName ? `Welcome, ${user.fullName}.` : "Welcome to Fresh.", [user]);
   if (!ready || loading) return null;
 
-  function continueToFresh() {
+  function beginWith(nextIntent: Intent, route: string = "feed") {
+    contextService.update({
+      activeSpace: nextIntent.id,
+      goals: [nextIntent.prompt],
+    });
+    localStorage.setItem("fresh.firstExperience.intent", nextIntent.id);
+    localStorage.setItem("fresh.firstExperience.prompt", nextIntent.prompt);
     localStorage.setItem("fresh.firstExperience.completed", "true");
-    setActiveRoute("feed");
+    setActiveRoute(route);
+  }
+
+  function continueToFresh() {
+    if (intent) beginWith(intent);
+    else {
+      localStorage.setItem("fresh.firstExperience.completed", "true");
+      setActiveRoute("feed");
+    }
+  }
+
+  function startWithAI() {
+    const prompt = input.trim();
+    if (!prompt) return;
+    beginWith({
+      id: "custom",
+      title: "Your goal",
+      description: "Fresh will use this as the starting context for your next step.",
+      prompt,
+    }, "ai");
   }
 
   return (
@@ -41,7 +67,7 @@ export default function FreshFirstExperience() {
         <p className="fresh-first__intro">Tell Fresh what you want to accomplish. Fresh can connect the right tools, knowledge, people, and workspace instead of making you learn where everything lives.</p>
         <div className="fresh-first__composer">
           <textarea value={input} onChange={(event) => setInput(event.target.value)} placeholder="Tell Fresh what you want to accomplish…" rows={3} aria-label="Tell Fresh what you want to accomplish" />
-          <button type="button" disabled={!input.trim()} onClick={() => setIntent({ id: "custom", title: "Your goal", description: "Fresh will use this as the starting context for your next step.", prompt: input.trim() })}>Start with Fresh AI</button>
+          <button type="button" disabled={!input.trim()} onClick={startWithAI}>Start with Fresh AI</button>
         </div>
         <button type="button" className="fresh-first__enter" onClick={continueToFresh}>Enter Fresh</button>
       </div>
