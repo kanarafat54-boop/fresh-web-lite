@@ -14,9 +14,9 @@ const STATEFUL_INTERACTIONS = new Set([
  * Persists an accepted universal interaction without creating a second
  * ecosystem-specific storage path.
  *
- * Stateful interactions are upserted so a user's current reaction/vote/save
- * state can be changed. Event interactions are inserted so comments, shares,
- * remixes, duets, etc. can occur repeatedly.
+ * Stateful interactions are atomically upserted using the database-generated
+ * state_key. Event interactions are inserted so comments, shares, remixes,
+ * duets, and collaborations can occur repeatedly.
  */
 export async function persistUniversalInteraction(
   command: FreshInteractionCommand,
@@ -40,7 +40,7 @@ export async function persistUniversalInteraction(
     ? supabase
         .from('universal_interactions')
         .upsert(row, {
-          onConflict: 'actor_id,target_type,target_id',
+          onConflict: 'actor_id,target_type,target_id,state_key',
           ignoreDuplicates: false,
         })
     : supabase.from('universal_interactions').insert(row)
