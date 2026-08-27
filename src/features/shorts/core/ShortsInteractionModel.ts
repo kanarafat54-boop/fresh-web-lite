@@ -1,24 +1,15 @@
+import {
+  UNIVERSAL_REACTIONS,
+  type UniversalReactionKind,
+} from "../../../core/interactions/FreshReactionModel";
+
 export type ShortsMediaKind = "video" | "image" | "audio" | "gallery" | "text" | "live";
 
-export type ReactionKind =
-  | "like"
-  | "love"
-  | "laugh"
-  | "wow"
-  | "celebrate"
-  | "support"
-  | "curious"
-  | "inspire"
-  | "insightful"
-  | "agree"
-  | "disagree"
-  | "helpful"
-  | "question"
-  | "respect"
-  | "fire"
-  | "sad"
-  | "angry"
-  | "custom";
+/**
+ * Compatibility alias: Shorts now consumes the canonical Fresh reaction
+ * vocabulary instead of maintaining a second reaction union.
+ */
+export type ReactionKind = UniversalReactionKind;
 
 export type CommentAttachment = {
   kind: ShortsMediaKind;
@@ -64,11 +55,12 @@ export const DEFAULT_SHORTS_INTERACTION_POLICY: ShortsInteractionPolicy = {
   allowCustomReactions: true,
 };
 
-export const REACTION_KINDS: ReactionKind[] = [
-  "like", "love", "laugh", "wow", "celebrate", "support", "curious",
-  "inspire", "insightful", "agree", "disagree", "helpful", "question",
-  "respect", "fire", "sad", "angry", "custom",
-];
+/**
+ * Compatibility array backed by the canonical universal reaction registry.
+ * This keeps existing Shorts consumers working while removing the duplicated
+ * reaction vocabulary.
+ */
+export const REACTION_KINDS: ReactionKind[] = [...UNIVERSAL_REACTIONS];
 
 export function canAttachComment(policy: ShortsInteractionPolicy, kind: ShortsMediaKind): boolean {
   switch (kind) {
