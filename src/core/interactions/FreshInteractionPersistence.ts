@@ -10,14 +10,6 @@ const STATEFUL_INTERACTIONS = new Set([
   'quote',
 ])
 
-/**
- * Persists an accepted universal interaction without creating a second
- * ecosystem-specific storage path.
- *
- * Stateful interactions are atomically upserted using the database-generated
- * state_key. Event interactions are inserted so comments, shares, remixes,
- * duets, and collaborations can occur repeatedly.
- */
 export async function persistUniversalInteraction(
   command: FreshInteractionCommand,
 ): Promise<void> {
@@ -32,8 +24,12 @@ export async function persistUniversalInteraction(
         : command.type === 'vote'
           ? command.optionId
           : null,
-    parent_id: null,
-    payload: {},
+    parent_id: 'replyToId' in command ? command.replyToId ?? null : null,
+    payload: {
+      ...('body' in command && command.body ? { body: command.body } : {}),
+      ...('attachments' in command && command.attachments?.length ? { attachments: command.attachments } : {}),
+      ...('payload' in command && command.payload ? command.payload : {}),
+    },
   }
 
   const query = STATEFUL_INTERACTIONS.has(command.type)
