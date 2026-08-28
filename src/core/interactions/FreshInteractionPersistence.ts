@@ -17,9 +17,28 @@ function getStateKey(command: FreshInteractionCommand): string | null {
   return null
 }
 
+async function removeUniversalInteraction(
+  command: Extract<FreshInteractionCommand, { type: 'remove' }>,
+): Promise<void> {
+  const { error } = await supabase
+    .from('universal_interactions')
+    .delete()
+    .eq('actor_id', command.actorId)
+    .eq('target_type', command.target.type)
+    .eq('target_id', command.target.id)
+    .eq('interaction_type', command.removeType)
+
+  if (error) throw new Error(`Failed to remove interaction: ${error.message}`)
+}
+
 export async function persistUniversalInteraction(
   command: FreshInteractionCommand,
 ): Promise<void> {
+  if (command.type === 'remove') {
+    await removeUniversalInteraction(command)
+    return
+  }
+
   const row = {
     actor_id: command.actorId,
     target_type: command.target.type,

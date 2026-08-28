@@ -1,6 +1,7 @@
 import type {
   FreshInteractionAttachment,
   FreshInteractionCommand,
+  FreshInteractionRemovableType,
   FreshInteractionResult,
 } from "../../../core/interactions/FreshInteractionService";
 import { createInteractionExecutor } from "../../../core/interactions/FreshInteractionService";
@@ -48,4 +49,20 @@ export async function interactWithShort(
     ? { type, actorId, target, reaction: options.reaction ?? "like", payload: options.payload }
     : { type, actorId, target, body: options.body, attachments: options.attachments, replyToId: options.replyToId, payload: options.payload };
   return execute.execute(command as FreshInteractionCommand);
+}
+
+/**
+ * Undoes a previously-recorded toggleable interaction (react, save, repost,
+ * follow, vote). A DB trigger mirrors this back into the legacy Shorts
+ * tables (short_likes/short_reposts/saved_shorts) so existing counters and
+ * views keep working without changes.
+ */
+export async function removeShortInteraction(
+  actorId: string,
+  shortId: string,
+  removeType: FreshInteractionRemovableType,
+): Promise<FreshInteractionResult> {
+  const target = createShortsInteractionTarget(shortId);
+  const command: FreshInteractionCommand = { type: "remove", actorId, target, removeType };
+  return execute.execute(command);
 }

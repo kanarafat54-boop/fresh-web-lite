@@ -20,6 +20,8 @@ import {
 } from "../../../components/Icons";
 import type { Short } from "../types/short";
 import { rankForYou } from "../core/ForYouRanking";
+import { interactWithShort, removeShortInteraction } from "../core/ShortsUniversalInteractionAdapter";
+import type { UniversalReactionKind } from "../../../core/interactions/FreshReactionModel";
 
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50MB
 const MAX_VIDEO_SECONDS = 90;
@@ -401,15 +403,9 @@ export function ShortsModule({ openComposerSignal, onExit }: { openComposerSigna
     if (!user || isGuest) return;
 
     if (short.myReaction === type) {
-      await supabase.from("short_likes").delete().eq("short_id", short.id).eq("user_id", user.id);
-    } else if (short.myReaction) {
-      await supabase
-        .from("short_likes")
-        .update({ reaction_type: type })
-        .eq("short_id", short.id)
-        .eq("user_id", user.id);
+      await removeShortInteraction(user.id, short.id, "react");
     } else {
-      await supabase.from("short_likes").insert({ short_id: short.id, user_id: user.id, reaction_type: type });
+      await interactWithShort(user.id, short.id, "react", { reaction: type as UniversalReactionKind });
     }
 
     searchActive ? runSearch(searchQuery) : loadShorts();
@@ -419,9 +415,9 @@ export function ShortsModule({ openComposerSignal, onExit }: { openComposerSigna
     if (!user || isGuest) return;
 
     if (savedIds.has(shortId)) {
-      await supabase.from("saved_shorts").delete().eq("short_id", shortId).eq("user_id", user.id);
+      await removeShortInteraction(user.id, shortId, "save");
     } else {
-      await supabase.from("saved_shorts").insert({ short_id: shortId, user_id: user.id });
+      await interactWithShort(user.id, shortId, "save");
     }
 
     searchActive ? runSearch(searchQuery) : loadShorts();
@@ -431,9 +427,9 @@ export function ShortsModule({ openComposerSignal, onExit }: { openComposerSigna
     if (!user || isGuest) return;
 
     if (short.repostedByMe) {
-      await supabase.from("short_reposts").delete().eq("short_id", short.id).eq("user_id", user.id);
+      await removeShortInteraction(user.id, short.id, "repost");
     } else {
-      await supabase.from("short_reposts").insert({ short_id: short.id, user_id: user.id });
+      await interactWithShort(user.id, short.id, "repost");
     }
 
     searchActive ? runSearch(searchQuery) : loadShorts();

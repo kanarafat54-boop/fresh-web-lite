@@ -20,6 +20,9 @@ export type FreshInteractionAttachment = {
 
 export type FreshInteractionPayload = Record<string, unknown>
 
+/** Interaction types that represent a toggleable state and can be undone. */
+export type FreshInteractionRemovableType = 'react' | 'vote' | 'save' | 'repost' | 'follow'
+
 export type FreshInteractionCommand =
   | {
       type: 'react'
@@ -36,6 +39,13 @@ export type FreshInteractionCommand =
       payload?: FreshInteractionPayload
     }
   | {
+      type: 'remove'
+      actorId: string
+      target: UniversalInteractionTarget
+      removeType: FreshInteractionRemovableType
+      payload?: FreshInteractionPayload
+    }
+  | {
       type: 'comment' | 'reply' | 'save' | 'share' | 'repost' | 'quote' | 'remix' | 'duet' | 'collaborate' | 'follow'
       actorId: string
       target: UniversalInteractionTarget
@@ -49,7 +59,7 @@ export type FreshInteractionResult =
   | { accepted: true; command: FreshInteractionCommand }
   | { accepted: false; reason: string }
 
-const commandCapability: Record<Exclude<FreshInteractionCommand['type'], 'react' | 'vote'>, UniversalInteractionCapability> = {
+const commandCapability: Record<Exclude<FreshInteractionCommand['type'], 'react' | 'vote' | 'remove'>, UniversalInteractionCapability> = {
   comment: 'comment',
   reply: 'reply',
   save: 'save',
@@ -86,6 +96,23 @@ export function validateInteractionCommand(command: FreshInteractionCommand): Fr
     return canVoteOnTarget(command.target) && command.optionId.trim().length > 0
       ? { accepted: true, command }
       : { accepted: false, reason: 'Target is not a votable poll or optionId is missing' }
+  }
+
+  if (command.type === 'remove') {
+    if (command.removeType === 'react') {
+      return canReactToTarget(command.target)
+        ? { accepted: true, command }
+        : { accepted: false, reason: 'Target does not support reactions' }
+    }
+    if (command.removeType === 'vote') {
+      return canVoteOnTarget(command.target)
+        ? { accepted: true, command }
+        : { accepted: false, reason: 'Target is not a votable poll' }
+    }
+    const removeCapability = command.removeType as UniversalInteractionCapability
+    return canInteractWithTarget(command.target, removeCapability)
+      ? { accepted: true, command }
+      : { accepted: false, reason: `Target does not support ${removeCapability}` }
   }
 
   const attachmentError = validateAttachments(command.attachments)
