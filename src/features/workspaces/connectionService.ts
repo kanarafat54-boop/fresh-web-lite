@@ -88,18 +88,6 @@ export async function respondToConnectionRequest(requesterId: string, accept: bo
 
 /** The other user's id for every accepted connection involving the current user. */
 export async function listAcceptedConnections(): Promise<string[]> {
-  const userId = await getCurrentUserId();
-  const { data, error } = await supabase
-    .from("connection_requests")
-    .select("requester_id, recipient_id")
-    .eq("status", "accepted")
-    .or(`requester_id.eq.${userId},recipient_id.eq.${userId}`);
-
-  if (error) throw error;
-  return (data ?? []).map((row) => (row.requester_id === userId ? row.recipient_id : row.requester_id));
-}
-
-export async function listAcceptedConnections(): Promise<string[]> {
   const myId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("connection_requests")
