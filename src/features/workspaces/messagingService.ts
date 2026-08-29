@@ -1,5 +1,5 @@
 import { supabase } from "../../lib/supabase";
-import { getCurrentUserId } from "./connectionService";
+import { getCurrentUserId, listAcceptedConnections } from "./connectionService";
 
 export type DirectMessage = {
   id: string;
@@ -10,8 +10,18 @@ export type DirectMessage = {
   created_at: string;
 };
 
+async function assertMessagingAllowed(otherUserId: string, myId: string): Promise<void> {
+  if (myId === otherUserId) throw new Error("You cannot message yourself.");
+  const accepted = await listAcceptedConnections();
+  if (!accepted.includes(otherUserId)) {
+    throw new Error("Messaging is available only between accepted connections.");
+  }
+}
+
 export async function listThread(otherUserId: string, limit = 100): Promise<DirectMessage[]> {
   const myId = await getCurrentUserId();
+  await assertMessagingAllowed(otherUserId, myId);
+
   const { data, error } = await supabase
     .from("direct_messages")
     .select("id, sender_id, recipient_id, body, read_at, created_at")
@@ -25,9 +35,9 @@ export async function listThread(otherUserId: string, limit = 100): Promise<Dire
 
 export async function sendMessage(recipientId: string, body: string): Promise<DirectMessage> {
   const myId = await getCurrentUserId();
+  await assertMessagingAllowed(recipientId, myId);
   const trimmed = body.trim();
   if (!trimmed) throw new Error("Message cannot be empty.");
-  if (myId === recipientId) throw new Error("You cannot message yourself.");
 
   const { data, error } = await supabase
     .from("direct_messages")
@@ -41,6 +51,8 @@ export async function sendMessage(recipientId: string, body: string): Promise<Di
 
 export async function markThreadRead(otherUserId: string): Promise<void> {
   const myId = await getCurrentUserId();
+  await assertMessagingAllowed(otherUserId, myId);
+
   const { error } = await supabase
     .from("direct_messages")
     .update({ read_at: new Date().toISOString() })
