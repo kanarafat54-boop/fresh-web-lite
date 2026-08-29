@@ -59,3 +59,58 @@ export async function cancelConnectionRequest(recipientId: string): Promise<void
 
   if (error) throw error;
 }
+
+/** Pending requests where the current user is the recipient (awaiting my response). */
+export async function listIncomingRequests(): Promise<ConnectionRequest[]> {
+  const recipientId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from("connection_requests")
+    .select("id, requester_id, recipient_id, status, created_at, updated_at")
+    .eq("recipient_id", recipientId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as ConnectionRequest[];
+}
+
+export async function respondToConnectionRequest(requesterId: string, accept: boolean): Promise<void> {
+  const recipientId = await getCurrentUserId();
+  const { error } = await supabase
+    .from("connection_requests")
+    .update({ status: accept ? "accepted" : "declined" })
+    .eq("requester_id", requesterId)
+    .eq("recipient_id", recipientId)
+    .eq("status", "pending");
+
+  if (error) throw error;
+}
+
+/** The other user's id for every accepted connection involving the current user. */
+export async function listAcceptedConnections(): Promise<string[]> {
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from("connection_requests")
+    .select("requester_id, recipient_id")
+    .eq("status", "accepted")
+    .or(`requester_id.eq.${userId},recipient_id.eq.${userId}`);
+
+  if (error) throw error;
+  return (data ?? []).map((row) => (row.requester_id === userId ? row.recipient_id : row.requester_id));
+}
+
+export async function listAcceptedConnections(): Promise<string[]> {
+  const myId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from("connection_requests")
+    .select("requester_id, recipient_id")
+    .eq("status", "accepted")
+    .or(`requester_id.eq.${myId},recipient_id.eq.${myId}`);
+
+  if (error) throw error;
+  const others = new Set<string>();
+  for (const row of (data ?? []) as { requester_id: string; recipient_id: string }[]) {
+    others.add(row.requester_id === myId ? row.recipient_id : row.requester_id);
+  }
+  return [...others];
+}
