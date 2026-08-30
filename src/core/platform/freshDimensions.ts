@@ -1,12 +1,9 @@
 /**
  * Fresh dimensional intelligence primitives.
  *
- * These are software abstractions for progressively richer context,
- * relationships, intelligence, and orchestration — not claims about
- * physical dimensions.
- *
- * The primitives deliberately remain UI-agnostic so every Fresh experience
- * can consume the same underlying model.
+ * Software abstractions for progressively richer context, relationships,
+ * intelligence, and orchestration. They are UI-agnostic and intentionally
+ * do not claim anything about physical dimensions.
  */
 
 export type FreshDimension = 4 | 5 | 6 | 7;
@@ -48,9 +45,20 @@ export type FreshDimensionalContext = {
   intent?: OrchestrationIntent;
 };
 
-export function create4DContext(
-  temporal: TemporalContext,
+export type InvisibleKnowledge = {
+  context: FreshDimensionalContext;
+  sourceIds: string[];
+  surfacedAt?: string;
+};
+
+function withDimension(
+  context: FreshDimensionalContext,
+  dimension: FreshDimension,
 ): FreshDimensionalContext {
+  return { ...context, dimension: Math.max(context.dimension, dimension) as FreshDimension };
+}
+
+export function create4DContext(temporal: TemporalContext): FreshDimensionalContext {
   return { dimension: 4, temporal };
 }
 
@@ -58,31 +66,34 @@ export function extendTo5D(
   context: FreshDimensionalContext,
   relationships: Relationship[],
 ): FreshDimensionalContext {
-  return {
-    ...context,
-    dimension: Math.max(context.dimension, 5) as FreshDimension,
-    relationships,
-  };
+  return withDimension({ ...context, relationships }, 5);
 }
 
 export function extendTo6D(
   context: FreshDimensionalContext,
   intelligence: IntelligenceAssessment,
 ): FreshDimensionalContext {
-  return {
-    ...context,
-    dimension: Math.max(context.dimension, 6) as FreshDimension,
-    intelligence,
-  };
+  return withDimension({ ...context, intelligence }, 6);
 }
 
 export function extendTo7D(
   context: FreshDimensionalContext,
   intent: OrchestrationIntent,
 ): FreshDimensionalContext {
+  return withDimension({ ...context, intent }, 7);
+}
+
+/**
+ * Packages the verified context for internal consumers without introducing a
+ * user-facing 4D/5D/6D/7D surface. No source IDs are invented here.
+ */
+export function createInvisibleKnowledge(
+  context: FreshDimensionalContext,
+  sourceIds: string[],
+): InvisibleKnowledge {
   return {
-    ...context,
-    dimension: Math.max(context.dimension, 7) as FreshDimension,
-    intent,
+    context,
+    sourceIds: [...new Set(sourceIds)],
+    surfacedAt: new Date().toISOString(),
   };
 }
