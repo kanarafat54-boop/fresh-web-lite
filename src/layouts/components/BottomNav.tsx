@@ -6,35 +6,23 @@ import {
   AIIcon,
 } from "../../components/Icons";
 
+const navItems = [
+  { id: "home", label: "Home", Icon: HomeIcon },
+  { id: "discover", label: "Discover", Icon: FeedIcon },
+  { id: "create", label: "Create", Icon: PlusIcon },
+  { id: "connect", label: "Connect", Icon: ProfileIcon },
+  { id: "think", label: "Think", Icon: AIIcon },
+] as const;
+
 export default function BottomNav() {
   return (
-    <nav className="fresh-bottom-nav">
-
-      <button className="nav-item home">
-        <HomeIcon size={24} />
-        <span>Home</span>
-      </button>
-
-      <button className="nav-item feed">
-        <FeedIcon size={24} />
-        <span>Feed</span>
-      </button>
-
-      <button className="nav-item create">
-        <PlusIcon size={26} />
-        <span>Create</span>
-      </button>
-
-      <button className="nav-item profile">
-        <ProfileIcon size={24} />
-        <span>Profile</span>
-      </button>
-
-      <button className="nav-item ai">
-        <AIIcon size={24} />
-        <span>Fresh AI</span>
-      </button>
-
+    <nav className="fresh-bottom-nav" aria-label="Primary navigation">
+      {navItems.map(({ id, label, Icon }) => (
+        <button key={id} type="button" className={`nav-item ${id}`}>
+          <Icon size={id === "create" ? 26 : 24} />
+          <span>{label}</span>
+        </button>
+      ))}
     </nav>
   );
 }
