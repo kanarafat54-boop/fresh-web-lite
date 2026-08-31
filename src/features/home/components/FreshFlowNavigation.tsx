@@ -49,7 +49,7 @@ export default function FreshFlowNavigation() {
         <div>
           <span className="fresh-flow-kicker">FRESH FLOW</span>
           <h1>Explore your way</h1>
-          <p>Choose a world above. Short videos continue below in a separate Fresh vertical flow.</p>
+          <p>Choose a world above. Short videos continue below in a separate Fresh flow — swipe left or right to move between videos.</p>
         </div>
       </header>
 
@@ -74,11 +74,11 @@ export default function FreshFlowNavigation() {
       <div className="fresh-flow-divider">
         <span>SHORT FLOW</span>
         <i aria-hidden="true" />
-        <small>Fresh's own vertical discovery algorithm</small>
+        <small>Fresh's own discovery algorithm</small>
       </div>
 
       <div className="fresh-short-flow-shell">
-        <ShortsModule onExit={() => setActiveRoute("feed")} />
+        <ShortsModule />
       </div>
     </section>
   );
