@@ -55,7 +55,7 @@ export async function persistUniversalInteraction(
     ? supabase
         .from('universal_interactions')
         .upsert(row, {
-          onConflict: 'actor_id,target_type,target_id,state_key',
+          onConflict: 'actor_id,target_type,target_id,interaction_type',
           ignoreDuplicates: false,
         })
     : supabase.from('universal_interactions').insert(row)
