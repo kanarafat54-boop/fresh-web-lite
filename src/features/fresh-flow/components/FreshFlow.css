@@ -1,26 +1,9 @@
-.fresh-flow-tabs {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border, #2a2a2a);
+.fresh-flow-hub {
+  min-height: 100%;
+  width: 100%;
 }
 
-.fresh-flow-tab {
-  flex-shrink: 0;
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--border, #2a2a2a);
-  background: transparent;
-  color: var(--text, #eaeaea);
-  font-size: 0.9rem;
-}
-
-.fresh-flow-tab.active {
-  background: var(--surface-2, #1c1c1c);
-  border-color: var(--accent, #2dd4bf);
-}
-
+/* Fresh Flow navigation is owned by the persistent global bottom shell. */
 .fresh-flow-stream {
   height: calc(100vh - 120px);
   overflow-y: scroll;
