@@ -4,10 +4,14 @@ import { useFreshId } from "../../features/fresh-id/context/FreshIdContext";
 import { AuthForm } from "../../features/fresh-id/components/AuthForm";
 
 /**
- * The persistent global shell's top row: Profile (left), Notifications
- * (center), Wallet (right), plus the hamburger for full navigation/Organize.
- * This stays constant across every ecosystem — only the middle content area
- * (via AppRouter's FeatureLoader) and BottomNav's contextual buttons change.
+ * Persistent global shell controls.
+ *
+ * Layout contract:
+ * - left corner: hamburger/menu + profile
+ * - center: notifications
+ * - right corner: wallet
+ * These controls remain available across ecosystems while the middle content
+ * and contextual bottom navigation change.
  */
 export default function TopBar() {
   const { toggleSidebar, setActiveRoute, notifications, openNotifications } = useLayout();
@@ -26,18 +30,27 @@ export default function TopBar() {
 
   return (
     <>
-      <div className="top-bar">
-        <button className="icon-only-btn" onClick={toggleSidebar} aria-label="Open navigation">☰</button>
-
-        <button className="icon-only-btn" onClick={openProfile} aria-label={isAuthenticated ? "Profile" : "Sign in"}>
-          👤
-        </button>
+      <div
+        className="top-bar"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
+          alignItems: "center",
+          width: "100%",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", justifySelf: "start" }}>
+          <button className="icon-only-btn" onClick={toggleSidebar} aria-label="Open navigation">☰</button>
+          <button className="icon-only-btn" onClick={openProfile} aria-label={isAuthenticated ? "Profile" : "Sign in"}>
+            👤
+          </button>
+        </div>
 
         <button
           className="icon-only-btn"
           onClick={openNotifications}
           aria-label={`Notifications${notifications.length > 0 ? `, ${notifications.length} unread` : ""}`}
-          style={{ position: "relative" }}
+          style={{ position: "relative", justifySelf: "center" }}
         >
           🔔
           {notifications.length > 0 && (
@@ -62,7 +75,7 @@ export default function TopBar() {
           )}
         </button>
 
-        <button className="icon-only-btn" onClick={() => setActiveRoute("wallet")} aria-label="Wallet">
+        <button className="icon-only-btn" onClick={() => setActiveRoute("wallet")} aria-label="Wallet" style={{ justifySelf: "end" }}>
           💳
         </button>
       </div>
