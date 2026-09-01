@@ -7,6 +7,7 @@ export type LayoutState = {
   deviceType: DeviceType;
   notifications: UINotification[];
   searchOverlayOpen: boolean;
+  notificationsOpen: boolean;
   engineContext: unknown;
 };
 
@@ -17,6 +18,8 @@ export type LayoutActions = {
   setActiveRoute: (route?: string) => void;
   openSearch: () => void;
   closeSearch: () => void;
+  openNotifications: () => void;
+  closeNotifications: () => void;
   pushNotification: (n: UINotification) => void;
   removeNotification: (id: string) => void;
 };

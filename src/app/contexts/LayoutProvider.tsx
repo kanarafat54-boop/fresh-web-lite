@@ -22,6 +22,7 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [deviceType, setDeviceType] = useState(() => deviceService.getDeviceType());
   const [notifications, setNotifications] = useState<import("../services/notificationService").UINotification[]>([]);
   const [searchOverlayOpen, setSearchOverlayOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   useEffect(() => deviceService.subscribe(setDeviceType), []);
   useEffect(() => NotificationService.subscribe((notification) => setNotifications((previous) => [notification, ...previous])), []);
@@ -33,10 +34,20 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setActiveRoute: (route) => setActiveRouteState(route),
     openSearch: () => setSearchOverlayOpen(true),
     closeSearch: () => setSearchOverlayOpen(false),
+    openNotifications: () => setNotificationsOpen(true),
+    closeNotifications: () => setNotificationsOpen(false),
     pushNotification: (notification) => setNotifications((previous) => [notification, ...previous]),
     removeNotification: (id) => setNotifications((previous) => previous.filter((item) => item.id !== id)),
   };
 
-  const state: LayoutState = { sidebarOpen, activeRoute, deviceType, notifications, searchOverlayOpen, engineContext: undefined };
+  const state: LayoutState = {
+    sidebarOpen,
+    activeRoute,
+    deviceType,
+    notifications,
+    searchOverlayOpen,
+    notificationsOpen,
+    engineContext: undefined,
+  };
   return <LayoutContext.Provider value={{ state, actions }}>{children}</LayoutContext.Provider>;
 };
