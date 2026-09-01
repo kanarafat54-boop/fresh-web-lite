@@ -52,7 +52,7 @@ const EMPTY_DETAILS: ProfileDetails = {
 };
 
 export function ProfileView({ userId, onClose }: { userId: string; onClose: () => void }) {
-  const { user, updateUser } = useFreshId();
+  const { user, updateUser, logout } = useFreshId();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [details, setDetails] = useState<ProfileDetails>(EMPTY_DETAILS);
   const [links, setLinks] = useState<ProfileLink[]>([]);
@@ -248,6 +248,7 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
         <button className="back-btn" onClick={onClose} aria-label="Close profile"><BackIcon size={20} /></button>
         <div style={{ flex: 1 }}><strong>{profile ? `@${profile.username}` : "Profile"}</strong></div>
         {isOwner && <button className="auth-tab" onClick={() => setEditing((value) => !value)}>{editing ? "Close editor" : "Edit"}</button>}
+        {isOwner && <button className="auth-tab" onClick={() => void logout()}>Log out</button>}
       </div>
 
       {loading && <p className="empty-state">Loading your Fresh profile...</p>}
