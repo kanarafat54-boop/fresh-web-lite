@@ -107,9 +107,9 @@ export default function FreshFlowShortsStream() {
   const toggleFollow = async (short: Short) => {
     if (!user || isGuest || short.authorId === user.id) return;
     if (short.isFollowingAuthor) {
-      await removeShortInteraction(user.id, short.authorId, "follow");
+      await supabase.from("follows").delete().eq("follower_id", user.id).eq("followed_id", short.authorId);
     } else {
-      await interactWithShort(user.id, short.authorId, "follow");
+      await supabase.from("follows").insert({ follower_id: user.id, followed_id: short.authorId });
     }
     await refresh();
   };
