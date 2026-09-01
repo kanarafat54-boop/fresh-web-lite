@@ -1,42 +1,55 @@
 .fresh-bottom-nav {
   position: fixed;
   left: 50%;
-  bottom: max(12px, env(safe-area-inset-bottom));
+  bottom: max(10px, env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 100;
+  width: min(calc(100% - 12px), 820px);
+  padding: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 26px;
+  background: linear-gradient(180deg, rgba(20, 21, 30, 0.92), rgba(8, 9, 15, 0.94));
+  backdrop-filter: blur(24px) saturate(155%);
+  -webkit-backdrop-filter: blur(24px) saturate(155%);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.42), 0 0 32px rgba(99, 102, 241, 0.08);
+}
+
+.fresh-bottom-nav-scroll {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  width: min(calc(100% - 20px), 560px);
-  padding: 8px;
-  gap: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 24px;
-  background: rgba(12, 12, 18, 0.88);
-  backdrop-filter: blur(22px) saturate(150%);
-  -webkit-backdrop-filter: blur(22px) saturate(150%);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.32);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.fresh-bottom-nav-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .fresh-nav-item {
   position: relative;
-  min-width: 0;
+  min-width: 68px;
+  min-height: 58px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 8px 4px;
-  border: 0;
-  border-radius: 17px;
+  gap: 4px;
+  padding: 7px 6px;
+  border: 1px solid transparent;
+  border-radius: 19px;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-dim, #a7a9b8);
   font: inherit;
   cursor: pointer;
-  transition: transform 160ms ease, color 160ms ease, background 160ms ease;
+  transition: transform 160ms ease, color 160ms ease, background 160ms ease, border-color 160ms ease;
 }
 
 .fresh-nav-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.055);
 }
 
 .fresh-nav-item:active {
@@ -45,20 +58,22 @@
 
 .fresh-nav-item.active {
   color: #fff;
-  background: linear-gradient(135deg, rgba(108, 92, 231, 0.28), rgba(168, 85, 247, 0.18));
+  border-color: rgba(129, 102, 255, 0.5);
+  background: linear-gradient(145deg, rgba(91, 63, 220, 0.42), rgba(34, 211, 238, 0.16));
+  box-shadow: inset 0 0 22px rgba(124, 92, 255, 0.1), 0 0 22px rgba(124, 92, 255, 0.12);
 }
 
 .fresh-nav-item.active::before {
   content: "";
   position: absolute;
-  top: -3px;
+  top: -2px;
   left: 50%;
-  width: 28px;
+  width: 34px;
   height: 3px;
   transform: translateX(-50%);
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-2));
-  box-shadow: 0 0 14px rgba(168, 85, 247, 0.75);
+  background: linear-gradient(90deg, var(--accent, #2dd4bf), var(--accent-2, #a855f7));
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.75);
 }
 
 .fresh-nav-icon {
@@ -68,32 +83,37 @@
 }
 
 .fresh-nav-label {
-  overflow: hidden;
   max-width: 100%;
-  font-size: 0.68rem;
-  font-weight: 700;
-  line-height: 1;
+  overflow: hidden;
+  font-size: 0.67rem;
+  font-weight: 750;
+  line-height: 1.05;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .fresh-nav-item:focus-visible {
-  outline: 2px solid var(--accent-2);
+  outline: 2px solid var(--accent-2, #a855f7);
   outline-offset: 2px;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 520px) {
   .fresh-bottom-nav {
-    width: calc(100% - 12px);
+    width: calc(100% - 10px);
     padding: 6px;
+    border-radius: 23px;
   }
 
   .fresh-nav-item {
-    padding: 7px 2px;
+    min-width: 61px;
+    min-height: 54px;
+    padding: 6px 4px;
+    border-radius: 17px;
   }
 
   .fresh-nav-label {
-    font-size: 0.62rem;
+    font-size: 0.59rem;
   }
 }
 
@@ -102,5 +122,3 @@
     transition: none;
   }
 }
-
-/* Fresh Web Lite production build marker: keep this stylesheet co-located with BottomNav.tsx. */
