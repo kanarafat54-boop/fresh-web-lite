@@ -85,6 +85,11 @@ export default function HomeDashboard() {
           <h3>Short Videos</h3>
           <p>Open the Shorts experience.</p>
         </button>
+        <button className="dashboard-card creator" onClick={() => setActiveRoute("flow")}>
+          <FilmIcon size={30} />
+          <h3>Fresh Flow</h3>
+          <p>Home, Long Videos, News/Posts, AR/VR, and Podcasts in one discovery surface.</p>
+        </button>
         <button className="dashboard-card search" onClick={() => setActiveRoute("software")}>
           <SearchIcon size={30} />
           <h3>Discover</h3>
