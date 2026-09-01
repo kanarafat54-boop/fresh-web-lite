@@ -19,8 +19,10 @@ type BottomDestination = {
 
 /**
  * Landing navigation is the directorate layer. Home is always the first
- * destination; the remaining slots are the principal directorates and More
- * exposes the rest without turning the landing bar into an ecosystem list.
+ * destination; the remaining slots are the principal directorates.
+ *
+ * Once an ecosystem is open, the bar becomes that ecosystem's navigation
+ * context while Home remains the universal return point.
  */
 const landingDestinations: BottomDestination[] = [
   { id: "feed", label: "Home", icon: HomeIcon },
@@ -29,6 +31,15 @@ const landingDestinations: BottomDestination[] = [
   { id: "connect", label: "Connect", icon: FeedIcon },
   { id: "learn", label: "Learn", icon: AIIcon },
   { id: "more", label: "More", icon: AIIcon },
+];
+
+const freshFlowDestinations: BottomDestination[] = [
+  { id: "feed", label: "Home", icon: HomeIcon },
+  { id: "fresh-flow-long-videos", label: "Long Videos", icon: FeedIcon },
+  { id: "fresh-flow-news-posts", label: "News / Posts", icon: FeedIcon },
+  { id: "fresh-flow-ar-vr", label: "AR / VR", icon: FeedIcon },
+  { id: "fresh-flow-podcasts", label: "Podcasts", icon: FeedIcon },
+  { id: "fresh-flow-more", label: "Others", icon: AIIcon },
 ];
 
 const ecosystemLabel = (id: string) => {
@@ -84,6 +95,8 @@ function getActiveDirectorate(activeRoute?: string): FreshHomeDirectionId | unde
     return activeRoute as FreshHomeDirectionId;
   }
 
+  if (activeRoute.startsWith("fresh-flow-")) return "discover";
+
   return freshHomeDirections.find((direction) =>
     direction.ecosystemIds.includes(activeRoute),
   )?.id;
@@ -91,32 +104,37 @@ function getActiveDirectorate(activeRoute?: string): FreshHomeDirectionId | unde
 
 export default function BottomNav() {
   const { activeRoute, setActiveRoute } = useLayout();
+  const isFreshFlow = activeRoute === "fresh-flow" || activeRoute?.startsWith("fresh-flow-");
   const activeDirectorate = getActiveDirectorate(activeRoute);
 
-  const destinations: BottomDestination[] = activeDirectorate
-    ? [
-        { id: "feed", label: "Home", icon: HomeIcon },
-        ...freshHomeDirections
-          .find((direction) => direction.id === activeDirectorate)!
-          .ecosystemIds.map((id) => ({
-            id,
-            label: ecosystemLabel(id),
-            icon: iconForEcosystem(id),
-          })),
-      ]
-    : landingDestinations;
+  const destinations: BottomDestination[] = isFreshFlow
+    ? freshFlowDestinations
+    : activeDirectorate
+      ? [
+          { id: "feed", label: "Home", icon: HomeIcon },
+          ...freshHomeDirections
+            .find((direction) => direction.id === activeDirectorate)!
+            .ecosystemIds.map((id) => ({
+              id,
+              label: ecosystemLabel(id),
+              icon: iconForEcosystem(id),
+            })),
+        ]
+      : landingDestinations;
 
   return (
     <nav
       className="fresh-bottom-nav"
-      aria-label={activeDirectorate ? `${activeDirectorate} ecosystem navigation` : "Fresh Web Lite directorate navigation"}
+      aria-label={isFreshFlow ? "Fresh Flow ecosystem navigation" : activeDirectorate ? `${activeDirectorate} ecosystem navigation` : "Fresh Web Lite directorate navigation"}
     >
       <div className="fresh-bottom-nav-scroll">
         {destinations.map(({ id, label, icon: Icon }) => {
           const active =
-            id === "feed"
-              ? activeRoute === "feed" || !activeRoute
-              : activeRoute === id;
+            isFreshFlow && id === "feed"
+              ? false
+              : id === "feed"
+                ? activeRoute === "feed" || !activeRoute
+                : activeRoute === id;
 
           return (
             <button
