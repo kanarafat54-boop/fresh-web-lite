@@ -1,17 +1,17 @@
-import { useState } from "react";
 import { FeedModule } from "../feed/components/FeedModule";
 import { FilmIcon, SearchIcon } from "../../components/Icons";
 import UniversalCommandBar from "./components/UniversalCommandBar";
 import { FeatureRegistry } from "../../app/registry/FeatureRegistry";
 import { useLayout } from "../../app/contexts/useLayout";
 import { runIntelligence, type IntelligenceResponse } from "../ai/intelligence";
+import { useState } from "react";
 
 type SearchMode = "instant" | "ai" | "research" | "private";
 
 /**
- * Home is the universal launch surface of Fresh Web Lite.
- * The command bar is a real entry point: "instant" launches a matching
- * feature via the router, other modes run Fresh AI research inline.
+ * Home is the universal launch surface of Fresh Web Lite. Fresh Flow lives
+ * on its own route (id: "flow") rather than being embedded here, so Home
+ * stays the plain landing page: search, shortcuts, and the main feed.
  */
 export default function HomeDashboard() {
   const { setActiveRoute } = useLayout();
@@ -86,9 +86,9 @@ export default function HomeDashboard() {
           <p>Open the Shorts experience.</p>
         </button>
         <button className="dashboard-card creator" onClick={() => setActiveRoute("flow")}>
-          <FilmIcon size={30} />
+          <SearchIcon size={30} />
           <h3>Fresh Flow</h3>
-          <p>Home, Long Videos, News/Posts, AR/VR, and Podcasts in one discovery surface.</p>
+          <p>Home, Long Videos, News/Posts, AR/VR, Podcasts, Live, Learn and more in one discovery surface.</p>
         </button>
         <button className="dashboard-card search" onClick={() => setActiveRoute("software")}>
           <SearchIcon size={30} />

@@ -1,3 +1,4 @@
+import "./features/shorts/components/shorts-flow.css";
 import AppShell from "./app/AppShell";
 import MemphisArafatPage from "./features/creator/MemphisArafatPage";
 

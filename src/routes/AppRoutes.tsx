@@ -1,15 +1,14 @@
+import { useMemo, useState } from "react";
 import AppLayout from "../layouts/AppLayout";
-
-const destinations = [
-  { id: "discover", label: "Discover", description: "Media, news, search and knowledge" },
-  { id: "connect", label: "Connect", description: "Stories, groups, communities and messages" },
-  { id: "create", label: "Create", description: "Create, publish, remix and build" },
-  { id: "learn", label: "Learn", description: "Courses, research and skills" },
-  { id: "move", label: "Move", description: "Wallet, ownership and commerce" },
-  { id: "think", label: "Think", description: "Fresh AI, memory and automation" },
-] as const;
+import { freshHomeDirections, getDirectionEcosystems, type FreshHomeDirectionId } from "../core/platform/freshHomeDirections";
 
 export default function AppRoutes() {
+  const [activeDirection, setActiveDirection] = useState<FreshHomeDirectionId | null>(null);
+  const ecosystems = useMemo(
+    () => (activeDirection ? getDirectionEcosystems(activeDirection) : []),
+    [activeDirection],
+  );
+
   return (
     <AppLayout>
       <section className="fresh-home" aria-labelledby="fresh-home-title">
@@ -20,18 +19,35 @@ export default function AppRoutes() {
         </header>
 
         <nav className="fresh-home-directions" aria-label="Fresh directions">
-          {destinations.map((destination) => (
+          {freshHomeDirections.map((direction) => (
             <button
-              key={destination.id}
+              key={direction.id}
               type="button"
               className="fresh-home-direction"
-              aria-label={`${destination.label}: ${destination.description}`}
+              aria-label={`${direction.label}: ${direction.description}`}
+              aria-expanded={activeDirection === direction.id}
+              onClick={() => setActiveDirection((current) => current === direction.id ? null : direction.id)}
             >
-              <span className="fresh-home-direction-title">{destination.label}</span>
-              <span className="fresh-home-direction-description">{destination.description}</span>
+              <span className="fresh-home-direction-title">{direction.label}</span>
+              <span className="fresh-home-direction-description">{direction.description}</span>
             </button>
           ))}
         </nav>
+
+        {activeDirection && (
+          <section className="fresh-home-discovery" aria-label={`${activeDirection} discovery`}>
+            <h2>{freshHomeDirections.find((direction) => direction.id === activeDirection)?.label}</h2>
+            <p>Explore what this direction connects to.</p>
+            <div className="fresh-home-ecosystems">
+              {ecosystems.map((entry) => (
+                <article key={entry.id} className="fresh-home-ecosystem">
+                  <h3>{entry.canonicalService}</h3>
+                  <span>{entry.status}</span>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
       </section>
     </AppLayout>
   );
