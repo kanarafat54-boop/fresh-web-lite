@@ -12,22 +12,22 @@ import type { UniversalReactionKind } from "../../../core/interactions/FreshReac
 import type { Short } from "../../shorts/types/short";
 import "./FreshFlow.css";
 
-type SubTab = "for-you" | "social" | "trending" | "fresh-picks" | "learn" | "relax";
-type FilterMode = "all" | "following" | "learn" | "relax";
+type SubTab = "for-you" | "trending" | "following" | "fresh-picks";
+type FilterMode = "all" | "social" | "learn" | "relax";
 type AdvancedAction = "quote" | "remix" | "duet" | "collaborate";
 
+// The visible Short Flow row is locked to the supplied reference image.
 const SUB_TABS: Array<{ id: SubTab; label: string; icon: string }> = [
   { id: "for-you", label: "For You", icon: "☆" },
-  { id: "social", label: "Social", icon: "♧" },
   { id: "trending", label: "Trending", icon: "↗" },
+  { id: "following", label: "Following", icon: "♧" },
   { id: "fresh-picks", label: "Fresh Picks", icon: "◇" },
-  { id: "learn", label: "Learn", icon: "◎" },
-  { id: "relax", label: "Relax", icon: "◌" },
 ];
 
+// Additional requested discovery modes remain available without changing the reference row.
 const FILTERS: Array<{ id: FilterMode; label: string }> = [
   { id: "all", label: "All" },
-  { id: "following", label: "Following" },
+  { id: "social", label: "Social" },
   { id: "learn", label: "Learn" },
   { id: "relax", label: "Relax" },
 ];
@@ -71,14 +71,14 @@ export default function FreshFlowShortsStream() {
     setLoading(true);
     setError(null);
     try {
-      const options: FreshFlowLoadOptions = tab === "learn" || selectedFilter === "learn"
+      const options: FreshFlowLoadOptions = selectedFilter === "learn"
         ? { category: "learn" }
-        : tab === "relax" || selectedFilter === "relax"
+        : selectedFilter === "relax"
           ? { category: "relax" }
           : {};
       const result = await loadFreshFlowShorts(user?.id ?? null, isGuest, options);
       let candidates = result.shorts;
-      if (tab === "social" || selectedFilter === "following") candidates = candidates.filter((s) => s.isFollowingAuthor);
+      if (tab === "following" || selectedFilter === "social") candidates = candidates.filter((s) => s.isFollowingAuthor);
       const ranked = tab === "trending" ? rankForYou(candidates, new Set()) : rankFreshFlow(candidates);
       setShorts(ranked);
       setSavedIds(result.savedIds);
@@ -140,7 +140,7 @@ export default function FreshFlowShortsStream() {
 
   const share = async (short: Short) => {
     if (user && !isGuest) {
-      try { await interactWithShort(user.id, short.id, "share", { payload: { channel: "native-or-clipboard" } }); } catch { /* share remains usable if persistence is temporarily unavailable */ }
+      try { await interactWithShort(user.id, short.id, "share", { payload: { channel: "native-or-clipboard" } }); } catch { /* sharing remains usable if persistence is temporarily unavailable */ }
     }
     const shareData = { title: `Fresh Short by ${short.authorName}`, text: short.caption ?? "Fresh Flow", url: short.videoUrl };
     try {
@@ -183,7 +183,7 @@ export default function FreshFlowShortsStream() {
         <button className={filterOpen ? "fresh-flow-subtab filter active" : "fresh-flow-subtab filter"} onClick={() => setFilterOpen((open) => !open)} aria-label="Open Fresh Flow filters and models" aria-expanded={filterOpen}>⚙ Filters / Models</button>
       </nav>
 
-      {filterOpen && <div className="fresh-flow-filter-panel" aria-label="Fresh Flow filters and models"><span className="fresh-flow-filter-title">Refine this Short Flow</span>{FILTERS.map((item) => <button key={item.id} className={filterMode === item.id ? "fresh-flow-filter-chip active" : "fresh-flow-filter-chip"} onClick={() => { setFilterMode(item.id); setFilterOpen(false); }} aria-pressed={filterMode === item.id}>{item.label}</button>)}</div>}
+      {filterOpen && <div className="fresh-flow-filter-panel" aria-label="Fresh Flow filters and models"><span className="fresh-flow-filter-title">Refine this Short Flow</span>{FILTERS.map((item) => <button key={item.id} className={filterMode === item.id ? "fresh-flow-filter-chip active" : "fresh-flow-filter-chip"} onClick={() => { setFilterMode(item.id); setFilterOpen(false); }} aria-pressed={filterMode === item.id}>{item.label}</button>)}<span className="fresh-flow-filter-title">Models: adaptive ranking • interest signals • social graph</span></div>}
 
       {loading ? <p className="fresh-flow-empty">Loading Fresh Flow…</p> : error ? <p className="fresh-flow-empty" role="alert">{error}</p> : shorts.length === 0 ? <p className="fresh-flow-empty">Nothing here yet.</p> : (
         <div className="fresh-flow-stream" ref={containerRef}>
