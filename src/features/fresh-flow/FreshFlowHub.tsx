@@ -2,6 +2,7 @@ import { useLayout } from "../../app/contexts/useLayout";
 import FreshFlowShortsStream from "./components/FreshFlowShortsStream";
 import EcosystemPlaceholder from "../workspaces/EcosystemPlaceholder";
 import "./components/FreshFlow.css";
+import "./components/FreshFlowReferenceShell.css";
 
 type FreshFlowSection =
   | "fresh-flow"
