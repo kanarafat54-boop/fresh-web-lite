@@ -4,7 +4,7 @@ import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { CommentPanel } from "../../comments/components/CommentPanel";
 import { ReactionPicker } from "../../reactions/components/ReactionPicker";
 import { loadFreshFlowShorts, type FreshFlowLoadOptions } from "../core/loadFreshFlowShorts";
-import { rankFreshFlow } from "../core/FreshFlowRanking";
+import { rankFreshFlow, rankTrending } from "../core/FreshFlowRanking";
 import { rankForYou } from "../../shorts/core/ForYouRanking";
 import { sendGift, getGiftTotals, type GiftTotal } from "../core/giftService";
 import { interactWithShort, removeShortInteraction } from "../../shorts/core/ShortsUniversalInteractionAdapter";
@@ -79,7 +79,11 @@ export default function FreshFlowShortsStream() {
       const result = await loadFreshFlowShorts(user?.id ?? null, isGuest, options);
       let candidates = result.shorts;
       if (tab === "following" || selectedFilter === "social") candidates = candidates.filter((s) => s.isFollowingAuthor);
-      const ranked = tab === "trending" ? rankForYou(candidates, new Set()) : rankFreshFlow(candidates);
+      const ranked = tab === "trending"
+        ? rankTrending(candidates)
+        : tab === "for-you"
+          ? rankForYou(candidates, new Set())
+          : rankFreshFlow(candidates);
       setShorts(ranked);
       setSavedIds(result.savedIds);
       setGiftTotals(await getGiftTotals(ranked.map((s) => s.id)));
