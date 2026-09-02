@@ -11,15 +11,14 @@ type FlowItem = {
   description: string;
 };
 
+// Locked to the supplied Fresh Flow reference: six media destinations.
 const FLOW_ITEMS: FlowItem[] = [
   { id: "home", label: "Home", icon: "⌂", route: "feed", description: "Your complete Fresh starting point" },
-  { id: "long-video", label: "Long videos", icon: "▶", description: "Deep videos, documentaries and series" },
+  { id: "long-video", label: "Long Videos", icon: "▶", description: "Deep videos, documentaries and series" },
   { id: "news-posts", label: "News / Posts", icon: "▤", route: "feed", description: "News, posts, photos and discussions" },
   { id: "vr-ar", label: "AR / VR", icon: "◈", route: "vr-ar", description: "Immersive worlds and spatial experiences" },
   { id: "podcasts", label: "Podcasts", icon: "◉", description: "Podcasts, shows and conversations" },
-  { id: "live", label: "Live", icon: "●", route: "live", description: "Live experiences and creators" },
-  { id: "learn", label: "Learn", icon: "△", route: "learning", description: "Learning and knowledge" },
-  { id: "more", label: "More", icon: "•••", route: "communication", description: "Connect, communities and more" },
+  { id: "others", label: "Others", icon: "▦", description: "Additional Fresh Flow media and connected experiences" },
 ];
 
 export default function FreshFlowNavigation() {
@@ -38,9 +37,7 @@ export default function FreshFlowNavigation() {
       return;
     }
 
-    if (!item.route) {
-      setNotice(`${item.label} is part of the Fresh flow shell and is ready for its dedicated workspace.`);
-    }
+    setNotice(`${item.label} is part of the Fresh Flow media space and is ready for its connected workspace.`);
   }
 
   return (
@@ -49,11 +46,11 @@ export default function FreshFlowNavigation() {
         <div>
           <span className="fresh-flow-kicker">FRESH FLOW</span>
           <h1>Explore your way</h1>
-          <p>Choose a world above. Short videos continue below in a separate Fresh flow — swipe left or right to move between videos.</p>
+          <p>Choose a media world above. Short videos continue below in Fresh Flow — swipe left or right to move between videos.</p>
         </div>
       </header>
 
-      <nav className="fresh-flow-tabs" aria-label="Fresh destinations">
+      <nav className="fresh-flow-tabs" aria-label="Fresh Flow media destinations">
         {FLOW_ITEMS.map((item) => (
           <button
             key={item.id}
