@@ -13,16 +13,28 @@ export type FreshFlowLoadResult = {
  * but is kept as its own module rather than coupled into ShortsModule.tsx,
  * which is under frequent, separate active development.
  */
+export type FreshFlowLoadOptions = {
+  category?: "learn" | "relax";
+  limit?: number;
+};
+
 export async function loadFreshFlowShorts(
   userId: string | null,
   isGuest: boolean,
-  limit = 30,
+  options: FreshFlowLoadOptions = {},
 ): Promise<FreshFlowLoadResult> {
-  const { data: shortsData, error: shortsError } = await supabase
+  const limit = options.limit ?? 30;
+  let query = supabase
     .from("shorts")
     .select("id, author_id, caption, sound_name, chapters, video_url, like_count, comment_count, view_count, repost_count, created_at")
     .order("created_at", { ascending: false })
     .limit(limit * 2); // fetch extra so the diversity/discovery ranking has real room to reorder
+
+  if (options.category) {
+    query = query.eq("category", options.category);
+  }
+
+  const { data: shortsData, error: shortsError } = await query;
 
   if (shortsError) throw new Error(`Couldn't load Fresh Flow: ${shortsError.message}`);
   const rows: any[] = shortsData ?? [];

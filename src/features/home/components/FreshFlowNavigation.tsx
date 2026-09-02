@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useLayout } from "../../../app/contexts/useLayout";
 import { FeatureRegistry } from "../../../app/registry/FeatureRegistry";
-import { ShortsModule } from "../../shorts/components/ShortsModule";
+import FreshFlowShortsStream from "../../fresh-flow/components/FreshFlowShortsStream";
 
 type FlowItem = {
   id: string;
@@ -78,7 +78,7 @@ export default function FreshFlowNavigation() {
       </div>
 
       <div className="fresh-short-flow-shell">
-        <ShortsModule />
+        <FreshFlowShortsStream />
       </div>
     </section>
   );

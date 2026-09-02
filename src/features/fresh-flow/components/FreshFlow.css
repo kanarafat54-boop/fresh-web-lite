@@ -106,3 +106,73 @@
   text-align: center;
   opacity: 0.7;
 }
+
+.fresh-flow-vertical {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.fresh-flow-subtabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 6px 12px;
+}
+
+.fresh-flow-subtab {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border, #2a2a2a);
+  background: transparent;
+  color: var(--text, #eaeaea);
+  font-size: 0.85rem;
+}
+
+.fresh-flow-subtab.active {
+  background: var(--accent, #2dd4bf);
+  color: black;
+  border-color: var(--accent, #2dd4bf);
+}
+
+.fresh-flow-action-btn.gift {
+  color: #f5a623;
+}
+
+.fresh-flow-gift-panel {
+  position: absolute;
+  right: 12px;
+  bottom: 90px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid var(--border, #2a2a2a);
+  border-radius: 12px;
+  padding: 12px;
+  color: white;
+  width: 220px;
+}
+
+.fresh-flow-gift-presets {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.fresh-flow-gift-presets button {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--accent, #2dd4bf);
+  background: transparent;
+  color: var(--accent, #2dd4bf);
+}
+
+.fresh-flow-gift-cancel {
+  margin-top: 8px;
+  background: transparent;
+  border: none;
+  color: white;
+  opacity: 0.7;
+  font-size: 0.85rem;
+}
