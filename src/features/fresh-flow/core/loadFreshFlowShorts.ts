@@ -14,7 +14,7 @@ export type FreshFlowLoadResult = {
  * which is under frequent, separate active development.
  */
 export type FreshFlowLoadOptions = {
-  category?: "learn" | "relax";
+  category?: string;
   limit?: number;
 };
 
