@@ -3,7 +3,7 @@ import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { CommentPanel } from "../../comments/components/CommentPanel";
 import { ReactionPicker } from "../../reactions/components/ReactionPicker";
-import { loadFreshFlowShorts } from "../core/loadFreshFlowShorts";
+import { loadFreshFlowShorts, type FreshFlowLoadOptions } from "../core/loadFreshFlowShorts";
 import { rankFreshFlow } from "../core/FreshFlowRanking";
 import { rankForYou } from "../../shorts/core/ForYouRanking";
 import { sendGift, getGiftTotals, type GiftTotal } from "../core/giftService";
@@ -71,7 +71,7 @@ export default function FreshFlowShortsStream() {
     setLoading(true);
     setError(null);
     try {
-      const options = tab === "learn" || selectedFilter === "learn"
+      const options: FreshFlowLoadOptions = tab === "learn" || selectedFilter === "learn"
         ? { category: "learn" }
         : tab === "relax" || selectedFilter === "relax"
           ? { category: "relax" }
@@ -133,18 +133,14 @@ export default function FreshFlowShortsStream() {
 
   const toggleFollow = async (short: Short) => {
     if (!user || isGuest || short.authorId === user.id) return;
-    try {
-      if (short.isFollowingAuthor) await removeShortInteraction(user.id, short.id, "follow");
-      else await interactWithShort(user.id, short.id, "follow", { payload: { followedUserId: short.authorId } });
-      await load(subTab, filterMode);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to update follow state.");
-    }
+    if (short.isFollowingAuthor) await supabase.from("follows").delete().eq("follower_id", user.id).eq("followed_id", short.authorId);
+    else await supabase.from("follows").insert({ follower_id: user.id, followed_id: short.authorId });
+    await load(subTab, filterMode);
   };
 
   const share = async (short: Short) => {
     if (user && !isGuest) {
-      try { await interactWithShort(user.id, short.id, "share", { payload: { channel: "native-or-clipboard" } }); } catch { /* sharing should remain usable if persistence is unavailable */ }
+      try { await interactWithShort(user.id, short.id, "share", { payload: { channel: "native-or-clipboard" } }); } catch { /* share remains usable if persistence is temporarily unavailable */ }
     }
     const shareData = { title: `Fresh Short by ${short.authorName}`, text: short.caption ?? "Fresh Flow", url: short.videoUrl };
     try {
@@ -183,20 +179,11 @@ export default function FreshFlowShortsStream() {
   return (
     <div className="fresh-flow-vertical">
       <nav className="fresh-flow-subtabs" aria-label="Fresh Flow Shorts discovery modes">
-        {SUB_TABS.map((item) => (
-          <button key={item.id} className={subTab === item.id ? "fresh-flow-subtab active" : "fresh-flow-subtab"} onClick={() => { setSubTab(item.id); setFilterOpen(false); }} aria-pressed={subTab === item.id}>
-            <span aria-hidden="true">{item.icon}</span>{item.label}
-          </button>
-        ))}
+        {SUB_TABS.map((item) => <button key={item.id} className={subTab === item.id ? "fresh-flow-subtab active" : "fresh-flow-subtab"} onClick={() => { setSubTab(item.id); setFilterOpen(false); }} aria-pressed={subTab === item.id}><span aria-hidden="true">{item.icon}</span>{item.label}</button>)}
         <button className={filterOpen ? "fresh-flow-subtab filter active" : "fresh-flow-subtab filter"} onClick={() => setFilterOpen((open) => !open)} aria-label="Open Fresh Flow filters and models" aria-expanded={filterOpen}>⚙ Filters / Models</button>
       </nav>
 
-      {filterOpen && (
-        <div className="fresh-flow-filter-panel" aria-label="Fresh Flow filters and models">
-          <span className="fresh-flow-filter-title">Refine this Short Flow</span>
-          {FILTERS.map((item) => <button key={item.id} className={filterMode === item.id ? "fresh-flow-filter-chip active" : "fresh-flow-filter-chip"} onClick={() => { setFilterMode(item.id); setFilterOpen(false); }} aria-pressed={filterMode === item.id}>{item.label}</button>)}
-        </div>
-      )}
+      {filterOpen && <div className="fresh-flow-filter-panel" aria-label="Fresh Flow filters and models"><span className="fresh-flow-filter-title">Refine this Short Flow</span>{FILTERS.map((item) => <button key={item.id} className={filterMode === item.id ? "fresh-flow-filter-chip active" : "fresh-flow-filter-chip"} onClick={() => { setFilterMode(item.id); setFilterOpen(false); }} aria-pressed={filterMode === item.id}>{item.label}</button>)}</div>}
 
       {loading ? <p className="fresh-flow-empty">Loading Fresh Flow…</p> : error ? <p className="fresh-flow-empty" role="alert">{error}</p> : shorts.length === 0 ? <p className="fresh-flow-empty">Nothing here yet.</p> : (
         <div className="fresh-flow-stream" ref={containerRef}>
@@ -205,13 +192,7 @@ export default function FreshFlowShortsStream() {
             return (
               <div key={short.id} className="fresh-flow-item">
                 <video ref={(el) => { if (el) videoRefs.current.set(short.id, el); else videoRefs.current.delete(short.id); }} data-short-id={short.id} src={short.videoUrl} loop playsInline className="fresh-flow-video" />
-                <div className="fresh-flow-overlay">
-                  <div className="fresh-flow-author-row">
-                    <span className="fresh-flow-author">{short.authorName}</span>
-                    {!isGuest && user && short.authorId !== user.id && <button className={short.isFollowingAuthor ? "fresh-flow-chip following" : "fresh-flow-chip"} onClick={() => void toggleFollow(short)}>{short.isFollowingAuthor ? "Following" : "Follow"}</button>}
-                  </div>
-                  {short.caption && <p className="fresh-flow-caption">{short.caption}</p>}
-                </div>
+                <div className="fresh-flow-overlay"><div className="fresh-flow-author-row"><span className="fresh-flow-author">{short.authorName}</span>{!isGuest && user && short.authorId !== user.id && <button className={short.isFollowingAuthor ? "fresh-flow-chip following" : "fresh-flow-chip"} onClick={() => void toggleFollow(short)}>{short.isFollowingAuthor ? "Following" : "Follow"}</button>}</div>{short.caption && <p className="fresh-flow-caption">{short.caption}</p>}</div>
 
                 <div className="fresh-flow-actions">
                   <ReactionPicker myReaction={short.myReaction} count={short.likeCount} disabled={isGuest} variant="short" onReact={(type) => void react(short, type)} />
@@ -223,22 +204,9 @@ export default function FreshFlowShortsStream() {
                   {!isGuest && user && short.authorId !== user.id && <button className="fresh-flow-action-btn gift" onClick={() => { setGiftTargetId(short.id); setGiftError(null); }} aria-label="Send gift"><span>🎁</span><span>{totals ? formatCount(totals.count) : 0}</span></button>}
                 </div>
 
-                {advancedTargetId === short.id && (
-                  <div className="fresh-flow-advanced-panel" role="dialog" aria-label="Short creation and collaboration actions" onClick={(e) => e.stopPropagation()}>
-                    <div className="fresh-flow-advanced-header"><strong>Do more with this Short</strong><button onClick={() => setAdvancedTargetId(null)} aria-label="Close">×</button></div>
-                    {ADVANCED_ACTIONS.map((item) => <button key={item.id} className="fresh-flow-advanced-action" disabled={actionSending || isGuest} onClick={() => void advancedAction(short, item.id)}><span className="fresh-flow-advanced-icon">{item.icon}</span><span><strong>{item.label}</strong><small>{item.description}</small></span></button>)}
-                    {actionError && <p className="fresh-flow-inline-error" role="alert">{actionError}</p>}
-                  </div>
-                )}
+                {advancedTargetId === short.id && <div className="fresh-flow-advanced-panel" role="dialog" aria-label="Short creation and collaboration actions" onClick={(e) => e.stopPropagation()}><div className="fresh-flow-advanced-header"><strong>Do more with this Short</strong><button onClick={() => setAdvancedTargetId(null)} aria-label="Close">×</button></div>{ADVANCED_ACTIONS.map((item) => <button key={item.id} className="fresh-flow-advanced-action" disabled={actionSending || isGuest} onClick={() => void advancedAction(short, item.id)}><span className="fresh-flow-advanced-icon">{item.icon}</span><span><strong>{item.label}</strong><small>{item.description}</small></span></button>)}{actionError && <p className="fresh-flow-inline-error" role="alert">{actionError}</p>}</div>}
 
-                {giftTargetId === short.id && (
-                  <div className="fresh-flow-gift-panel" onClick={(e) => e.stopPropagation()}>
-                    <strong>Gift Fresh Coin to {short.authorName}</strong>
-                    <div className="fresh-flow-gift-presets">{GIFT_PRESETS.map((preset) => <button key={preset.amountMinor} disabled={giftSending} onClick={() => void gift(short, preset.amountMinor)}>{preset.label} FRESH</button>)}</div>
-                    {giftError && <p role="alert">{giftError}</p>}
-                    <button className="fresh-flow-gift-cancel" onClick={() => setGiftTargetId(null)}>Cancel</button>
-                  </div>
-                )}
+                {giftTargetId === short.id && <div className="fresh-flow-gift-panel" onClick={(e) => e.stopPropagation()}><strong>Gift Fresh Coin to {short.authorName}</strong><div className="fresh-flow-gift-presets">{GIFT_PRESETS.map((preset) => <button key={preset.amountMinor} disabled={giftSending} onClick={() => void gift(short, preset.amountMinor)}>{preset.label} FRESH</button>)}</div>{giftError && <p role="alert">{giftError}</p>}<button className="fresh-flow-gift-cancel" onClick={() => setGiftTargetId(null)}>Cancel</button></div>}
               </div>
             );
           })}
