@@ -1,17 +1,18 @@
-export interface EcosystemProfile{
+export type EcosystemProfileMode =
+  | 'for-you'
+  | 'social'
+  | 'learn'
+  | 'relax'
+  | 'others';
 
-id:string;
-
-ecosystemId:string;
-
-title:string;
-
-description:string;
-
-enabled:boolean;
-
-level:number;
-
-metadata:Record<string,unknown>;
-
+export interface EcosystemProfile {
+  id: string;
+  freshId: string;
+  ecosystemId: string;
+  title: string;
+  description: string;
+  enabled: boolean;
+  level: number;
+  feedModes: EcosystemProfileMode[];
+  metadata: Record<string, unknown>;
 }
