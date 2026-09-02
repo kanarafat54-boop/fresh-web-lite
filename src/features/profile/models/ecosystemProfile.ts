@@ -3,7 +3,8 @@ export type EcosystemProfileMode =
   | 'social'
   | 'learn'
   | 'relax'
-  | 'others';
+  | 'others'
+  | 'fresh-picks';
 
 export interface EcosystemProfile {
   id: string;

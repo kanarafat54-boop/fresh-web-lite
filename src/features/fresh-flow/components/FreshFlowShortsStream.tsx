@@ -8,20 +8,20 @@ import { rankFreshFlow } from "../core/FreshFlowRanking";
 import { rankForYou } from "../../shorts/core/ForYouRanking";
 import { sendGift, getGiftTotals, type GiftTotal } from "../core/giftService";
 import { interactWithShort, removeShortInteraction } from "../../shorts/core/ShortsUniversalInteractionAdapter";
+import { getEcosystemProfile, upsertEcosystemProfile, FRESH_FLOW_FEED_MODES } from "../../profile/services/ecosystemProfileService";
+import type { EcosystemProfileMode } from "../../profile/models/ecosystemProfile";
 import type { UniversalReactionKind } from "../../../core/interactions/FreshReactionModel";
 import type { Short } from "../../shorts/types/short";
 import "./FreshFlow.css";
 
-type SubTab = "for-you" | "trending" | "following" | "learn" | "relax" | "fresh-picks";
-
-const SUB_TABS: Array<{ id: SubTab; label: string }> = [
-  { id: "for-you", label: "For You" },
-  { id: "trending", label: "Trending" },
-  { id: "following", label: "Following" },
-  { id: "learn", label: "Learn" },
-  { id: "relax", label: "Relax" },
-  { id: "fresh-picks", label: "Fresh Picks" },
-];
+const MODE_LABELS: Record<EcosystemProfileMode, string> = {
+  "for-you": "For You",
+  social: "Social",
+  learn: "Learn",
+  relax: "Relax",
+  others: "Trending",
+  "fresh-picks": "Fresh Picks",
+};
 
 const GIFT_PRESETS: Array<{ label: string; amountMinor: string }> = [
   { label: "1", amountMinor: "100" },
@@ -30,9 +30,21 @@ const GIFT_PRESETS: Array<{ label: string; amountMinor: string }> = [
   { label: "50", amountMinor: "5000" },
 ];
 
+async function getSocialAuthorIds(userId: string): Promise<string[]> {
+  const [{ data: following }, { data: followers }] = await Promise.all([
+    supabase.from("follows").select("followed_id").eq("follower_id", userId),
+    supabase.from("follows").select("follower_id").eq("followed_id", userId),
+  ]);
+  const ids = new Set<string>();
+  (following ?? []).forEach((row: any) => ids.add(row.followed_id));
+  (followers ?? []).forEach((row: any) => ids.add(row.follower_id));
+  return Array.from(ids);
+}
+
 export default function FreshFlowShortsStream() {
   const { user, isGuest } = useFreshId();
-  const [subTab, setSubTab] = useState<SubTab>("for-you");
+  const [availableModes, setAvailableModes] = useState<EcosystemProfileMode[]>(FRESH_FLOW_FEED_MODES);
+  const [mode, setMode] = useState<EcosystemProfileMode>("for-you");
   const [shorts, setShorts] = useState<Short[]>([]);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [giftTotals, setGiftTotals] = useState<Map<string, GiftTotal>>(new Map());
@@ -46,8 +58,39 @@ export default function FreshFlowShortsStream() {
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const viewedRef = useRef<Set<string>>(new Set());
 
-  const load = async (tab: SubTab) => {
-    if (tab === "fresh-picks") {
+  // Ensure a real ecosystem_profiles row exists for this user's Fresh Flow
+  // feed, instead of a hardcoded local tab list. Which modes render comes
+  // from this record, not from component state.
+  useEffect(() => {
+    if (!user || isGuest) return;
+    let active = true;
+    (async () => {
+      try {
+        let profile = await getEcosystemProfile(user.id, "fresh-flow");
+        if (!profile) {
+          profile = await upsertEcosystemProfile({
+            freshId: user.id,
+            ecosystemId: "fresh-flow",
+            title: "Fresh Flow",
+            description: "Personalized · Intelligent · Yours",
+            enabled: true,
+            level: 1,
+            feedModes: FRESH_FLOW_FEED_MODES,
+            metadata: {},
+          });
+        }
+        if (active && profile.feedModes.length > 0) setAvailableModes(profile.feedModes);
+      } catch {
+        // Falls back to the canonical default mode list already in state.
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [user, isGuest]);
+
+  const load = async (activeMode: EcosystemProfileMode) => {
+    if (activeMode === "fresh-picks") {
       setShorts([]);
       setLoading(false);
       return;
@@ -57,18 +100,22 @@ export default function FreshFlowShortsStream() {
     setError(null);
     try {
       let result;
-      if (tab === "learn") result = await loadFreshFlowShorts(user?.id ?? null, isGuest, { category: "learn" });
-      else if (tab === "relax") result = await loadFreshFlowShorts(user?.id ?? null, isGuest, { category: "relax" });
-      else result = await loadFreshFlowShorts(user?.id ?? null, isGuest, {});
-
-      let ranked: Short[];
-      if (tab === "trending") {
-        ranked = rankForYou(result.shorts, new Set());
-      } else if (tab === "following") {
-        ranked = rankFreshFlow(result.shorts.filter((s) => s.isFollowingAuthor));
+      if (activeMode === "learn") {
+        result = await loadFreshFlowShorts(user?.id ?? null, isGuest, { category: "learn" });
+      } else if (activeMode === "relax") {
+        result = await loadFreshFlowShorts(user?.id ?? null, isGuest, { category: "relax" });
+      } else if (activeMode === "social") {
+        if (!user || isGuest) {
+          result = { shorts: [], savedIds: new Set<string>() };
+        } else {
+          const socialIds = await getSocialAuthorIds(user.id);
+          result = await loadFreshFlowShorts(user.id, isGuest, { authorIds: socialIds });
+        }
       } else {
-        ranked = rankFreshFlow(result.shorts);
+        result = await loadFreshFlowShorts(user?.id ?? null, isGuest, {});
       }
+
+      const ranked = activeMode === "others" ? rankForYou(result.shorts, new Set()) : rankFreshFlow(result.shorts);
 
       setShorts(ranked);
       setSavedIds(result.savedIds);
@@ -83,8 +130,8 @@ export default function FreshFlowShortsStream() {
   };
 
   useEffect(() => {
-    void load(subTab);
-  }, [subTab, user?.id, isGuest]);
+    void load(mode);
+  }, [mode, user?.id, isGuest]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -118,7 +165,7 @@ export default function FreshFlowShortsStream() {
     } else {
       await interactWithShort(user.id, short.id, "react", { reaction: type as UniversalReactionKind });
     }
-    await load(subTab);
+    await load(mode);
   };
 
   const toggleSave = async (short: Short) => {
@@ -128,7 +175,7 @@ export default function FreshFlowShortsStream() {
     } else {
       await interactWithShort(user.id, short.id, "save");
     }
-    await load(subTab);
+    await load(mode);
   };
 
   const toggleRepost = async (short: Short) => {
@@ -138,7 +185,7 @@ export default function FreshFlowShortsStream() {
     } else {
       await interactWithShort(user.id, short.id, "repost");
     }
-    await load(subTab);
+    await load(mode);
   };
 
   const toggleFollow = async (short: Short) => {
@@ -148,7 +195,7 @@ export default function FreshFlowShortsStream() {
     } else {
       await supabase.from("follows").insert({ follower_id: user.id, followed_id: short.authorId });
     }
-    await load(subTab);
+    await load(mode);
   };
 
   const gift = async (short: Short, amountMinor: string) => {
@@ -176,26 +223,26 @@ export default function FreshFlowShortsStream() {
   return (
     <div className="fresh-flow-vertical">
       <nav className="fresh-flow-subtabs" aria-label="Fresh Flow feed filters">
-        {SUB_TABS.map((item) => (
+        {availableModes.map((item) => (
           <button
-            key={item.id}
-            className={subTab === item.id ? "fresh-flow-subtab active" : "fresh-flow-subtab"}
-            onClick={() => setSubTab(item.id)}
-            aria-pressed={subTab === item.id}
+            key={item}
+            className={mode === item ? "fresh-flow-subtab active" : "fresh-flow-subtab"}
+            onClick={() => setMode(item)}
+            aria-pressed={mode === item}
           >
-            {item.label}
+            {MODE_LABELS[item]}
           </button>
         ))}
       </nav>
 
-      {subTab === "fresh-picks" ? (
+      {mode === "fresh-picks" ? (
         <p className="fresh-flow-empty">Fresh Picks is scoped but not built yet — it needs a real editorial curation system, which doesn't exist on the platform yet.</p>
       ) : loading ? (
         <p className="fresh-flow-empty">Loading Fresh Flow…</p>
       ) : error ? (
         <p className="fresh-flow-empty" role="alert">{error}</p>
       ) : shorts.length === 0 ? (
-        <p className="fresh-flow-empty">Nothing here yet.</p>
+        <p className="fresh-flow-empty">{mode === "social" ? "Follow or connect with people to see their Shorts here." : "Nothing here yet."}</p>
       ) : (
         <div className="fresh-flow-stream" ref={containerRef}>
           {shorts.map((short) => {

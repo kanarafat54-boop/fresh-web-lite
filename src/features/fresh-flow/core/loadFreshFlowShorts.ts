@@ -15,6 +15,7 @@ export type FreshFlowLoadResult = {
  */
 export type FreshFlowLoadOptions = {
   category?: "learn" | "relax";
+  authorIds?: string[];
   limit?: number;
 };
 
@@ -32,6 +33,12 @@ export async function loadFreshFlowShorts(
 
   if (options.category) {
     query = query.eq("category", options.category);
+  }
+  if (options.authorIds) {
+    if (options.authorIds.length === 0) {
+      return { shorts: [], savedIds: new Set() };
+    }
+    query = query.in("author_id", options.authorIds);
   }
 
   const { data: shortsData, error: shortsError } = await query;

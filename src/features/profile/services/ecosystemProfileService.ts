@@ -7,6 +7,7 @@ export const FRESH_FLOW_FEED_MODES: EcosystemProfileMode[] = [
   "learn",
   "relax",
   "others",
+  "fresh-picks",
 ];
 
 export async function getEcosystemProfile(
