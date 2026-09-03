@@ -1,5 +1,6 @@
 import { useLayout } from "../../app/contexts/useLayout";
 import FreshFlowShortsStream from "./components/FreshFlowShortsStream";
+import FreshFlowNewsPosts from "./components/FreshFlowNewsPosts";
 import EcosystemPlaceholder from "../workspaces/EcosystemPlaceholder";
 import "./components/FreshFlow.css";
 import "./components/FreshFlowReferenceShell.css";
@@ -21,14 +22,10 @@ const MEDIA_NAV = [
   { id: "fresh-flow-more", label: "Others", icon: "▦" },
 ] as const;
 
-const SECTION_COPY: Record<Exclude<FreshFlowSection, "fresh-flow">, { name: string; description: string }> = {
+const SECTION_COPY: Record<Exclude<FreshFlowSection, "fresh-flow" | "fresh-flow-news-posts">, { name: string; description: string }> = {
   "fresh-flow-long-videos": {
     name: "Fresh Flow · Long Videos",
     description: "Long-form video watching, documentaries and series within Fresh Flow.",
-  },
-  "fresh-flow-news-posts": {
-    name: "Fresh Flow · News / Posts",
-    description: "News, posts, photos and discussions connected to the Fresh Flow experience.",
   },
   "fresh-flow-ar-vr": {
     name: "Fresh Flow · AR / VR",
@@ -73,6 +70,8 @@ export default function FreshFlowHub() {
 
       {section === "fresh-flow" ? (
         <FreshFlowShortsStream />
+      ) : section === "fresh-flow-news-posts" ? (
+        <FreshFlowNewsPosts />
       ) : (
         <EcosystemPlaceholder {...SECTION_COPY[section]} />
       )}
