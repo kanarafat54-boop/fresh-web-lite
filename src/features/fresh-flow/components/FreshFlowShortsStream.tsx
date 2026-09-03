@@ -175,32 +175,72 @@ export default function FreshFlowShortsStream() {
     return () => observer.disconnect();
   }, [shorts]);
 
+  // These update local state directly instead of re-fetching and re-ranking
+  // the whole feed. A full reload on every tap was reordering the carousel
+  // under the user\'s finger -- the write always succeeded, but it looked
+  // broken because the item they just tapped could move or disappear.
   const react = async (short: Short, type: string) => {
     if (!user || isGuest) return;
-    if (short.myReaction === type) await removeShortInteraction(user.id, short.id, "react");
-    else await interactWithShort(user.id, short.id, "react", { reaction: type as UniversalReactionKind });
-    await load(subTab, filterMode);
+    setActionError(null);
+    const previous = short.myReaction;
+    try {
+      if (previous === type) await removeShortInteraction(user.id, short.id, "react");
+      else await interactWithShort(user.id, short.id, "react", { reaction: type as UniversalReactionKind });
+      setShorts((current) => current.map((s) => {
+        if (s.id !== short.id) return s;
+        if (previous === type) return { ...s, myReaction: null, likeCount: Math.max(0, s.likeCount - 1) };
+        if (previous === null) return { ...s, myReaction: type, likeCount: s.likeCount + 1 };
+        return { ...s, myReaction: type };
+      }));
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : "Unable to react.");
+    }
   };
 
   const toggleSave = async (short: Short) => {
     if (!user || isGuest) return;
-    if (savedIds.has(short.id)) await removeShortInteraction(user.id, short.id, "save");
-    else await interactWithShort(user.id, short.id, "save");
-    await load(subTab, filterMode);
+    setActionError(null);
+    const wasSaved = savedIds.has(short.id);
+    try {
+      if (wasSaved) await removeShortInteraction(user.id, short.id, "save");
+      else await interactWithShort(user.id, short.id, "save");
+      setSavedIds((current) => {
+        const next = new Set(current);
+        if (wasSaved) next.delete(short.id);
+        else next.add(short.id);
+        return next;
+      });
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : "Unable to save.");
+    }
   };
 
   const toggleRepost = async (short: Short) => {
     if (!user || isGuest) return;
-    if (short.repostedByMe) await removeShortInteraction(user.id, short.id, "repost");
-    else await interactWithShort(user.id, short.id, "repost");
-    await load(subTab, filterMode);
+    setActionError(null);
+    const wasReposted = short.repostedByMe;
+    try {
+      if (wasReposted) await removeShortInteraction(user.id, short.id, "repost");
+      else await interactWithShort(user.id, short.id, "repost");
+      setShorts((current) => current.map((s) =>
+        s.id === short.id ? { ...s, repostedByMe: !wasReposted, repostCount: Math.max(0, s.repostCount + (wasReposted ? -1 : 1)) } : s,
+      ));
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : "Unable to repost.");
+    }
   };
 
   const toggleFollow = async (short: Short) => {
     if (!user || isGuest || short.authorId === user.id) return;
-    if (short.isFollowingAuthor) await supabase.from("follows").delete().eq("follower_id", user.id).eq("followed_id", short.authorId);
-    else await supabase.from("follows").insert({ follower_id: user.id, followed_id: short.authorId });
-    await load(subTab, filterMode);
+    setActionError(null);
+    const wasFollowing = short.isFollowingAuthor;
+    try {
+      if (wasFollowing) await supabase.from("follows").delete().eq("follower_id", user.id).eq("followed_id", short.authorId);
+      else await supabase.from("follows").insert({ follower_id: user.id, followed_id: short.authorId });
+      setShorts((current) => current.map((s) => (s.authorId === short.authorId ? { ...s, isFollowingAuthor: !wasFollowing } : s)));
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : "Unable to follow.");
+    }
   };
 
   const share = async (short: Short) => {
@@ -279,6 +319,7 @@ export default function FreshFlowShortsStream() {
 
                 {advancedTargetId === short.id && <div className="fresh-flow-advanced-panel" role="dialog" aria-label="Short creation and collaboration actions" onClick={(e) => e.stopPropagation()}><div className="fresh-flow-advanced-header"><strong>Do more with this Short</strong><button onClick={() => setAdvancedTargetId(null)} aria-label="Close">×</button></div>{ADVANCED_ACTIONS.map((item) => <button key={item.id} className="fresh-flow-advanced-action" disabled={actionSending || isGuest} onClick={() => void advancedAction(short, item.id)}><span className="fresh-flow-advanced-icon">{item.icon}</span><span><strong>{item.label}</strong><small>{item.description}</small></span></button>)}{actionError && <p className="fresh-flow-inline-error" role="alert">{actionError}</p>}</div>}
 
+                {actionError && !advancedTargetId && giftTargetId !== short.id && <p className="fresh-flow-inline-error" role="alert" style={{ position: "absolute", left: 12, bottom: 12, zIndex: 5 }}>{actionError}</p>}
                 {giftTargetId === short.id && <div className="fresh-flow-gift-panel" onClick={(e) => e.stopPropagation()}><strong>Gift Fresh Coin to {short.authorName}</strong><div className="fresh-flow-gift-presets">{GIFT_PRESETS.map((preset) => <button key={preset.amountMinor} disabled={giftSending} onClick={() => void gift(short, preset.amountMinor)}>{preset.label} FRESH</button>)}</div>{giftError && <p role="alert">{giftError}</p>}<button className="fresh-flow-gift-cancel" onClick={() => setGiftTargetId(null)}>Cancel</button></div>}
               </div>
             );
