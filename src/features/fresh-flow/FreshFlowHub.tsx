@@ -4,6 +4,7 @@ import FreshFlowNewsPosts from "./components/FreshFlowNewsPosts";
 import EcosystemPlaceholder from "../workspaces/EcosystemPlaceholder";
 import "./components/FreshFlow.css";
 import "./components/FreshFlowReferenceShell.css";
+import "./components/FreshFlowMediaExperience.css";
 
 type FreshFlowSection =
   | "fresh-flow"
@@ -35,18 +36,9 @@ export default function FreshFlowHub() {
   const isOverview = section === "fresh-flow";
 
   const mediaNavigation = (
-    <nav
-      className={`fresh-flow-media-nav ${isOverview ? "fresh-flow-media-nav-top" : "fresh-flow-media-nav-bottom"}`}
-      aria-label="Fresh Flow media navigation"
-    >
+    <nav className={`fresh-flow-media-nav ${isOverview ? "fresh-flow-media-nav-top" : "fresh-flow-media-nav-bottom"}`} aria-label="Fresh Flow media navigation">
       {MEDIA_NAV.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          className={`fresh-flow-media-button ${section === item.id ? "active" : ""}`}
-          onClick={() => setActiveRoute(item.id)}
-          aria-current={section === item.id ? "page" : undefined}
-        >
+        <button key={item.id} type="button" className={`fresh-flow-media-button ${section === item.id ? "active" : ""}`} onClick={() => setActiveRoute(item.id)} aria-current={section === item.id ? "page" : undefined}>
           <span className="fresh-flow-media-icon" aria-hidden="true">{item.icon}</span>
           <span>{item.label}</span>
         </button>
@@ -67,24 +59,13 @@ export default function FreshFlowHub() {
       ) : (
         <header className="fresh-flow-experience-header">
           <button type="button" className="fresh-flow-back" onClick={() => setActiveRoute("fresh-flow")} aria-label="Back to Fresh Flow">←</button>
-          <div>
-            <span className="fresh-flow-experience-kicker">Fresh Flow</span>
-            <h1>{MEDIA_NAV.find((item) => item.id === section)?.label}</h1>
-          </div>
+          <div><span className="fresh-flow-experience-kicker">Fresh Flow</span><h1>{MEDIA_NAV.find((item) => item.id === section)?.label}</h1></div>
           <button type="button" className="fresh-flow-experience-search" onClick={openSearch} aria-label="Search Fresh">⌕</button>
         </header>
       )}
-
       <main className="fresh-flow-media-content">
-        {section === "fresh-flow" ? (
-          <FreshFlowShortsStream />
-        ) : section === "fresh-flow-news-posts" ? (
-          <FreshFlowNewsPosts />
-        ) : (
-          <EcosystemPlaceholder {...SECTION_COPY[section]} />
-        )}
+        {section === "fresh-flow" ? <FreshFlowShortsStream /> : section === "fresh-flow-news-posts" ? <FreshFlowNewsPosts /> : <EcosystemPlaceholder {...SECTION_COPY[section]} />}
       </main>
-
       {!isOverview && mediaNavigation}
     </div>
   );
