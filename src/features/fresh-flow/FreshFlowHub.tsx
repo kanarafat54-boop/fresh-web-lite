@@ -1,7 +1,7 @@
 import { useLayout } from "../../app/contexts/useLayout";
 import FreshFlowShortsStream from "./components/FreshFlowShortsStream";
 import FreshFlowNewsPosts from "./components/FreshFlowNewsPosts";
-import EcosystemPlaceholder from "../workspaces/EcosystemPlaceholder";
+import FreshFlowMediaWorkspace from "./components/FreshFlowMediaWorkspace";
 import "./components/FreshFlow.css";
 import "./components/FreshFlowReferenceShell.css";
 import "./components/FreshFlowMediaExperience.css";
@@ -23,11 +23,11 @@ const MEDIA_NAV = [
   { id: "fresh-flow-more", label: "Others", icon: "▦" },
 ] as const;
 
-const SECTION_COPY: Record<Exclude<FreshFlowSection, "fresh-flow" | "fresh-flow-news-posts">, { name: string; description: string }> = {
-  "fresh-flow-long-videos": { name: "Fresh Flow · Long Videos", description: "Long-form video watching, documentaries and series within Fresh Flow." },
-  "fresh-flow-ar-vr": { name: "Fresh Flow · AR / VR", description: "Immersive AR and VR experiences connected to Fresh Flow." },
-  "fresh-flow-podcasts": { name: "Fresh Flow · Podcasts", description: "Podcast shows, conversations and listening experiences within Fresh Flow." },
-  "fresh-flow-more": { name: "Fresh Flow · Others", description: "Additional Fresh Flow media and connected experiences." },
+const SECTION_COPY = {
+  "fresh-flow-long-videos": { name: "Long Videos", description: "Long-form video watching, documentaries and series within Fresh Flow.", icon: "▷", kind: "long-videos" as const },
+  "fresh-flow-ar-vr": { name: "AR / VR", description: "Immersive AR and VR experiences connected to Fresh Flow.", icon: "◇", kind: "ar-vr" as const },
+  "fresh-flow-podcasts": { name: "Podcasts", description: "Podcast shows, conversations and listening experiences within Fresh Flow.", icon: "♩", kind: "podcasts" as const },
+  "fresh-flow-more": { name: "Others", description: "Additional Fresh Flow media and connected experiences.", icon: "▦", kind: "others" as const },
 };
 
 export default function FreshFlowHub() {
@@ -64,7 +64,13 @@ export default function FreshFlowHub() {
         </header>
       )}
       <main className="fresh-flow-media-content">
-        {section === "fresh-flow" ? <FreshFlowShortsStream /> : section === "fresh-flow-news-posts" ? <FreshFlowNewsPosts /> : <EcosystemPlaceholder {...SECTION_COPY[section]} />}
+        {section === "fresh-flow" ? (
+          <FreshFlowShortsStream />
+        ) : section === "fresh-flow-news-posts" ? (
+          <FreshFlowNewsPosts />
+        ) : (
+          <FreshFlowMediaWorkspace {...SECTION_COPY[section]} title={SECTION_COPY[section].name} />
+        )}
       </main>
       {!isOverview && mediaNavigation}
     </div>
