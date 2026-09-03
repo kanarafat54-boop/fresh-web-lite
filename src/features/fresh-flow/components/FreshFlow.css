@@ -17,7 +17,7 @@
 .fresh-flow-filter-title { font-size: 0.8rem; opacity: 0.68; margin-right: 4px; }
 .fresh-flow-filter-chip { padding: 7px 12px; border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; background: rgba(255,255,255,0.05); color: #fff; font: inherit; font-size: 0.78rem; }
 .fresh-flow-filter-chip.active { border-color: rgba(129,92,255,0.75); background: rgba(111,48,255,0.34); }
-.fresh-flow-stream { display: flex; flex-direction: column; flex: 1; width: 100%; min-height: 420px; overflow-x: hidden; overflow-y: auto; scroll-snap-type: y mandatory; scroll-behavior: smooth; overscroll-behavior-y: contain; overscroll-behavior-x: none; touch-action: pan-y; scrollbar-width: none; }
+.fresh-flow-stream { display: flex; flex-direction: row; flex: 1; width: 100%; min-height: 420px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; overscroll-behavior-x: contain; overscroll-behavior-y: none; touch-action: pan-x; scrollbar-width: none; }
 .fresh-flow-stream::-webkit-scrollbar { display: none; }
 .fresh-flow-item { position: relative; flex: 0 0 100%; width: 100%; height: 100%; min-width: 100%; min-height: 420px; scroll-snap-align: start; scroll-snap-stop: always; overflow: hidden; isolation: isolate; background: #07080d; }
 .fresh-flow-item::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,0.12) 0%, transparent 38%, rgba(0,0,0,0.72) 100%); }
