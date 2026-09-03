@@ -23,58 +23,69 @@ const MEDIA_NAV = [
 ] as const;
 
 const SECTION_COPY: Record<Exclude<FreshFlowSection, "fresh-flow" | "fresh-flow-news-posts">, { name: string; description: string }> = {
-  "fresh-flow-long-videos": {
-    name: "Fresh Flow · Long Videos",
-    description: "Long-form video watching, documentaries and series within Fresh Flow.",
-  },
-  "fresh-flow-ar-vr": {
-    name: "Fresh Flow · AR / VR",
-    description: "Immersive AR and VR experiences connected to Fresh Flow.",
-  },
-  "fresh-flow-podcasts": {
-    name: "Fresh Flow · Podcasts",
-    description: "Podcast shows, conversations and listening experiences within Fresh Flow.",
-  },
-  "fresh-flow-more": {
-    name: "Fresh Flow · Others",
-    description: "Additional Fresh Flow media and connected experiences.",
-  },
+  "fresh-flow-long-videos": { name: "Fresh Flow · Long Videos", description: "Long-form video watching, documentaries and series within Fresh Flow." },
+  "fresh-flow-ar-vr": { name: "Fresh Flow · AR / VR", description: "Immersive AR and VR experiences connected to Fresh Flow." },
+  "fresh-flow-podcasts": { name: "Fresh Flow · Podcasts", description: "Podcast shows, conversations and listening experiences within Fresh Flow." },
+  "fresh-flow-more": { name: "Fresh Flow · Others", description: "Additional Fresh Flow media and connected experiences." },
 };
 
 export default function FreshFlowHub() {
   const { activeRoute, setActiveRoute, openSearch } = useLayout();
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
+  const isOverview = section === "fresh-flow";
+
+  const mediaNavigation = (
+    <nav
+      className={`fresh-flow-media-nav ${isOverview ? "fresh-flow-media-nav-top" : "fresh-flow-media-nav-bottom"}`}
+      aria-label="Fresh Flow media navigation"
+    >
+      {MEDIA_NAV.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          className={`fresh-flow-media-button ${section === item.id ? "active" : ""}`}
+          onClick={() => setActiveRoute(item.id)}
+          aria-current={section === item.id ? "page" : undefined}
+        >
+          <span className="fresh-flow-media-icon" aria-hidden="true">{item.icon}</span>
+          <span>{item.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
 
   return (
-    <div className="fresh-flow-hub" aria-label="Fresh Flow">
-      <div className="fresh-flow-reference-header">
-        <button type="button" className="fresh-flow-search" onClick={openSearch} aria-label="Search anything on Fresh">
-          <span className="fresh-flow-search-icon">⌕</span>
-          <span>Search anything on Fresh...</span>
-        </button>
-
-        <div className="fresh-flow-media-nav" role="navigation" aria-label="Fresh Flow media navigation">
-          {MEDIA_NAV.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`fresh-flow-media-button ${section === item.id ? "active" : ""}`}
-              onClick={() => setActiveRoute(item.id)}
-            >
-              <span className="fresh-flow-media-icon" aria-hidden="true">{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          ))}
+    <div className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}`} aria-label="Fresh Flow">
+      {isOverview ? (
+        <div className="fresh-flow-reference-header">
+          <button type="button" className="fresh-flow-search" onClick={openSearch} aria-label="Search anything on Fresh">
+            <span className="fresh-flow-search-icon">⌕</span>
+            <span>Search anything on Fresh...</span>
+          </button>
+          {mediaNavigation}
         </div>
-      </div>
-
-      {section === "fresh-flow" ? (
-        <FreshFlowShortsStream />
-      ) : section === "fresh-flow-news-posts" ? (
-        <FreshFlowNewsPosts />
       ) : (
-        <EcosystemPlaceholder {...SECTION_COPY[section]} />
+        <header className="fresh-flow-experience-header">
+          <button type="button" className="fresh-flow-back" onClick={() => setActiveRoute("fresh-flow")} aria-label="Back to Fresh Flow">←</button>
+          <div>
+            <span className="fresh-flow-experience-kicker">Fresh Flow</span>
+            <h1>{MEDIA_NAV.find((item) => item.id === section)?.label}</h1>
+          </div>
+          <button type="button" className="fresh-flow-experience-search" onClick={openSearch} aria-label="Search Fresh">⌕</button>
+        </header>
       )}
+
+      <main className="fresh-flow-media-content">
+        {section === "fresh-flow" ? (
+          <FreshFlowShortsStream />
+        ) : section === "fresh-flow-news-posts" ? (
+          <FreshFlowNewsPosts />
+        ) : (
+          <EcosystemPlaceholder {...SECTION_COPY[section]} />
+        )}
+      </main>
+
+      {!isOverview && mediaNavigation}
     </div>
   );
 }
