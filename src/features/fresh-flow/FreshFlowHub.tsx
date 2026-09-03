@@ -1,10 +1,10 @@
+import { useState } from "react";
 import { useLayout } from "../../app/contexts/useLayout";
 import FreshFlowShortsStream from "./components/FreshFlowShortsStream";
 import FreshFlowNewsPosts from "./components/FreshFlowNewsPosts";
 import FreshFlowMediaWorkspace from "./components/FreshFlowMediaWorkspace";
 import "./components/FreshFlow.css";
 import "./components/FreshFlowReferenceShell.css";
-import "./components/FreshFlowMediaExperience.css";
 
 type FreshFlowSection =
   | "fresh-flow"
@@ -34,9 +34,13 @@ export default function FreshFlowHub() {
   const { activeRoute, setActiveRoute, openSearch } = useLayout();
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
   const isOverview = section === "fresh-flow";
+  const [immersive, setImmersive] = useState(false);
 
   const mediaNavigation = (
-    <nav className={`fresh-flow-media-nav ${isOverview ? "fresh-flow-media-nav-top" : "fresh-flow-media-nav-bottom"}`} aria-label="Fresh Flow media navigation">
+    <nav
+      className={`fresh-flow-media-nav ${isOverview ? "fresh-flow-media-nav-top" : "fresh-flow-media-nav-bottom"} ${isOverview && immersive ? "immersive" : ""}`}
+      aria-label="Fresh Flow media navigation"
+    >
       {MEDIA_NAV.map((item) => (
         <button key={item.id} type="button" className={`fresh-flow-media-button ${section === item.id ? "active" : ""}`} onClick={() => setActiveRoute(item.id)} aria-current={section === item.id ? "page" : undefined}>
           <span className="fresh-flow-media-icon" aria-hidden="true">{item.icon}</span>
@@ -65,7 +69,7 @@ export default function FreshFlowHub() {
       )}
       <main className="fresh-flow-media-content">
         {section === "fresh-flow" ? (
-          <FreshFlowShortsStream />
+          <FreshFlowShortsStream onImmersiveChange={setImmersive} />
         ) : section === "fresh-flow-news-posts" ? (
           <FreshFlowNewsPosts />
         ) : (

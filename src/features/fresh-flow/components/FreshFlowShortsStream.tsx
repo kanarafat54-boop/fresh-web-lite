@@ -58,7 +58,11 @@ async function getSocialAuthorIds(userId: string): Promise<string[]> {
   return Array.from(ids);
 }
 
-export default function FreshFlowShortsStream() {
+type FreshFlowShortsStreamProps = {
+  onImmersiveChange?: (immersive: boolean) => void;
+};
+
+export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowShortsStreamProps = {}) {
   const { user, isGuest } = useFreshId();
   const [subTab, setSubTab] = useState<SubTab>("for-you");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -78,6 +82,31 @@ export default function FreshFlowShortsStream() {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const viewedRef = useRef<Set<string>>(new Set());
+  const [immersive, setImmersive] = useState(false);
+  const immersiveTriggeredRef = useRef(false);
+
+  // Once per session: 5 seconds after Fresh Flow's Home tab mounts, the
+  // chrome (sub-tabs + the six-ecosystem top nav) collapses into a compact
+  // TikTok-style overlay so the video fills the screen. Confirmed decision:
+  // fires once only, not per-video. Tapping the video (not a button) exits
+  // back to full chrome.
+  useEffect(() => {
+    if (immersiveTriggeredRef.current) return;
+    const timer = setTimeout(() => {
+      if (immersiveTriggeredRef.current) return;
+      immersiveTriggeredRef.current = true;
+      setImmersive(true);
+      onImmersiveChange?.(true);
+    }, 5000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const exitImmersive = () => {
+    if (!immersive) return;
+    setImmersive(false);
+    onImmersiveChange?.(false);
+  };
 
   // Background sync only: ensures a real ecosystem_profiles row exists for
   // this user's Fresh Flow feed. Does NOT currently drive the visible tab
@@ -283,7 +312,7 @@ export default function FreshFlowShortsStream() {
 
   return (
     <div className="fresh-flow-vertical">
-      <nav className="fresh-flow-subtabs" aria-label="Fresh Flow Shorts discovery modes">
+      <nav className={`fresh-flow-subtabs${immersive ? " immersive" : ""}`} aria-label="Fresh Flow Shorts discovery modes">
         {SUB_TABS.map((item) => <button key={item.id} className={subTab === item.id ? "fresh-flow-subtab active" : "fresh-flow-subtab"} onClick={() => { setSubTab(item.id); setFilterOpen(false); }} aria-pressed={subTab === item.id}><span aria-hidden="true">{item.icon}</span>{item.label}</button>)}
         <button className={filterOpen ? "fresh-flow-subtab filter active" : "fresh-flow-subtab filter"} onClick={() => setFilterOpen((open) => !open)} aria-label="Open Fresh Flow filters and models" aria-expanded={filterOpen}>⚙ Filters / Models</button>
       </nav>
@@ -304,7 +333,7 @@ export default function FreshFlowShortsStream() {
             const totals = giftTotals.get(short.id);
             return (
               <div key={short.id} className="fresh-flow-item">
-                <video ref={(el) => { if (el) videoRefs.current.set(short.id, el); else videoRefs.current.delete(short.id); }} data-short-id={short.id} src={short.videoUrl} loop playsInline className="fresh-flow-video" />
+                <video ref={(el) => { if (el) videoRefs.current.set(short.id, el); else videoRefs.current.delete(short.id); }} data-short-id={short.id} src={short.videoUrl} loop playsInline className="fresh-flow-video" onClick={exitImmersive} />
                 <div className="fresh-flow-overlay"><div className="fresh-flow-author-row"><span className="fresh-flow-author">{short.authorName}</span>{!isGuest && user && short.authorId !== user.id && <button className={short.isFollowingAuthor ? "fresh-flow-chip following" : "fresh-flow-chip"} onClick={() => void toggleFollow(short)}>{short.isFollowingAuthor ? "Following" : "Follow"}</button>}</div>{short.caption && <p className="fresh-flow-caption">{short.caption}</p>}</div>
 
                 <div className="fresh-flow-actions">
@@ -319,7 +348,6 @@ export default function FreshFlowShortsStream() {
 
                 {advancedTargetId === short.id && <div className="fresh-flow-advanced-panel" role="dialog" aria-label="Short creation and collaboration actions" onClick={(e) => e.stopPropagation()}><div className="fresh-flow-advanced-header"><strong>Do more with this Short</strong><button onClick={() => setAdvancedTargetId(null)} aria-label="Close">×</button></div>{ADVANCED_ACTIONS.map((item) => <button key={item.id} className="fresh-flow-advanced-action" disabled={actionSending || isGuest} onClick={() => void advancedAction(short, item.id)}><span className="fresh-flow-advanced-icon">{item.icon}</span><span><strong>{item.label}</strong><small>{item.description}</small></span></button>)}{actionError && <p className="fresh-flow-inline-error" role="alert">{actionError}</p>}</div>}
 
-                {actionError && !advancedTargetId && giftTargetId !== short.id && <p className="fresh-flow-inline-error" role="alert" style={{ position: "absolute", left: 12, bottom: 12, zIndex: 5 }}>{actionError}</p>}
                 {actionError && !advancedTargetId && giftTargetId !== short.id && <p className="fresh-flow-inline-error" role="alert" style={{ position: "absolute", left: 12, bottom: 12, zIndex: 5 }}>{actionError}</p>}
                 {giftTargetId === short.id && <div className="fresh-flow-gift-panel" onClick={(e) => e.stopPropagation()}><strong>Gift Fresh Coin to {short.authorName}</strong><div className="fresh-flow-gift-presets">{GIFT_PRESETS.map((preset) => <button key={preset.amountMinor} disabled={giftSending} onClick={() => void gift(short, preset.amountMinor)}>{preset.label} FRESH</button>)}</div>{giftError && <p role="alert">{giftError}</p>}<button className="fresh-flow-gift-cancel" onClick={() => setGiftTargetId(null)}>Cancel</button></div>}
               </div>

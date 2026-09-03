@@ -1,3 +1,10 @@
+/* ============================================================
+   CONFIRMED DECISION (do not revert to horizontal without asking):
+   Fresh Flow's Short stream scrolls VERTICALLY, TikTok-style.
+   This has been reverted to horizontal twice by other edits.
+   The reference mockup's carousel dots do NOT mean horizontal swipe.
+   ============================================================ */
+
 .fresh-flow-hub {
   position: relative;
   min-height: 100%;
@@ -5,19 +12,30 @@
   overflow: hidden;
   background: radial-gradient(circle at 18% 0%, rgba(99, 102, 241, 0.16), transparent 32%), radial-gradient(circle at 85% 100%, rgba(168, 85, 247, 0.12), transparent 30%), #05060a;
 }
-.fresh-flow-vertical { display: flex; flex-direction: column; height: 100%; min-height: 100%; }
-.fresh-flow-subtabs { position: relative; z-index: 8; display: flex; gap: 8px; overflow-x: auto; padding: 10px 12px; scrollbar-width: none; background: rgba(5, 7, 12, 0.72); border-bottom: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+.fresh-flow-vertical { position: relative; display: flex; flex-direction: column; height: 100%; min-height: 100%; }
+
+.fresh-flow-subtabs { position: relative; z-index: 8; display: flex; gap: 8px; overflow-x: auto; padding: 10px 12px; scrollbar-width: none; background: rgba(5, 7, 12, 0.72); border-bottom: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); transition: all 220ms ease; }
 .fresh-flow-subtabs::-webkit-scrollbar { display: none; }
 .fresh-flow-subtab { flex: 0 0 auto; min-height: 44px; padding: 8px 15px; border: 1px solid rgba(255,255,255,0.11); border-radius: 999px; background: rgba(255,255,255,0.045); color: rgba(255,255,255,0.88); font: inherit; font-size: 0.88rem; font-weight: 650; white-space: nowrap; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 24px rgba(0,0,0,0.14); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); transition: transform 160ms ease, background 160ms ease, border-color 160ms ease; }
 .fresh-flow-subtab span { margin-right: 6px; font-size: 1.05em; }
 .fresh-flow-subtab:hover { transform: translateY(-1px); background: rgba(255,255,255,0.09); }
 .fresh-flow-subtab.active { color: #fff; border-color: rgba(129, 92, 255, 0.78); background: linear-gradient(135deg, rgba(111, 48, 255, 0.72), rgba(17, 167, 231, 0.48)); box-shadow: 0 0 24px rgba(111, 48, 255, 0.28), inset 0 1px 0 rgba(255,255,255,0.18); }
 .fresh-flow-subtab.filter { margin-left: auto; }
+
+/* TikTok-style: once immersed, the sub-tab row shrinks into a compact
+   overlay pinned over the video instead of taking its own layout row. */
+.fresh-flow-subtabs.immersive { position: absolute; top: 8px; left: 8px; right: 8px; z-index: 6; background: transparent; border-bottom: none; padding: 0; gap: 6px; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; }
+.fresh-flow-subtabs.immersive .fresh-flow-subtab { min-height: unset; padding: 5px 11px; font-size: 0.72rem; background: rgba(0,0,0,0.38); border-color: rgba(255,255,255,0.16); box-shadow: none; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.fresh-flow-subtabs.immersive .fresh-flow-subtab.active { background: rgba(255,255,255,0.22); box-shadow: none; }
+.fresh-flow-subtabs.immersive .fresh-flow-subtab.filter { display: none; }
+
 .fresh-flow-filter-panel { position: relative; z-index: 7; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 14px; background: rgba(9, 11, 18, 0.88); border-bottom: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
 .fresh-flow-filter-title { font-size: 0.8rem; opacity: 0.68; margin-right: 4px; }
 .fresh-flow-filter-chip { padding: 7px 12px; border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; background: rgba(255,255,255,0.05); color: #fff; font: inherit; font-size: 0.78rem; }
 .fresh-flow-filter-chip.active { border-color: rgba(129,92,255,0.75); background: rgba(111,48,255,0.34); }
-.fresh-flow-stream { display: flex; flex-direction: row; flex: 1; width: 100%; min-height: 420px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; overscroll-behavior-x: contain; overscroll-behavior-y: none; touch-action: pan-x; scrollbar-width: none; }
+
+/* Vertical, one-video-at-a-time, TikTok-style. See notice at top of file. */
+.fresh-flow-stream { display: flex; flex-direction: column; flex: 1; width: 100%; min-height: 420px; overflow-x: hidden; overflow-y: auto; scroll-snap-type: y mandatory; scroll-behavior: smooth; overscroll-behavior-y: contain; overscroll-behavior-x: none; touch-action: pan-y; scrollbar-width: none; }
 .fresh-flow-stream::-webkit-scrollbar { display: none; }
 .fresh-flow-item { position: relative; flex: 0 0 100%; width: 100%; height: 100%; min-width: 100%; min-height: 420px; scroll-snap-align: start; scroll-snap-stop: always; overflow: hidden; isolation: isolate; background: #07080d; }
 .fresh-flow-item::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,0.12) 0%, transparent 38%, rgba(0,0,0,0.72) 100%); }
@@ -48,6 +66,21 @@
 .fresh-flow-advanced-action strong, .fresh-flow-advanced-action small { display: block; }
 .fresh-flow-advanced-action small { margin-top: 2px; opacity: 0.65; font-size: 0.72rem; line-height: 1.25; }
 .fresh-flow-inline-error { margin: 8px 2px 0; color: #ff9e9e; font-size: 0.78rem; }
+
+/* Base styling for the six-ecosystem media nav (was missing entirely --
+   only the -bottom position variant existed in FreshFlowReferenceShell.css). */
+.fresh-flow-media-nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 10px 14px; }
+.fresh-flow-media-nav-top { position: sticky; top: 0; z-index: 20; background: rgba(5,6,10,0.94); border-bottom: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); transition: all 220ms ease; }
+.fresh-flow-media-button { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 64px; padding: 8px 4px; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; background: rgba(255,255,255,0.045); color: rgba(255,255,255,0.85); font: inherit; font-size: 12px; font-weight: 600; }
+.fresh-flow-media-icon { font-size: 22px; }
+.fresh-flow-media-button.active { color: #fff; border-color: rgba(129,92,255,0.78); background: linear-gradient(135deg, rgba(111,48,255,0.55), rgba(17,167,231,0.35)); }
+
+/* Immersive: the six-button top row collapses into a slim overlay too,
+   matching the sub-tab row so both stay reachable without dedicated space. */
+.fresh-flow-media-nav-top.immersive { position: absolute; top: 8px; left: 8px; right: 8px; z-index: 6; background: transparent; border-bottom: none; padding: 0; gap: 6px; grid-template-columns: repeat(6, minmax(0, 1fr)); backdrop-filter: none; -webkit-backdrop-filter: none; }
+.fresh-flow-media-nav-top.immersive .fresh-flow-media-button { min-height: 34px; padding: 4px 2px; border-radius: 10px; background: rgba(0,0,0,0.35); font-size: 9px; }
+.fresh-flow-media-nav-top.immersive .fresh-flow-media-icon { font-size: 15px; }
+
 @media (min-width: 760px) { .fresh-flow-item { padding: 12px 20px; background: #030408; } .fresh-flow-video { border: 1px solid rgba(255,255,255,0.12); border-radius: 28px; } .fresh-flow-item::after { inset: 12px 20px; border-radius: 28px; } }
 @media (max-width: 760px) { .fresh-flow-subtabs { padding: 8px 10px; } .fresh-flow-subtab { min-height: 40px; padding: 7px 12px; font-size: 0.8rem; } .fresh-flow-subtab.filter { margin-left: 0; } .fresh-flow-actions { right: 10px; gap: 7px; } .fresh-flow-action-btn { min-width: 48px; min-height: 48px; border-radius: 17px; } }
-@media (prefers-reduced-motion: reduce) { .fresh-flow-stream { scroll-behavior: auto; } .fresh-flow-action-btn, .fresh-flow-subtab { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .fresh-flow-stream { scroll-behavior: auto; } .fresh-flow-action-btn, .fresh-flow-subtab, .fresh-flow-subtabs, .fresh-flow-media-nav-top { transition: none; } }
