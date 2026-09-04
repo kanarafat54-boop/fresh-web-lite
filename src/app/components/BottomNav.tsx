@@ -3,36 +3,24 @@ import { freshHomeDirections, type FreshHomeDirectionId } from "../../core/platf
 import { useLayout } from "../contexts/useLayout";
 import "./BottomNav.css";
 
-type BottomDestination = {
-  id: string;
-  label: string;
-  icon: typeof HomeIcon;
-  action?: () => void;
-};
+type BottomDestination = { id: string; label: string; icon: typeof HomeIcon; action?: () => void };
 
 const landingDestinations: BottomDestination[] = [
-  { id: "feed", label: "Home", icon: HomeIcon },
-  { id: "create", label: "Create", icon: PlusIcon },
-  { id: "discover", label: "Fresh Feed", icon: FeedIcon },
-  { id: "connect", label: "Connect", icon: FeedIcon },
-  { id: "learn", label: "Learn", icon: AIIcon },
-  { id: "more", label: "More", icon: AIIcon },
+  { id: "feed", label: "Home", icon: HomeIcon }, { id: "create", label: "Create", icon: PlusIcon },
+  { id: "discover", label: "Fresh Feed", icon: FeedIcon }, { id: "connect", label: "Connect", icon: FeedIcon },
+  { id: "learn", label: "Learn", icon: AIIcon }, { id: "more", label: "More", icon: AIIcon },
 ];
 
 const freshFlowGlobalDestinations: BottomDestination[] = [
-  { id: "feed", label: "Home", icon: HomeIcon },
-  { id: "connect", label: "Chats", icon: FeedIcon },
-  { id: "create", label: "Create", icon: PlusIcon },
-  { id: "wallet", label: "Wallet", icon: PlusIcon },
+  { id: "feed", label: "Home", icon: HomeIcon }, { id: "connect", label: "Chats", icon: FeedIcon },
+  { id: "create", label: "Create", icon: PlusIcon }, { id: "wallet", label: "Wallet", icon: PlusIcon },
   { id: "profile", label: "Profile", icon: AIIcon },
 ];
 
 const shortsDestinations: BottomDestination[] = [
-  { id: "shorts", label: "For You", icon: HomeIcon },
-  { id: "shorts-trending", label: "Trending", icon: FeedIcon },
-  { id: "shorts-following", label: "Following", icon: FeedIcon },
-  { id: "shorts-search", label: "Search", icon: FeedIcon },
-  { id: "shorts-more", label: "More", icon: AIIcon },
+  { id: "fresh-flow", label: "Home", icon: HomeIcon }, { id: "shorts", label: "For You", icon: FeedIcon },
+  { id: "shorts-trending", label: "Trending", icon: FeedIcon }, { id: "shorts-following", label: "Following", icon: FeedIcon },
+  { id: "shorts-search", label: "Search", icon: FeedIcon }, { id: "shorts-more", label: "More", icon: AIIcon },
 ];
 
 const ecosystemLabel = (id: string) => {
@@ -76,29 +64,17 @@ export default function BottomNav() {
     : isFreshFlow
       ? freshFlowGlobalDestinations
       : activeDirectorate
-        ? [
-            { id: "feed", label: "Home", icon: HomeIcon },
-            ...freshHomeDirections.find((direction) => direction.id === activeDirectorate)!.ecosystemIds.map((id) => ({ id, label: ecosystemLabel(id), icon: iconForEcosystem(id) })),
-          ]
+        ? [{ id: "feed", label: "Home", icon: HomeIcon }, ...freshHomeDirections.find((d) => d.id === activeDirectorate)!.ecosystemIds.map((id) => ({ id, label: ecosystemLabel(id), icon: iconForEcosystem(id) }))]
         : landingDestinations;
 
   return (
-    <nav
-      className="fresh-bottom-nav"
-      aria-label={isShorts ? "Shorts navigation" : isFreshFlow ? "Fresh Web Lite global navigation" : activeDirectorate ? `${activeDirectorate} ecosystem navigation` : "Fresh Web Lite directorate navigation"}
-    >
+    <nav className="fresh-bottom-nav" aria-label={isShorts ? "Shorts navigation" : isFreshFlow ? "Fresh Web Lite global navigation" : activeDirectorate ? `${activeDirectorate} ecosystem navigation` : "Fresh Web Lite directorate navigation"}>
       <div className="fresh-bottom-nav-scroll">
         {destinations.map(({ id, label, icon: Icon, action }) => {
           const active = isShorts ? id === "shorts" : isFreshFlow && id === "feed" ? false : id === "feed" ? activeRoute === "feed" || !activeRoute : activeRoute === id;
           return (
-            <button
-              key={id}
-              type="button"
-              className={`fresh-nav-item${active ? " active" : ""}`}
-              aria-current={active ? "page" : undefined}
-              aria-label={label}
-              onClick={() => action ? action() : setActiveRoute(id === "shorts-trending" || id === "shorts-following" || id === "shorts-more" ? "shorts" : id)}
-            >
+            <button key={id} type="button" className={`fresh-nav-item${active ? " active" : ""}`} aria-current={active ? "page" : undefined} aria-label={label}
+              onClick={() => action ? action() : setActiveRoute(id === "shorts-trending" || id === "shorts-following" || id === "shorts-more" ? "shorts" : id)}>
               <span className="fresh-nav-icon" aria-hidden="true"><Icon size={id === "create" ? 26 : 24} /></span>
               <span className="fresh-nav-label">{label}</span>
             </button>
