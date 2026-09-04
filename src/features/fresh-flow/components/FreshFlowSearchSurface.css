@@ -1,0 +1,18 @@
+.fresh-flow-search-surface { position: fixed; inset: 0; z-index: 50; background: #05060a; display: flex; flex-direction: column; }
+.fresh-flow-search-header { display: flex; gap: 8px; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.fresh-flow-search-header input { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; padding: 10px 14px; color: #fff; }
+.fresh-flow-search-header button { border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.06); color: #fff; border-radius: 999px; padding: 8px 14px; }
+.fresh-flow-search-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 8px 12px; }
+.fresh-flow-search-tab { flex: 0 0 auto; padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.045); color: rgba(255,255,255,0.85); font-size: 0.85rem; }
+.fresh-flow-search-tab.active { color: #fff; border-color: rgba(129,92,255,0.78); background: rgba(111,48,255,0.4); }
+/* Videos stays the dominant/prominent tab, matching the short-video-first design. */
+.fresh-flow-search-tab.dominant { font-weight: 750; font-size: 0.92rem; padding: 8px 18px; }
+.fresh-flow-search-results { flex: 1; overflow-y: auto; padding: 12px; }
+.fresh-flow-search-video-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.fresh-flow-search-video-card { position: relative; aspect-ratio: 9/16; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); background: #111; }
+.fresh-flow-search-video-card video { width: 100%; height: 100%; object-fit: cover; }
+.fresh-flow-search-video-card div { position: absolute; left: 0; right: 0; bottom: 0; padding: 8px; background: linear-gradient(180deg, transparent, rgba(0,0,0,0.85)); color: #fff; text-align: left; font-size: 0.78rem; }
+.fresh-flow-search-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.fresh-flow-search-list li { padding: 10px; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; color: #fff; }
+.fresh-flow-search-web { color: #fff; display: flex; flex-direction: column; gap: 10px; }
+.fresh-flow-search-web a { display: block; color: var(--accent,#2dd4bf); }

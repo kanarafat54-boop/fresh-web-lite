@@ -3,6 +3,7 @@ import { useLayout } from "../../app/contexts/useLayout";
 import FreshFlowShortsStream from "./components/FreshFlowShortsStream";
 import FreshFlowNewsPosts from "./components/FreshFlowNewsPosts";
 import FreshFlowMediaWorkspace from "./components/FreshFlowMediaWorkspace";
+import FreshFlowSearchSurface from "./components/FreshFlowSearchSurface";
 import "./components/FreshFlow.css";
 import "./components/FreshFlowReferenceShell.css";
 
@@ -35,6 +36,7 @@ export default function FreshFlowHub() {
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
   const isOverview = section === "fresh-flow";
   const [immersive, setImmersive] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   // Once immersed (5s watching a Short), the six-button nav switches from
   // top to bottom -- the exact same mechanism already used when entering a
   // specific ecosystem section, not a separate overlay treatment.
@@ -58,7 +60,7 @@ export default function FreshFlowHub() {
     <div className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}`} aria-label="Fresh Flow">
       {isOverview ? (
         <div className="fresh-flow-reference-header">
-          <button type="button" className="fresh-flow-search" onClick={openSearch} aria-label="Search anything on Fresh">
+          <button type="button" className="fresh-flow-search" onClick={() => setSearchOpen(true)} aria-label="Search anything on Fresh">
             <span className="fresh-flow-search-icon">⌕</span>
             <span>Search anything on Fresh...</span>
           </button>
@@ -68,7 +70,7 @@ export default function FreshFlowHub() {
         <header className="fresh-flow-experience-header">
           <button type="button" className="fresh-flow-back" onClick={() => setActiveRoute("fresh-flow")} aria-label="Back to Fresh Flow">←</button>
           <div><span className="fresh-flow-experience-kicker">Fresh Flow</span><h1>{MEDIA_NAV.find((item) => item.id === section)?.label}</h1></div>
-          <button type="button" className="fresh-flow-experience-search" onClick={openSearch} aria-label="Search Fresh">⌕</button>
+          <button type="button" className="fresh-flow-experience-search" onClick={() => setSearchOpen(true)} aria-label="Search Fresh">⌕</button>
         </header>
       )}
       <main className="fresh-flow-media-content">
@@ -81,6 +83,7 @@ export default function FreshFlowHub() {
         )}
       </main>
       {navAtBottom && mediaNavigation}
+      {searchOpen && <FreshFlowSearchSurface onClose={() => setSearchOpen(false)} />}
     </div>
   );
 }
