@@ -35,7 +35,7 @@ jobs:
             ],
             [
               '  const [searchActive, setSearchActive] = useState(false);\n',
-              '  const [searchActive, setSearchActive] = useState(false);\n  const [activeIndex, setActiveIndex] = useState(0);\n  const [hasMore, setHasMore] = useState(true);\n  const [loadingMore, setLoadingMore] = useState(false);\n'
+              '  const [searchActive, setSearchActive] = useState(false);\n  const [activeIndex, setActiveIndex] = useState(0);\n  const [hasMore, setHasMore] = useState(true);\n'
             ],
             [
               '  const swipeStartX = useRef<number | null>(null);\n',
@@ -51,7 +51,7 @@ jobs:
             ],
             [
               '    setShorts(searchActive ? mapped : rankForYou(mapped, viewedIds));\n    setSavedIds(savedShortIds);\n    setLoading(false);\n',
-              '    const ranked = searchActive ? mapped : rankForYou(mapped, viewedIds);\n    setShorts((previous) => {\n      if (!append || searchActive) return ranked;\n      const existingIds = new Set(previous.map((short) => short.id));\n      return [...previous, ...ranked.filter((short) => !existingIds.has(short.id))];\n    });\n    if (!searchActive) setHasMore((shortsData ?? []).length === FRESH_SHORTS_PAGE_SIZE);\n    setSavedIds(savedShortIds);\n    setLoading(false);\n    setLoadingMore(false);\n    loadMoreInFlightRef.current = false;\n'
+              '    const ranked = searchActive ? mapped : rankForYou(mapped, viewedIds);\n    setShorts((previous) => {\n      if (!append || searchActive) return ranked;\n      const existingIds = new Set(previous.map((short) => short.id));\n      return [...previous, ...ranked.filter((short) => !existingIds.has(short.id))];\n    });\n    if (!searchActive) setHasMore((shortsData ?? []).length === FRESH_SHORTS_PAGE_SIZE);\n    setSavedIds(savedShortIds);\n    setLoading(false);\n    loadMoreInFlightRef.current = false;\n'
             ],
             [
               '  async function loadShorts() {\n    setLoading(true);\n    setError(null);\n    setSearchActive(false);\n',
@@ -59,7 +59,7 @@ jobs:
             ],
             [
               '      .order("created_at", { ascending: false })\n      .limit(30);\n    fetchAndMapShorts(query);\n  }\n\n  async function runSearch',
-              '      .order("created_at", { ascending: false })\n      .range(0, FRESH_SHORTS_PAGE_SIZE - 1);\n    fetchAndMapShorts(query);\n  }\n\n  async function loadMoreShorts() {\n    if (searchActive || !hasMore || loadMoreInFlightRef.current) return;\n    loadMoreInFlightRef.current = true;\n    setLoadingMore(true);\n    const nextPage = feedPageRef.current + 1;\n    const nowIso = new Date().toISOString();\n    const query = supabase\n      .from("shorts")\n      .select("id, author_id, caption, sound_name, chapters, category, video_url, like_count, comment_count, view_count, repost_count, created_at")\n      .or(`unlock_at.is.null,unlock_at.lte.${nowIso}`)\n      .eq("category", feedMode)\n      .order("created_at", { ascending: false })\n      .range(nextPage * FRESH_SHORTS_PAGE_SIZE, (nextPage + 1) * FRESH_SHORTS_PAGE_SIZE - 1);\n    feedPageRef.current = nextPage;\n    await fetchAndMapShorts(query, true);\n  }\n\n  async function runSearch'
+              '      .order("created_at", { ascending: false })\n      .range(0, FRESH_SHORTS_PAGE_SIZE - 1);\n    fetchAndMapShorts(query);\n  }\n\n  async function loadMoreShorts() {\n    if (searchActive || !hasMore || loadMoreInFlightRef.current) return;\n    loadMoreInFlightRef.current = true;\n    const nextPage = feedPageRef.current + 1;\n    const nowIso = new Date().toISOString();\n    const query = supabase\n      .from("shorts")\n      .select("id, author_id, caption, sound_name, chapters, category, video_url, like_count, comment_count, view_count, repost_count, created_at")\n      .or(`unlock_at.is.null,unlock_at.lte.${nowIso}`)\n      .eq("category", feedMode)\n      .order("created_at", { ascending: false })\n      .range(nextPage * FRESH_SHORTS_PAGE_SIZE, (nextPage + 1) * FRESH_SHORTS_PAGE_SIZE - 1);\n    await fetchAndMapShorts(query, true);\n    feedPageRef.current = nextPage;\n  }\n\n  async function runSearch'
             ],
             [
               '              src={s.videoUrl}\n              loop\n',
@@ -84,11 +84,10 @@ jobs:
           console.log('Integrated FreshShortsRuntime into ShortsModule.tsx');
           NODE
 
-      - name: Install dependencies
-        run: npm ci
-
       - name: Compile
-        run: npm run build
+        run: |
+          npm ci
+          npm run build
 
       - name: Commit verified integration
         run: |
