@@ -18,7 +18,9 @@
 
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--text); margin: 0; font-family: var(--font-body); }
-.app-shell { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--bg); padding-bottom: 76px; position: relative; }
+.app-shell { max-width: 480px; margin: 0 auto; height: 100vh; height: 100dvh; background: var(--bg); position: relative; display: flex; flex-direction: column; overflow: hidden; }
+.app-body { flex: 1; min-height: 0; display: flex; overflow: hidden; }
+.app-content { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 76px; }
 .app-main { padding: 14px 12px 20px; }
 .empty-state { color: var(--text-dim); font-size: .9rem; text-align: center; padding: 24px 0; }
 .auth-error { color: var(--heart); font-size: .85rem; background: rgba(255,59,92,.1); padding: 8px 12px; border-radius: 10px; margin: 8px 0; }

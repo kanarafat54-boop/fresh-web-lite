@@ -312,7 +312,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
 
   return (
     <div className="fresh-flow-vertical">
-      <nav className={`fresh-flow-subtabs${immersive ? " immersive" : ""}`} aria-label="Fresh Flow Shorts discovery modes">
+      <nav className={`fresh-flow-subtabs${immersive ? " hidden-immersive" : ""}`} aria-label="Fresh Flow Shorts discovery modes">
         {SUB_TABS.map((item) => <button key={item.id} className={subTab === item.id ? "fresh-flow-subtab active" : "fresh-flow-subtab"} onClick={() => { setSubTab(item.id); setFilterOpen(false); }} aria-pressed={subTab === item.id}><span aria-hidden="true">{item.icon}</span>{item.label}</button>)}
         <button className={filterOpen ? "fresh-flow-subtab filter active" : "fresh-flow-subtab filter"} onClick={() => setFilterOpen((open) => !open)} aria-label="Open Fresh Flow filters and models" aria-expanded={filterOpen}>⚙ Filters / Models</button>
       </nav>

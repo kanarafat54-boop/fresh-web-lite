@@ -35,10 +35,14 @@ export default function FreshFlowHub() {
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
   const isOverview = section === "fresh-flow";
   const [immersive, setImmersive] = useState(false);
+  // Once immersed (5s watching a Short), the six-button nav switches from
+  // top to bottom -- the exact same mechanism already used when entering a
+  // specific ecosystem section, not a separate overlay treatment.
+  const navAtBottom = !isOverview || immersive;
 
   const mediaNavigation = (
     <nav
-      className={`fresh-flow-media-nav ${isOverview ? "fresh-flow-media-nav-top" : "fresh-flow-media-nav-bottom"} ${isOverview && immersive ? "immersive" : ""}`}
+      className={`fresh-flow-media-nav ${navAtBottom ? "fresh-flow-media-nav-bottom" : "fresh-flow-media-nav-top"}`}
       aria-label="Fresh Flow media navigation"
     >
       {MEDIA_NAV.map((item) => (
@@ -58,7 +62,7 @@ export default function FreshFlowHub() {
             <span className="fresh-flow-search-icon">⌕</span>
             <span>Search anything on Fresh...</span>
           </button>
-          {mediaNavigation}
+          {!navAtBottom && mediaNavigation}
         </div>
       ) : (
         <header className="fresh-flow-experience-header">
@@ -76,7 +80,7 @@ export default function FreshFlowHub() {
           <FreshFlowMediaWorkspace {...SECTION_COPY[section]} title={SECTION_COPY[section].name} />
         )}
       </main>
-      {!isOverview && mediaNavigation}
+      {navAtBottom && mediaNavigation}
     </div>
   );
 }
