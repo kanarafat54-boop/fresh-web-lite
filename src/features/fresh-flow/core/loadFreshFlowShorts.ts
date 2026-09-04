@@ -8,15 +8,13 @@ export type FreshFlowLoadResult = {
 
 /**
  * Independent data loader for Fresh Flow. Reads the same underlying Shorts
- * data as the dedicated Shorts tab (shorts, short_likes, saved_shorts,
- * short_reposts, follows, short_reaction_breakdown, short_recent_activity)
- * but is kept as its own module rather than coupled into ShortsModule.tsx,
- * which is under frequent, separate active development.
+ * data as the dedicated Shorts tab, but remains decoupled from ShortsModule.
  */
 export type FreshFlowLoadOptions = {
   category?: "learn" | "relax";
   authorIds?: string[];
   limit?: number;
+  offset?: number;
 };
 
 export async function loadFreshFlowShorts(
@@ -25,24 +23,20 @@ export async function loadFreshFlowShorts(
   options: FreshFlowLoadOptions = {},
 ): Promise<FreshFlowLoadResult> {
   const limit = options.limit ?? 30;
+  const offset = options.offset ?? 0;
   let query = supabase
     .from("shorts")
     .select("id, author_id, caption, sound_name, chapters, video_url, like_count, comment_count, view_count, repost_count, created_at")
     .order("created_at", { ascending: false })
-    .limit(limit * 2); // fetch extra so the diversity/discovery ranking has real room to reorder
+    .range(offset, offset + (limit * 2) - 1); // fetch extra so ranking has room to reorder
 
-  if (options.category) {
-    query = query.eq("category", options.category);
-  }
+  if (options.category) query = query.eq("category", options.category);
   if (options.authorIds) {
-    if (options.authorIds.length === 0) {
-      return { shorts: [], savedIds: new Set() };
-    }
+    if (options.authorIds.length === 0) return { shorts: [], savedIds: new Set() };
     query = query.in("author_id", options.authorIds);
   }
 
   const { data: shortsData, error: shortsError } = await query;
-
   if (shortsError) throw new Error(`Couldn't load Fresh Flow: ${shortsError.message}`);
   const rows: any[] = shortsData ?? [];
 
@@ -61,19 +55,12 @@ export async function loadFreshFlowShorts(
   if (userId && !isGuest) {
     const { data: likesData } = await supabase.from("short_likes").select("short_id, reaction_type").eq("user_id", userId);
     reactionMap = new Map((likesData ?? []).map((l: any) => [l.short_id, l.reaction_type]));
-
     const { data: savedData } = await supabase.from("saved_shorts").select("short_id").eq("user_id", userId);
     savedIds = new Set((savedData ?? []).map((s: any) => s.short_id));
-
     const { data: repostData } = await supabase.from("short_reposts").select("short_id").eq("user_id", userId);
     repostedIds = new Set((repostData ?? []).map((r: any) => r.short_id));
-
     if (authorIds.length > 0) {
-      const { data: followData } = await supabase
-        .from("follows")
-        .select("followed_id")
-        .eq("follower_id", userId)
-        .in("followed_id", authorIds);
+      const { data: followData } = await supabase.from("follows").select("followed_id").eq("follower_id", userId).in("followed_id", authorIds);
       followingIds = new Set((followData ?? []).map((f: any) => f.followed_id));
     }
   }
@@ -81,23 +68,14 @@ export async function loadFreshFlowShorts(
   const shortIds = rows.map((row) => row.id);
   let breakdownMap = new Map<string, Record<string, number>>();
   let hotIds = new Set<string>();
-
   if (shortIds.length > 0) {
-    const { data: breakdownData } = await supabase
-      .from("short_reaction_breakdown")
-      .select("short_id, reaction_type, count")
-      .in("short_id", shortIds);
+    const { data: breakdownData } = await supabase.from("short_reaction_breakdown").select("short_id, reaction_type, count").in("short_id", shortIds);
     (breakdownData ?? []).forEach((row: any) => {
       const existing = breakdownMap.get(row.short_id) ?? {};
       existing[row.reaction_type] = row.count;
       breakdownMap.set(row.short_id, existing);
     });
-
-    const { data: activityData } = await supabase
-      .from("short_recent_activity")
-      .select("short_id, recent_count")
-      .in("short_id", shortIds)
-      .gte("recent_count", 3);
+    const { data: activityData } = await supabase.from("short_recent_activity").select("short_id, recent_count").in("short_id", shortIds).gte("recent_count", 3);
     hotIds = new Set((activityData ?? []).map((row: any) => row.short_id));
   }
 
