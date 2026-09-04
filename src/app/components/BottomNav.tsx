@@ -33,13 +33,12 @@ const landingDestinations: BottomDestination[] = [
   { id: "more", label: "More", icon: AIIcon },
 ];
 
-const freshFlowDestinations: BottomDestination[] = [
+const freshFlowGlobalDestinations: BottomDestination[] = [
   { id: "feed", label: "Home", icon: HomeIcon },
-  { id: "fresh-flow-long-videos", label: "Long Videos", icon: FeedIcon },
-  { id: "fresh-flow-news-posts", label: "News / Posts", icon: FeedIcon },
-  { id: "fresh-flow-ar-vr", label: "AR / VR", icon: FeedIcon },
-  { id: "fresh-flow-podcasts", label: "Podcasts", icon: FeedIcon },
-  { id: "fresh-flow-more", label: "Others", icon: AIIcon },
+  { id: "connect", label: "Chats", icon: FeedIcon },
+  { id: "create", label: "Create", icon: PlusIcon },
+  { id: "wallet", label: "Wallet", icon: PlusIcon },
+  { id: "profile", label: "Profile", icon: AIIcon },
 ];
 
 const ecosystemLabel = (id: string) => {
@@ -108,7 +107,7 @@ export default function BottomNav() {
   const activeDirectorate = getActiveDirectorate(activeRoute);
 
   const destinations: BottomDestination[] = isFreshFlow
-    ? freshFlowDestinations
+    ? freshFlowGlobalDestinations
     : activeDirectorate
       ? [
           { id: "feed", label: "Home", icon: HomeIcon },
@@ -125,7 +124,7 @@ export default function BottomNav() {
   return (
     <nav
       className="fresh-bottom-nav"
-      aria-label={isFreshFlow ? "Fresh Flow ecosystem navigation" : activeDirectorate ? `${activeDirectorate} ecosystem navigation` : "Fresh Web Lite directorate navigation"}
+      aria-label={isFreshFlow ? "Fresh Web Lite global navigation" : activeDirectorate ? `${activeDirectorate} ecosystem navigation` : "Fresh Web Lite directorate navigation"}
     >
       <div className="fresh-bottom-nav-scroll">
         {destinations.map(({ id, label, icon: Icon }) => {
