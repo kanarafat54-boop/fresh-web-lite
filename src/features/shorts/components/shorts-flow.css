@@ -1,30 +1,35 @@
 .shorts-module {
   --fresh-short-height: 100dvh;
+  position: relative;
   width: 100%;
   height: 100dvh;
   min-height: 100dvh;
-  touch-action: pan-y pinch-zoom;
   overflow: hidden;
   background: #000;
 }
 
-/* Dedicated Shorts Flow: true edge-to-edge vertical short-video presentation. */
+/* Dedicated Shorts Flow: native vertical scrolling owns the gesture. */
 .shorts-scroll-container {
+  position: relative;
   display: flex !important;
   flex-direction: column !important;
   width: 100vw !important;
   height: 100dvh !important;
   min-height: 100dvh !important;
   max-height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
   overflow-x: hidden !important;
-  overflow-y: auto !important;
-  overscroll-behavior-y: contain;
+  overflow-y: scroll !important;
+  overscroll-behavior-y: auto;
   overscroll-behavior-x: none;
   scroll-snap-type: y mandatory;
+  scroll-snap-stop: normal;
   scroll-behavior: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  touch-action: pan-y pinch-zoom;
+  touch-action: pan-y;
+  pointer-events: auto;
   background: #000;
 }
 
@@ -39,10 +44,8 @@
   height: 100dvh !important;
   max-height: 100dvh !important;
   scroll-snap-align: start;
-  scroll-snap-stop: always;
   overflow: hidden;
   background: #000;
-  contain: layout paint style;
 }
 
 .short-video {
