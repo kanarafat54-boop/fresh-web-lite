@@ -10,6 +10,16 @@ type MediaWorkspaceProps = {
 
 type Feature = { icon: string; title: string; description: string };
 
+type LongVideoCard = { title: string; creator: string; duration: string; meta: string; tone: string };
+
+const LONG_VIDEOS: LongVideoCard[] = [
+  { title: "Explore the world through Fresh", creator: "Fresh Originals", duration: "24:18", meta: "Documentary · 1.2M views", tone: "aurora" },
+  { title: "The future of technology", creator: "Fresh Tech", duration: "41:06", meta: "Technology · 842K views", tone: "ocean" },
+  { title: "Stories that changed a generation", creator: "Fresh Stories", duration: "18:42", meta: "Culture · 531K views", tone: "sunset" },
+  { title: "Inside the creative process", creator: "Fresh Studio", duration: "32:10", meta: "Creator · 294K views", tone: "violet" },
+  { title: "A journey beyond the city", creator: "Fresh Travel", duration: "27:55", meta: "Travel · 187K views", tone: "forest" },
+];
+
 const FEATURES: Record<MediaWorkspaceProps["kind"], Feature[]> = {
   "long-videos": [
     { icon: "▶", title: "Watch", description: "Long-form video takes the full content stage." },
@@ -49,9 +59,38 @@ function FeatureCard({ feature }: { feature: Feature }): ReactNode {
   );
 }
 
+function LongVideoStage(): ReactNode {
+  return (
+    <section className="fresh-flow-long-video-stage" aria-label="Long Videos parallel discovery">
+      <div className="fresh-flow-long-video-heading">
+        <div>
+          <span className="fresh-flow-media-workspace-eyebrow">Fresh Flow · Long Videos</span>
+          <h3>Continue watching &amp; discover</h3>
+        </div>
+        <span className="fresh-flow-long-video-direction">← swipe →</span>
+      </div>
+      <div className="fresh-flow-long-video-rail" role="region" aria-label="Long video carousel">
+        {LONG_VIDEOS.map((video) => (
+          <article key={video.title} className="fresh-flow-long-video-card">
+            <div className={`fresh-flow-long-video-thumb ${video.tone}`}>
+              <span className="fresh-flow-long-video-play" aria-hidden="true">▶</span>
+              <span className="fresh-flow-long-video-duration">{video.duration}</span>
+            </div>
+            <div className="fresh-flow-long-video-info">
+              <strong>{video.title}</strong>
+              <span>{video.creator}</span>
+              <small>{video.meta}</small>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function FreshFlowMediaWorkspace({ kind, title, description, icon }: MediaWorkspaceProps) {
   return (
-    <section className="fresh-flow-media-workspace" aria-label={`${title} media experience`}>
+    <section className={`fresh-flow-media-workspace fresh-flow-media-workspace-${kind}`} aria-label={`${title} media experience`}>
       <div className="fresh-flow-media-workspace-hero">
         <span className="fresh-flow-media-workspace-icon" aria-hidden="true">{icon}</span>
         <div>
@@ -60,6 +99,7 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
           <p>{description}</p>
         </div>
       </div>
+      {kind === "long-videos" && <LongVideoStage />}
       <div className="fresh-flow-media-feature-grid">
         {FEATURES[kind].map((feature) => <FeatureCard key={feature.title} feature={feature} />)}
       </div>
