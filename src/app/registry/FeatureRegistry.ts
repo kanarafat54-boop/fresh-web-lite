@@ -16,7 +16,6 @@ export type FeatureMeta = {
 const FEATURE_FLAG: Record<string, keyof typeof AppConfig.features | undefined> = {
   ai: "intelligence",
   wallet: "wallet",
-  shorts: "shorts",
   saved: "saved",
   profile: "freshId",
   admin: "admin",
@@ -49,7 +48,6 @@ FeatureRegistry.register({ id: "first-experience", name: "Fresh First Experience
 FeatureRegistry.register({ id: "feed", name: "Home", route: "/", searchable: true, lazyLoader: () => import("../../features/home/HomeDashboard").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "ai", name: "Fresh AI", route: "/ai", searchable: false, lazyLoader: () => import("../../features/ai/components/FreshAIHome").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "wallet", name: "Fresh Wallet", route: "/wallet", searchable: true, permissions: ["wallet:read"], lazyLoader: () => import("../../features/wallet/WalletDashboard").then((m) => ({ default: m.default })) });
-FeatureRegistry.register({ id: "shorts", name: "Shorts", route: "/shorts", searchable: false, lazyLoader: () => import("../../features/shorts/components/ShortsModule").then((m) => ({ default: m.ShortsModule })) });
 FeatureRegistry.register({ id: "saved", name: "Saved", route: "/saved", searchable: false, lazyLoader: () => import("../../features/saved/components/SavedModule").then((m) => ({ default: m.SavedModule })) });
 FeatureRegistry.register({ id: "creator", name: "Creator Studio", route: "/creator", searchable: true, lazyLoader: () => import("../../features/profile/components/ecosystems/EcosystemLauncher").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "profile", name: "Profile", route: "/profile", searchable: false, lazyLoader: () => import("../../features/profile/components/ProfileRoute").then((m) => ({ default: m.default })) });
