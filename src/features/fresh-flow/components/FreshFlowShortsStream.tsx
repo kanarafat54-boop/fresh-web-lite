@@ -46,6 +46,34 @@ const GIFT_PRESETS: Array<{ label: string; amountMinor: string }> = [
   { label: "50", amountMinor: "5000" },
 ];
 
+type ConnectionQuality = "fast" | "slow";
+
+/** Uses the Network Information API where available; assumes "fast" if unsupported. */
+function getConnectionQuality(): ConnectionQuality {
+  const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+  if (!connection) return "fast";
+  if (connection.saveData) return "slow";
+  if (typeof connection.effectiveType === "string" && ["slow-2g", "2g", "3g"].includes(connection.effectiveType)) return "slow";
+  return "fast";
+}
+
+type PreloadPlan = { hasSrc: boolean; preload: "auto" | "metadata" | "none" };
+
+/**
+ * Video preload strategy, distance = index - currentIndex:
+ *  0 (current): aggressive preload, plays immediately.
+ *  1 (next): preload in the background before the swipe.
+ *  2 (following): warm up only when bandwidth allows (skipped on slow connections).
+ *  anything else (already watched, or further ahead): release media resources.
+ * Slow connections get a lighter strategy at every tier that still preloads.
+ */
+function getPreloadPlan(distance: number, quality: ConnectionQuality): PreloadPlan {
+  if (distance === 0) return { hasSrc: true, preload: "auto" };
+  if (distance === 1) return quality === "fast" ? { hasSrc: true, preload: "auto" } : { hasSrc: true, preload: "metadata" };
+  if (distance === 2) return quality === "fast" ? { hasSrc: true, preload: "auto" } : { hasSrc: false, preload: "none" };
+  return { hasSrc: false, preload: "none" };
+}
+
 /** Real union of who you follow and who follows you (no "friends" table exists). */
 async function getSocialAuthorIds(userId: string): Promise<string[]> {
   const [{ data: following }, { data: followers }] = await Promise.all([
@@ -84,6 +112,16 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
   const viewedRef = useRef<Set<string>>(new Set());
   const [immersive, setImmersive] = useState(false);
   const immersiveTriggeredRef = useRef(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [connectionQuality, setConnectionQuality] = useState<ConnectionQuality>(() => getConnectionQuality());
+
+  useEffect(() => {
+    const connection = (navigator as any).connection;
+    if (!connection || typeof connection.addEventListener !== "function") return;
+    const handler = () => setConnectionQuality(getConnectionQuality());
+    connection.addEventListener("change", handler);
+    return () => connection.removeEventListener("change", handler);
+  }, []);
 
   // Once per session: 5 seconds after Fresh Flow's Home tab mounts, the
   // chrome (sub-tabs + the six-ecosystem top nav) collapses into a compact
@@ -193,6 +231,8 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
         const shortId = video.dataset.shortId!;
         if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
           video.play().catch(() => {});
+          const index = shorts.findIndex((s) => s.id === shortId);
+          if (index >= 0) setCurrentIndex(index);
           if (!viewedRef.current.has(shortId)) {
             viewedRef.current.add(shortId);
             void supabase.rpc("increment_short_views", { short_id_input: shortId });
@@ -329,11 +369,13 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
         <p className="fresh-flow-empty">{filterMode === "social" ? "Follow or connect with people to see their Shorts here." : "Nothing here yet."}</p>
       ) : (
         <div className="fresh-flow-stream" ref={containerRef}>
-          {shorts.map((short) => {
+          {shorts.map((short, index) => {
             const totals = giftTotals.get(short.id);
+            const distance = index - currentIndex;
+            const preloadPlan = getPreloadPlan(distance, connectionQuality);
             return (
               <div key={short.id} className="fresh-flow-item">
-                <video ref={(el) => { if (el) videoRefs.current.set(short.id, el); else videoRefs.current.delete(short.id); }} data-short-id={short.id} src={short.videoUrl} loop playsInline className="fresh-flow-video" onClick={exitImmersive} />
+                <video ref={(el) => { if (el) videoRefs.current.set(short.id, el); else videoRefs.current.delete(short.id); }} data-short-id={short.id} src={preloadPlan.hasSrc ? short.videoUrl : undefined} preload={preloadPlan.preload} loop playsInline className="fresh-flow-video" onClick={exitImmersive} />
                 <div className="fresh-flow-overlay"><div className="fresh-flow-author-row"><span className="fresh-flow-author">{short.authorName}</span>{!isGuest && user && short.authorId !== user.id && <button className={short.isFollowingAuthor ? "fresh-flow-chip following" : "fresh-flow-chip"} onClick={() => void toggleFollow(short)}>{short.isFollowingAuthor ? "Following" : "Follow"}</button>}</div>{short.caption && <p className="fresh-flow-caption">{short.caption}</p>}</div>
 
                 <div className="fresh-flow-actions">
