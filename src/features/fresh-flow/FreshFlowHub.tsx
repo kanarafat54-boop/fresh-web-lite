@@ -37,9 +37,6 @@ export default function FreshFlowHub() {
   const isOverview = section === "fresh-flow";
   const [immersive, setImmersive] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  // Once immersed (5s watching a Short), the six-button nav switches from
-  // top to bottom -- the exact same mechanism already used when entering a
-  // specific ecosystem section, not a separate overlay treatment.
   const navAtBottom = !isOverview || immersive;
 
   const mediaNavigation = (
