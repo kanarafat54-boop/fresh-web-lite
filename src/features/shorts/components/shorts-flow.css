@@ -1,59 +1,47 @@
 .shorts-module {
-  --fresh-short-height: min(78vh, 760px);
-  touch-action: pan-x pinch-zoom;
+  --fresh-short-height: min(86vh, 900px);
+  touch-action: pan-y pinch-zoom;
 }
 
-/* Fresh Short Flow: keep the familiar full-screen short-video presentation,
-   but make movement horizontal instead of a TikTok-style vertical queue. */
+/* Dedicated Shorts Flow: full-screen vertical short-video presentation. */
 .shorts-scroll-container {
   display: flex !important;
-  flex-direction: row !important;
+  flex-direction: column !important;
   width: 100% !important;
   height: var(--fresh-short-height) !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  overscroll-behavior-x: contain;
-  overscroll-behavior-y: none;
-  scroll-snap-type: x mandatory;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain;
+  overscroll-behavior-x: none;
+  scroll-snap-type: y mandatory;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  touch-action: pan-x pinch-zoom;
+  touch-action: pan-y pinch-zoom;
 }
 
-.shorts-scroll-container::-webkit-scrollbar {
-  display: none;
-}
+.shorts-scroll-container::-webkit-scrollbar { display: none; }
 
 .short-item {
   position: relative !important;
   flex: 0 0 100% !important;
   width: 100% !important;
-  min-width: 100% !important;
+  min-height: 100% !important;
   height: 100% !important;
   scroll-snap-align: center;
   scroll-snap-stop: always;
   overflow: hidden;
 }
 
-.short-video {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover;
-}
+.short-video { width: 100% !important; height: 100% !important; object-fit: cover; }
 
-/* The gesture instruction is intentionally horizontal: left = previous,
-   right = next. */
 .swipe-hint {
   position: absolute;
-  top: 50%;
+  bottom: 16%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   z-index: 8;
   pointer-events: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
   padding: 8px 12px;
   border: 1px solid rgba(255,255,255,.16);
   border-radius: 999px;
@@ -68,29 +56,18 @@
   animation: fresh-swipe-pulse 2.8s ease-in-out infinite;
 }
 
-.swipe-hint span {
-  font-size: 0;
-}
-
-.swipe-hint span::after {
-  content: "←  previous   •   next  →";
-  font-size: .68rem;
-}
-
-.swipe-arrow {
-  display: none;
-}
+.swipe-hint span { font-size: 0; }
+.swipe-hint span::after { content: "swipe up  •  next"; font-size: .68rem; }
+.swipe-arrow { display: none; }
 
 @keyframes fresh-swipe-pulse {
-  0%, 100% { opacity: .55; transform: translate(-50%, -50%) scale(.98); }
-  50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  0%, 100% { opacity: .55; transform: translateX(-50%) scale(.98); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1); }
 }
 
-/* Desktop keeps the short-video stage centered without changing the gesture model. */
+/* Keep the dedicated stage visually dominant while retaining Fresh spacing. */
 @media (min-width: 760px) {
-  .shorts-scroll-container {
-    height: min(78vh, 820px) !important;
-  }
+  .shorts-scroll-container { height: min(84vh, 900px) !important; max-width: 620px; margin-inline: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
