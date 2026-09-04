@@ -20,6 +20,15 @@ import {
 } from "../../../components/Icons";
 import type { Short } from "../types/short";
 import { rankForYou } from "../core/ForYouRanking";
+import {
+  FRESH_SHORTS_PAGE_SIZE,
+  FRESH_SHORTS_PREFETCH_RADIUS,
+  getActiveIndex,
+  getMediaWindow,
+  shouldFetchNextPage,
+  syncVideoPlayback,
+  releaseDistantMedia,
+} from "../core/FreshShortsRuntime";
 import { interactWithShort, removeShortInteraction } from "../core/ShortsUniversalInteractionAdapter";
 import type { UniversalReactionKind } from "../../../core/interactions/FreshReactionModel";
 
@@ -73,13 +82,16 @@ export function ShortsModule({ openComposerSignal, onExit }: { openComposerSigna
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchActive, setSearchActive] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
-  const viewedRef = useRef<Set<string>>(new Set());
   const lastTapRef = useRef<Map<string, number>>(new Map());
   const tapTimeoutRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const swipeStartX = useRef<number | null>(null);
+  const feedPageRef = useRef(0);
+  const loadMoreInFlightRef = useRef(false);
 
   useEffect(() => {
     loadShorts();
@@ -91,38 +103,46 @@ export function ShortsModule({ openComposerSignal, onExit }: { openComposerSigna
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || searchActive) return;
 
+    const entries = Array.from(container.querySelectorAll<HTMLElement>(".short-item"));
     const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const video = entry.target as HTMLVideoElement;
-          const shortId = video.dataset.shortId!;
-          if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
-            video.play().catch(() => {});
-            if (!viewedRef.current.has(shortId)) {
-              viewedRef.current.add(shortId);
-              supabase.rpc("increment_short_views", { short_id_input: shortId }).then(() => {});
-              try {
-                const stored = new Set<string>(JSON.parse(sessionStorage.getItem("fresh_shorts_viewed") ?? "[]"));
-                stored.add(shortId);
-                sessionStorage.setItem("fresh_shorts_viewed", JSON.stringify([...stored]));
-              } catch {
-                // sessionStorage unavailable; ranking just skips the seen-penalty this session.
-              }
-            }
-          } else {
-            video.pause();
-          }
-        });
+      (observations) => {
+        const candidates = observations
+          .map((entry) => ({ index: entries.indexOf(entry.target as HTMLElement), ratio: entry.intersectionRatio }))
+          .filter((entry) => entry.index >= 0);
+        const nextIndex = getActiveIndex(candidates);
+        if (nextIndex !== null) setActiveIndex(nextIndex);
       },
-      { root: container, threshold: [0, 0.6, 1] }
+      { root: container, threshold: [0, 0.6, 0.9, 1] }
     );
 
-    videoRefs.current.forEach((video) => observer.observe(video));
-
+    entries.forEach((entry) => observer.observe(entry));
     return () => observer.disconnect();
-  }, [shorts]);
+  }, [shorts, searchActive]);
+
+  useEffect(() => {
+    if (shorts.length === 0) return;
+    const mediaWindow = getMediaWindow(activeIndex, shorts.length);
+    const videos = new Map<number, HTMLVideoElement>();
+    videoRefs.current.forEach((video) => {
+      const index = shorts.findIndex((short) => short.id === video.dataset.shortId);
+      if (index >= 0) videos.set(index, video);
+    });
+    videos.forEach((video, index) => {
+      const inWindow = mediaWindow.has(index);
+      video.preload = inWindow ? "auto" : "none";
+      if (inWindow && !video.src) {
+        const short = shorts[index];
+        if (short) video.src = short.videoUrl;
+      }
+    });
+    syncVideoPlayback(videos, activeIndex);
+    releaseDistantMedia(videos, activeIndex, FRESH_SHORTS_PREFETCH_RADIUS);
+    if (!searchActive && shouldFetchNextPage(activeIndex, shorts.length, hasMore) && !loadMoreInFlightRef.current) {
+      loadMoreShorts();
+    }
+  }, [activeIndex, shorts, searchActive, hasMore]);
 
   function dismissOnboarding() {
     localStorage.setItem(ONBOARDING_KEY, "1");
@@ -144,7 +164,7 @@ export function ShortsModule({ openComposerSignal, onExit }: { openComposerSigna
     swipeStartX.current = null;
   }
 
-  async function fetchAndMapShorts(query: any) {
+  async function fetchAndMapShorts(query: any, append = false) {
     const { data: shortsData, error: shortsError } = await query;
 
     if (shortsError) {
@@ -254,15 +274,25 @@ export function ShortsModule({ openComposerSignal, onExit }: { openComposerSigna
         return new Set<string>();
       }
     })();
-    setShorts(searchActive ? mapped : rankForYou(mapped, viewedIds));
+    const ranked = searchActive ? mapped : rankForYou(mapped, viewedIds);
+    setShorts((previous) => {
+      if (!append || searchActive) return ranked;
+      const existingIds = new Set(previous.map((short) => short.id));
+      return [...previous, ...ranked.filter((short) => !existingIds.has(short.id))];
+    });
+    if (!searchActive) setHasMore((shortsData ?? []).length === FRESH_SHORTS_PAGE_SIZE);
     setSavedIds(savedShortIds);
     setLoading(false);
+    loadMoreInFlightRef.current = false;
   }
 
   async function loadShorts() {
     setLoading(true);
     setError(null);
     setSearchActive(false);
+    setActiveIndex(0);
+    setHasMore(true);
+    feedPageRef.current = 0;
     const nowIso = new Date().toISOString();
     const query = supabase
       .from("shorts")
@@ -270,8 +300,24 @@ export function ShortsModule({ openComposerSignal, onExit }: { openComposerSigna
       .or(`unlock_at.is.null,unlock_at.lte.${nowIso}`)
       .eq("category", feedMode)
       .order("created_at", { ascending: false })
-      .limit(30);
+      .range(0, FRESH_SHORTS_PAGE_SIZE - 1);
     fetchAndMapShorts(query);
+  }
+
+  async function loadMoreShorts() {
+    if (searchActive || !hasMore || loadMoreInFlightRef.current) return;
+    loadMoreInFlightRef.current = true;
+    const nextPage = feedPageRef.current + 1;
+    const nowIso = new Date().toISOString();
+    const query = supabase
+      .from("shorts")
+      .select("id, author_id, caption, sound_name, chapters, category, video_url, like_count, comment_count, view_count, repost_count, created_at")
+      .or(`unlock_at.is.null,unlock_at.lte.${nowIso}`)
+      .eq("category", feedMode)
+      .order("created_at", { ascending: false })
+      .range(nextPage * FRESH_SHORTS_PAGE_SIZE, (nextPage + 1) * FRESH_SHORTS_PAGE_SIZE - 1);
+    await fetchAndMapShorts(query, true);
+    feedPageRef.current = nextPage;
   }
 
   async function runSearch(q: string) {
@@ -715,10 +761,13 @@ export function ShortsModule({ openComposerSignal, onExit }: { openComposerSigna
                 else videoRefs.current.delete(s.id);
               }}
               data-short-id={s.id}
-              src={s.videoUrl}
+              data-runtime-index={shorts.findIndex((item) => item.id === s.id)}
+              src={getMediaWindow(activeIndex, shorts.length).has(shorts.findIndex((item) => item.id === s.id)) ? s.videoUrl : undefined}
+              preload={getMediaWindow(activeIndex, shorts.length).has(shorts.findIndex((item) => item.id === s.id)) ? "auto" : "none"}
               loop
               playsInline
               className="short-video"
+              data-runtime-active={shorts[activeIndex]?.id === s.id ? "true" : "false"}
               onClick={() => handleVideoTap(s)}
               onError={() => handleVideoError(s.id)}
             />
