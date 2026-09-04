@@ -1,39 +1,62 @@
 .shorts-module {
-  --fresh-short-height: min(86vh, 900px);
+  --fresh-short-height: 100dvh;
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
   touch-action: pan-y pinch-zoom;
+  overflow: hidden;
+  background: #000;
 }
 
-/* Dedicated Shorts Flow: full-screen vertical short-video presentation. */
+/* Dedicated Shorts Flow: true edge-to-edge vertical short-video presentation. */
 .shorts-scroll-container {
   display: flex !important;
   flex-direction: column !important;
-  width: 100% !important;
-  height: var(--fresh-short-height) !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  max-height: 100dvh !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
   overscroll-behavior-y: contain;
   overscroll-behavior-x: none;
   scroll-snap-type: y mandatory;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   touch-action: pan-y pinch-zoom;
+  background: #000;
 }
 
 .shorts-scroll-container::-webkit-scrollbar { display: none; }
 
 .short-item {
   position: relative !important;
-  flex: 0 0 100% !important;
-  width: 100% !important;
-  min-height: 100% !important;
-  height: 100% !important;
-  scroll-snap-align: center;
+  flex: 0 0 100dvh !important;
+  width: 100vw !important;
+  min-width: 100vw !important;
+  min-height: 100dvh !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  scroll-snap-align: start;
   scroll-snap-stop: always;
   overflow: hidden;
+  background: #000;
+  contain: layout paint style;
 }
 
-.short-video { width: 100% !important; height: 100% !important; object-fit: cover; }
+.short-video {
+  display: block;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-width: 100vw;
+  min-height: 100dvh;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: cover;
+  object-position: center;
+  background: #000;
+}
 
 .swipe-hint {
   position: absolute;
@@ -65,9 +88,14 @@
   50% { opacity: 1; transform: translateX(-50%) scale(1); }
 }
 
-/* Keep the dedicated stage visually dominant while retaining Fresh spacing. */
+/* The dedicated viewer owns the viewport on every device; no desktop card width. */
 @media (min-width: 760px) {
-  .shorts-scroll-container { height: min(84vh, 900px) !important; max-width: 620px; margin-inline: auto; }
+  .shorts-scroll-container {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: none !important;
+    margin-inline: 0 !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
