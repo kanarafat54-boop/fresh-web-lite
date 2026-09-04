@@ -32,7 +32,7 @@ const SECTION_COPY = {
 };
 
 export default function FreshFlowHub() {
-  const { activeRoute, setActiveRoute, openSearch } = useLayout();
+  const { activeRoute, setActiveRoute } = useLayout();
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
   const isOverview = section === "fresh-flow";
   const [immersive, setImmersive] = useState(false);
