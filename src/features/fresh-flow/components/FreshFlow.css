@@ -51,7 +51,8 @@
 .fresh-flow-action-btn:hover { background: rgba(255,255,255,0.12); }
 .fresh-flow-action-btn:active { transform: scale(0.94); }
 .fresh-flow-action-btn.reposted, .fresh-flow-action-btn.saved { color: var(--accent,#2dd4bf); border-color: color-mix(in srgb,var(--accent,#2dd4bf) 45%,transparent); }
-.fresh-flow-action-btn.gift { color: #f5a623; }
+.fresh-flow-action-btn.gift { color: #ff5a3c; }
+.fresh-flow-actions .fresh-flow-action-btn { font-size: 0.8rem; }
 .fresh-flow-empty { min-height: 50vh; display: grid; place-items: center; padding: 24px; text-align: center; opacity: 0.78; }
 .fresh-flow-gift-panel { position: absolute; right: 12px; bottom: 90px; z-index: 10; background: rgba(0,0,0,0.85); border: 1px solid var(--border,#2a2a2a); border-radius: 12px; padding: 12px; color: white; width: 220px; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
 .fresh-flow-gift-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
@@ -71,9 +72,32 @@
    only the -bottom position variant existed in FreshFlowReferenceShell.css). */
 .fresh-flow-media-nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 10px 14px; }
 .fresh-flow-media-nav-top { position: sticky; top: 0; z-index: 20; background: rgba(5,6,10,0.94); border-bottom: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); transition: all 220ms ease; }
-.fresh-flow-media-button { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 64px; padding: 8px 4px; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; background: rgba(255,255,255,0.045); color: rgba(255,255,255,0.85); font: inherit; font-size: 12px; font-weight: 600; }
-.fresh-flow-media-icon { font-size: 22px; }
-.fresh-flow-media-button.active { color: #fff; border-color: rgba(129,92,255,0.78); background: linear-gradient(135deg, rgba(111,48,255,0.55), rgba(17,167,231,0.35)); }
+.fresh-flow-media-button { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 68px; padding: 8px 4px; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; background: rgba(255,255,255,0.045); color: rgba(255,255,255,0.85); font: inherit; font-size: 12px; font-weight: 600; }
+.fresh-flow-media-icon { font-size: 28px; }
+
+/* Each ecosystem gets its own signature color, matching the reference image
+   (Home=blue, Long Videos=pink/red, News/Posts=teal, AR/VR=orange,
+   Podcasts=purple, Others=blue), both in the icon and as the active glow. */
+.fresh-flow-media-nav .fresh-flow-media-button:nth-child(1) .fresh-flow-media-icon { color: #4f8ef7; }
+.fresh-flow-media-nav .fresh-flow-media-button:nth-child(1).active { border-color: #4f8ef7; box-shadow: 0 0 0 1px #4f8ef7, 0 0 22px rgba(79,142,247,0.4); background: rgba(79,142,247,0.14); }
+
+.fresh-flow-media-nav .fresh-flow-media-button:nth-child(2) .fresh-flow-media-icon { color: #ff3b67; }
+.fresh-flow-media-nav .fresh-flow-media-button:nth-child(2).active { border-color: #ff3b67; box-shadow: 0 0 0 1px #ff3b67, 0 0 22px rgba(255,59,103,0.4); background: rgba(255,59,103,0.14); }
+
+.fresh-flow-media-nav .fresh-flow-media-button:nth-child(3) .fresh-flow-media-icon { color: #14c79a; }
+.fresh-flow-media-nav .fresh-flow-media-button:nth-child(3).active { border-color: #14c79a; box-shadow: 0 0 0 1px #14c79a, 0 0 22px rgba(20,199,154,0.4); background: rgba(20,199,154,0.14); }
+
+.fresh-flow-media-nav .fresh-flow-media-button:nth-child(4) .fresh-flow-media-icon { color: #ff8c2e; }
+.fresh-flow-media-nav .fresh-flow-media-button:nth-child(4).active { border-color: #ff8c2e; box-shadow: 0 0 0 1px #ff8c2e, 0 0 22px rgba(255,140,46,0.4); background: rgba(255,140,46,0.14); }
+
+.fresh-flow-media-nav .fresh-flow-media-button:nth-child(5) .fresh-flow-media-icon { color: #9b5cff; }
+.fresh-flow-media-nav .fresh-flow-media-button:nth-child(5).active { border-color: #9b5cff; box-shadow: 0 0 0 1px #9b5cff, 0 0 22px rgba(155,92,255,0.4); background: rgba(155,92,255,0.14); }
+
+.fresh-flow-media-nav .fresh-flow-media-button:nth-child(6) .fresh-flow-media-icon { color: #3e82ff; }
+.fresh-flow-media-nav .fresh-flow-media-button:nth-child(6).active { border-color: #3e82ff; box-shadow: 0 0 0 1px #3e82ff, 0 0 22px rgba(62,130,255,0.4); background: rgba(62,130,255,0.14); }
+
+.fresh-flow-media-button.active { color: #fff; }
+.fresh-flow-media-nav-top.immersive .fresh-flow-media-button.active { box-shadow: none; }
 
 /* Immersive: the six-button top row collapses into a slim overlay too,
    matching the sub-tab row so both stay reachable without dedicated space. */
