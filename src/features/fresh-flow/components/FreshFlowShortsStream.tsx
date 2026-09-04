@@ -6,6 +6,15 @@ import { ReactionPicker } from "../../reactions/components/ReactionPicker";
 import { loadFreshFlowShorts, type FreshFlowLoadOptions } from "../core/loadFreshFlowShorts";
 import { rankFreshFlow, rankTrending } from "../core/FreshFlowRanking";
 import { rankForYou } from "../../shorts/core/ForYouRanking";
+import {
+  FRESH_SHORTS_PAGE_SIZE,
+  FRESH_SHORTS_PREFETCH_RADIUS,
+  getActiveIndex,
+  getMediaWindow,
+  releaseDistantMedia,
+  shouldFetchNextPage,
+  syncVideoPlayback,
+} from "../../shorts/core/FreshShortsRuntime";
 import { sendGift, getGiftTotals, type GiftTotal } from "../core/giftService";
 import { interactWithShort, removeShortInteraction } from "../../shorts/core/ShortsUniversalInteractionAdapter";
 import { getEcosystemProfile, upsertEcosystemProfile, FRESH_FLOW_FEED_MODES } from "../../profile/services/ecosystemProfileService";
@@ -17,7 +26,6 @@ type SubTab = "for-you" | "trending" | "following" | "fresh-picks";
 type FilterMode = "all" | "social" | "learn" | "relax";
 type AdvancedAction = "quote" | "remix" | "duet" | "collaborate";
 
-// The visible Short Flow row is locked to the supplied reference image.
 const SUB_TABS: Array<{ id: SubTab; label: string; icon: string }> = [
   { id: "for-you", label: "For You", icon: "☆" },
   { id: "trending", label: "Trending", icon: "↗" },
@@ -48,30 +56,12 @@ const GIFT_PRESETS: Array<{ label: string; amountMinor: string }> = [
 
 type ConnectionQuality = "fast" | "slow";
 
-/** Uses the Network Information API where available; assumes "fast" if unsupported. */
 function getConnectionQuality(): ConnectionQuality {
   const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
   if (!connection) return "fast";
   if (connection.saveData) return "slow";
   if (typeof connection.effectiveType === "string" && ["slow-2g", "2g", "3g"].includes(connection.effectiveType)) return "slow";
   return "fast";
-}
-
-type PreloadPlan = { hasSrc: boolean; preload: "auto" | "metadata" | "none" };
-
-/**
- * Video preload strategy, distance = index - currentIndex:
- *  0 (current): aggressive preload, plays immediately.
- *  1 (next): preload in the background before the swipe.
- *  2 (following): warm up only when bandwidth allows (skipped on slow connections).
- *  anything else (already watched, or further ahead): release media resources.
- * Slow connections get a lighter strategy at every tier that still preloads.
- */
-function getPreloadPlan(distance: number, quality: ConnectionQuality): PreloadPlan {
-  if (distance === 0) return { hasSrc: true, preload: "auto" };
-  if (distance === 1) return quality === "fast" ? { hasSrc: true, preload: "auto" } : { hasSrc: true, preload: "metadata" };
-  if (distance === 2) return quality === "fast" ? { hasSrc: true, preload: "auto" } : { hasSrc: false, preload: "none" };
-  return { hasSrc: false, preload: "none" };
 }
 
 /** Real union of who you follow and who follows you (no "friends" table exists). */
@@ -108,8 +98,11 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
   const [giftSending, setGiftSending] = useState(false);
   const [actionSending, setActionSending] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
+  const videoRefs = useRef<Map<number, HTMLVideoElement>>(new Map());
   const viewedRef = useRef<Set<string>>(new Set());
+  const loadMoreInFlightRef = useRef(false);
+  const pageRef = useRef(0);
+  const [hasMore, setHasMore] = useState(true);
   const [immersive, setImmersive] = useState(false);
   const immersiveTriggeredRef = useRef(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -123,11 +116,6 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
     return () => connection.removeEventListener("change", handler);
   }, []);
 
-  // Once per session: 5 seconds after Fresh Flow's Home tab mounts, the
-  // chrome (sub-tabs + the six-ecosystem top nav) collapses into a compact
-  // TikTok-style overlay so the video fills the screen. Confirmed decision:
-  // fires once only, not per-video. Tapping the video (not a button) exits
-  // back to full chrome.
   useEffect(() => {
     if (immersiveTriggeredRef.current) return;
     const timer = setTimeout(() => {
@@ -146,10 +134,6 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
     onImmersiveChange?.(false);
   };
 
-  // Background sync only: ensures a real ecosystem_profiles row exists for
-  // this user's Fresh Flow feed. Does NOT currently drive the visible tab
-  // list (SUB_TABS/FILTERS below are locked to the reference design) --
-  // reconciling them is a deliberate follow-up, not forced into this merge.
   useEffect(() => {
     if (!user || isGuest) return;
     (async () => {
@@ -176,18 +160,22 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
   const load = async (tab: SubTab, selectedFilter: FilterMode = filterMode) => {
     if (tab === "fresh-picks") {
       setShorts([]);
+      setHasMore(false);
       setLoading(false);
       return;
     }
 
     setLoading(true);
     setError(null);
+    pageRef.current = 0;
+    setHasMore(true);
+    setCurrentIndex(0);
     try {
       const options: FreshFlowLoadOptions = selectedFilter === "learn"
-        ? { category: "learn" }
+        ? { category: "learn", limit: FRESH_SHORTS_PAGE_SIZE, offset: 0 }
         : selectedFilter === "relax"
-          ? { category: "relax" }
-          : {};
+          ? { category: "relax", limit: FRESH_SHORTS_PAGE_SIZE, offset: 0 }
+          : { limit: FRESH_SHORTS_PAGE_SIZE, offset: 0 };
       const result = await loadFreshFlowShorts(user?.id ?? null, isGuest, options);
       let candidates = result.shorts;
 
@@ -211,10 +199,56 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
       setShorts(ranked);
       setSavedIds(result.savedIds);
       setGiftTotals(await getGiftTotals(ranked.map((s) => s.id)));
+      setHasMore(result.shorts.length >= FRESH_SHORTS_PAGE_SIZE * 2);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to load Fresh Flow.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMore = async () => {
+    if (loadMoreInFlightRef.current || !hasMore || subTab === "fresh-picks") return;
+    loadMoreInFlightRef.current = true;
+    const nextPage = pageRef.current + 1;
+    try {
+      const options: FreshFlowLoadOptions = {
+        limit: FRESH_SHORTS_PAGE_SIZE,
+        offset: nextPage * FRESH_SHORTS_PAGE_SIZE * 2,
+      };
+      if (filterMode === "learn" || filterMode === "relax") options.category = filterMode;
+      const result = await loadFreshFlowShorts(user?.id ?? null, isGuest, options);
+      let candidates = result.shorts;
+
+      if (subTab === "following") {
+        candidates = candidates.filter((s) => s.isFollowingAuthor);
+      } else if (filterMode === "social") {
+        if (!user || isGuest) candidates = [];
+        else {
+          const socialIds = new Set(await getSocialAuthorIds(user.id));
+          candidates = candidates.filter((s) => socialIds.has(s.authorId));
+        }
+      }
+
+      const ranked = subTab === "trending"
+        ? rankTrending(candidates)
+        : subTab === "for-you"
+          ? rankForYou(candidates, new Set())
+          : rankFreshFlow(candidates);
+      setShorts((current) => {
+        const existing = new Set(current.map((s) => s.id));
+        return [...current, ...ranked.filter((s) => !existing.has(s.id))];
+      });
+      setGiftTotals((current) => {
+        const next = new Map(current);
+        return next;
+      });
+      pageRef.current = nextPage;
+      setHasMore(result.shorts.length >= FRESH_SHORTS_PAGE_SIZE * 2);
+    } catch {
+      // Keep the current feed usable; the next intersection can retry.
+    } finally {
+      loadMoreInFlightRef.current = false;
     }
   };
 
@@ -224,30 +258,39 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        const video = entry.target as HTMLVideoElement;
-        const shortId = video.dataset.shortId!;
-        if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
-          video.play().catch(() => {});
-          const index = shorts.findIndex((s) => s.id === shortId);
-          if (index >= 0) setCurrentIndex(index);
-          if (!viewedRef.current.has(shortId)) {
-            viewedRef.current.add(shortId);
-            void supabase.rpc("increment_short_views", { short_id_input: shortId });
-          }
-        } else video.pause();
-      });
-    }, { root: container, threshold: [0, 0.6, 1] });
-    videoRefs.current.forEach((video) => observer.observe(video));
-    return () => observer.disconnect();
-  }, [shorts]);
+    if (!container || shorts.length === 0) return;
 
-  // These update local state directly instead of re-fetching and re-ranking
-  // the whole feed. A full reload on every tap was reordering the carousel
-  // under the user\'s finger -- the write always succeeded, but it looked
-  // broken because the item they just tapped could move or disappear.
+    const observer = new IntersectionObserver((entries) => {
+      const candidates = entries.map((entry) => ({
+        index: Number((entry.target as HTMLElement).dataset.index),
+        ratio: entry.intersectionRatio,
+      })).filter((candidate) => Number.isFinite(candidate.index));
+      const activeIndex = getActiveIndex(candidates);
+      if (activeIndex < 0) return;
+      setCurrentIndex((previous) => previous === activeIndex ? previous : activeIndex);
+    }, { root: container, threshold: [0, 0.6, 1] });
+
+    container.querySelectorAll<HTMLElement>(".fresh-flow-item").forEach((item) => observer.observe(item));
+    return () => observer.disconnect();
+  }, [shorts.length]);
+
+  const mediaWindow = getMediaWindow(currentIndex, shorts.length);
+
+  useEffect(() => {
+    const videos = new Map<number, HTMLVideoElement>();
+    videoRefs.current.forEach((video, index) => videos.set(index, video));
+    syncVideoPlayback(videos, currentIndex);
+    releaseDistantMedia(videos, currentIndex, FRESH_SHORTS_PREFETCH_RADIUS);
+
+    const activeShort = shorts[currentIndex];
+    if (activeShort && !viewedRef.current.has(activeShort.id)) {
+      viewedRef.current.add(activeShort.id);
+      void supabase.rpc("increment_short_views", { short_id_input: activeShort.id });
+    }
+
+    if (shouldFetchNextPage(currentIndex, shorts.length, hasMore)) void loadMore();
+  }, [currentIndex, shorts.length, hasMore]);
+
   const react = async (short: Short, type: string) => {
     if (!user || isGuest) return;
     setActionError(null);
@@ -275,8 +318,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
       else await interactWithShort(user.id, short.id, "save");
       setSavedIds((current) => {
         const next = new Set(current);
-        if (wasSaved) next.delete(short.id);
-        else next.add(short.id);
+        if (wasSaved) next.delete(short.id); else next.add(short.id);
         return next;
       });
     } catch (cause) {
@@ -291,9 +333,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
     try {
       if (wasReposted) await removeShortInteraction(user.id, short.id, "repost");
       else await interactWithShort(user.id, short.id, "repost");
-      setShorts((current) => current.map((s) =>
-        s.id === short.id ? { ...s, repostedByMe: !wasReposted, repostCount: Math.max(0, s.repostCount + (wasReposted ? -1 : 1)) } : s,
-      ));
+      setShorts((current) => current.map((s) => s.id === short.id ? { ...s, repostedByMe: !wasReposted, repostCount: Math.max(0, s.repostCount + (wasReposted ? -1 : 1)) } : s));
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : "Unable to repost.");
     }
@@ -306,7 +346,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
     try {
       if (wasFollowing) await supabase.from("follows").delete().eq("follower_id", user.id).eq("followed_id", short.authorId);
       else await supabase.from("follows").insert({ follower_id: user.id, followed_id: short.authorId });
-      setShorts((current) => current.map((s) => (s.authorId === short.authorId ? { ...s, isFollowingAuthor: !wasFollowing } : s)));
+      setShorts((current) => current.map((s) => s.authorId === short.authorId ? { ...s, isFollowingAuthor: !wasFollowing } : s));
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : "Unable to follow.");
     }
@@ -314,7 +354,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
 
   const share = async (short: Short) => {
     if (user && !isGuest) {
-      try { await interactWithShort(user.id, short.id, "share", { payload: { channel: "native-or-clipboard" } }); } catch { /* sharing remains usable if persistence is temporarily unavailable */ }
+      try { await interactWithShort(user.id, short.id, "share", { payload: { channel: "native-or-clipboard" } }); } catch { /* sharing remains usable */ }
     }
     const shareData = { title: `Fresh Short by ${short.authorName}`, text: short.caption ?? "Fresh Flow", url: short.videoUrl };
     try {
@@ -327,9 +367,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
     if (!user || isGuest) return;
     setActionSending(true); setActionError(null);
     try {
-      await interactWithShort(user.id, short.id, action, {
-        payload: { sourceShortId: short.id, sourceAuthorId: short.authorId, sourceVideoUrl: short.videoUrl, requestedAt: new Date().toISOString() },
-      });
+      await interactWithShort(user.id, short.id, action, { payload: { sourceShortId: short.id, sourceAuthorId: short.authorId, sourceVideoUrl: short.videoUrl, requestedAt: new Date().toISOString() } });
       setAdvancedTargetId(null);
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : `Unable to start ${action}.`);
@@ -371,13 +409,23 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
         <div className="fresh-flow-stream" ref={containerRef}>
           {shorts.map((short, index) => {
             const totals = giftTotals.get(short.id);
-            const distance = index - currentIndex;
-            const preloadPlan = getPreloadPlan(distance, connectionQuality);
+            const inMediaWindow = mediaWindow.has(index);
+            const distance = Math.abs(index - currentIndex);
+            const preload = index === currentIndex ? "auto" : index === currentIndex + 1 ? (connectionQuality === "fast" ? "auto" : "metadata") : "none";
+            const shouldLoadSrc = inMediaWindow && (index <= currentIndex + 1 || (connectionQuality === "fast" && distance === 2));
             return (
-              <div key={short.id} className="fresh-flow-item">
-                <video ref={(el) => { if (el) videoRefs.current.set(short.id, el); else videoRefs.current.delete(short.id); }} data-short-id={short.id} src={preloadPlan.hasSrc ? short.videoUrl : undefined} preload={preloadPlan.preload} loop playsInline className="fresh-flow-video" onClick={exitImmersive} />
+              <div key={short.id} className="fresh-flow-item" data-index={index}>
+                <video
+                  ref={(el) => { if (el) videoRefs.current.set(index, el); else videoRefs.current.delete(index); }}
+                  data-short-id={short.id}
+                  src={shouldLoadSrc ? short.videoUrl : undefined}
+                  preload={shouldLoadSrc ? preload : "none"}
+                  loop
+                  playsInline
+                  className="fresh-flow-video"
+                  onClick={exitImmersive}
+                />
                 <div className="fresh-flow-overlay"><div className="fresh-flow-author-row"><span className="fresh-flow-author">{short.authorName}</span>{!isGuest && user && short.authorId !== user.id && <button className={short.isFollowingAuthor ? "fresh-flow-chip following" : "fresh-flow-chip"} onClick={() => void toggleFollow(short)}>{short.isFollowingAuthor ? "Following" : "Follow"}</button>}</div>{short.caption && <p className="fresh-flow-caption">{short.caption}</p>}</div>
-
                 <div className="fresh-flow-actions">
                   <ReactionPicker myReaction={short.myReaction} count={short.likeCount} disabled={isGuest} variant="short" onReact={(type) => void react(short, type)} />
                   <button className="fresh-flow-action-btn" onClick={() => setOpenCommentsFor(short.id)} aria-label="Comments"><span>💬</span><span>{formatCount(short.commentCount)}</span></button>
@@ -387,9 +435,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
                   <button className="fresh-flow-action-btn" onClick={() => { setAdvancedTargetId(short.id); setActionError(null); }} aria-label="More creation and collaboration actions"><span>•••</span><span>More</span></button>
                   {!isGuest && user && short.authorId !== user.id && <button className="fresh-flow-action-btn gift" onClick={() => { setGiftTargetId(short.id); setGiftError(null); }} aria-label="Send gift"><span>🎁</span><span>{totals ? formatCount(totals.count) : 0}</span></button>}
                 </div>
-
                 {advancedTargetId === short.id && <div className="fresh-flow-advanced-panel" role="dialog" aria-label="Short creation and collaboration actions" onClick={(e) => e.stopPropagation()}><div className="fresh-flow-advanced-header"><strong>Do more with this Short</strong><button onClick={() => setAdvancedTargetId(null)} aria-label="Close">×</button></div>{ADVANCED_ACTIONS.map((item) => <button key={item.id} className="fresh-flow-advanced-action" disabled={actionSending || isGuest} onClick={() => void advancedAction(short, item.id)}><span className="fresh-flow-advanced-icon">{item.icon}</span><span><strong>{item.label}</strong><small>{item.description}</small></span></button>)}{actionError && <p className="fresh-flow-inline-error" role="alert">{actionError}</p>}</div>}
-
                 {actionError && !advancedTargetId && giftTargetId !== short.id && <p className="fresh-flow-inline-error" role="alert" style={{ position: "absolute", left: 12, bottom: 12, zIndex: 5 }}>{actionError}</p>}
                 {giftTargetId === short.id && <div className="fresh-flow-gift-panel" onClick={(e) => e.stopPropagation()}><strong>Gift Fresh Coin to {short.authorName}</strong><div className="fresh-flow-gift-presets">{GIFT_PRESETS.map((preset) => <button key={preset.amountMinor} disabled={giftSending} onClick={() => void gift(short, preset.amountMinor)}>{preset.label} FRESH</button>)}</div>{giftError && <p role="alert">{giftError}</p>}<button className="fresh-flow-gift-cancel" onClick={() => setGiftTargetId(null)}>Cancel</button></div>}
               </div>
@@ -397,7 +443,6 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
           })}
         </div>
       )}
-
       {openCommentsFor && <CommentPanel targetType="short" targetId={openCommentsFor} onClose={() => setOpenCommentsFor(null)} />}
     </div>
   );
