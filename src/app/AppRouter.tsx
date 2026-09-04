@@ -1,28 +1,28 @@
 import TopBar from "./components/TopBar";
-import SideNav from "./components/SideNav";
 import BottomNav from "./components/BottomNav";
 import NotificationCenter from "./components/NotificationCenter";
 import GlobalSearchEntry from "./components/GlobalSearchEntry";
-import WorkspaceSwitcher from "./components/WorkspaceSwitcher";
-import FreshFlowMediaNav, { isFreshFlowMediaRoute } from "./components/FreshFlowMediaNav";
-import DedicatedMediaView from "./components/DedicatedMediaView";
 import { FeatureRegistry } from "./registry/FeatureRegistry";
 import { useLayout } from "./contexts/useLayout";
 import FeatureLoader from "./services/featureLoader";
+import FreshFlowHub from "../features/fresh-flow/FreshFlowHub";
+
+const isFreshFlowRoute = (route?: string) => Boolean(route && (route === "fresh-flow" || route.startsWith("fresh-flow-")));
 
 export default function AppRouter() {
   const { activeRoute } = useLayout();
-  const activeFeature = FeatureRegistry.getFeature(activeRoute);
+  const freshFlowRoute = isFreshFlowRoute(activeRoute);
   const isFreshFlowOverview = activeRoute === "fresh-flow";
-  const isDedicatedMedia = activeRoute === "shorts" || (isFreshFlowMediaRoute(activeRoute) && !isFreshFlowOverview);
+  const activeFeature = FeatureRegistry.getFeature(activeRoute);
 
-  if (isDedicatedMedia) {
+  if (freshFlowRoute) {
     return (
-      <div className="app-shell dedicated-media-shell">
-        <main className="app-content dedicated-media-content-root">
-          <DedicatedMediaView />
+      <div className="app-shell fresh-flow-app-shell">
+        <TopBar />
+        <main className="app-content fresh-flow-content-root">
+          <FreshFlowHub />
         </main>
-        <BottomNav />
+        {isFreshFlowOverview && <BottomNav />}
         <NotificationCenter />
         <GlobalSearchEntry />
       </div>
@@ -32,9 +32,7 @@ export default function AppRouter() {
   return (
     <div className="app-shell">
       <TopBar />
-      {isFreshFlowOverview && <FreshFlowMediaNav />}
       <div className="app-body">
-        <SideNav />
         <main className="app-content">
           {activeFeature ? (
             <FeatureLoader feature={activeFeature} />
@@ -42,9 +40,6 @@ export default function AppRouter() {
             <div className="empty-state">Select a workspace</div>
           )}
         </main>
-        <aside className="app-right">
-          <WorkspaceSwitcher />
-        </aside>
       </div>
       <BottomNav />
       <NotificationCenter />
