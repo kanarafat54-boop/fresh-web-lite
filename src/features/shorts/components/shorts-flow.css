@@ -9,54 +9,56 @@
   isolation: isolate;
 }
 
-/* Dedicated Shorts Flow owns the viewport. The feed is the scroll surface,
-   while controls float above it so they never reduce the video viewport. */
+/* Fresh Shorts owns the viewport. Native vertical scrolling is intentionally
+   kept on this single surface so a swipe always advances the feed by video. */
 .shorts-scroll-container {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  display: flex !important;
-  flex-direction: column !important;
-  width: 100% !important;
+  display: block !important;
+  width: 100vw !important;
   height: 100dvh !important;
   min-height: 100dvh !important;
   max-height: none !important;
   margin: 0 !important;
   padding: 0 !important;
   overflow-x: hidden !important;
-  overflow-y: auto !important;
-  overscroll-behavior-y: contain;
+  overflow-y: scroll !important;
+  overscroll-behavior-y: auto;
   overscroll-behavior-x: none;
   scroll-snap-type: y mandatory;
   scroll-snap-stop: normal;
   scroll-behavior: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  touch-action: pan-y pinch-zoom;
+  touch-action: pan-y;
   pointer-events: auto;
   background: #000;
   z-index: 1;
+  isolation: isolate;
 }
 
 .shorts-scroll-container::-webkit-scrollbar { display: none; }
 
 .short-item {
   position: relative !important;
-  flex: 0 0 100dvh !important;
-  width: 100% !important;
-  min-width: 100% !important;
-  min-height: 100dvh !important;
+  display: block !important;
+  width: 100vw !important;
+  min-width: 100vw !important;
   height: 100dvh !important;
+  min-height: 100dvh !important;
   max-height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
   scroll-snap-align: start;
   scroll-snap-stop: normal;
-  overflow: hidden;
   background: #000;
 }
 
 .short-video {
   display: block;
-  width: 100% !important;
-  height: 100% !important;
+  width: 100vw !important;
+  height: 100dvh !important;
   min-width: 100%;
   min-height: 100%;
   max-width: none !important;
@@ -64,15 +66,15 @@
   object-fit: cover;
   object-position: center;
   background: #000;
-  touch-action: pan-y;
   -webkit-user-select: none;
   user-select: none;
+  -webkit-touch-callout: none;
 }
 
-/* Keep Shorts controls above the feed without stealing the vertical swipe. */
+/* Controls float over the video; they never become a second scroll surface. */
 .shorts-toolbar,
 .shorts-search-bar {
-  position: relative;
+  position: absolute;
   z-index: 30;
 }
 
@@ -108,7 +110,7 @@
 
 @media (min-width: 760px) {
   .shorts-scroll-container {
-    width: 100% !important;
+    width: 100vw !important;
     height: 100dvh !important;
     max-width: none !important;
     margin-inline: 0 !important;
