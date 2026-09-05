@@ -2,27 +2,31 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
-      - feature/**
+    branches: ['**']
   pull_request:
-    branches:
-      - main
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js
-        uses: actions/setup-node@v4
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      - name: Install
-        run: npm ci
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
       - name: Typecheck
-        run: npm run build --if-present || npm run tsc --if-present || true
+        run: npx tsc --noEmit || true
+
       - name: Lint
-        run: npm run lint --if-present || true
-      - name: Run tests
-        run: npm test --if-present || true
+        run: npm run lint --if-present
+
+      - name: Test
+        run: npm test --if-present -- --run
+
+      - name: Build
+        run: npm run build --if-present

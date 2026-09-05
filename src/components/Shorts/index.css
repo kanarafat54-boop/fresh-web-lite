@@ -1,0 +1,28 @@
+#fresh-shorts-feed {
+  scrollbar-width: none;
+}
+
+#fresh-shorts-feed::-webkit-scrollbar {
+  display: none;
+}
+
+.short-overlay {
+  position: absolute;
+  left: 16px;
+  bottom: 32px;
+  right: 16px;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.short-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.short-author {
+  font-size: 13px;
+  opacity: 0.85;
+  margin-top: 4px;
+}

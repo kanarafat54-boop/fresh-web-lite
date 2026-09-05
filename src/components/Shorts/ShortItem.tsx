@@ -1,42 +1,63 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
-type Props = {
-  index: number;
-  title?: string;
+export type Short = {
+  id: string;
+  src: string;
   poster?: string;
-  children?: React.ReactNode;
+  title?: string;
+  author?: string;
 };
 
-export default function ShortItem({ index, title, poster, children }: Props) {
+export default function ShortItem({
+  short,
+  active,
+  muted = true,
+}: {
+  short: Short;
+  active: boolean;
+  muted?: boolean;
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (active) {
+      v.play().catch(() => {
+        /* autoplay blocked; ignore */
+      });
+    } else {
+      v.pause();
+      v.currentTime = 0;
+    }
+  }, [active]);
+
   return (
-    <div
+    <section
       className="short-item"
-      data-short-index={index}
+      data-id={short.id}
       style={{
         height: '100vh',
-        width: '100vw',
-        scrollSnapAlign: 'start' as any,
+        width: '100%',
+        scrollSnapAlign: 'start',
         position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
         background: '#000',
-        color: '#fff',
       }}
     >
-      <div style={{ position: 'absolute', inset: 0 }}>
-        {poster ? (
-          <img
-            src={poster}
-            alt={title || `short-${index}`}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        ) : null}
+      <video
+        ref={videoRef}
+        src={short.src}
+        poster={short.poster}
+        muted={muted}
+        loop
+        playsInline
+        preload="metadata"
+        style={{ height: '100%', width: '100%', objectFit: 'cover' }}
+      />
+      <div className="short-overlay">
+        <div className="short-title">{short.title}</div>
+        {short.author && <div className="short-author">@{short.author}</div>}
       </div>
-
-      <div style={{ position: 'relative', zIndex: 2, textAlign: 'center' }}>
-        {children ?? <h2>{title ?? `Short ${index + 1}`}</h2>}
-      </div>
-    </div>
+    </section>
   );
 }

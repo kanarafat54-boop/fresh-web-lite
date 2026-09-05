@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 // Observes children of a root container and returns the index of the most visible item.
-export function useVisibleIndex(rootId: string) {
+export function useVisibleIndex(rootId: string, deps: unknown[] = []) {
   const [visibleIndex, setVisibleIndex] = useState<number | null>(null);
 
   useEffect(() => {
@@ -18,14 +18,15 @@ export function useVisibleIndex(rootId: string) {
         visibleEntries.sort((a, b) => b.intersectionRatio - a.intersectionRatio);
         const top = visibleEntries[0];
         const idx = items.indexOf(top.target);
-        if (idx !== -1) setVisibleIndex(idx);
+        if (idx >= 0) setVisibleIndex(idx);
       },
-      { root, threshold: [0.25, 0.5, 0.75, 1.0] }
+      { root, threshold: [0.25, 0.5, 0.75, 0.9] }
     );
 
-    items.forEach((it) => observer.observe(it));
+    items.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [rootId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rootId, ...deps]);
 
   return visibleIndex;
 }
