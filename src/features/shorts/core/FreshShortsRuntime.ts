@@ -2,14 +2,15 @@
  * Fresh Shorts Runtime
  *
  * Feed/player orchestration primitives for the Fresh Flow Shorts surface.
- * The component remains responsible for rendering; this layer owns the
- * rules for batching, active-item selection, adaptive media preloading and
- * resource release.
+ * Rendering stays in the UI component; this layer owns batching, active-item
+ * selection, adaptive preloading, playback exclusivity, resource release and
+ * bounded recovery.
  */
 
 export const FRESH_SHORTS_PAGE_SIZE = 12;
 export const FRESH_SHORTS_PREFETCH_RADIUS = 2;
 export const FRESH_SHORTS_FETCH_AHEAD = 4;
+export const FRESH_SHORTS_MAX_RETRIES = 2;
 
 export type ShortsConnectionQuality = "fast" | "slow";
 export type ShortsPreloadMode = "auto" | "metadata" | "none";
@@ -57,15 +58,13 @@ export function isWithinMediaWindow(index: number, activeIndex: number, itemCoun
 }
 
 /**
- * Pick the most visible item.
- *
- * A sentinel of -1 is used instead of null so consumers can keep a numeric
- * active index without risking an accidental null state during scroll events.
+ * Pick the most visible item. -1 is the explicit "no active item" sentinel.
  */
 export function getActiveIndex(entries: Array<{ index: number; ratio: number }>): number {
   let best: { index: number; ratio: number } | null = null;
   for (const entry of entries) {
     if (!Number.isFinite(entry.index) || entry.index < 0) continue;
+    if (!Number.isFinite(entry.ratio) || entry.ratio < 0) continue;
     if (!best || entry.ratio > best.ratio) best = entry;
   }
   return best?.index ?? -1;
@@ -73,14 +72,17 @@ export function getActiveIndex(entries: Array<{ index: number; ratio: number }>)
 
 /**
  * Keep exactly one video playing. Nearby videos may buffer, but never play.
+ * The caller can opt into sound after a user gesture; autoplay remains muted
+ * by default so mobile browsers can start playback reliably.
  */
 export function syncVideoPlayback(
   videos: Map<number, HTMLVideoElement>,
   activeIndex: number,
+  muted = true,
 ): void {
   videos.forEach((video, index) => {
     if (index === activeIndex) {
-      video.muted = true;
+      video.muted = muted;
       void video.play().catch(() => undefined);
     } else if (!video.paused) {
       video.pause();
@@ -90,9 +92,8 @@ export function syncVideoPlayback(
 
 /**
  * Release media outside the small active/preload window.
- *
- * Avoid calling load() when the element has no source: on large feeds this
- * prevents unnecessary media-pipeline churn while the user is swiping.
+ * Avoid calling load() when the element has no source to prevent media-pipeline
+ * churn while the user is swiping.
  */
 export function releaseDistantMedia(
   videos: Map<number, HTMLVideoElement>,
@@ -100,7 +101,7 @@ export function releaseDistantMedia(
   radius = FRESH_SHORTS_PREFETCH_RADIUS,
 ): void {
   videos.forEach((video, index) => {
-    if (Math.abs(index - activeIndex) <= radius) return;
+    if (activeIndex >= 0 && Math.abs(index - activeIndex) <= radius) return;
     video.pause();
     if (video.getAttribute("src") !== null) {
       video.removeAttribute("src");
@@ -110,13 +111,18 @@ export function releaseDistantMedia(
 }
 
 /**
- * Recover a failed active video without replacing the player element. A
- * bounded retry avoids infinite retry loops on permanently invalid media.
+ * Recover a failed video without replacing its player element. The caller owns
+ * retry counters so recovery remains bounded per feed item.
  */
-export function retryVideo(video: HTMLVideoElement, retryCount: number, maxRetries = 2): boolean {
-  if (retryCount >= maxRetries) return false;
+export function retryVideo(
+  video: HTMLVideoElement,
+  retryCount: number,
+  maxRetries = FRESH_SHORTS_MAX_RETRIES,
+): boolean {
+  if (retryCount < 0 || retryCount >= maxRetries) return false;
   const src = video.getAttribute("src");
   if (!src) return false;
+
   video.load();
   void video.play().catch(() => undefined);
   return true;
