@@ -1,0 +1,58 @@
+.weather-root {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.weather-panel {
+  max-width: 980px;
+  width: 100%;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 8px 30px rgba(2,6,23,0.08);
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.controls input {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+}
+
+.controls button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #0ea5e9;
+  color: white;
+  cursor: pointer;
+}
+
+.error {
+  margin-top: 12px;
+  color: #b91c1c;
+}
+
+.daily-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.daily-card {
+  background: #fff;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #eef2f7;
+  box-shadow: 0 4px 10px rgba(2,6,23,0.03);
+  text-align: center;
+}

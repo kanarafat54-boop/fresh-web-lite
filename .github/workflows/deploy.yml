@@ -1,0 +1,15 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Vercel (placeholder)
+        run: |
+          echo "Deployment scaffold — configure VERCEL_TOKEN in repo secrets and integrate Vercel or other host."
