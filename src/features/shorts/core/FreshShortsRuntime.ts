@@ -3,12 +3,16 @@
  *
  * Feed/player orchestration primitives for the Fresh Flow Shorts surface.
  * The component remains responsible for rendering; this layer owns the
- * rules for batching, active-item selection and media preloading.
+ * rules for batching, active-item selection, adaptive media preloading and
+ * resource release.
  */
 
 export const FRESH_SHORTS_PAGE_SIZE = 12;
 export const FRESH_SHORTS_PREFETCH_RADIUS = 2;
 export const FRESH_SHORTS_FETCH_AHEAD = 4;
+
+export type ShortsConnectionQuality = "fast" | "slow";
+export type ShortsPreloadMode = "auto" | "metadata" | "none";
 
 export type ShortsRuntimeState = {
   activeIndex: number;
@@ -30,6 +34,26 @@ export function getMediaWindow(activeIndex: number, itemCount: number): Set<numb
 export function shouldFetchNextPage(activeIndex: number, itemCount: number, hasMore: boolean): boolean {
   if (!hasMore || itemCount <= 0 || activeIndex < 0) return false;
   return activeIndex >= Math.max(0, itemCount - FRESH_SHORTS_FETCH_AHEAD);
+}
+
+/**
+ * Choose a preload policy that favors instant playback without keeping a large
+ * number of decoders active. Fast connections prepare the next item; slower
+ * connections keep the next item metadata-only.
+ */
+export function getPreloadMode(
+  index: number,
+  activeIndex: number,
+  connection: ShortsConnectionQuality,
+): ShortsPreloadMode {
+  if (index === activeIndex) return "auto";
+  if (index === activeIndex + 1) return connection === "fast" ? "auto" : "metadata";
+  return "none";
+}
+
+/** Whether an index is inside the small runtime-managed media window. */
+export function isWithinMediaWindow(index: number, activeIndex: number, itemCount: number): boolean {
+  return getMediaWindow(activeIndex, itemCount).has(index);
 }
 
 /**
@@ -83,4 +107,17 @@ export function releaseDistantMedia(
       video.load();
     }
   });
+}
+
+/**
+ * Recover a failed active video without replacing the player element. A
+ * bounded retry avoids infinite retry loops on permanently invalid media.
+ */
+export function retryVideo(video: HTMLVideoElement, retryCount: number, maxRetries = 2): boolean {
+  if (retryCount >= maxRetries) return false;
+  const src = video.getAttribute("src");
+  if (!src) return false;
+  video.load();
+  void video.play().catch(() => undefined);
+  return true;
 }
