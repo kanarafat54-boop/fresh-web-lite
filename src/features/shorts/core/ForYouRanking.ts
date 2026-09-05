@@ -4,6 +4,7 @@ const HOUR_MS = 60 * 60 * 1000;
 const RECENCY_HALF_LIFE_HOURS = 30; // score halves roughly every 30h since posting
 const SEEN_PENALTY = 0.35;
 const EXPLORATION_JITTER = 0.08;
+const AUTHOR_DIVERSITY_PENALTY = 0.22;
 
 function engagementRate(short: Short): number {
   const denominator = Math.max(short.viewCount, 1);
@@ -42,6 +43,38 @@ export function scoreShort(short: Short, viewedIds: ReadonlySet<string>): number
   return score;
 }
 
+/**
+ * Rank a candidate batch with soft author diversity.
+ *
+ * High-quality items still win, but repeated items from the same creator get
+ * a small diminishing penalty. This prevents a single creator from occupying
+ * most of a session while keeping the ranking deterministic.
+ */
 export function rankForYou(shorts: readonly Short[], viewedIds: ReadonlySet<string>): Short[] {
-  return [...shorts].sort((a, b) => scoreShort(b, viewedIds) - scoreShort(a, viewedIds));
+  const remaining = shorts.map((short) => ({ short, baseScore: scoreShort(short, viewedIds) }));
+  const ranked: Short[] = [];
+  const authorCounts = new Map<string, number>();
+
+  while (remaining.length > 0) {
+    let bestIndex = 0;
+    let bestScore = Number.NEGATIVE_INFINITY;
+
+    for (let index = 0; index < remaining.length; index += 1) {
+      const candidate = remaining[index];
+      const authorCount = authorCounts.get(candidate.short.authorId) ?? 0;
+      const diversityPenalty = authorCount * AUTHOR_DIVERSITY_PENALTY;
+      const score = candidate.baseScore - diversityPenalty;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestIndex = index;
+      }
+    }
+
+    const [selected] = remaining.splice(bestIndex, 1);
+    ranked.push(selected.short);
+    authorCounts.set(selected.short.authorId, (authorCounts.get(selected.short.authorId) ?? 0) + 1);
+  }
+
+  return ranked;
 }
