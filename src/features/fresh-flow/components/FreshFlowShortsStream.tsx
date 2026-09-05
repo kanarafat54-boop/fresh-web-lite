@@ -105,6 +105,9 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
   const immersiveTriggeredRef = useRef(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [connectionQuality, setConnectionQuality] = useState<ConnectionQuality>(() => getConnectionQuality());
+  const [muted, setMuted] = useState(true);
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+  const [loadedIndices, setLoadedIndices] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const connection = (navigator as any).connection;
@@ -112,6 +115,17 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
     const handler = () => setConnectionQuality(getConnectionQuality());
     connection.addEventListener("change", handler);
     return () => connection.removeEventListener("change", handler);
+  }, []);
+
+  useEffect(() => {
+    const goOnline = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
   }, []);
 
   useEffect(() => {
@@ -168,7 +182,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
   };
 
   const loadMore = async () => {
-    if (loadMoreInFlightRef.current || !hasMore || subTab === "fresh-picks") return;
+    if (loadMoreInFlightRef.current || !hasMore || subTab === "fresh-picks" || !navigator.onLine) return;
     loadMoreInFlightRef.current = true;
     const nextPage = pageRef.current + 1;
     try {
@@ -213,8 +227,8 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
     releaseDistantMedia(videos, currentIndex, FRESH_SHORTS_PREFETCH_RADIUS);
     const activeShort = shorts[currentIndex];
     if (activeShort && !viewedRef.current.has(activeShort.id)) { viewedRef.current.add(activeShort.id); void supabase.rpc("increment_short_views", { short_id_input: activeShort.id }); }
-    if (shouldFetchNextPage(currentIndex, shorts.length, hasMore)) void loadMore();
-  }, [currentIndex, shorts.length, hasMore]);
+    if (isOnline && shouldFetchNextPage(currentIndex, shorts.length, hasMore)) void loadMore();
+  }, [currentIndex, shorts.length, hasMore, isOnline]);
 
   const handleVideoError = (index: number) => {
     const video = videoRefs.current.get(index);
@@ -286,6 +300,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
       {filterOpen && <div className="fresh-flow-filter-panel" aria-label="Fresh Flow filters and models"><span className="fresh-flow-filter-title">Refine this Short Flow</span>{FILTERS.map((item) => <button key={item.id} className={filterMode === item.id ? "fresh-flow-filter-chip active" : "fresh-flow-filter-chip"} onClick={() => { setFilterMode(item.id); setFilterOpen(false); }} aria-pressed={filterMode === item.id}>{item.label}</button>)}<span className="fresh-flow-filter-title">Models: adaptive ranking • interest signals • social graph</span></div>}
       {subTab === "fresh-picks" ? <p className="fresh-flow-empty">Fresh Picks is scoped but not built yet — it needs a real editorial curation system, which doesn't exist on the platform yet.</p> : loading ? <p className="fresh-flow-empty">Loading Fresh Flow…</p> : error ? <p className="fresh-flow-empty" role="alert">{error}</p> : shorts.length === 0 ? <p className="fresh-flow-empty">{filterMode === "social" ? "Follow or connect with people to see their Shorts here." : "Nothing here yet."}</p> : (
         <div className="fresh-flow-stream" ref={containerRef}>
+          {!isOnline && <div className="fresh-flow-offline-banner" role="status">You're offline — showing what's already loaded.</div>}
           {shorts.map((short, index) => {
             const totals = giftTotals.get(short.id);
             const inMediaWindow = mediaWindow.has(index);
@@ -294,7 +309,8 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
             const shouldLoadSrc = inMediaWindow && (index <= currentIndex + 1 || (connectionQuality === "fast" && distance === 2));
             return (
               <div key={short.id} className="fresh-flow-item" data-index={index}>
-                <video ref={(el) => { if (el) videoRefs.current.set(index, el); else { videoRefs.current.delete(index); retryCountsRef.current.delete(index); } }} data-short-id={short.id} src={shouldLoadSrc ? short.videoUrl : undefined} preload={shouldLoadSrc ? preload : "none"} loop playsInline className="fresh-flow-video" onClick={exitImmersive} onError={() => handleVideoError(index)} />
+                <video ref={(el) => { if (el) videoRefs.current.set(index, el); else { videoRefs.current.delete(index); retryCountsRef.current.delete(index); } }} data-short-id={short.id} src={shouldLoadSrc ? short.videoUrl : undefined} preload={shouldLoadSrc ? preload : "none"} loop playsInline muted={muted} className="fresh-flow-video" onClick={exitImmersive} onError={() => handleVideoError(index)} onLoadedData={() => setLoadedIndices((prev) => (prev.has(index) ? prev : new Set(prev).add(index)))} />
+                {shouldLoadSrc && !loadedIndices.has(index) && <div className="fresh-flow-video-skeleton" aria-hidden="true" />}
                 <div className="fresh-flow-overlay"><div className="fresh-flow-author-row"><span className="fresh-flow-author">{short.authorName}</span>{!isGuest && user && short.authorId !== user.id && <button className={short.isFollowingAuthor ? "fresh-flow-chip following" : "fresh-flow-chip"} onClick={() => void toggleFollow(short)}>{short.isFollowingAuthor ? "Following" : "Follow"}</button>}</div>{short.caption && <p className="fresh-flow-caption">{short.caption}</p>}</div>
                 <div className="fresh-flow-actions">
                   <ReactionPicker myReaction={short.myReaction} count={short.likeCount} disabled={isGuest} variant="short" onReact={(type) => void react(short, type)} />
@@ -304,6 +320,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
                   <button className={savedIds.has(short.id) ? "fresh-flow-action-btn saved" : "fresh-flow-action-btn"} onClick={() => void toggleSave(short)} disabled={isGuest} aria-label="Save"><span>🔖</span><span>{savedIds.has(short.id) ? "Saved" : "Save"}</span></button>
                   <button className="fresh-flow-action-btn" onClick={() => { setAdvancedTargetId(short.id); setActionError(null); }} aria-label="More creation and collaboration actions"><span>•••</span><span>More</span></button>
                   {!isGuest && user && short.authorId !== user.id && <button className="fresh-flow-action-btn gift" onClick={() => { setGiftTargetId(short.id); setGiftError(null); }} aria-label="Send gift"><span>🎁</span><span>{totals ? formatCount(totals.count) : 0}</span></button>}
+                  <button className="fresh-flow-action-btn" onClick={() => setMuted((m) => !m)} aria-label={muted ? "Unmute" : "Mute"}><span>{muted ? "🔇" : "🔊"}</span></button>
                 </div>
                 {advancedTargetId === short.id && <div className="fresh-flow-advanced-panel" role="dialog" aria-label="Short creation and collaboration actions" onClick={(e) => e.stopPropagation()}><div className="fresh-flow-advanced-header"><strong>Do more with this Short</strong><button onClick={() => setAdvancedTargetId(null)} aria-label="Close">×</button></div>{ADVANCED_ACTIONS.map((item) => <button key={item.id} className="fresh-flow-advanced-action" disabled={actionSending || isGuest} onClick={() => void advancedAction(short, item.id)}><span className="fresh-flow-advanced-icon">{item.icon}</span><span><strong>{item.label}</strong><small>{item.description}</small></span></button>)}{actionError && <p className="fresh-flow-inline-error" role="alert">{actionError}</p>}</div>}
                 {actionError && !advancedTargetId && giftTargetId !== short.id && <p className="fresh-flow-inline-error" role="alert" style={{ position: "absolute", left: 12, bottom: 12, zIndex: 5 }}>{actionError}</p>}
@@ -311,6 +328,14 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
               </div>
             );
           })}
+          {!hasMore && shorts.length > 0 && (
+            <div className="fresh-flow-item fresh-flow-end-item">
+              <div className="fresh-flow-end-message">
+                <strong>You're all caught up</strong>
+                <p>Check back soon for more Fresh Shorts.</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
       {openCommentsFor && <CommentPanel targetType="short" targetId={openCommentsFor} onClose={() => setOpenCommentsFor(null)} />}
