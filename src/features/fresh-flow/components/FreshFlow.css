@@ -96,3 +96,11 @@
 @media (min-width: 760px) { .fresh-flow-item { padding: 12px 20px; background: #030408; } .fresh-flow-video { border: 1px solid rgba(255,255,255,0.12); border-radius: 28px; } .fresh-flow-item::after { inset: 12px 20px; border-radius: 28px; } }
 @media (max-width: 760px) { .fresh-flow-subtabs { padding: 8px 10px; } .fresh-flow-subtab { min-height: 40px; padding: 7px 12px; font-size: 0.8rem; } .fresh-flow-subtab.filter { margin-left: 0; } .fresh-flow-actions { right: 10px; gap: 7px; } .fresh-flow-action-btn { min-width: 48px; min-height: 48px; border-radius: 17px; } }
 @media (prefers-reduced-motion: reduce) { .fresh-flow-stream { scroll-behavior: auto; } .fresh-flow-action-btn, .fresh-flow-subtab, .fresh-flow-subtabs, .fresh-flow-media-nav-top { transition: none; } }
+
+.fresh-flow-video-skeleton { position: absolute; inset: 0; z-index: 2; background: linear-gradient(110deg, #0c0e14 8%, #171a22 18%, #0c0e14 33%); background-size: 200% 100%; animation: fresh-flow-shimmer 1.6s linear infinite; }
+@keyframes fresh-flow-shimmer { to { background-position-x: -200%; } }
+.fresh-flow-offline-banner { position: sticky; top: 0; z-index: 9; padding: 8px 14px; text-align: center; font-size: 0.82rem; color: #ffcf6b; background: rgba(120,80,10,0.35); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.fresh-flow-end-item { display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 40%, rgba(111,48,255,0.16), transparent 60%), #07080d; }
+.fresh-flow-end-message { text-align: center; color: #fff; max-width: 260px; }
+.fresh-flow-end-message strong { display: block; font-size: 1.05rem; margin-bottom: 6px; }
+.fresh-flow-end-message p { margin: 0; opacity: 0.7; font-size: 0.85rem; }
