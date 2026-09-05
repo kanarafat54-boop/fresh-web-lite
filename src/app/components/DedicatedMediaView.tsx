@@ -1,7 +1,6 @@
 import { useLayout } from "../contexts/useLayout";
 import { FeatureRegistry } from "../registry/FeatureRegistry";
 import FeatureLoader from "../services/featureLoader";
-import { ShortsModule } from "../../features/shorts/components/ShortsModule";
 import "./DedicatedMediaView.css";
 
 const MEDIA_META: Record<string, { title: string; description: string }> = {
@@ -14,10 +13,6 @@ const MEDIA_META: Record<string, { title: string; description: string }> = {
 
 export default function DedicatedMediaView() {
   const { activeRoute, setActiveRoute } = useLayout();
-
-  if (activeRoute === "shorts") {
-    return <ShortsModule onExit={() => setActiveRoute("fresh-flow")} />;
-  }
 
   const feature = activeRoute ? FeatureRegistry.getFeature(activeRoute) : undefined;
   if (feature) return <FeatureLoader feature={feature} />;
