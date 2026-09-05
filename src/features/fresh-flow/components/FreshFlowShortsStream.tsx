@@ -160,7 +160,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
         if (!user || isGuest) candidates = [];
         else { const socialIds = new Set(await getSocialAuthorIds(user.id)); candidates = candidates.filter((s) => socialIds.has(s.authorId)); }
       }
-      const ranked = tab === "trending" ? rankTrending(candidates) : tab === "for-you" ? rankForYou(candidates, new Set()) : rankFreshFlow(candidates);
+      const ranked = tab === "trending" ? rankTrending(candidates) : tab === "for-you" ? rankForYou(candidates, viewedRef.current) : rankFreshFlow(candidates);
       setShorts(ranked); setSavedIds(result.savedIds); setGiftTotals(await getGiftTotals(ranked.map((s) => s.id))); setHasMore(result.shorts.length >= 24);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to load Fresh Flow.");
@@ -181,7 +181,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
         if (!user || isGuest) candidates = [];
         else { const socialIds = new Set(await getSocialAuthorIds(user.id)); candidates = candidates.filter((s) => socialIds.has(s.authorId)); }
       }
-      const ranked = subTab === "trending" ? rankTrending(candidates) : subTab === "for-you" ? rankForYou(candidates, new Set()) : rankFreshFlow(candidates);
+      const ranked = subTab === "trending" ? rankTrending(candidates) : subTab === "for-you" ? rankForYou(candidates, viewedRef.current) : rankFreshFlow(candidates);
       setShorts((current) => { const existing = new Set(current.map((s) => s.id)); return [...current, ...ranked.filter((s) => !existing.has(s.id))]; });
       pageRef.current = nextPage; setHasMore(result.shorts.length >= 24);
     } catch {
