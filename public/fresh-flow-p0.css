@@ -1,0 +1,17 @@
+/* Fresh Flow P0 layout guard.
+ * The offline status must overlay the vertical stream, never become a scroll-snap item.
+ * Scoped only to Fresh Flow Shorts; Long Videos and other media are untouched.
+ */
+.fresh-flow-stream {
+  position: relative;
+}
+
+.fresh-flow-offline-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  box-sizing: border-box;
+  pointer-events: none;
+}
