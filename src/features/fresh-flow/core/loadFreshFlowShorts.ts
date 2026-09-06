@@ -1,15 +1,13 @@
 import { supabase } from "../../../lib/supabase";
 import type { Short } from "../../shorts/types/short";
 
+export const FRESH_FLOW_SHORTS_PAGE_SIZE = 24;
+
 export type FreshFlowLoadResult = {
   shorts: Short[];
   savedIds: Set<string>;
 };
 
-/**
- * Independent data loader for Fresh Flow. Reads the same underlying Shorts
- * data as the dedicated Shorts tab, but remains decoupled from ShortsModule.
- */
 export type FreshFlowLoadOptions = {
   category?: "learn" | "relax";
   authorIds?: string[];
@@ -22,13 +20,13 @@ export async function loadFreshFlowShorts(
   isGuest: boolean,
   options: FreshFlowLoadOptions = {},
 ): Promise<FreshFlowLoadResult> {
-  const limit = options.limit ?? 30;
+  const limit = options.limit ?? FRESH_FLOW_SHORTS_PAGE_SIZE;
   const offset = options.offset ?? 0;
   let query = supabase
     .from("shorts")
     .select("id, author_id, caption, sound_name, chapters, video_url, like_count, comment_count, view_count, repost_count, created_at")
     .order("created_at", { ascending: false })
-    .range(offset, offset + (limit * 2) - 1); // fetch extra so ranking has room to reorder
+    .range(offset, offset + limit - 1);
 
   if (options.category) query = query.eq("category", options.category);
   if (options.authorIds) {
