@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLayout } from "../../app/contexts/useLayout";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
+import { getWalletSummary, formatWalletBalance, type WalletSummary } from "./core/walletService";
 import FreshFlowShortsExperience from "./components/FreshFlowShortsExperience";
 import FreshFlowNewsPosts from "./components/FreshFlowNewsPosts";
 import FreshFlowMediaWorkspace from "./components/FreshFlowMediaWorkspace";
@@ -35,11 +36,23 @@ const SECTION_COPY = {
 
 export default function FreshFlowHub() {
   const { activeRoute, setActiveRoute, toggleSidebar, notifications, openNotifications, openSearch } = useLayout();
-  const { isAuthenticated } = useFreshId();
+  const { isAuthenticated, user, isGuest } = useFreshId();
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
   const isOverview = section === "fresh-flow";
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
+
+  // undefined = loading, null = no wallet row yet (or guest), WalletSummary = real balance.
+  const [wallet, setWallet] = useState<WalletSummary | null | undefined>(undefined);
+  useEffect(() => {
+    if (!user?.id || isGuest) { setWallet(null); return; }
+    let cancelled = false;
+    getWalletSummary(user.id)
+      .then((summary) => { if (!cancelled) setWallet(summary); })
+      .catch(() => { if (!cancelled) setWallet(null); });
+    return () => { cancelled = true; };
+  }, [user?.id, isGuest]);
+  const walletLabel = wallet === undefined ? "Loading…" : wallet ? formatWalletBalance(wallet) : "Open wallet";
 
   const openTopicSearch = (tag: string) => {
     setSearchSeed({ tab: "topics", query: tag });
@@ -81,7 +94,7 @@ export default function FreshFlowHub() {
           <span className="fresh-flow-card-arrow" aria-hidden="true">›</span>
         </button>
         <button type="button" className="fresh-flow-wallet-card" onClick={() => setActiveRoute("wallet")} aria-label="Open My Wallet">
-          <span><strong>My Wallet</strong><small>Open wallet</small></span><span className="fresh-flow-wallet-icon" aria-hidden="true">▣</span><span className="fresh-flow-card-arrow" aria-hidden="true">›</span>
+          <span><strong>My Wallet</strong><small>{walletLabel}</small></span><span className="fresh-flow-wallet-icon" aria-hidden="true">▣</span><span className="fresh-flow-card-arrow" aria-hidden="true">›</span>
         </button>
       </header>
 
