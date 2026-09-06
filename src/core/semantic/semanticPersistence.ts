@@ -1,4 +1,5 @@
 import type { SemanticClaim, SemanticEvidence } from "./types";
+import type { TruthDecision } from "./truthDecisionOrchestrator";
 
 export interface SemanticPersistence {
   persistResearchGraph(input: {
@@ -9,6 +10,7 @@ export interface SemanticPersistence {
     claimEvidence: Array<{ claimId: string; evidenceId: string; stance: "supports" | "contradicts" | "uncertain"; stanceConfidence?: number }>;
     relations: Array<{ leftClaimId: string; rightClaimId: string; relation: "same" | "supports" | "contradicts" | "unrelated" | "conditional_contradiction"; confidence: number; rationale?: string }>;
     arbitrations: Array<{ leftClaimId: string; rightClaimId: string; decision: string; confidence: number; rationale: string; requiresHumanReview?: boolean; retainedClaimIds?: string[]; supersededClaimIds?: string[] }>;
+    truthDecisions: TruthDecision[];
   }): Promise<void>;
 }
 
