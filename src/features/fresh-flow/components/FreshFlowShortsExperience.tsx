@@ -2,9 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { useLayout } from "../../../app/contexts/useLayout";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import FreshFlowShortsStream from "./FreshFlowShortsStream";
+import { recordFreshShortsTelemetry } from "../core/shortsTelemetry";
 import "./FreshFlowShortsExperience.css";
 
 type Props = { onOpenTopic?: (tag: string) => void };
+
+function getConnectionType(): string | undefined {
+  const connection = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection;
+  return connection?.effectiveType;
+}
 
 /**
  * The landing feed stays intact until the active Short has actually started
@@ -23,6 +29,8 @@ export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
   const triggeredIdsRef = useRef<Set<string>>(new Set());
   const watchedVideoIdsRef = useRef<Map<HTMLVideoElement, string>>(new Map());
   const watchingVideoRef = useRef<HTMLVideoElement | null>(null);
+  const startedAtRef = useRef<Map<string, number>>(new Map());
+  const firstFrameIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const clearTimer = () => {
@@ -45,6 +53,7 @@ export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
         }
         triggeredIdsRef.current.add(shortId);
         setImmersive(true);
+        recordFreshShortsTelemetry({ event: "immersive_enter", shortId, connection: getConnectionType(), online: navigator.onLine });
         timerRef.current = null;
       }, 5000);
     };
@@ -56,7 +65,42 @@ export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
       }
     };
 
-    const onPlaying = (event: Event) => beginWatchTimer(event.currentTarget as HTMLVideoElement);
+    const onPlaying = (event: Event) => {
+      const video = event.currentTarget as HTMLVideoElement;
+      const shortId = video.dataset.shortId;
+      if (shortId) {
+        const startedAt = startedAtRef.current.get(shortId);
+        if (!startedAt) {
+          startedAtRef.current.set(shortId, performance.now());
+          recordFreshShortsTelemetry({ event: "playback_start", shortId, connection: getConnectionType(), online: navigator.onLine });
+        } else {
+          recordFreshShortsTelemetry({ event: "buffer_end", shortId, durationMs: Math.round(performance.now() - startedAt), connection: getConnectionType(), online: navigator.onLine });
+        }
+      }
+      beginWatchTimer(video);
+    };
+
+    const onLoadedData = (event: Event) => {
+      const video = event.currentTarget as HTMLVideoElement;
+      const shortId = video.dataset.shortId;
+      if (!shortId || firstFrameIdsRef.current.has(shortId)) return;
+      firstFrameIdsRef.current.add(shortId);
+      const startedAt = startedAtRef.current.get(shortId);
+      recordFreshShortsTelemetry({ event: "first_frame", shortId, durationMs: startedAt ? Math.round(performance.now() - startedAt) : undefined, connection: getConnectionType(), online: navigator.onLine });
+    };
+
+    const onWaiting = (event: Event) => {
+      const video = event.currentTarget as HTMLVideoElement;
+      const shortId = video.dataset.shortId;
+      if (shortId) recordFreshShortsTelemetry({ event: "buffer_start", shortId, value: video.currentTime, connection: getConnectionType(), online: navigator.onLine });
+    };
+
+    const onError = (event: Event) => {
+      const video = event.currentTarget as HTMLVideoElement;
+      const shortId = video.dataset.shortId;
+      if (shortId) recordFreshShortsTelemetry({ event: "playback_error", shortId, metadata: { code: video.error?.code ?? null }, connection: getConnectionType(), online: navigator.onLine });
+    };
+
     const onPause = (event: Event) => stopWatchTimer(event.currentTarget as HTMLVideoElement);
     const onEnded = (event: Event) => stopWatchTimer(event.currentTarget as HTMLVideoElement);
 
@@ -64,6 +108,9 @@ export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
       if (watchedVideoIdsRef.current.has(video)) return;
       watchedVideoIdsRef.current.set(video, video.dataset.shortId ?? "");
       video.addEventListener("playing", onPlaying);
+      video.addEventListener("loadeddata", onLoadedData);
+      video.addEventListener("waiting", onWaiting);
+      video.addEventListener("error", onError);
       video.addEventListener("pause", onPause);
       video.addEventListener("ended", onEnded);
     };
@@ -100,6 +147,9 @@ export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
       window.clearInterval(interval);
       watchedVideoIdsRef.current.forEach((_id, video) => {
         video.removeEventListener("playing", onPlaying);
+        video.removeEventListener("loadeddata", onLoadedData);
+        video.removeEventListener("waiting", onWaiting);
+        video.removeEventListener("error", onError);
         video.removeEventListener("pause", onPause);
         video.removeEventListener("ended", onEnded);
       });
