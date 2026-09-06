@@ -117,6 +117,20 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
         const { error } = await client.from("fresh_intelligence_arbitrations").insert(rows);
         if (error) throw error;
       }
+
+      if (input.truthDecisions.length) {
+        const rows = input.truthDecisions.map((decision) => ({
+          claim_id: decision.claimId,
+          decision: decision.decision,
+          actionable: decision.actionable,
+          calibrated_confidence: decision.calibration.confidence,
+          temporal_status: decision.assessment.status,
+          reasons: decision.reasons,
+          assessed_at: decision.calibration.assessedAt,
+        }));
+        const { error } = await client.from("fresh_intelligence_truth_decisions").insert(rows);
+        if (error) throw error;
+      }
     },
   };
 }
