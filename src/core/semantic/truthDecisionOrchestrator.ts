@@ -1,7 +1,7 @@
-import type { SemanticClaim, SemanticEvidence } from "./types";
-import { assessTemporalTruth, isActionableTemporalTruth, type TemporalTruthAssessment } from "./temporalTruth";
-import { calibrateClaimConfidence, type CalibratedConfidence } from "./confidenceCalibration";
-import type { ProvenanceEdge, ProvenanceNode } from "./sourceProvenance";
+import type { SemanticClaim, SemanticEvidence } from "./types.js";
+import { assessTemporalTruth, isActionableTemporalTruth, type TemporalTruthAssessment } from "./temporalTruth.js";
+import { calibrateClaimConfidence, type CalibratedConfidence } from "./confidenceCalibration.js";
+import type { ProvenanceEdge, ProvenanceNode } from "./sourceProvenance.js";
 
 export type TruthDecision = {
   claimId: string;
