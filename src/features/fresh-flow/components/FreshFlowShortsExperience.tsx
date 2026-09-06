@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLayout } from "../../../app/contexts/useLayout";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import FreshFlowShortsStream from "./FreshFlowShortsStream";
+import "./FreshFlowShortsExperience.css";
 
 type Props = { onOpenTopic?: (tag: string) => void };
 
@@ -71,9 +72,6 @@ export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
       const videos = Array.from(document.querySelectorAll<HTMLVideoElement>(".fresh-flow-stream video[data-short-id]"));
       videos.forEach(attach);
 
-      // Pick the video occupying the largest portion of the viewport. This
-      // makes the five-second rule follow the user's actual Short, not a
-      // prefetched video that happens to be playing in the DOM.
       let active: HTMLVideoElement | null = null;
       let bestRatio = 0;
       videos.forEach((video) => {
@@ -87,8 +85,6 @@ export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
       if (active) beginWatchTimer(active);
       else stopWatchTimer();
 
-      // The existing Short action rail owns the real gift transaction. A
-      // shortcut is only shown when that rail is absent (e.g. guest/self view).
       const hasNativeGift = Boolean(document.querySelector('.fresh-flow-stream button[aria-label="Send gift"]'));
       setGiftShortcutVisible(!hasNativeGift);
     };
@@ -123,11 +119,8 @@ export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
       nativeGift.click();
       return;
     }
-    if (isGuest) {
-      setActiveRoute("auth-signin");
-    } else {
-      window.alert("Gift actions are unavailable when viewing your own Short.");
-    }
+    if (isGuest) setActiveRoute("auth-signin");
+    else window.alert("Gift actions are unavailable when viewing your own Short.");
   };
 
   return (
