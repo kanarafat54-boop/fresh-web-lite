@@ -1,20 +1,27 @@
 import { useEffect, useRef, useState } from "react";
+import { useLayout } from "../../../app/contexts/useLayout";
+import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import FreshFlowShortsStream from "./FreshFlowShortsStream";
 
 type Props = { onOpenTopic?: (tag: string) => void };
 
 /**
- * Keeps the landing feed intact until a Short is genuinely playing. After
- * five seconds of continuous playback of the same Short, that Short expands
- * into a full-page viewing surface. The back control returns to the landing
- * shell; the stream is remounted so its discovery tabs are restored.
+ * The landing feed stays intact until the active Short has actually started
+ * playing. We watch the real HTMLMediaElement state as a fallback to the
+ * `playing` event because some mobile browsers can attach/play a video before
+ * React's listener is installed. Five continuous seconds then opens the
+ * Short as a full-page surface with a persistent back control.
  */
 export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
+  const { setActiveRoute } = useLayout();
+  const { isGuest } = useFreshId();
   const [immersive, setImmersive] = useState(false);
   const [streamKey, setStreamKey] = useState(0);
+  const [giftShortcutVisible, setGiftShortcutVisible] = useState(true);
   const timerRef = useRef<number | null>(null);
   const triggeredIdsRef = useRef<Set<string>>(new Set());
   const watchedVideoIdsRef = useRef<Map<HTMLVideoElement, string>>(new Map());
+  const watchingVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     const clearTimer = () => {
@@ -25,41 +32,71 @@ export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
     };
 
     const beginWatchTimer = (video: HTMLVideoElement) => {
-      clearTimer();
       const shortId = video.dataset.shortId;
       if (!shortId || triggeredIdsRef.current.has(shortId)) return;
-
+      if (watchingVideoRef.current === video && timerRef.current !== null) return;
+      clearTimer();
+      watchingVideoRef.current = video;
       timerRef.current = window.setTimeout(() => {
+        if (video.paused || video.ended || video.currentTime <= 0) {
+          clearTimer();
+          return;
+        }
         triggeredIdsRef.current.add(shortId);
         setImmersive(true);
         timerRef.current = null;
       }, 5000);
     };
 
-    const onPlaying = (event: Event) => {
-      const video = event.currentTarget as HTMLVideoElement;
-      beginWatchTimer(video);
+    const stopWatchTimer = (video?: HTMLVideoElement) => {
+      if (!video || watchingVideoRef.current === video) {
+        clearTimer();
+        watchingVideoRef.current = null;
+      }
     };
 
-    const onPause = () => clearTimer();
+    const onPlaying = (event: Event) => beginWatchTimer(event.currentTarget as HTMLVideoElement);
+    const onPause = (event: Event) => stopWatchTimer(event.currentTarget as HTMLVideoElement);
+    const onEnded = (event: Event) => stopWatchTimer(event.currentTarget as HTMLVideoElement);
 
     const attach = (video: HTMLVideoElement) => {
       if (watchedVideoIdsRef.current.has(video)) return;
       watchedVideoIdsRef.current.set(video, video.dataset.shortId ?? "");
       video.addEventListener("playing", onPlaying);
       video.addEventListener("pause", onPause);
-      video.addEventListener("ended", onPause);
-      if (!video.paused) beginWatchTimer(video);
+      video.addEventListener("ended", onEnded);
     };
 
     const scan = () => {
-      document.querySelectorAll<HTMLVideoElement>(".fresh-flow-stream video[data-short-id]").forEach(attach);
+      const videos = Array.from(document.querySelectorAll<HTMLVideoElement>(".fresh-flow-stream video[data-short-id]"));
+      videos.forEach(attach);
+
+      // Pick the video occupying the largest portion of the viewport. This
+      // makes the five-second rule follow the user's actual Short, not a
+      // prefetched video that happens to be playing in the DOM.
+      let active: HTMLVideoElement | null = null;
+      let bestRatio = 0;
+      videos.forEach((video) => {
+        if (video.paused || video.ended || video.currentTime <= 0) return;
+        const rect = video.getBoundingClientRect();
+        const visibleHeight = Math.max(0, Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0));
+        const ratio = rect.height > 0 ? visibleHeight / rect.height : 0;
+        if (ratio > bestRatio) { bestRatio = ratio; active = video; }
+      });
+
+      if (active) beginWatchTimer(active);
+      else stopWatchTimer();
+
+      // The existing Short action rail owns the real gift transaction. A
+      // shortcut is only shown when that rail is absent (e.g. guest/self view).
+      const hasNativeGift = Boolean(document.querySelector('.fresh-flow-stream button[aria-label="Send gift"]'));
+      setGiftShortcutVisible(!hasNativeGift);
     };
 
     scan();
     const observer = new MutationObserver(scan);
     observer.observe(document.body, { childList: true, subtree: true });
-    const interval = window.setInterval(scan, 500);
+    const interval = window.setInterval(scan, 250);
 
     return () => {
       clearTimer();
@@ -68,9 +105,10 @@ export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
       watchedVideoIdsRef.current.forEach((_id, video) => {
         video.removeEventListener("playing", onPlaying);
         video.removeEventListener("pause", onPause);
-        video.removeEventListener("ended", onPause);
+        video.removeEventListener("ended", onEnded);
       });
       watchedVideoIdsRef.current.clear();
+      watchingVideoRef.current = null;
     };
   }, [streamKey]);
 
@@ -79,9 +117,28 @@ export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
     setStreamKey((key) => key + 1);
   };
 
+  const openGift = () => {
+    const nativeGift = document.querySelector<HTMLButtonElement>('.fresh-flow-stream button[aria-label="Send gift"]');
+    if (nativeGift) {
+      nativeGift.click();
+      return;
+    }
+    if (isGuest) {
+      setActiveRoute("auth-signin");
+    } else {
+      window.alert("Gift actions are unavailable when viewing your own Short.");
+    }
+  };
+
   return (
     <div className={immersive ? "fresh-flow-short-experience immersive" : "fresh-flow-short-experience"}>
       <FreshFlowShortsStream key={streamKey} onOpenTopic={onOpenTopic} />
+      {giftShortcutVisible && (
+        <button type="button" className="fresh-flow-quick-gift" onClick={openGift} aria-label="Send gift">
+          <span aria-hidden="true">🎁</span>
+          <span>Gift</span>
+        </button>
+      )}
       {immersive && (
         <button type="button" className="fresh-flow-immersive-back" onClick={exitImmersive} aria-label="Back to Fresh Flow">
           <span aria-hidden="true">←</span>
