@@ -39,6 +39,7 @@ export default function FreshFlowHub() {
   const { isAuthenticated, user, isGuest } = useFreshId();
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
   const isOverview = section === "fresh-flow";
+  const activeNav = MEDIA_NAV.find((item) => item.id === section);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
 
@@ -108,7 +109,14 @@ export default function FreshFlowHub() {
         <button type="button" className="fresh-flow-reference-more" onClick={toggleSidebar} aria-label="More Fresh Flow navigation"><span>•••</span></button>
       </header>
 
-      {isOverview && renderMediaNavigation("top")}
+      {isOverview ? renderMediaNavigation("top") : (
+        <div className="fresh-flow-section-bar">
+          <button type="button" className="fresh-flow-back-button" onClick={() => setActiveRoute("fresh-flow")} aria-label="Back to Fresh Flow overview">
+            <span aria-hidden="true">‹</span><span>Fresh Flow</span>
+          </button>
+          <span className="fresh-flow-section-title"><span aria-hidden="true">{activeNav?.icon}</span>{activeNav?.label}</span>
+        </div>
+      )}
 
       <main className="fresh-flow-media-content">
         {section === "fresh-flow" ? (
@@ -120,7 +128,7 @@ export default function FreshFlowHub() {
         )}
       </main>
 
-      {renderMediaNavigation("bottom")}
+      {isOverview && renderMediaNavigation("bottom")}
 
       {searchOpen && (
         <FreshFlowSearchSurface
