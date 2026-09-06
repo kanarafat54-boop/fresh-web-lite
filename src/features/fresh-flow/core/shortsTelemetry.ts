@@ -23,7 +23,7 @@ type TelemetryPayload = {
 const SESSION_KEY = "fresh-flow-shorts-telemetry-session";
 const ENDPOINT = "/api/shorts/telemetry";
 const MAX_BATCH = 10;
-let queue: Array<TelemetryPayload & { sessionId: string; timestamp: string }> = [];
+const queue: Array<TelemetryPayload & { sessionId: string; timestamp: string }> = [];
 let flushTimer: number | null = null;
 
 function getSessionId(): string {
