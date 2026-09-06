@@ -1,4 +1,4 @@
-import TopBar from "./components/TopBar";
+import { TopBar } from "./components/TopBar";
 import BottomNav from "./components/BottomNav";
 import NotificationCenter from "./components/NotificationCenter";
 import GlobalSearchEntry from "./components/GlobalSearchEntry";
@@ -12,19 +12,15 @@ const isFreshFlowRoute = (route?: string) => Boolean(route && (route === "fresh-
 export default function AppRouter() {
   const { activeRoute } = useLayout();
   const freshFlowRoute = isFreshFlowRoute(activeRoute);
-  const isFreshFlowOverview = activeRoute === "fresh-flow";
   const activeFeature = FeatureRegistry.getFeature(activeRoute);
 
   if (freshFlowRoute) {
     return (
       <div className="app-shell fresh-flow-app-shell">
-        <TopBar />
         <main className="app-content fresh-flow-content-root">
           <FreshFlowHub />
         </main>
-        {isFreshFlowOverview && <BottomNav />}
         <NotificationCenter />
-        <GlobalSearchEntry />
       </div>
     );
   }
