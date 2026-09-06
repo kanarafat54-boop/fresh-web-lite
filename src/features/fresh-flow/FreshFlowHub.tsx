@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLayout } from "../../app/contexts/useLayout";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
-import FreshFlowShortsStream from "./components/FreshFlowShortsStream";
+import FreshFlowShortsExperience from "./components/FreshFlowShortsExperience";
 import FreshFlowNewsPosts from "./components/FreshFlowNewsPosts";
 import FreshFlowMediaWorkspace from "./components/FreshFlowMediaWorkspace";
 import FreshFlowSearchSurface from "./components/FreshFlowSearchSurface";
@@ -82,7 +82,7 @@ export default function FreshFlowHub() {
 
       <main className="fresh-flow-media-content">
         {section === "fresh-flow" ? (
-          <FreshFlowShortsStream onOpenTopic={openTopicSearch} />
+          <FreshFlowShortsExperience onOpenTopic={openTopicSearch} />
         ) : section === "fresh-flow-news-posts" ? (
           <FreshFlowNewsPosts />
         ) : (
