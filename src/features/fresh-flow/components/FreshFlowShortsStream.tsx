@@ -201,9 +201,6 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
   }, [user, isGuest]);
 
   const load = async (tab: SubTab, selectedFilter: FilterMode = filterMode) => {
-    if (tab === "fresh-picks") {
-      setShorts([]); setHasMore(false); setLoading(false); return;
-    }
     setLoading(true); setError(null); pageRef.current = 0; setHasMore(true); setCurrentIndex(0); retryCountsRef.current.clear();
     try {
       const options: FreshFlowLoadOptions = selectedFilter === "learn" ? { category: "learn", limit: 12, offset: 0 } : selectedFilter === "relax" ? { category: "relax", limit: 12, offset: 0 } : { limit: 12, offset: 0 };
@@ -222,7 +219,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
   };
 
   const loadMore = async () => {
-    if (loadMoreInFlightRef.current || !hasMore || subTab === "fresh-picks" || !navigator.onLine) return;
+    if (loadMoreInFlightRef.current || !hasMore || !navigator.onLine) return;
     loadMoreInFlightRef.current = true;
     const nextPage = pageRef.current + 1;
     try {
