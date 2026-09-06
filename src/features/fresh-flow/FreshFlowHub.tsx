@@ -51,8 +51,8 @@ export default function FreshFlowHub() {
     setSearchOpen(true);
   };
 
-  const mediaNavigation = (
-    <nav className={`fresh-flow-media-nav ${isOverview ? "fresh-flow-media-nav-top" : "fresh-flow-media-nav-bottom"}`} aria-label="Fresh Flow media navigation">
+  const renderMediaNavigation = (position: "top" | "bottom") => (
+    <nav className={`fresh-flow-media-nav fresh-flow-media-nav-${position}`} aria-label="Fresh Flow media navigation">
       {MEDIA_NAV.map((item) => (
         <button key={item.id} type="button" className={`fresh-flow-media-button ${section === item.id ? "active" : ""}`} onClick={() => setActiveRoute(item.id)} aria-current={section === item.id ? "page" : undefined}>
           <span className="fresh-flow-media-icon" aria-hidden="true">{item.icon}</span>
@@ -95,7 +95,7 @@ export default function FreshFlowHub() {
         <button type="button" className="fresh-flow-reference-more" onClick={toggleSidebar} aria-label="More Fresh Flow navigation"><span>•••</span></button>
       </header>
 
-      {isOverview && mediaNavigation}
+      {isOverview && renderMediaNavigation("top")}
 
       <main className="fresh-flow-media-content">
         {section === "fresh-flow" ? (
@@ -107,7 +107,7 @@ export default function FreshFlowHub() {
         )}
       </main>
 
-      {!isOverview && mediaNavigation}
+      {renderMediaNavigation("bottom")}
 
       {searchOpen && (
         <FreshFlowSearchSurface
