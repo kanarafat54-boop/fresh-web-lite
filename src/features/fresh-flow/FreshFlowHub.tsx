@@ -59,7 +59,7 @@ export default function FreshFlowHub() {
   return (
     <div className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}`} aria-label="Fresh Flow">
       <header className="fresh-flow-brand-header">
-        <button type="button" className="fresh-flow-brand-avatar" onClick={() => setActiveRoute(isAuthenticated ? "profile" : "auth-signin")} aria-label={isAuthenticated ? "Open profile" : "Sign in"}>FWL</button>
+        <button type="button" className="fresh-flow-brand-avatar" onClick={() => setActiveRoute("profile")} aria-label={isAuthenticated ? "Open profile" : "Open profile / sign in"}>FWL</button>
         <div className="fresh-flow-brand-copy">
           <strong>FRESH WEB <span>LITE</span></strong>
           <small>The Universal AI Platform</small>
@@ -78,7 +78,7 @@ export default function FreshFlowHub() {
         </button>
       </header>
 
-      {mediaNavigation}
+      {isOverview && mediaNavigation}
 
       <main className="fresh-flow-media-content">
         {section === "fresh-flow" ? (
