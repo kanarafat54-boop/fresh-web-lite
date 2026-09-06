@@ -51,7 +51,7 @@ export async function searchVideos(query: string, limit = 20): Promise<VideoResu
   });
   if (rankedError) throw new Error(rankedError.message);
 
-  let rows = rankedData ?? [];
+  let rows: any[] = rankedData ?? [];
   if (rows.length === 0) {
     const { data: fallbackData, error: fallbackError } = await supabase
       .from("shorts")
@@ -63,7 +63,7 @@ export async function searchVideos(query: string, limit = 20): Promise<VideoResu
     rows = fallbackData ?? [];
   }
 
-  const names = await namesFor([...new Set(rows.map((r: any) => r.author_id))]);
+  const names = await namesFor([...new Set<string>(rows.map((r: any) => String(r.author_id)))]);
   return rows.map((r: any) => ({
     id: r.id,
     authorName: names.get(r.author_id) ?? "Unknown",
@@ -80,7 +80,7 @@ export async function searchPosts(query: string, limit = 20): Promise<PostResult
   });
   if (rankedError) throw new Error(rankedError.message);
 
-  let rows = rankedData ?? [];
+  let rows: any[] = rankedData ?? [];
   if (rows.length === 0) {
     const { data: fallbackData, error: fallbackError } = await supabase
       .from("posts")
@@ -92,7 +92,7 @@ export async function searchPosts(query: string, limit = 20): Promise<PostResult
     rows = fallbackData ?? [];
   }
 
-  const names = await namesFor([...new Set(rows.map((r: any) => r.author_id))]);
+  const names = await namesFor([...new Set<string>(rows.map((r: any) => String(r.author_id)))]);
   return rows.map((r: any) => ({
     id: r.id,
     authorName: names.get(r.author_id) ?? "Unknown",
