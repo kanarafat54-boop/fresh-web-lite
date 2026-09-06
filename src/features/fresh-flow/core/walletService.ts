@@ -12,7 +12,7 @@ export type WalletSummary = { balanceMinor: string; assetCode: string };
  * Returns null when the user has no funded Fresh Coin account yet (or is a
  * guest) -- callers render that honestly rather than showing a fake "$0.00".
  */
-export async function getWalletSummary(userId: string): Promise<WalletSummary | null> {
+export async function getWalletSummary(_userId: string): Promise<WalletSummary | null> {
   const { data, error } = await supabase
     .from("treasury_my_balances")
     .select("asset_code, balance_minor")
