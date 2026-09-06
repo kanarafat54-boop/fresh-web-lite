@@ -33,7 +33,7 @@ const SECTION_COPY = {
 };
 
 export default function FreshFlowHub() {
-  const { activeRoute, setActiveRoute, toggleSidebar, notifications, openNotifications } = useLayout();
+  const { activeRoute, setActiveRoute, toggleSidebar, notifications, openNotifications, openSearch } = useLayout();
   const { isAuthenticated } = useFreshId();
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
   const isOverview = section === "fresh-flow";
@@ -42,6 +42,11 @@ export default function FreshFlowHub() {
 
   const openTopicSearch = (tag: string) => {
     setSearchSeed({ tab: "topics", query: tag });
+    setSearchOpen(true);
+  };
+
+  const openFreshSearch = () => {
+    openSearch();
     setSearchOpen(true);
   };
 
@@ -59,23 +64,34 @@ export default function FreshFlowHub() {
   return (
     <div className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}`} aria-label="Fresh Flow">
       <header className="fresh-flow-brand-header">
-        <button type="button" className="fresh-flow-brand-avatar" onClick={() => setActiveRoute("profile")} aria-label={isAuthenticated ? "Open profile" : "Open profile / sign in"}>FWL</button>
+        <button type="button" className="fresh-flow-hamburger" onClick={toggleSidebar} aria-label="Open Fresh Web Lite navigation"><span></span><span></span><span></span></button>
+        <button type="button" className="fresh-flow-brand-avatar" onClick={() => setActiveRoute("profile")} aria-label={isAuthenticated ? "Open profile" : "Open profile / sign in"}>
+          <span className="fresh-flow-avatar-mark">FWL</span>
+          <span className="fresh-flow-avatar-plus" aria-hidden="true">+</span>
+        </button>
         <div className="fresh-flow-brand-copy">
           <strong>FRESH WEB <span>LITE</span></strong>
           <small>The Universal AI Platform</small>
         </div>
-        <button type="button" className="fresh-flow-header-tool" onClick={openNotifications} aria-label={`Notifications${notifications.length ? `, ${notifications.length} unread` : ""}`}>
-          ♧{notifications.length > 0 && <b>{Math.min(notifications.length, 9)}</b>}
+        <button type="button" className="fresh-flow-notification-card" onClick={openNotifications} aria-label={`Notifications${notifications.length ? `, ${notifications.length} unread` : ""}`}>
+          <span className="fresh-flow-bell" aria-hidden="true">♧</span>
+          <span className="fresh-flow-notification-copy"><strong>Notifications</strong><small>{notifications.length ? `${notifications.length} new updates` : "No new updates"}</small></span>
+          {notifications.length > 0 && <b className="fresh-flow-notification-badge">{Math.min(notifications.length, 9)}</b>}
+          <span className="fresh-flow-card-arrow" aria-hidden="true">›</span>
         </button>
-        <button type="button" className="fresh-flow-wallet-tool" onClick={() => setActiveRoute("wallet")} aria-label="Open wallet">▣</button>
-        <button type="button" className="fresh-flow-header-menu" onClick={toggleSidebar} aria-label="Open Fresh navigation">•••</button>
+        <button type="button" className="fresh-flow-wallet-card" onClick={() => setActiveRoute("wallet")} aria-label="Open My Wallet">
+          <span><strong>My Wallet</strong><small>Open wallet</small></span><span className="fresh-flow-wallet-icon" aria-hidden="true">▣</span><span className="fresh-flow-card-arrow" aria-hidden="true">›</span>
+        </button>
       </header>
 
       <header className="fresh-flow-reference-header">
-        <button type="button" className="fresh-flow-search" onClick={() => setSearchOpen(true)} aria-label="Search anything on Fresh">
+        <button type="button" className="fresh-flow-search" onClick={openFreshSearch} aria-label="Search anything on Fresh">
           <span className="fresh-flow-search-icon">⌕</span>
-          <span>Search anything on Fresh...</span>
+          <span className="fresh-flow-search-text">Search anything on Fresh...</span>
+          <span className="fresh-flow-search-tool" aria-hidden="true">♩</span>
+          <span className="fresh-flow-search-tool" aria-hidden="true">文</span>
         </button>
+        <button type="button" className="fresh-flow-reference-more" onClick={toggleSidebar} aria-label="More Fresh Flow navigation"><span>•••</span></button>
       </header>
 
       {isOverview && mediaNavigation}
