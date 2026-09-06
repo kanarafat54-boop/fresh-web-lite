@@ -3,7 +3,7 @@ import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { CommentPanel } from "../../comments/components/CommentPanel";
 import { ReactionPicker } from "../../reactions/components/ReactionPicker";
-import { loadFreshFlowShorts, type FreshFlowLoadOptions } from "../core/loadFreshFlowShorts";
+import { loadFreshFlowShorts, FRESH_FLOW_SHORTS_PAGE_SIZE, type FreshFlowLoadOptions } from "../core/loadFreshFlowShorts";
 import { rankFreshFlow, rankTrending } from "../core/FreshFlowRanking";
 import { rankForYou } from "../../shorts/core/ForYouRanking";
 import {
@@ -203,7 +203,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
   const load = async (tab: SubTab, selectedFilter: FilterMode = filterMode) => {
     setLoading(true); setError(null); pageRef.current = 0; setHasMore(true); setCurrentIndex(0); retryCountsRef.current.clear();
     try {
-      const options: FreshFlowLoadOptions = selectedFilter === "learn" ? { category: "learn", limit: 12, offset: 0 } : selectedFilter === "relax" ? { category: "relax", limit: 12, offset: 0 } : { limit: 12, offset: 0 };
+      const options: FreshFlowLoadOptions = selectedFilter === "learn" ? { category: "learn", limit: FRESH_FLOW_SHORTS_PAGE_SIZE, offset: 0 } : selectedFilter === "relax" ? { category: "relax", limit: FRESH_FLOW_SHORTS_PAGE_SIZE, offset: 0 } : { limit: FRESH_FLOW_SHORTS_PAGE_SIZE, offset: 0 };
       const result = await loadFreshFlowShorts(user?.id ?? null, isGuest, options);
       let candidates = result.shorts;
       if (tab === "following") candidates = candidates.filter((s) => s.isFollowingAuthor);
@@ -212,7 +212,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
         else { const socialIds = new Set(await getSocialAuthorIds(user.id)); candidates = candidates.filter((s) => socialIds.has(s.authorId)); }
       }
       const ranked = tab === "trending" ? rankTrending(candidates) : tab === "for-you" ? rankForYou(candidates, viewedRef.current) : rankFreshFlow(candidates);
-      setShorts(ranked); setSavedIds(result.savedIds); setGiftTotals(await getGiftTotals(ranked.map((s) => s.id))); setHasMore(result.shorts.length >= 24);
+      setShorts(ranked); setSavedIds(result.savedIds); setGiftTotals(await getGiftTotals(ranked.map((s) => s.id))); setHasMore(result.shorts.length >= FRESH_FLOW_SHORTS_PAGE_SIZE);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to load Fresh Flow.");
     } finally { setLoading(false); }
@@ -223,7 +223,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
     loadMoreInFlightRef.current = true;
     const nextPage = pageRef.current + 1;
     try {
-      const options: FreshFlowLoadOptions = { limit: 12, offset: nextPage * 24 };
+      const options: FreshFlowLoadOptions = { limit: FRESH_FLOW_SHORTS_PAGE_SIZE, offset: nextPage * FRESH_FLOW_SHORTS_PAGE_SIZE };
       if (filterMode === "learn" || filterMode === "relax") options.category = filterMode;
       const result = await loadFreshFlowShorts(user?.id ?? null, isGuest, options);
       let candidates = result.shorts;
@@ -234,7 +234,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
       }
       const ranked = subTab === "trending" ? rankTrending(candidates) : subTab === "for-you" ? rankForYou(candidates, viewedRef.current) : rankFreshFlow(candidates);
       setShorts((current) => { const existing = new Set(current.map((s) => s.id)); return [...current, ...ranked.filter((s) => !existing.has(s.id))]; });
-      pageRef.current = nextPage; setHasMore(result.shorts.length >= 24);
+      pageRef.current = nextPage; setHasMore(result.shorts.length >= FRESH_FLOW_SHORTS_PAGE_SIZE);
     } catch {
       // Keep current feed usable.
     } finally { loadMoreInFlightRef.current = false; }
