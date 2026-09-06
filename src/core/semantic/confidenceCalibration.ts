@@ -1,8 +1,8 @@
-import type { SemanticClaim, SemanticEvidence } from "./types";
-import { assessClaimConfidence, type ClaimConfidenceAssessment } from "./claimConfidence";
-import { clusterEvidence, type EvidenceObservation } from "./evidenceIndependence";
-import { buildProvenanceGraph, provenanceAdjustedIndependence, type ProvenanceEdge, type ProvenanceNode } from "./sourceProvenance";
-import { compareClaims } from "./claimIntelligence";
+import type { SemanticClaim, SemanticEvidence } from "./types.js";
+import { assessClaimConfidence, type ClaimConfidenceAssessment } from "./claimConfidence.js";
+import { clusterEvidence, type EvidenceObservation } from "./evidenceIndependence.js";
+import { buildProvenanceGraph, provenanceAdjustedIndependence, type ProvenanceEdge, type ProvenanceNode } from "./sourceProvenance.js";
+import { compareClaims } from "./claimIntelligence.js";
 
 export type CalibratedConfidence = ClaimConfidenceAssessment & {
   rawConfidence: number;
