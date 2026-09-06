@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLayout } from "../../../app/contexts/useLayout";
 import {
   searchVideos, searchPosts, searchNews, searchWebInfo, searchPeople, searchTopics,
@@ -18,10 +18,16 @@ const TABS: Array<{ id: SearchTab; label: string }> = [
   { id: "topics", label: "Topics" },
 ];
 
-export default function FreshFlowSearchSurface({ onClose }: { onClose: () => void }) {
+type FreshFlowSearchSurfaceProps = {
+  onClose: () => void;
+  initialTab?: SearchTab;
+  initialQuery?: string;
+};
+
+export default function FreshFlowSearchSurface({ onClose, initialTab, initialQuery }: FreshFlowSearchSurfaceProps) {
   const { setActiveRoute } = useLayout();
-  const [tab, setTab] = useState<SearchTab>("videos");
-  const [query, setQuery] = useState("");
+  const [tab, setTab] = useState<SearchTab>(initialTab ?? "videos");
+  const [query, setQuery] = useState(initialQuery ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [videos, setVideos] = useState<VideoResult[]>([]);
@@ -55,6 +61,11 @@ export default function FreshFlowSearchSurface({ onClose }: { onClose: () => voi
     setTab(next);
     if (query.trim()) void run(next, query);
   };
+
+  useEffect(() => {
+    if (initialQuery?.trim()) void run(initialTab ?? "videos", initialQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="fresh-flow-search-surface" role="dialog" aria-modal="true" aria-label="Fresh search">

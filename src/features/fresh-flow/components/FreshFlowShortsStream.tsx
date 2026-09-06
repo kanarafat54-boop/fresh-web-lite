@@ -75,13 +75,41 @@ async function getSocialAuthorIds(userId: string): Promise<string[]> {
   return Array.from(ids);
 }
 
-type FreshFlowShortsStreamProps = { onImmersiveChange?: (immersive: boolean) => void };
+type FreshFlowShortsStreamProps = { onImmersiveChange?: (immersive: boolean) => void; onOpenTopic?: (tag: string) => void };
 
-export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowShortsStreamProps = {}) {
+const FRESH_FLOW_POSITION_KEY = "fresh-flow-shorts-position";
+
+function readSavedPosition(): { subTab?: SubTab; filterMode?: FilterMode; currentIndex?: number } {
+  try {
+    return JSON.parse(sessionStorage.getItem(FRESH_FLOW_POSITION_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function renderCaptionWithTags(caption: string, onTagTap?: (tag: string) => void) {
+  return caption.split(/(\s+)/).map((part, i) => {
+    if (part.startsWith("#") && part.length > 1 && onTagTap) {
+      return (
+        <span
+          key={i}
+          className="fresh-flow-hashtag"
+          onClick={(e) => { e.stopPropagation(); onTagTap(part.slice(1)); }}
+        >
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
+}
+
+export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }: FreshFlowShortsStreamProps = {}) {
   const { user, isGuest } = useFreshId();
-  const [subTab, setSubTab] = useState<SubTab>("for-you");
+  const [subTab, setSubTab] = useState<SubTab>(() => readSavedPosition().subTab ?? "for-you");
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filterMode, setFilterMode] = useState<FilterMode>("all");
+  const [filterMode, setFilterMode] = useState<FilterMode>(() => readSavedPosition().filterMode ?? "all");
+  const restoreIndexRef = useRef<number | null>(readSavedPosition().currentIndex ?? null);
   const [shorts, setShorts] = useState<Short[]>([]);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [giftTotals, setGiftTotals] = useState<Map<string, GiftTotal>>(new Map());
@@ -218,6 +246,25 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
     return () => observer.disconnect();
   }, [shorts.length]);
 
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(FRESH_FLOW_POSITION_KEY, JSON.stringify({ subTab, filterMode, currentIndex }));
+    } catch {
+      // sessionStorage unavailable; position just won't persist this session.
+    }
+  }, [subTab, filterMode, currentIndex]);
+
+  useEffect(() => {
+    if (restoreIndexRef.current === null || shorts.length === 0) return;
+    const target = restoreIndexRef.current;
+    restoreIndexRef.current = null;
+    if (target > 0 && target < shorts.length) {
+      requestAnimationFrame(() => {
+        containerRef.current?.querySelector(`[data-index="${target}"]`)?.scrollIntoView({ block: "start" });
+      });
+    }
+  }, [shorts.length]);
+
   const mediaWindow = getMediaWindow(currentIndex, shorts.length);
 
   useEffect(() => {
@@ -311,7 +358,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange }: FreshFlowSh
               <div key={short.id} className="fresh-flow-item" data-index={index}>
                 <video ref={(el) => { if (el) videoRefs.current.set(index, el); else { videoRefs.current.delete(index); retryCountsRef.current.delete(index); } }} data-short-id={short.id} src={shouldLoadSrc ? short.videoUrl : undefined} preload={shouldLoadSrc ? preload : "none"} loop playsInline muted={muted} className="fresh-flow-video" onClick={exitImmersive} onError={() => handleVideoError(index)} onLoadedData={() => setLoadedIndices((prev) => (prev.has(index) ? prev : new Set(prev).add(index)))} />
                 {shouldLoadSrc && !loadedIndices.has(index) && <div className="fresh-flow-video-skeleton" aria-hidden="true" />}
-                <div className="fresh-flow-overlay"><div className="fresh-flow-author-row"><span className="fresh-flow-author">{short.authorName}</span>{!isGuest && user && short.authorId !== user.id && <button className={short.isFollowingAuthor ? "fresh-flow-chip following" : "fresh-flow-chip"} onClick={() => void toggleFollow(short)}>{short.isFollowingAuthor ? "Following" : "Follow"}</button>}</div>{short.caption && <p className="fresh-flow-caption">{short.caption}</p>}</div>
+                <div className="fresh-flow-overlay"><div className="fresh-flow-author-row"><span className="fresh-flow-author">{short.authorName}</span>{!isGuest && user && short.authorId !== user.id && <button className={short.isFollowingAuthor ? "fresh-flow-chip following" : "fresh-flow-chip"} onClick={() => void toggleFollow(short)}>{short.isFollowingAuthor ? "Following" : "Follow"}</button>}</div>{short.caption && <p className="fresh-flow-caption">{renderCaptionWithTags(short.caption, onOpenTopic)}</p>}</div>
                 <div className="fresh-flow-actions">
                   <ReactionPicker myReaction={short.myReaction} count={short.likeCount} disabled={isGuest} variant="short" onReact={(type) => void react(short, type)} />
                   <button className="fresh-flow-action-btn" onClick={() => setOpenCommentsFor(short.id)} aria-label="Comments"><span>💬</span><span>{formatCount(short.commentCount)}</span></button>

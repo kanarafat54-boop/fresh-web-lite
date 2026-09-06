@@ -104,3 +104,5 @@
 .fresh-flow-end-message { text-align: center; color: #fff; max-width: 260px; }
 .fresh-flow-end-message strong { display: block; font-size: 1.05rem; margin-bottom: 6px; }
 .fresh-flow-end-message p { margin: 0; opacity: 0.7; font-size: 0.85rem; }
+
+.fresh-flow-hashtag { color: var(--accent, #2dd4bf); font-weight: 600; cursor: pointer; }

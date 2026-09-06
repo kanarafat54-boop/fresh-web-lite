@@ -37,6 +37,12 @@ export default function FreshFlowHub() {
   const isOverview = section === "fresh-flow";
   const [immersive, setImmersive] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
+
+  const openTopicSearch = (tag: string) => {
+    setSearchSeed({ tab: "topics", query: tag });
+    setSearchOpen(true);
+  };
   const navAtBottom = !isOverview || immersive;
 
   const mediaNavigation = (
@@ -72,7 +78,7 @@ export default function FreshFlowHub() {
       )}
       <main className="fresh-flow-media-content">
         {section === "fresh-flow" ? (
-          <FreshFlowShortsStream onImmersiveChange={setImmersive} />
+          <FreshFlowShortsStream onImmersiveChange={setImmersive} onOpenTopic={openTopicSearch} />
         ) : section === "fresh-flow-news-posts" ? (
           <FreshFlowNewsPosts />
         ) : (
@@ -80,7 +86,13 @@ export default function FreshFlowHub() {
         )}
       </main>
       {navAtBottom && mediaNavigation}
-      {searchOpen && <FreshFlowSearchSurface onClose={() => setSearchOpen(false)} />}
+      {searchOpen && (
+        <FreshFlowSearchSurface
+          onClose={() => { setSearchOpen(false); setSearchSeed(null); }}
+          initialTab={searchSeed?.tab}
+          initialQuery={searchSeed?.query}
+        />
+      )}
     </div>
   );
 }
