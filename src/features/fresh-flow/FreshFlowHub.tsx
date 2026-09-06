@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLayout } from "../../app/contexts/useLayout";
+import { useFreshId } from "../fresh-id/context/FreshIdContext";
 import FreshFlowShortsStream from "./components/FreshFlowShortsStream";
 import FreshFlowNewsPosts from "./components/FreshFlowNewsPosts";
 import FreshFlowMediaWorkspace from "./components/FreshFlowMediaWorkspace";
@@ -32,7 +33,8 @@ const SECTION_COPY = {
 };
 
 export default function FreshFlowHub() {
-  const { activeRoute, setActiveRoute } = useLayout();
+  const { activeRoute, setActiveRoute, toggleSidebar, notifications, openNotifications } = useLayout();
+  const { isAuthenticated } = useFreshId();
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
   const isOverview = section === "fresh-flow";
   const [searchOpen, setSearchOpen] = useState(false);
@@ -44,7 +46,7 @@ export default function FreshFlowHub() {
   };
 
   const mediaNavigation = (
-    <nav className="fresh-flow-media-nav fresh-flow-media-nav-bottom" aria-label="Fresh Flow media navigation">
+    <nav className={`fresh-flow-media-nav ${isOverview ? "fresh-flow-media-nav-top" : "fresh-flow-media-nav-bottom"}`} aria-label="Fresh Flow media navigation">
       {MEDIA_NAV.map((item) => (
         <button key={item.id} type="button" className={`fresh-flow-media-button ${section === item.id ? "active" : ""}`} onClick={() => setActiveRoute(item.id)} aria-current={section === item.id ? "page" : undefined}>
           <span className="fresh-flow-media-icon" aria-hidden="true">{item.icon}</span>
@@ -56,20 +58,28 @@ export default function FreshFlowHub() {
 
   return (
     <div className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}`} aria-label="Fresh Flow">
-      {isOverview ? (
-        <header className="fresh-flow-reference-header">
-          <button type="button" className="fresh-flow-search" onClick={() => setSearchOpen(true)} aria-label="Search anything on Fresh">
-            <span className="fresh-flow-search-icon">⌕</span>
-            <span>Search anything on Fresh...</span>
-          </button>
-        </header>
-      ) : (
-        <header className="fresh-flow-experience-header">
-          <button type="button" className="fresh-flow-back" onClick={() => setActiveRoute("fresh-flow")} aria-label="Back to Fresh Flow">←</button>
-          <div><span className="fresh-flow-experience-kicker">Fresh Flow</span><h1>{MEDIA_NAV.find((item) => item.id === section)?.label}</h1></div>
-          <button type="button" className="fresh-flow-experience-search" onClick={() => setSearchOpen(true)} aria-label="Search Fresh">⌕</button>
-        </header>
-      )}
+      <header className="fresh-flow-brand-header">
+        <button type="button" className="fresh-flow-brand-avatar" onClick={() => setActiveRoute(isAuthenticated ? "profile" : "auth-signin")} aria-label={isAuthenticated ? "Open profile" : "Sign in"}>FWL</button>
+        <div className="fresh-flow-brand-copy">
+          <strong>FRESH WEB <span>LITE</span></strong>
+          <small>The Universal AI Platform</small>
+        </div>
+        <button type="button" className="fresh-flow-header-tool" onClick={openNotifications} aria-label={`Notifications${notifications.length ? `, ${notifications.length} unread` : ""}`}>
+          ♧{notifications.length > 0 && <b>{Math.min(notifications.length, 9)}</b>}
+        </button>
+        <button type="button" className="fresh-flow-wallet-tool" onClick={() => setActiveRoute("wallet")} aria-label="Open wallet">▣</button>
+        <button type="button" className="fresh-flow-header-menu" onClick={toggleSidebar} aria-label="Open Fresh navigation">•••</button>
+      </header>
+
+      <header className="fresh-flow-reference-header">
+        <button type="button" className="fresh-flow-search" onClick={() => setSearchOpen(true)} aria-label="Search anything on Fresh">
+          <span className="fresh-flow-search-icon">⌕</span>
+          <span>Search anything on Fresh...</span>
+        </button>
+      </header>
+
+      {mediaNavigation}
+
       <main className="fresh-flow-media-content">
         {section === "fresh-flow" ? (
           <FreshFlowShortsStream onOpenTopic={openTopicSearch} />
@@ -79,7 +89,9 @@ export default function FreshFlowHub() {
           <FreshFlowMediaWorkspace {...SECTION_COPY[section]} title={SECTION_COPY[section].name} />
         )}
       </main>
-      {mediaNavigation}
+
+      {!isOverview && mediaNavigation}
+
       {searchOpen && (
         <FreshFlowSearchSurface
           onClose={() => { setSearchOpen(false); setSearchSeed(null); }}
