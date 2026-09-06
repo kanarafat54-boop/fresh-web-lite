@@ -1,4 +1,4 @@
-import type { SemanticClaim } from "./types";
+import type { SemanticClaim } from "./types.js";
 
 export type TimeInterval = { start: string; end?: string };
 export type TemporalTruthStatus = "CURRENT" | "HISTORICAL" | "SUPERSEDED" | "DISPUTED" | "CONTRADICTED" | "RETRACTED" | "EXPIRED" | "UNKNOWN_NO_DATA" | "UNKNOWN_CONFLICTING_DATA" | "UNKNOWN_LOW_CONFIDENCE" | "UNKNOWN_OUTDATED" | "SUPPORTED";
