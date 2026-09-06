@@ -35,7 +35,6 @@ export default function FreshFlowHub() {
   const { activeRoute, setActiveRoute } = useLayout();
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
   const isOverview = section === "fresh-flow";
-  const [immersive, setImmersive] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
 
@@ -43,13 +42,9 @@ export default function FreshFlowHub() {
     setSearchSeed({ tab: "topics", query: tag });
     setSearchOpen(true);
   };
-  const navAtBottom = !isOverview || immersive;
 
   const mediaNavigation = (
-    <nav
-      className={`fresh-flow-media-nav ${navAtBottom ? "fresh-flow-media-nav-bottom" : "fresh-flow-media-nav-top"}`}
-      aria-label="Fresh Flow media navigation"
-    >
+    <nav className="fresh-flow-media-nav fresh-flow-media-nav-bottom" aria-label="Fresh Flow media navigation">
       {MEDIA_NAV.map((item) => (
         <button key={item.id} type="button" className={`fresh-flow-media-button ${section === item.id ? "active" : ""}`} onClick={() => setActiveRoute(item.id)} aria-current={section === item.id ? "page" : undefined}>
           <span className="fresh-flow-media-icon" aria-hidden="true">{item.icon}</span>
@@ -62,13 +57,12 @@ export default function FreshFlowHub() {
   return (
     <div className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}`} aria-label="Fresh Flow">
       {isOverview ? (
-        <div className="fresh-flow-reference-header">
+        <header className="fresh-flow-reference-header">
           <button type="button" className="fresh-flow-search" onClick={() => setSearchOpen(true)} aria-label="Search anything on Fresh">
             <span className="fresh-flow-search-icon">⌕</span>
             <span>Search anything on Fresh...</span>
           </button>
-          {!navAtBottom && mediaNavigation}
-        </div>
+        </header>
       ) : (
         <header className="fresh-flow-experience-header">
           <button type="button" className="fresh-flow-back" onClick={() => setActiveRoute("fresh-flow")} aria-label="Back to Fresh Flow">←</button>
@@ -78,14 +72,14 @@ export default function FreshFlowHub() {
       )}
       <main className="fresh-flow-media-content">
         {section === "fresh-flow" ? (
-          <FreshFlowShortsStream onImmersiveChange={setImmersive} onOpenTopic={openTopicSearch} />
+          <FreshFlowShortsStream onOpenTopic={openTopicSearch} />
         ) : section === "fresh-flow-news-posts" ? (
           <FreshFlowNewsPosts />
         ) : (
           <FreshFlowMediaWorkspace {...SECTION_COPY[section]} title={SECTION_COPY[section].name} />
         )}
       </main>
-      {navAtBottom && mediaNavigation}
+      {mediaNavigation}
       {searchOpen && (
         <FreshFlowSearchSurface
           onClose={() => { setSearchOpen(false); setSearchSeed(null); }}
