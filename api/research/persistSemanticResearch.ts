@@ -3,17 +3,18 @@ import { assessEvidenceStance } from "../../src/core/semantic/evidenceStance.js"
 import { assessClaimConfidence } from "../../src/core/semantic/claimConfidence.js";
 import { arbitrateClaimSet } from "../../src/core/semantic/beliefArbitration.js";
 import { compareClaims, type Claim } from "../../src/core/semantic/claimIntelligence.js";
+import { decideTruthBatch, type TruthDecision } from "../../src/core/semantic/truthDecisionOrchestrator.js";
 import type { SemanticClaim, SemanticEvidence } from "../../src/core/semantic/types.js";
 import type { ResearchResult } from "../../src/core/research/contracts.js";
 
-type PersistenceSummary = { entities: number; sources: number; claims: number; evidence: number; claimEvidence: number; relations: number; arbitrations: number; dryRun: boolean };
+type PersistenceSummary = { entities: number; sources: number; claims: number; evidence: number; claimEvidence: number; relations: number; arbitrations: number; truthDecisions: number; actionableTruthDecisions: number; dryRun: boolean };
 type PersistenceOptions = { dryRun?: boolean; runId?: string };
 
 function logStage(runId: string | undefined, stage: string, details: Record<string, unknown> = {}): void {
   console.info("TRUEMODE", { runId, stage, ...details });
 }
 
-/** Server-only bridge: research -> claim intelligence -> durable semantic graph. */
+/** Server-only bridge: research -> claim intelligence -> truth decision -> durable semantic graph. */
 export async function persistSemanticResearch(result: ResearchResult, options: PersistenceOptions = {}): Promise<PersistenceSummary> {
   const runId = options.runId;
   const researchedAt = result.researchedAt;
@@ -58,6 +59,13 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
     claim.status = assessment.counterEvidenceIds.length && assessment.supportingEvidenceIds.length ? "contested" : assessment.supportingEvidenceIds.length ? "supported" : "uncertain";
   }
 
+  const truthDecisions: TruthDecision[] = decideTruthBatch(claims, evidence, [], [], researchedAt);
+  logStage(runId, "research.truth.decided", {
+    count: truthDecisions.length,
+    actionable: truthDecisions.filter((decision) => decision.actionable).length,
+    blocked: truthDecisions.filter((decision) => decision.decision === "BLOCK_ACTION").length,
+  });
+
   const claimEvidence = claims.flatMap((claim) => {
     const all = [...claim.evidenceIds, ...claim.counterEvidenceIds];
     return all.map((evidenceId) => {
@@ -88,11 +96,11 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
   }));
 
   const entities = [{ id: subjectEntityId, entityType: "concept", label: result.query, attributes: [{ key: "mode", value: result.mode, source: "web", confidence: 1, observedAt: researchedAt }] }];
-  const summary: PersistenceSummary = { entities: entities.length, sources: sources.length, claims: claims.length, evidence: evidence.length, claimEvidence: claimEvidence.length, relations: relations.length, arbitrations: arbitrations.length, dryRun: Boolean(options.dryRun) };
+  const summary: PersistenceSummary = { entities: entities.length, sources: sources.length, claims: claims.length, evidence: evidence.length, claimEvidence: claimEvidence.length, relations: relations.length, arbitrations: arbitrations.length, truthDecisions: truthDecisions.length, actionableTruthDecisions: truthDecisions.filter((decision) => decision.actionable).length, dryRun: Boolean(options.dryRun) };
   logStage(runId, "research.persistence.prepared", summary);
   if (options.dryRun) return summary;
 
-  await createSupabaseSemanticPersistence().persistResearchGraph({ entities, sources, claims, evidence, claimEvidence, relations, arbitrations });
+  await createSupabaseSemanticPersistence().persistResearchGraph({ entities, sources, claims, evidence, claimEvidence, relations, arbitrations, truthDecisions });
   logStage(runId, "research.persistence.supabase.complete", summary);
   return summary;
 }
