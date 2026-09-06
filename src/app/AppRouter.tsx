@@ -1,4 +1,4 @@
-import { TopBar } from "./components/TopBar";
+import TopBar from "./components/TopBar";
 import BottomNav from "./components/BottomNav";
 import NotificationCenter from "./components/NotificationCenter";
 import GlobalSearchEntry from "./components/GlobalSearchEntry";
