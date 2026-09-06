@@ -20,8 +20,8 @@ import { interactWithShort, removeShortInteraction } from "../../shorts/core/Sho
 import { getEcosystemProfile, upsertEcosystemProfile, FRESH_FLOW_FEED_MODES } from "../../profile/services/ecosystemProfileService";
 import type { UniversalReactionKind } from "../../../core/interactions/FreshReactionModel";
 import type { Short } from "../../shorts/types/short";
+import { getSocialAuthorIds } from "../core/social";
 import "./FreshFlow.css";
-
 type SubTab = "for-you" | "trending" | "following" | "fresh-picks";
 type FilterMode = "all" | "social" | "learn" | "relax";
 type AdvancedAction = "quote" | "remix" | "duet" | "collaborate";
@@ -84,17 +84,6 @@ function captureFrame(shortId: string, video: HTMLVideoElement, cache: Map<strin
   } catch {
     // Cross-origin storage without canvas-safe CORS headers throws here; fail silently, no poster this time.
   }
-}
-
-async function getSocialAuthorIds(userId: string): Promise<string[]> {
-  const [{ data: following }, { data: followers }] = await Promise.all([
-    supabase.from("follows").select("followed_id").eq("follower_id", userId),
-    supabase.from("follows").select("follower_id").eq("followed_id", userId),
-  ]);
-  const ids = new Set<string>();
-  (following ?? []).forEach((row: any) => ids.add(row.followed_id));
-  (followers ?? []).forEach((row: any) => ids.add(row.follower_id));
-  return Array.from(ids);
 }
 
 type FreshFlowShortsStreamProps = { onImmersiveChange?: (immersive: boolean) => void; onOpenTopic?: (tag: string) => void };
