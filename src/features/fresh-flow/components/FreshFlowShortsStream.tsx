@@ -64,6 +64,28 @@ function getConnectionQuality(): ConnectionQuality {
   return "fast";
 }
 
+/**
+ * Client-side thumbnail capture: grabs the first rendered frame of a video
+ * once it's loaded, caching it as a poster for the next time that same
+ * Short's video element is released and reloaded (e.g. after scrolling out
+ * of the media window and back in). No server-side thumbnail pipeline exists
+ * yet -- this is a real, honest interim step, not a fake placeholder image.
+ */
+function captureFrame(shortId: string, video: HTMLVideoElement, cache: Map<string, string>) {
+  if (cache.has(shortId)) return;
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 360;
+    canvas.height = video.videoHeight || 640;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    cache.set(shortId, canvas.toDataURL("image/jpeg", 0.6));
+  } catch {
+    // Cross-origin storage without canvas-safe CORS headers throws here; fail silently, no poster this time.
+  }
+}
+
 async function getSocialAuthorIds(userId: string): Promise<string[]> {
   const [{ data: following }, { data: followers }] = await Promise.all([
     supabase.from("follows").select("followed_id").eq("follower_id", userId),
@@ -126,6 +148,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
   const videoRefs = useRef<Map<number, HTMLVideoElement>>(new Map());
   const retryCountsRef = useRef<Map<number, number>>(new Map());
   const viewedRef = useRef<Set<string>>(new Set());
+  const posterCacheRef = useRef<Map<string, string>>(new Map());
   const loadMoreInFlightRef = useRef(false);
   const pageRef = useRef(0);
   const [hasMore, setHasMore] = useState(true);
@@ -356,7 +379,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
             const shouldLoadSrc = inMediaWindow && (index <= currentIndex + 1 || (connectionQuality === "fast" && distance === 2));
             return (
               <div key={short.id} className="fresh-flow-item" data-index={index}>
-                <video ref={(el) => { if (el) videoRefs.current.set(index, el); else { videoRefs.current.delete(index); retryCountsRef.current.delete(index); } }} data-short-id={short.id} src={shouldLoadSrc ? short.videoUrl : undefined} preload={shouldLoadSrc ? preload : "none"} loop playsInline muted={muted} className="fresh-flow-video" onClick={exitImmersive} onError={() => handleVideoError(index)} onLoadedData={() => setLoadedIndices((prev) => (prev.has(index) ? prev : new Set(prev).add(index)))} />
+                <video ref={(el) => { if (el) videoRefs.current.set(index, el); else { videoRefs.current.delete(index); retryCountsRef.current.delete(index); } }} data-short-id={short.id} src={shouldLoadSrc ? short.videoUrl : undefined} preload={shouldLoadSrc ? preload : "none"} loop playsInline muted={muted} className="fresh-flow-video" onClick={exitImmersive} onError={() => handleVideoError(index)} onLoadedData={(e) => { setLoadedIndices((prev) => (prev.has(index) ? prev : new Set(prev).add(index))); captureFrame(short.id, e.currentTarget, posterCacheRef.current); }} poster={posterCacheRef.current.get(short.id)} />
                 {shouldLoadSrc && !loadedIndices.has(index) && <div className="fresh-flow-video-skeleton" aria-hidden="true" />}
                 <div className="fresh-flow-overlay"><div className="fresh-flow-author-row"><span className="fresh-flow-author">{short.authorName}</span>{!isGuest && user && short.authorId !== user.id && <button className={short.isFollowingAuthor ? "fresh-flow-chip following" : "fresh-flow-chip"} onClick={() => void toggleFollow(short)}>{short.isFollowingAuthor ? "Following" : "Follow"}</button>}</div>{short.caption && <p className="fresh-flow-caption">{renderCaptionWithTags(short.caption, onOpenTopic)}</p>}</div>
                 <div className="fresh-flow-actions">

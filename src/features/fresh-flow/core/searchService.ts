@@ -36,15 +36,33 @@ async function namesFor(authorIds: string[]): Promise<Map<string, string>> {
   return new Map((data ?? []).map((row: any) => [row.id, row.full_name?.trim() || row.username || "Unknown"]));
 }
 
+/**
+ * Fresh's own search engine, first real building block: server-side
+ * PostgreSQL full-text search with relevance ranking (search_shorts_fulltext
+ * RPC, backed by a tsvector column + GIN index + ts_rank), not client-side
+ * substring matching. Falls back to ilike only if full-text search genuinely
+ * returns nothing -- stemming/tsquery parsing can miss very short or
+ * non-English queries, and we'd rather show something than nothing.
+ */
 export async function searchVideos(query: string, limit = 20): Promise<VideoResult[]> {
-  const { data, error } = await supabase
-    .from("shorts")
-    .select("id, author_id, caption, sound_name, video_url, like_count")
-    .or(`caption.ilike.%${query}%,sound_name.ilike.%${query}%`)
-    .order("like_count", { ascending: false })
-    .limit(limit);
-  if (error) throw new Error(error.message);
-  const rows = data ?? [];
+  const { data: rankedData, error: rankedError } = await supabase.rpc("search_shorts_fulltext", {
+    p_query: query,
+    p_limit: limit,
+  });
+  if (rankedError) throw new Error(rankedError.message);
+
+  let rows = rankedData ?? [];
+  if (rows.length === 0) {
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from("shorts")
+      .select("id, author_id, caption, sound_name, video_url, like_count")
+      .or(`caption.ilike.%${query}%,sound_name.ilike.%${query}%`)
+      .order("like_count", { ascending: false })
+      .limit(limit);
+    if (fallbackError) throw new Error(fallbackError.message);
+    rows = fallbackData ?? [];
+  }
+
   const names = await namesFor([...new Set(rows.map((r: any) => r.author_id))]);
   return rows.map((r: any) => ({
     id: r.id,
@@ -56,14 +74,24 @@ export async function searchVideos(query: string, limit = 20): Promise<VideoResu
 }
 
 export async function searchPosts(query: string, limit = 20): Promise<PostResult[]> {
-  const { data, error } = await supabase
-    .from("posts")
-    .select("id, author_id, content, image_url, like_count")
-    .ilike("content", `%${query}%`)
-    .order("like_count", { ascending: false })
-    .limit(limit);
-  if (error) throw new Error(error.message);
-  const rows = data ?? [];
+  const { data: rankedData, error: rankedError } = await supabase.rpc("search_posts_fulltext", {
+    p_query: query,
+    p_limit: limit,
+  });
+  if (rankedError) throw new Error(rankedError.message);
+
+  let rows = rankedData ?? [];
+  if (rows.length === 0) {
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from("posts")
+      .select("id, author_id, content, image_url, like_count")
+      .ilike("content", `%${query}%`)
+      .order("like_count", { ascending: false })
+      .limit(limit);
+    if (fallbackError) throw new Error(fallbackError.message);
+    rows = fallbackData ?? [];
+  }
+
   const names = await namesFor([...new Set(rows.map((r: any) => r.author_id))]);
   return rows.map((r: any) => ({
     id: r.id,
@@ -105,23 +133,20 @@ export async function searchPeople(query: string, limit = 20): Promise<PersonRes
 }
 
 /**
- * Real, not fabricated: matches the query against actual captions/post
- * content as a hashtag or plain term, across both Shorts and Posts. There is
- * no trending-topics/engagement-ranking system for hashtags yet, so this is
- * a straightforward text match, not a popularity-ranked "trending" list.
+ * Real, not fabricated: matches the query as a hashtag/topic term against
+ * real full-text-ranked Shorts and Posts results. There is no
+ * trending-topics/engagement-ranking system for hashtags yet, so this
+ * reuses the same relevance-ranked search rather than a fake "trending" list.
  */
 export async function searchTopics(query: string, limit = 15): Promise<TopicResult[]> {
   const tag = query.trim().replace(/^#/, "");
   if (!tag) return [];
 
-  const [{ data: shortsData }, { data: postsData }] = await Promise.all([
-    supabase.from("shorts").select("id, caption").ilike("caption", `%${tag}%`).limit(limit),
-    supabase.from("posts").select("id, content").ilike("content", `%${tag}%`).limit(limit),
-  ]);
+  const [videos, posts] = await Promise.all([searchVideos(tag, limit), searchPosts(tag, limit)]);
 
   const results: TopicResult[] = [
-    ...(shortsData ?? []).map((r: any) => ({ tag, sampleCaption: r.caption ?? "", sourceId: r.id, sourceKind: "video" as const })),
-    ...(postsData ?? []).map((r: any) => ({ tag, sampleCaption: r.content ?? "", sourceId: r.id, sourceKind: "post" as const })),
+    ...videos.map((v) => ({ tag, sampleCaption: v.caption, sourceId: v.id, sourceKind: "video" as const })),
+    ...posts.map((p) => ({ tag, sampleCaption: p.content, sourceId: p.id, sourceKind: "post" as const })),
   ];
   return results.slice(0, limit);
 }
