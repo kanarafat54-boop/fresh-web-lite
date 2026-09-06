@@ -7,6 +7,7 @@ import FreshFlowMediaWorkspace from "./components/FreshFlowMediaWorkspace";
 import FreshFlowSearchSurface from "./components/FreshFlowSearchSurface";
 import "./components/FreshFlow.css";
 import "./components/FreshFlowReferenceShell.css";
+import "./components/FreshFlowReferenceHeader.css";
 
 type FreshFlowSection =
   | "fresh-flow"
