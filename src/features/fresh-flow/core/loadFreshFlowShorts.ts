@@ -20,7 +20,11 @@ export async function loadFreshFlowShorts(
   isGuest: boolean,
   options: FreshFlowLoadOptions = {},
 ): Promise<FreshFlowLoadResult> {
-  const limit = options.limit ?? FRESH_FLOW_SHORTS_PAGE_SIZE;
+  // The Shorts runtime prefetch/pagination contract is a 24-item page.
+  // Older callers may still pass 12; normalize them here so `hasMore` and
+  // page offsets cannot disagree with the actual range returned by Supabase.
+  const requestedLimit = options.limit ?? FRESH_FLOW_SHORTS_PAGE_SIZE;
+  const limit = Math.max(FRESH_FLOW_SHORTS_PAGE_SIZE, requestedLimit);
   const offset = options.offset ?? 0;
   let query = supabase
     .from("shorts")
