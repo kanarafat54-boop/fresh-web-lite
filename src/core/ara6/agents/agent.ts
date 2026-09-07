@@ -1,4 +1,4 @@
-import type { AraToolExecutionContext, AraToolExecutionResult } from "../toolExecution";
+import type { AraToolExecutionContext, AraToolExecutionResult } from "../toolExecution.js";
 
 export interface AraAgent {
   id: string;
