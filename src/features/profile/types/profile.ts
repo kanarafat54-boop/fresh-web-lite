@@ -23,6 +23,31 @@ export interface ProfileConnection {
   verified?: boolean;
 }
 
+export interface ProfileInsight {
+  label: string;
+  value: string;
+  reason: string;
+}
+
+export interface ProfileHighlight {
+  id: string;
+  title: string;
+  kind: ProfileActivity["kind"];
+  text: string;
+  createdAt: string;
+  mediaUrl: string | null;
+  score: number;
+}
+
+export interface SmartProfileData {
+  summary: string;
+  interests: string[];
+  highlights: ProfileHighlight[];
+  insights: ProfileInsight[];
+  generatedBy: "fresh-intelligence" | "gemini";
+  generatedAt: string;
+}
+
 export interface UniversalProfile {
   id: string;
   freshId: string;
