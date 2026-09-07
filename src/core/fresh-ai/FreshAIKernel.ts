@@ -11,36 +11,26 @@ export type FreshTruthEngine = { evaluate(evidence:Evidence[]):Promise<Evidence[
 export type FreshExecutionContext = { approve?:boolean; requestId?:string; origin?:string; userId?:string|null };
 
 export class FreshAIKernel implements FreshIntelligenceEngine {
-  constructor(private readonly skills:FreshSkillRegistry, private readonly memory:FreshMemoryStore, private readonly truth:FreshTruthEngine=new SemanticTruthEngine()) {}
-  async understand(request:FreshReasoningRequest){
-    const intent:FreshIntent=request.intent??inferIntent(request.input);
-    const memories=await this.memory.search(request.input);
-    return {intent,context:{...(request.context??{}),memories}};
+  private readonly skills: FreshSkillRegistry;
+  private readonly memory: FreshMemoryStore;
+  private readonly truth: FreshTruthEngine;
+
+  constructor(skills: FreshSkillRegistry, memory: FreshMemoryStore, truth: FreshTruthEngine = new SemanticTruthEngine()) {
+    this.skills = skills;
+    this.memory = memory;
+    this.truth = truth;
   }
+
+  async understand(request:FreshReasoningRequest){ const intent:FreshIntent=request.intent??inferIntent(request.input); const memories=await this.memory.search(request.input); return {intent,context:{...(request.context??{}),memories}}; }
   async retrieve(request:FreshReasoningRequest):Promise<Evidence[]>{ return this.truth.evaluate(request.evidence??[]); }
   async reason(request:FreshReasoningRequest,evidence:Evidence[]):Promise<FreshReasoningResult>{
-    const capabilities=inferCapabilities(request.input,request.intent);
-    const selectedSkills=this.skills.find(capabilities);
-    const dimensionalReasoning=reasonAcrossDimensions(request.input,request.dimensions);
-    const agents=request.requestedAgents??[];
+    const capabilities=inferCapabilities(request.input,request.intent), selectedSkills=this.skills.find(capabilities), dimensionalReasoning=reasonAcrossDimensions(request.input,request.dimensions), agents=request.requestedAgents??[];
     const plan=selectedSkills.map((skill,index)=>({id:`step-${index+1}`,description:`Apply ${skill.name}`,skills:[skill.id],agent:agents[index]??inferAgent(skill.id),requiresApproval:false}));
-    const base:FreshReasoningResult={
-      answer:buildGroundedAnswer(request.input,evidence,dimensionalReasoning),
-      claims:evidence.map(item=>({statement:item.claim,truth:item.confidence>=.9?"KNOWN":item.confidence>=.6?"PROBABLE":"UNCERTAIN",confidence:item.confidence,evidence:[item]})),
-      plan,
-      actions:[],
-      unknowns:evidence.length?[]:["No external or persistent evidence was supplied to the native truth layer."],
-      explanation:`Fresh AI used the native truth layer, capability composition and ${dimensionalReasoning.length} dimensional reasoning lens(es).`,
-      dimensionalReasoning,
-    };
+    const base:FreshReasoningResult={ answer:buildGroundedAnswer(request.input,evidence,dimensionalReasoning), claims:evidence.map(item=>({statement:item.claim,truth:item.confidence>=.9?"KNOWN":item.confidence>=.6?"PROBABLE":"UNCERTAIN",confidence:item.confidence,evidence:[item]})), plan, actions:[], unknowns:evidence.length?[]:["No external or persistent evidence was supplied to the native truth layer."], explanation:`Fresh AI used the native truth layer, capability composition and ${dimensionalReasoning.length} dimensional reasoning lens(es).`, dimensionalReasoning };
     return {...base,asi:evaluateASIState(request.input,base,plan)};
   }
   async plan(_request:FreshReasoningRequest,result:FreshReasoningResult){ return result.plan; }
-  async verify(result:FreshReasoningResult){
-    const contradictions=result.claims.filter(claim=>claim.truth==="CONTRADICTED");
-    const verified={...result,unknowns:contradictions.length?[...new Set([...result.unknowns,`${contradictions.length} contradiction(s) require resolution before a definitive answer.`])]:result.unknowns};
-    return {...verified,asi:evaluateASIState(verified.asi?.objective??verified.answer,verified,verified.plan)};
-  }
+  async verify(result:FreshReasoningResult){ const contradictions=result.claims.filter(claim=>claim.truth==="CONTRADICTED"), verified={...result,unknowns:contradictions.length?[...new Set([...result.unknowns,`${contradictions.length} contradiction(s) require resolution before a definitive answer.`])]:result.unknowns}; return {...verified,asi:evaluateASIState(verified.asi?.objective??verified.answer,verified,verified.plan)}; }
   async execute(plan:FreshPlanStep[],context:FreshExecutionContext={}):Promise<unknown[]>{ return executeFreshPlanThroughAra6(plan,Boolean(context.approve),{requestId:context.requestId,origin:context.origin,userId:context.userId}); }
 }
 
