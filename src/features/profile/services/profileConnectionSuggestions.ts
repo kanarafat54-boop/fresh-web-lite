@@ -1,5 +1,5 @@
 import type { ProfileActivity, UniversalProfile } from "../types/profile";
-import type { ProfileConnectionSuggestion, ProfileConnectionSuggestionEngine, ProfileSuggestionCandidate } from "../models/profileConnectionSuggestions";
+import type { ProfileConnectionSuggestionEngine, ProfileSuggestionCandidate } from "../models/profileConnectionSuggestions";
 
 function words(values: string[]): Set<string> {
   return new Set(values.flatMap((value) => value.toLowerCase().replace(/[^a-z0-9\s-]/g, " ").split(/\s+/).filter((word) => word.length > 2)));
