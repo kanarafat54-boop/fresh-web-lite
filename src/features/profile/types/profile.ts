@@ -1,33 +1,53 @@
-export interface UniversalProfile{
+export type ProfileAudience = "public" | "connections" | "private";
 
-id:string;
+export interface ProfileVisibility {
+  public: boolean;
+  connections: boolean;
+  private: boolean;
+}
 
-freshId:string;
+export interface ProfileActivity {
+  id: string;
+  kind: "post" | "short" | "project" | "portfolio";
+  title: string;
+  text: string;
+  mediaUrl: string | null;
+  createdAt: string;
+  engagement?: number;
+}
 
-username:string;
+export interface ProfileConnection {
+  provider: string;
+  handle?: string;
+  connected: boolean;
+  verified?: boolean;
+}
 
-displayName:string;
-
-email:string;
-
-avatar:string;
-
-coverPhoto:string;
-
-bio:string;
-
-location:string;
-
-website:string;
-
-verified:boolean;
-
-joinedAt:string;
-
-languages:string[];
-
-interests:string[];
-
-skills:string[];
-
+export interface UniversalProfile {
+  id: string;
+  freshId: string;
+  username: string;
+  displayName: string;
+  email: string;
+  avatar: string;
+  coverPhoto: string;
+  bio: string;
+  location: string;
+  website: string;
+  verified: boolean;
+  joinedAt: string;
+  languages: string[];
+  interests: string[];
+  skills: string[];
+  occupation: string;
+  company: string;
+  pronouns: string;
+  followerCount: number;
+  followingCount: number;
+  postCount: number;
+  shortCount: number;
+  reputationScore: number;
+  connections: ProfileConnection[];
+  activity: ProfileActivity[];
+  visibility: ProfileVisibility;
 }
