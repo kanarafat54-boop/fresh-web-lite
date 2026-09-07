@@ -8,7 +8,7 @@ type AskResponse = { answer?: string; confidence?: string; source?: string; erro
 const kindLabel: Record<string, string> = { web: "Web evidence", news: "News evidence", video: "Video evidence", image: "Image evidence", music: "Music evidence" };
 
 export default function GlobalFreshAI() {
-  const { activeRoute, setActiveRoute } = useLayout();
+  const { activeRoute } = useLayout();
   const [open, setOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [prompt, setPrompt] = useState("");
