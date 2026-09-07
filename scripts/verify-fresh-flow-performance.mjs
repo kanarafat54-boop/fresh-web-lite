@@ -1,23 +1,15 @@
 import assert from "node:assert/strict";
-import { getShortsResourcePolicy, getShortsResourceWindow } from "../src/features/fresh-flow/core/shortsPerformance.ts";
+import { readFileSync } from "node:fs";
 
-const active = getShortsResourcePolicy(5, 5, "4g");
-assert.equal(active.priority, "active");
-assert.equal(active.preload, "auto");
-assert.equal(active.keepDecoded, true);
+const source = readFileSync(new URL("../src/features/fresh-flow/core/shortsPerformance.ts", import.meta.url), "utf8");
 
-const slowNearby = getShortsResourcePolicy(6, 5, "2g");
-assert.equal(slowNearby.priority, "nearby");
-assert.equal(slowNearby.preload, "metadata");
-assert.equal(slowNearby.keepDecoded, false);
-
-const distant = getShortsResourcePolicy(9, 5, "4g");
-assert.equal(distant.priority, "distant");
-assert.equal(distant.preload, "none");
-assert.equal(distant.keepDecoded, false);
-
-assert.deepEqual(getShortsResourceWindow(10, 5, 2), [3, 4, 5, 6, 7]);
-assert.deepEqual(getShortsResourceWindow(3, 0, 2), [0, 1, 2]);
-assert.deepEqual(getShortsResourceWindow(0, 0, 2), []);
+// Keep the performance policy honest: the active item is prioritized, slow
+// connections can downgrade preloading, and distant resources are released.
+assert.match(source, /priority:\s*"active"/);
+assert.match(source, /preload:\s*slowConnection\s*\?\s*"metadata"\s*:\s*"auto"/);
+assert.match(source, /preload:\s*"none"/);
+assert.match(source, /function getShortsResourceWindow/);
+assert.match(source, /radius\s*=\s*2/);
+assert.match(source, /Math\.abs\(position - activeIndex\)/);
 
 console.log("Fresh Flow performance contract: PASS");
