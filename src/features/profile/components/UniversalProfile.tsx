@@ -4,6 +4,7 @@ import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { loadRealUniversalProfile, saveRealProfileVisibility } from "../services/realProfileService";
 import { loadCrossPlatformIdentity } from "../services/crossPlatformIdentityService";
 import { curateSmartProfile } from "../services/profileIntelligence";
+import { groupProfileActivity } from "../services/profileContentOrganizer";
 import type { CrossPlatformIdentity } from "../models/crossPlatformIdentity";
 import type { ProfileVisibility, SmartProfileData, UniversalProfile } from "../types/profile";
 
@@ -34,6 +35,7 @@ export default function UniversalProfile() {
   }, [user]);
 
   const initials = useMemo(() => (profile?.displayName || "F").trim().split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase(), [profile?.displayName]);
+  const organizedGroups = useMemo(() => profile ? groupProfileActivity(profile) : [], [profile]);
 
   async function updateVisibility(key: keyof ProfileVisibility) {
     if (!user || !profile) return;
@@ -85,9 +87,10 @@ export default function UniversalProfile() {
         <section className="profile-card"><div className="card-heading"><h2>Reputation</h2><span className="profile-score">{profile.reputationScore}</span></div><p>Fresh ID reputation is shown from the persisted account score. Fresh Intelligence does not invent credibility.</p></section>
         <section className="profile-card"><div className="card-heading"><h2>Privacy layers</h2><button disabled={savingPrivacy} onClick={() => setTab("Identity")}>Manage</button></div><p>Visibility is controlled by the Fresh identity rather than by a visual-only switch.</p><div className="privacy-summary"><span>Public {profile.visibility.public ? "On" : "Off"}</span><span>Connections {profile.visibility.connections ? "On" : "Off"}</span><span>Private {profile.visibility.private ? "On" : "Off"}</span></div></section>
         <section className="profile-card"><div className="card-heading"><h2>Fresh ecosystem</h2><span>{enabledEcosystems.length} active</span></div>{enabledEcosystems.length ? enabledEcosystems.slice(0, 4).map((item) => <div className="connection-row" key={item.ecosystemId}><span className="connection-icon">F</span><div><strong>{item.title || item.ecosystemId}</strong><p>{item.description || "Fresh ecosystem"}</p></div><span>Active</span></div>) : <p className="muted">No enabled ecosystem profile is stored for this Fresh ID yet.</p>}</section>
+        <section className="profile-card"><div className="card-heading"><h2>Organized content</h2><span>{organizedGroups.length} themes</span></div>{organizedGroups.length ? <div className="smart-tags">{organizedGroups.slice(0, 6).map((group) => <button className="theme-chip" key={group.theme} onClick={() => setTab("Activity")}>{group.theme} · {group.count}</button>)}</div> : <p className="muted">Publish or save real activity and Fresh Intelligence will group it by theme.</p>}</section>
       </div>}
 
-      {tab === "Activity" && <section className="profile-card full-card"><div className="card-heading"><h2>Universal activity</h2><span>{profile.activity.length} loaded</span></div>{recent.length === 0 ? <p className="muted">No activity stored yet.</p> : recent.map((item) => <article className="activity-row" key={`${item.kind}-${item.id}`}><span className="activity-kind">{item.kind}</span><div><strong>{item.title}</strong><p>{item.text || "Media content"}</p></div><time>{new Date(item.createdAt).toLocaleString()}</time></article>)}</section>}
+      {tab === "Activity" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">FRESH INTELLIGENCE</span><h2>Organized activity</h2></div><span>{profile.activity.length} loaded</span></div>{organizedGroups.length === 0 ? <p className="muted">No activity stored yet.</p> : organizedGroups.map((group) => <section className="activity-theme" key={group.theme}><div className="activity-theme-heading"><h3>{group.theme}</h3><span>{group.count}</span></div>{group.items.slice(0, 12).map((item) => <article className="activity-row" key={`${item.kind}-${item.id}`}><span className="activity-kind">{item.kind}</span><div><strong>{item.title}</strong><p>{item.text || "Media content"}</p></div><time>{new Date(item.createdAt).toLocaleString()}</time></article>)}{group.count > 12 && <p className="muted theme-more">Showing 12 of {group.count} in this theme.</p>}</section>)}</section>}
 
       {tab === "Identity" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">FRESH ID</span><h2>Identity & privacy</h2></div></div><div className="identity-details"><p><b>Fresh ID:</b> {profile.freshId}</p><p><b>Email:</b> {profile.email}</p><p><b>Joined:</b> {new Date(profile.joinedAt).toLocaleDateString()}</p><p><b>Location:</b> {profile.location || "Not provided"}</p><p><b>Website:</b> {profile.website || "Not provided"}</p><p><b>Skills:</b> {profile.skills.length ? profile.skills.join(", ") : "Not provided"}</p></div><div className="privacy-controls">{(["public", "connections", "private"] as const).map((key) => <button key={key} disabled={savingPrivacy} className={profile.visibility[key] ? "privacy-on" : "privacy-off"} onClick={() => void updateVisibility(key)}>{key}: {profile.visibility[key] ? "visible" : "hidden"}</button>)}</div></section>}
 
