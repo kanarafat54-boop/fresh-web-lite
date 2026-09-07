@@ -5,10 +5,11 @@ import type {
   FreshReasoningResult,
   FreshSkill,
   FreshIntelligenceEngine,
-} from "./FreshAIArchitecture";
-import { SemanticTruthEngine } from "./semanticTruthEngine";
-import { reasonAcrossDimensions } from "./dimensionalIntelligence";
-import { executeFreshPlanThroughAra6 } from "./FreshARA6Bridge";
+  FreshPlanStep,
+} from "./FreshAIArchitecture.js";
+import { SemanticTruthEngine } from "./semanticTruthEngine.js";
+import { reasonAcrossDimensions } from "./dimensionalIntelligence.js";
+import { executeFreshPlanThroughAra6 } from "./FreshARA6Bridge.js";
 
 export type FreshMemoryRecord = {
   id: string;
@@ -30,6 +31,13 @@ export type FreshMemoryStore = {
 
 export type FreshTruthEngine = {
   evaluate(evidence: Evidence[]): Promise<Evidence[]>;
+};
+
+export type FreshExecutionContext = {
+  approve?: boolean;
+  requestId?: string;
+  origin?: string;
+  userId?: string | null;
 };
 
 export class FreshAIKernel implements FreshIntelligenceEngine {
@@ -54,7 +62,7 @@ export class FreshAIKernel implements FreshIntelligenceEngine {
   }
 
   async reason(request: FreshReasoningRequest, evidence: Evidence[]): Promise<FreshReasoningResult> {
-    const capabilities = inferCapabilities(request.input);
+    const capabilities = inferCapabilities(request.input, request.intent);
     const selectedSkills = this.skills.find(capabilities);
     const dimensionalReasoning = reasonAcrossDimensions(request.input, request.dimensions);
     const agents = request.requestedAgents ?? [];
@@ -69,53 +77,72 @@ export class FreshAIKernel implements FreshIntelligenceEngine {
       })),
       plan: selectedSkills.map((skill, index) => ({
         id: `step-${index + 1}`,
-        description: `Apply ${skill.name}`,
+        description: `Apply ${skill.name} to fulfill: ${request.input.slice(0, 500)}`,
         skills: [skill.id],
         agent: agents[index] ?? inferAgent(skill.id),
-        requiresApproval: false,
+        requiresApproval: skill.id === "wallet" || skill.id === "feed",
       })),
       actions: [],
       unknowns: evidence.length ? [] : ["No external or persistent evidence was supplied to the native truth layer."],
-      explanation: `Fresh AI used the native truth layer plus ${dimensionalReasoning.length} dimensional reasoning lens(es).`,
+      explanation: `Fresh AI selected ${selectedSkills.length} skill(s) and used ${dimensionalReasoning.length} dimensional reasoning lens(es).`,
       dimensionalReasoning,
     };
   }
 
-  async plan(_request: FreshReasoningRequest, result: FreshReasoningResult) {
+  async plan(_request: FreshReasoningRequest, result: FreshReasoningResult): Promise<FreshPlanStep[]> {
     return result.plan;
   }
 
   async verify(result: FreshReasoningResult) {
-    return result;
+    const contradictions = result.claims.filter((claim) => claim.truth === "CONTRADICTED");
+    return {
+      ...result,
+      unknowns: contradictions.length
+        ? [...new Set([...result.unknowns, `${contradictions.length} contradiction(s) require resolution before a definitive answer.`])]
+        : result.unknowns,
+    };
   }
 
-  async execute(plan: FreshReasoningResult["plan"]) {
-    const executions = await executeFreshPlanThroughAra6(plan);
-    return executions
-      .filter((execution) => execution.accepted)
-      .map((execution) => execution.detail);
+  async execute(plan: FreshPlanStep[], context: FreshExecutionContext = {}) {
+    const executions = await executeFreshPlanThroughAra6(plan, Boolean(context.approve), {
+      requestId: context.requestId,
+      origin: context.origin,
+      userId: context.userId,
+    });
+    return executions.map((execution) => ({
+      stepId: execution.stepId,
+      agent: execution.agent ?? null,
+      accepted: execution.accepted,
+      status: execution.status,
+      detail: execution.detail,
+    }));
   }
 }
 
 function inferIntent(input: string): FreshIntent {
   const value = input.toLowerCase();
-  if (/research|investigate|sources|evidence/.test(value)) return "research";
-  if (/build|code|debug|program|implement/.test(value)) return "code";
-  if (/design|ui|ux|interface/.test(value)) return "design";
-  if (/plan|roadmap/.test(value)) return "plan";
-  if (/analy[sz]e|compare|why|how/.test(value)) return "analyze";
-  if (/create|write|make/.test(value)) return "create";
+  if (/research|investigate|sources|evidence|verify|fact.?check/.test(value)) return "research";
+  if (/build|code|debug|program|implement|fix|refactor/.test(value)) return "code";
+  if (/design|ui|ux|interface|layout/.test(value)) return "design";
+  if (/plan|roadmap|strategy|steps|how should/.test(value)) return "plan";
+  if (/analy[sz]e|compare|why|how|explain|difference/.test(value)) return "analyze";
+  if (/send|post|publish|buy|pay|delete|change|update|book|schedule|execute|run/.test(value)) return "act";
+  if (/learn|teach|study|lesson|practice/.test(value)) return "learn";
+  if (/find|discover|recommend|show me|where/.test(value)) return "discover";
+  if (/create|write|make|generate|draft/.test(value)) return "create";
   return "answer";
 }
 
-function inferCapabilities(input: string): string[] {
+function inferCapabilities(input: string, intent?: FreshIntent): string[] {
   const value = input.toLowerCase();
   const capabilities = ["general-reasoning"];
-  if (/research|evidence|source/.test(value)) capabilities.push("research", "evidence-analysis");
-  if (/code|debug|build|program/.test(value)) capabilities.push("code-generation", "code-review", "testing");
-  if (/security|vulnerability|threat/.test(value)) capabilities.push("security");
-  if (/math|equation|calculate|proof/.test(value)) capabilities.push("mathematics");
-  if (/design|ui|ux/.test(value)) capabilities.push("ui-ux-design", "design-systems");
+  if (intent === "research" || /research|evidence|source|verify|fact.?check/.test(value)) capabilities.push("research", "evidence-analysis");
+  if (intent === "code" || /code|debug|build|program|implement|fix|refactor/.test(value)) capabilities.push("code-generation", "code-review", "testing", "architecture");
+  if (intent === "security" || /security|vulnerability|threat|privacy/.test(value)) capabilities.push("security");
+  if (/math|equation|calculate|proof|statistics/.test(value)) capabilities.push("mathematics");
+  if (intent === "design" || /design|ui|ux|interface|layout/.test(value)) capabilities.push("ui-ux-design", "design-systems");
+  if (intent === "learn" || /learn|teach|study|lesson|practice/.test(value)) capabilities.push("learning");
+  if (intent === "act" || /send|post|publish|buy|pay|delete|change|update|book|schedule|execute|run/.test(value)) capabilities.push("automation");
   return capabilities;
 }
 
@@ -125,6 +152,7 @@ function inferAgent(skillId: string) {
   if (skillId === "engineering") return "backend" as const;
   if (skillId === "design") return "frontend" as const;
   if (skillId === "mathematics") return "learning" as const;
+  if (skillId === "reasoning") return undefined;
   return undefined;
 }
 
