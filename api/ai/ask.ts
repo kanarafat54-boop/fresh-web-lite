@@ -95,7 +95,7 @@ export async function POST(req: Request): Promise<Response> {
       userId: user?.id ?? null,
     }) : [];
 
-    const dimensions = reasonAcrossDimensions(goal);
+    const dimensions = reasonAcrossDimensions(goal, undefined);
     const dimensionalContext = dimensions.map((item) => `${item.dimension}D:${item.lens.focus}; confidence=${item.confidence.toFixed(2)}`).join(" | ");
     const planText = planned.map((step) => `${step.agent ?? "native"}:${step.skills.join(",")}`).join(" → ");
     const executionText = executions.map((item) => `${item.agent ?? "native"}:${item.status}:${item.detail}`).join("\n");
