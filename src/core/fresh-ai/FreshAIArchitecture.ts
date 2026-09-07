@@ -17,6 +17,7 @@ export type Evidence = { id: string; source: string; claim: string; observedAt?:
 export type FreshClaim = { statement: string; truth: TruthState; confidence: number; evidence: Evidence[]; temporal?: { validFrom?: string; validUntil?: string } };
 export type FreshSkill = { id: string; name: string; description: string; capabilities: string[]; requiredTools?: string[] };
 export type FreshPlanStep = { id: string; description: string; agent?: FreshAgent; skills: string[]; requiresApproval?: boolean };
+export type FreshExecutionResult = { stepId: string; agent?: FreshAgent; accepted: boolean; status: "executed" | "approval-required" | "unavailable" | "failed"; detail: string };
 export type FreshReasoningRequest = { input: string; intent?: FreshIntent; context?: Record<string, unknown>; evidence?: Evidence[]; requestedAgents?: FreshAgent[]; dimensions?: FreshDimension[] };
 export type FreshReasoningResult = { answer: string; claims: FreshClaim[]; plan: FreshPlanStep[]; actions: string[]; unknowns: string[]; explanation: string; dimensionalReasoning?: DimensionalReasoning[]; asi?: ASIState };
 
@@ -30,7 +31,7 @@ export interface FreshIntelligenceEngine {
   reason(request: FreshReasoningRequest, evidence: Evidence[]): Promise<FreshReasoningResult>;
   plan(request: FreshReasoningRequest, result: FreshReasoningResult): Promise<FreshPlanStep[]>;
   verify(result: FreshReasoningResult): Promise<FreshReasoningResult>;
-  execute(plan: FreshPlanStep[]): Promise<unknown[]>;
+  execute(plan: FreshPlanStep[], context?: unknown): Promise<FreshExecutionResult[]>;
 }
 
 export function assertFreshCoreHasNoRequiredApiKeys(env: Record<string, string | undefined> = {}): void { void env; }
