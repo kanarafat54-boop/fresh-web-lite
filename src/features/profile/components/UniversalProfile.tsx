@@ -1,70 +1,101 @@
+import { useEffect, useMemo, useState } from "react";
 import "./UniversalProfile.css";
-import { demoProfile } from "../services/profileService";
+import { useFreshId } from "../../fresh-id/context/FreshIdContext";
+import { loadRealUniversalProfile, saveRealProfileVisibility } from "../services/realProfileService";
+import type { ProfileVisibility, UniversalProfile } from "../types/profile";
 
-export default function UniversalProfile(){
+const tabs = ["Overview", "Activity", "Identity", "Connections", "Insights"] as const;
+type Tab = typeof tabs[number];
 
-return(
+export default function UniversalProfile() {
+  const { user } = useFreshId();
+  const [profile, setProfile] = useState<UniversalProfile | null>(null);
+  const [tab, setTab] = useState<Tab>("Overview");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [savingPrivacy, setSavingPrivacy] = useState(false);
 
-<div className="universal-profile">
+  useEffect(() => {
+    if (!user) { setLoading(false); return; }
+    setLoading(true);
+    loadRealUniversalProfile(user)
+      .then(setProfile)
+      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not load Fresh ID profile."))
+      .finally(() => setLoading(false));
+  }, [user]);
 
-<div className="profile-cover"/>
+  const initials = useMemo(() => (profile?.displayName || "F")
+    .trim().split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase(), [profile?.displayName]);
 
-<div className="profile-header">
+  async function updateVisibility(key: keyof ProfileVisibility) {
+    if (!user || !profile) return;
+    const next = { ...profile.visibility, [key]: !profile.visibility[key] };
+    setSavingPrivacy(true); setError(null);
+    try {
+      await saveRealProfileVisibility(user.id, user.identity, next);
+      setProfile((current) => current ? { ...current, visibility: next } : current);
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "Could not save privacy settings.");
+    } finally { setSavingPrivacy(false); }
+  }
 
-<div className="profile-avatar">
-{demoProfile.displayName.charAt(0)}
-</div>
+  if (!user) return <div className="universal-profile empty-profile"><h2>Fresh ID</h2><p>Sign in to open your real universal profile.</p></div>;
+  if (loading) return <div className="universal-profile empty-profile"><p>Loading your Fresh ID profile…</p></div>;
+  if (!profile) return <div className="universal-profile empty-profile"><p>{error || "Profile unavailable."}</p></div>;
 
-<div>
+  const recent = profile.activity.slice(0, 8);
+  const connected = profile.connections.filter((item) => item.connected);
 
-<h2>{demoProfile.displayName}</h2>
+  return (
+    <main className="universal-profile">
+      {error && <div className="profile-error" role="alert">{error}</div>}
 
-<p>@{demoProfile.username}</p>
+      <section className="profile-hero">
+        <div className="profile-cover" style={profile.coverPhoto ? { backgroundImage: `url(${profile.coverPhoto})` } : undefined} />
+        <div className="profile-identity-row">
+          <div className="profile-avatar" style={profile.avatar ? { backgroundImage: `url(${profile.avatar})` } : undefined}>
+            {!profile.avatar && initials}
+          </div>
+          <div className="profile-name-block">
+            <div className="profile-title-line"><h1>{profile.displayName}</h1>{profile.verified && <span className="profile-badge">✓ Verified</span>}</div>
+            <p>@{profile.username} · {profile.freshId}</p>
+            {profile.occupation && <span>{profile.occupation}{profile.company ? ` · ${profile.company}` : ""}</span>}
+          </div>
+        </div>
+        {profile.bio && <p className="profile-bio">{profile.bio}</p>}
+        <div className="profile-stats">
+          <span><strong>{profile.followerCount}</strong> followers</span>
+          <span><strong>{profile.followingCount}</strong> following</span>
+          <span><strong>{profile.postCount}</strong> posts</span>
+          <span><strong>{profile.shortCount}</strong> shorts</span>
+          <span><strong>{profile.reputationScore}</strong> reputation</span>
+        </div>
+      </section>
 
-<p>{demoProfile.freshId}</p>
+      <nav className="profile-tabs" aria-label="Profile sections">
+        {tabs.map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>{item}</button>)}
+      </nav>
 
-</div>
+      {tab === "Overview" && (
+        <div className="profile-grid">
+          <section className="profile-card smart-card">
+            <div className="card-heading"><div><span className="eyebrow">FRESH FLOW</span><h2>Smart profile</h2></div><span className="live-dot">LIVE DATA</span></div>
+            <p>Your profile is assembled from your Fresh ID, real profile records and content already stored in Fresh Flow.</p>
+            <div className="smart-metrics"><div><strong>{recent.length}</strong><span>Recent items</span></div><div><strong>{connected.length}</strong><span>Connected identities</span></div><div><strong>{profile.skills.length}</strong><span>Skills</span></div></div>
+          </section>
+          <section className="profile-card"><div className="card-heading"><h2>Activity</h2><button onClick={() => setTab("Activity")}>View all</button></div>{recent.length === 0 ? <p className="muted">No Fresh content yet. Your first post will appear here automatically.</p> : recent.slice(0, 3).map((item) => <article className="activity-row" key={`${item.kind}-${item.id}`}><span className="activity-kind">{item.kind}</span><div><strong>{item.title}</strong><p>{item.text || "Media content"}</p></div><time>{new Date(item.createdAt).toLocaleDateString()}</time></article>)}</section>
+          <section className="profile-card"><div className="card-heading"><h2>Reputation</h2><span className="profile-score">{profile.reputationScore}</span></div><p>Fresh ID reputation is shown from the account's persisted reputation score. No score is invented when evidence is missing.</p></section>
+          <section className="profile-card"><div className="card-heading"><h2>Privacy layers</h2><button disabled={savingPrivacy} onClick={() => setTab("Identity")}>Manage</button></div><p>Separate visibility controls are persisted with your Fresh identity.</p><div className="privacy-summary"><span>Public {profile.visibility.public ? "On" : "Off"}</span><span>Connections {profile.visibility.connections ? "On" : "Off"}</span><span>Private {profile.visibility.private ? "On" : "Off"}</span></div></section>
+        </div>
+      )}
 
-</div>
+      {tab === "Activity" && <section className="profile-card full-card"><div className="card-heading"><h2>Universal activity</h2><span>{profile.activity.length} loaded</span></div>{recent.length === 0 ? <p className="muted">No activity stored yet.</p> : recent.map((item) => <article className="activity-row" key={`${item.kind}-${item.id}`}><span className="activity-kind">{item.kind}</span><div><strong>{item.title}</strong><p>{item.text || "Media content"}</p></div><time>{new Date(item.createdAt).toLocaleString()}</time></article>)}</section>}
 
-<div className="ai-card">
+      {tab === "Identity" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">FRESH ID</span><h2>Identity & privacy</h2></div></div><div className="identity-details"><p><b>Fresh ID:</b> {profile.freshId}</p><p><b>Email:</b> {profile.email}</p><p><b>Joined:</b> {new Date(profile.joinedAt).toLocaleDateString()}</p><p><b>Location:</b> {profile.location || "Not provided"}</p><p><b>Website:</b> {profile.website || "Not provided"}</p><p><b>Skills:</b> {profile.skills.length ? profile.skills.join(", ") : "Not provided"}</p></div><div className="privacy-controls">{(["public", "connections", "private"] as const).map((key) => <button key={key} disabled={savingPrivacy} className={profile.visibility[key] ? "privacy-on" : "privacy-off"} onClick={() => void updateVisibility(key)}>{key}: {profile.visibility[key] ? "visible" : "hidden"}</button>)}</div></section>}
 
-<h3>Fresh AI</h3>
+      {tab === "Connections" && <section className="profile-card full-card"><div className="card-heading"><h2>Cross-platform identities</h2><span>{connected.length} connected</span></div>{connected.length === 0 ? <p className="muted">No external identity is connected to this Fresh ID yet. This section will never show invented accounts.</p> : connected.map((item) => <div className="connection-row" key={`${item.provider}-${item.handle}`}><span className="connection-icon">{item.provider.slice(0, 1).toUpperCase()}</span><div><strong>{item.provider}</strong><p>{item.handle || "Linked account"}</p></div><span>Connected</span></div>)}</section>}
 
-<p>
-Welcome back,
-{demoProfile.displayName}.
-Your digital world is ready.
-</p>
-
-</div>
-
-<div className="profile-grid">
-
-<div className="profile-card">
-<h3>Identity</h3>
-<p>{demoProfile.bio}</p>
-</div>
-
-<div className="profile-card">
-<h3>Portfolio</h3>
-<p>Projects, certificates and achievements.</p>
-</div>
-
-<div className="profile-card">
-<h3>Analytics</h3>
-<p>Personal insights will appear here.</p>
-</div>
-
-<div className="profile-card">
-<h3>Ecosystems</h3>
-<p>Learning • Wallet • Creator • Business</p>
-</div>
-
-</div>
-
-</div>
-
-);
-
+      {tab === "Insights" && <section className="profile-card full-card"><div className="card-heading"><h2>Personal analytics</h2><span>From stored Fresh data</span></div><div className="insight-grid"><div><strong>{profile.postCount + profile.shortCount}</strong><span>Published items</span></div><div><strong>{profile.followerCount}</strong><span>Followers</span></div><div><strong>{profile.reputationScore}</strong><span>Reputation</span></div><div><strong>{profile.connections.length}</strong><span>Connected identities</span></div></div><p className="muted">Deeper reach, views and impact analytics will be added when the underlying event/engagement data exists; this first slice does not fabricate those numbers.</p></section>}
+    </main>
+  );
 }
