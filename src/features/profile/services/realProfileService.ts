@@ -17,17 +17,14 @@ function visibilityOf(identity: Identity): ProfileVisibility {
 function connectionsOf(user: FreshUser): ProfileConnection[] {
   return (user.linkedAccounts ?? []).map((account) => ({
     provider: text(account.provider) || "connected account",
-    handle: text(account.username || account.handle),
+    handle: text(account.providerId),
     connected: true,
-    verified: Boolean(account.verified),
   }));
 }
 
 export async function loadRealUniversalProfile(user: FreshUser): Promise<UniversalProfile> {
   const identity = identityOf(user);
-  const detailsResult = await supabase.from("profile_details")
-    .select("bio, avatar_url, cover_url, location, website_url, occupation, company, pronouns")
-    .eq("user_id", user.id).maybeSingle();
+  const detailsResult = await supabase.from("profile_details").select("bio, avatar_url, cover_url, location, website_url, occupation, company, pronouns").eq("user_id", user.id).maybeSingle();
   const details = detailsResult.data ?? {};
 
   const [posts, shorts, followers, following] = await Promise.all([
@@ -38,14 +35,8 @@ export async function loadRealUniversalProfile(user: FreshUser): Promise<Univers
   ]);
 
   const activity: ProfileActivity[] = [
-    ...(posts.data ?? []).map((item) => ({
-      id: String(item.id), kind: "post" as const, title: "Post", text: text(item.content),
-      mediaUrl: text(item.video_url) || text(item.image_url) || null, createdAt: String(item.created_at),
-    })),
-    ...(shorts.data ?? []).map((item) => ({
-      id: String(item.id), kind: "short" as const, title: "Short video", text: "",
-      mediaUrl: text(item.video_url) || null, createdAt: String(item.created_at), engagement: Number(item.like_count ?? 0),
-    })),
+    ...(posts.data ?? []).map((item) => ({ id: String(item.id), kind: "post" as const, title: "Post", text: text(item.content), mediaUrl: text(item.video_url) || text(item.image_url) || null, createdAt: String(item.created_at) })),
+    ...(shorts.data ?? []).map((item) => ({ id: String(item.id), kind: "short" as const, title: "Short video", text: "", mediaUrl: text(item.video_url) || null, createdAt: String(item.created_at), engagement: Number(item.like_count ?? 0) })),
   ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return {
@@ -54,11 +45,11 @@ export async function loadRealUniversalProfile(user: FreshUser): Promise<Univers
     username: user.username,
     displayName: user.fullName,
     email: user.email,
-    avatar: text(details.avatar_url) || text(identity.avatar_url),
-    coverPhoto: text(details.cover_url) || text(identity.cover_url),
-    bio: text(details.bio) || text(identity.bio),
-    location: text(details.location) || text(identity.location),
-    website: text(details.website_url) || text(identity.website_url),
+    avatar: text(details.avatar_url) || text(user.avatar) || text(identity.avatar_url),
+    coverPhoto: text(details.cover_url) || text(user.bannerImage) || text(identity.cover_url),
+    bio: text(details.bio) || text(user.bio) || text(identity.bio),
+    location: text(details.location) || text(user.location) || text(identity.location),
+    website: text(details.website_url) || text(user.websiteUrl) || text(identity.website_url),
     verified: user.verified,
     joinedAt: user.createdAt,
     languages: Array.isArray(identity.languages) ? identity.languages.map(String) : [],
