@@ -3,45 +3,16 @@ import { assessTemporalTruth, isActionableTemporalTruth, type TemporalTruthAsses
 import { calibrateClaimConfidence, type CalibratedConfidence } from "./confidenceCalibration.js";
 import type { ProvenanceEdge, ProvenanceNode } from "./sourceProvenance.js";
 
-export type TruthDecision = {
-  claimId: string;
-  assessment: TemporalTruthAssessment;
-  calibration: CalibratedConfidence;
-  actionable: boolean;
-  decision: "ALLOW_ACTION" | "ALLOW_WITH_CAUTION" | "BLOCK_ACTION";
-  reasons: string[];
-};
+export type TruthDecision = { claimId: string; assessment: TemporalTruthAssessment; calibration: CalibratedConfidence; actionable: boolean; decision: "ALLOW_ACTION" | "ALLOW_WITH_CAUTION" | "BLOCK_ACTION"; reasons: string[] };
 
-export function decideTruth(
-  claim: SemanticClaim,
-  allClaims: SemanticClaim[],
-  evidence: SemanticEvidence[],
-  provenanceNodes: ProvenanceNode[] = [],
-  provenanceEdges: ProvenanceEdge[] = [],
-  now = new Date().toISOString(),
-): TruthDecision {
+export function decideTruth(claim: SemanticClaim, allClaims: SemanticClaim[], evidence: SemanticEvidence[], provenanceNodes: ProvenanceNode[] = [], provenanceEdges: ProvenanceEdge[] = [], now = new Date().toISOString()): TruthDecision {
   const calibration = calibrateClaimConfidence(claim, evidence, provenanceNodes, provenanceEdges, allClaims, now);
-  const calibratedClaim = { ...claim, confidence: calibration.confidence };
-  const assessment = assessTemporalTruth(calibratedClaim, now, allClaims);
+  const assessment = assessTemporalTruth({ ...claim, confidence: calibration.confidence }, now, allClaims);
   const actionable = isActionableTemporalTruth(assessment) && calibration.actionable;
   const decision = actionable ? "ALLOW_ACTION" : assessment.status === "CURRENT" && calibration.confidence >= 0.6 ? "ALLOW_WITH_CAUTION" : "BLOCK_ACTION";
-  const reasons = [
-    ...assessment.reasons,
-    `Calibrated confidence: ${Math.round(calibration.confidence * 100)}%.`,
-    `Independent evidence clusters: ${calibration.independenceClusters}.`,
-    `Provenance-independent sources: ${calibration.provenanceIndependentSources}.`,
-    `Calibration decision: ${calibration.decision}.`,
-  ];
-  reasons.push(calibration.actionable ? "Confidence calibration permits automated action." : "Confidence calibration does not permit automated action.");
-  return { claimId: claim.id, assessment, calibration, actionable, decision, reasons };
+  return { claimId: claim.id, assessment, calibration, actionable, decision, reasons: [...assessment.reasons, `Calibrated confidence: ${Math.round(calibration.confidence * 100)}%.`, `Independent evidence clusters: ${calibration.independenceClusters}.`, `Provenance-independent sources: ${calibration.provenanceIndependentSources}.`, `Calibration decision: ${calibration.decision}.`, calibration.actionable ? "Confidence calibration permits automated action." : "Confidence calibration does not permit automated action."] };
 }
 
-export function decideTruthBatch(
-  claims: SemanticClaim[],
-  evidence: SemanticEvidence[],
-  provenanceNodes: ProvenanceNode[] = [],
-  provenanceEdges: ProvenanceEdge[] = [],
-  now = new Date().toISOString(),
-): TruthDecision[] {
+export function decideTruthBatch(claims: SemanticClaim[], evidence: SemanticEvidence[], provenanceNodes: ProvenanceNode[] = [], provenanceEdges: ProvenanceEdge[] = [], now = new Date().toISOString()): TruthDecision[] {
   return claims.map((claim) => decideTruth(claim, claims, evidence, provenanceNodes, provenanceEdges, now));
 }
