@@ -1,5 +1,5 @@
-import { agentRuntime } from "./agentRuntime";
-import "../defaultTools";
+import { agentRuntime } from "./agentRuntime.js";
+import "../defaultTools.js";
 
 const DEFAULT_AGENTS = [
   { id: "fresh-ai", name: "Fresh AI", description: "Reasoning and intelligence", ecosystem: "ai", tools: ["fresh-ai", "reasoning", "search"] },
