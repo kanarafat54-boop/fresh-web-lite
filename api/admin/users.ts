@@ -3,15 +3,17 @@ import { createClient } from "@supabase/supabase-js";
 export const config = { maxDuration: 30 };
 
 type AdminRequest = {
-  action?: "list" | "update";
+  action?: "list" | "update" | "overview";
   userId?: string;
   fullName?: string;
   username?: string;
   role?: string;
 };
 
+type OverviewMetric = { label: string; value: number };
+
 function response(data: unknown, status = 200): Response {
-  return Response.json(data, { status });
+  return Response.json(data, { status, headers: { "cache-control": "no-store" } });
 }
 
 function clients() {
@@ -25,6 +27,12 @@ function clients() {
   };
 }
 
+async function countRows(admin: ReturnType<typeof clients>["admin"], table: string) {
+  const { count, error } = await admin.from(table).select("id", { count: "exact", head: true });
+  if (error) throw new Error(`${table}: ${error.message}`);
+  return count ?? 0;
+}
+
 export async function POST(req: Request): Promise<Response> {
   try {
     const authorization = req.headers.get("authorization") ?? "";
@@ -36,29 +44,41 @@ export async function POST(req: Request): Promise<Response> {
     const { data: authData, error: authError } = await auth.auth.getUser(token);
     if (authError || !authData.user) return response({ error: "Invalid authentication session" }, 401);
 
-    const { data: actor, error: actorError } = await admin
-      .from("users")
-      .select("id, role")
-      .eq("id", authData.user.id)
-      .maybeSingle();
+    const { data: actor, error: actorError } = await admin.from("users").select("id, role").eq("id", authData.user.id).maybeSingle();
     if (actorError) return response({ error: actorError.message }, 500);
     if (!actor || actor.role !== "admin") return response({ error: "Administrator access required" }, 403);
 
+    if (body.action === "overview") {
+      const [users, posts, shorts, interactions, reports, follows, intelligenceClaims] = await Promise.all([
+        countRows(admin, "users"),
+        countRows(admin, "posts"),
+        countRows(admin, "shorts"),
+        countRows(admin, "universal_interactions"),
+        countRows(admin, "reports"),
+        countRows(admin, "follows"),
+        countRows(admin, "fresh_intelligence_claims"),
+      ]);
+      const metrics: OverviewMetric[] = [
+        { label: "People", value: users },
+        { label: "Posts", value: posts },
+        { label: "Shorts", value: shorts },
+        { label: "Interactions", value: interactions },
+        { label: "Connections", value: follows },
+        { label: "Reports", value: reports },
+        { label: "Intelligence claims", value: intelligenceClaims },
+      ];
+      return response({ metrics, generatedAt: new Date().toISOString() });
+    }
+
     if (body.action === "list") {
-      const { data, error } = await admin
-        .from("users")
-        .select("id, full_name, username, email, role, verified, presence, created_at")
-        .order("created_at", { ascending: false })
-        .limit(200);
+      const { data, error } = await admin.from("users").select("id, full_name, username, email, role, verified, presence, created_at").order("created_at", { ascending: false }).limit(200);
       if (error) return response({ error: error.message }, 500);
       return response({ users: data ?? [] });
     }
 
     if (body.action === "update") {
       if (!body.userId) return response({ error: "userId is required" }, 400);
-      if (body.userId === authData.user.id && body.role && body.role !== "admin") {
-        return response({ error: "An administrator cannot remove their own administrator role from this panel" }, 400);
-      }
+      if (body.userId === authData.user.id && body.role && body.role !== "admin") return response({ error: "An administrator cannot remove their own administrator role from this panel" }, 400);
 
       const patch: Record<string, string> = {};
       if (typeof body.fullName === "string" && body.fullName.trim()) patch.full_name = body.fullName.trim();
