@@ -3,7 +3,6 @@ import type { FreshUser } from "../../fresh-id/types/user";
 import type { ProfileActivity, ProfileConnection, ProfileVisibility, UniversalProfile } from "../types/profile";
 
 type Identity = Record<string, unknown>;
-
 const text = (value: unknown) => typeof value === "string" ? value : "";
 const identityOf = (user: FreshUser): Identity => user.identity && typeof user.identity === "object" ? user.identity as Identity : {};
 
@@ -15,11 +14,7 @@ function visibilityOf(identity: Identity): ProfileVisibility {
 }
 
 function connectionsOf(user: FreshUser): ProfileConnection[] {
-  return (user.linkedAccounts ?? []).map((account) => ({
-    provider: text(account.provider) || "connected account",
-    handle: text(account.providerId),
-    connected: true,
-  }));
+  return (user.linkedAccounts ?? []).map((account) => ({ provider: text(account.provider) || "connected account", handle: text(account.providerId), connected: true }));
 }
 
 export async function loadRealUniversalProfile(user: FreshUser): Promise<UniversalProfile> {
@@ -28,8 +23,8 @@ export async function loadRealUniversalProfile(user: FreshUser): Promise<Univers
   const details = detailsResult.data ?? {};
 
   const [posts, shorts, followers, following] = await Promise.all([
-    supabase.from("posts").select("id, content, image_url, video_url, created_at").eq("author_id", user.id).order("created_at", { ascending: false }).limit(50),
-    supabase.from("shorts").select("id, video_url, like_count, created_at").eq("author_id", user.id).order("created_at", { ascending: false }).limit(50),
+    supabase.from("posts").select("id, content, image_url, video_url, created_at", { count: "exact" }).eq("author_id", user.id).order("created_at", { ascending: false }).limit(50),
+    supabase.from("shorts").select("id, video_url, like_count, created_at", { count: "exact" }).eq("author_id", user.id).order("created_at", { ascending: false }).limit(50),
     supabase.from("follows").select("id", { count: "exact", head: true }).eq("followed_id", user.id),
     supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", user.id),
   ]);
@@ -60,8 +55,8 @@ export async function loadRealUniversalProfile(user: FreshUser): Promise<Univers
     pronouns: text(details.pronouns) || text(identity.pronouns),
     followerCount: followers.count ?? user.stats.followerCount ?? 0,
     followingCount: following.count ?? user.stats.followingCount ?? 0,
-    postCount: posts.data?.length ?? user.stats.postCount ?? 0,
-    shortCount: shorts.data?.length ?? 0,
+    postCount: posts.count ?? user.stats.postCount ?? 0,
+    shortCount: shorts.count ?? 0,
     reputationScore: user.stats.reputationScore ?? 0,
     connections: connectionsOf(user),
     activity,
