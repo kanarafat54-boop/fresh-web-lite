@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
+import { getProfileInsights, type ProfileInsights } from "../services/profileInsightsService";
+import { ProfileInsightsStrip } from "./insights/ProfileInsightsStrip";
 import { BackIcon, SearchIcon } from "../../../components/Icons";
 
 interface ProfileData {
@@ -63,6 +65,8 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
+  // undefined = loading, null = views returned nothing for this user
+  const [insights, setInsights] = useState<ProfileInsights | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -142,6 +146,9 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
     if (!portfolioResult.error) setPortfolio((portfolioResult.data ?? []).map((item) => ({ id: item.id, title: item.title, description: item.description ?? "", url: item.url ?? null, imageUrl: item.image_url ?? null, position: item.position ?? 0 })));
     if (!postsResult.error) setPosts((postsResult.data ?? []).map((item) => ({ id: item.id, content: item.content ?? "", imageUrl: item.image_url ?? null, videoUrl: item.video_url ?? null, createdAt: item.created_at })));
     if (!shortsResult.error) setShorts((shortsResult.data ?? []).map((item) => ({ id: item.id, videoUrl: item.video_url, likeCount: item.like_count ?? 0, createdAt: item.created_at })));
+
+    // Live views; runs alongside the follow counts, never blocks them.
+    void getProfileInsights(userId).then(setInsights).catch(() => setInsights(null));
 
     const [followers, following] = await Promise.all([
       supabase.from("follows").select("id", { count: "exact", head: true }).eq("followed_id", userId),
@@ -282,6 +289,7 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
               </div>
               {links.length > 0 && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>{links.map((link) => <a key={link.id} className="auth-tab" href={link.url} target="_blank" rel="noreferrer">{link.label}</a>)}</div>}
 
+              <ProfileInsightsStrip insights={insights} />
               <div className="profile-stats-row" style={{ marginTop: 22 }}>
                 <div><strong>{followerCount}</strong><span>Followers</span></div>
                 <div><strong>{followingCount}</strong><span>Following</span></div>
