@@ -66,14 +66,14 @@ async function providerAnswer(goal: string, route: string, evidence: Evidence[],
         const snippet = item.snippet ? item.snippet.slice(0, 700) : "";
         return `[Evidence ${index + 1}] ${item.title}${published}\n${snippet}`;
       }).join("\n\n")
-    : "\n\nNo live web evidence was available. Be explicit about uncertainty and do not claim verification.";
+    : "\n\nNo live web evidence was available. Answer from general knowledge when appropriate, clearly distinguish it from live research, and do not claim current verification.";
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      systemInstruction: { parts: [{ text: "You are Fresh AI inside Fresh Web Lite. Research-grounded answers are the default. Use supplied evidence, synthesize independent results, separate evidence from inference, acknowledge conflicts, and never fabricate proof. Never print raw URLs, citations, or a source directory; Fresh renders provenance as its own internal Proof and Evidence layer." }] },
+      systemInstruction: { parts: [{ text: "You are Fresh AI, the universal intelligence and action layer inside Fresh Web Lite. Your job is to understand what the user actually wants, even when the request is vague, conversational, multi-step, or expressed indirectly. Decide whether the user needs an answer, explanation, research, comparison, planning, creation, coding, analysis, design, learning, discovery, or an action. Fulfill the request directly when possible. Use live evidence when supplied, synthesize it, distinguish facts from inference, acknowledge uncertainty and conflicts, and never fabricate verification. You can coordinate Fresh Search, reasoning, memory, tools, and ARA6 execution conceptually; do not claim an action was performed unless it actually was. Never print raw URLs, citations, or a source directory; Fresh renders provenance through its internal Proof and Evidence layer." }] },
       contents: [{ role: "user", parts: [{ text: `Current Fresh workspace: ${route}\nUser request: ${goal}\nDimensional reasoning context: ${dimensionalContext}${evidenceText}` }] }],
-      generationConfig: { temperature: 0.2, maxOutputTokens: 900 },
+      generationConfig: { temperature: 0.2, maxOutputTokens: 1200 },
     }),
   });
   if (!response.ok) return null;
@@ -83,10 +83,10 @@ async function providerAnswer(goal: string, route: string, evidence: Evidence[],
 
 function nativeAnswer(goal: string, route: string, dimensions: number): string {
   const normalized = goal.toLowerCase();
-  if (normalized.includes("what can you do") || normalized.includes("help")) return `Fresh AI is active in ${route}. I can understand, research, reason, plan, analyze, and guide actions through Fresh intelligence using ${dimensions} reasoning dimensions.`;
-  if (normalized.includes("where") || normalized.includes("find")) return `You are currently in ${route}. Fresh Search can research the public web and organize what it finds inside Fresh.`;
-  if (normalized.includes("plan") || normalized.includes("next")) return `A good next step from ${route} is to define the outcome, identify the smallest useful action, then verify the result through Fresh Intelligence.`;
-  return `Fresh AI analyzed your request in ${route} using native reasoning. Live research evidence was not available, so I will not pretend an unverified answer is proven.`;
+  if (normalized.includes("what can you do") || normalized.includes("help")) return `Fresh AI is active in ${route}. I can understand requests, answer questions, research, analyze, create, code, plan, learn, and coordinate actions through Fresh intelligence using ${dimensions} reasoning dimensions.`;
+  if (normalized.includes("where") || normalized.includes("find")) return `Fresh AI can interpret what you are trying to find and use Fresh Search when live information is needed.`;
+  if (normalized.includes("plan") || normalized.includes("next")) return `I can turn your goal into a concrete plan, identify the required tools or information, execute permitted steps, and verify the result.`;
+  return `I understand this as a request for: ${goal}. I can work through it directly, but live research or an external action may require the relevant Fresh capability to be available.`;
 }
 
 export async function POST(req: Request): Promise<Response> {
@@ -102,6 +102,6 @@ export async function POST(req: Request): Promise<Response> {
     const dimensionalContext = dimensions.map((item) => `${item.dimension}D:${item.lens.focus}; confidence=${item.confidence.toFixed(2)}`).join(" | ");
     const answer = await providerAnswer(goal, route, evidence.sources, dimensionalContext).catch(() => null);
     const publicEvidence: PublicEvidence[] = evidence.sources.slice(0, 8).map(({ title, snippet, publishedAt, kind }) => ({ title, snippet, publishedAt, kind }));
-    return json({ answer: answer ?? nativeAnswer(goal, route, dimensions.length), confidence: answer ? (evidence.verification?.confidence ?? "unknown") : "known", source: answer ? "Fresh Intelligence" : "Fresh native intelligence boundary", authenticated: Boolean(user), evidence: publicEvidence, verification: evidence.verification ?? null, proof: { mode: answer ? "research-grounded" : "native", evidenceCount: publicEvidence.length, provenance: "internal", dimensionalReasoning: { enabled: true, dimensions: dimensions.length } });
+    return json({ answer: answer ?? nativeAnswer(goal, route, dimensions.length), confidence: answer ? (evidence.verification?.confidence ?? "unknown") : "unknown", source: answer ? "Fresh Intelligence" : "Fresh native intelligence boundary", authenticated: Boolean(user), evidence: publicEvidence, verification: evidence.verification ?? null, proof: { mode: answer ? "research-grounded" : "native", evidenceCount: publicEvidence.length, provenance: "internal", dimensionalReasoning: { enabled: true, dimensions: dimensions.length } });
   } catch (error) { return json({ error: error instanceof Error ? error.message : "Fresh AI request failed" }, 500); }
 }
