@@ -1,21 +1,23 @@
-import { readFileSync } from "node:fs";
+import assert from "node:assert/strict";
+import { getShortsResourcePolicy, getShortsResourceWindow } from "../src/features/fresh-flow/core/shortsPerformance.ts";
 
-const path = "src/features/fresh-flow/core/shortsPerformance.ts";
-const source = readFileSync(path, "utf8");
+const active = getShortsResourcePolicy(5, 5, "4g");
+assert.equal(active.priority, "active");
+assert.equal(active.preload, "auto");
+assert.equal(active.keepDecoded, true);
 
-const requiredContracts = [
-  "getShortsResourcePolicy",
-  "slow-2g",
-  'preload: "none"',
-  'priority: "active"',
-  "getShortsResourceWindow",
-  "Math.abs(position - activeIndex)",
-];
+const slowNearby = getShortsResourcePolicy(6, 5, "2g");
+assert.equal(slowNearby.priority, "nearby");
+assert.equal(slowNearby.preload, "metadata");
+assert.equal(slowNearby.keepDecoded, false);
 
-for (const contract of requiredContracts) {
-  if (!source.includes(contract)) {
-    throw new Error(`Missing Fresh Flow performance contract: ${contract}`);
-  }
-}
+const distant = getShortsResourcePolicy(9, 5, "4g");
+assert.equal(distant.priority, "distant");
+assert.equal(distant.preload, "none");
+assert.equal(distant.keepDecoded, false);
+
+assert.deepEqual(getShortsResourceWindow(10, 5, 2), [3, 4, 5, 6, 7]);
+assert.deepEqual(getShortsResourceWindow(3, 0, 2), [0, 1, 2]);
+assert.deepEqual(getShortsResourceWindow(0, 0, 2), []);
 
 console.log("Fresh Flow performance contract: PASS");
