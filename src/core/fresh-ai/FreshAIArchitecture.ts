@@ -4,10 +4,9 @@
  * Fresh AI owns reasoning, memory, truth evaluation, planning, skill
  * composition and agent orchestration. Agents are operational roles, not
  * competing intelligence providers.
- *
- * Core operation requires no provider API key. Provider adapters, when ever
- * introduced, must remain optional tools behind an explicit capability gate.
  */
+
+import type { FreshDimension, DimensionalReasoning } from "./dimensionalIntelligence";
 
 export type TruthState = "KNOWN" | "PROBABLE" | "UNCERTAIN" | "CONTRADICTED" | "UNKNOWN" | "BLOCKED";
 export type FreshIntent = "answer" | "research" | "create" | "code" | "design" | "analyze" | "plan" | "act" | "learn" | "discover";
@@ -53,6 +52,7 @@ export type FreshReasoningRequest = {
   context?: Record<string, unknown>;
   evidence?: Evidence[];
   requestedAgents?: FreshAgent[];
+  dimensions?: FreshDimension[];
 };
 
 export type FreshReasoningResult = {
@@ -62,6 +62,7 @@ export type FreshReasoningResult = {
   actions: string[];
   unknowns: string[];
   explanation: string;
+  dimensionalReasoning?: DimensionalReasoning[];
 };
 
 export const FRESH_AI_NATIVE_CAPABILITIES = [
@@ -75,6 +76,7 @@ export const FRESH_AI_NATIVE_CAPABILITIES = [
   "audio-understanding", "writing", "translation", "mathematics", "statistics",
   "physics", "chemistry", "biology", "simulation-planning", "research",
   "data-analysis", "forecasting", "risk-analysis", "automation", "learning",
+  "dimensional-reasoning-1d-11d",
 ] as const;
 
 export const FRESH_AI_AGENTS: FreshAgent[] = [
@@ -89,10 +91,10 @@ export const FRESH_AI_POLICY = {
   freshOwnsDecisionBoundary: true,
   preserveUnknowns: true,
   preserveContradictions: true,
+  dimensionalReasoning: true,
+  maxReasoningDimension: 11,
 } as const;
 
-/** Stable interface for the native engine. Implementations can evolve without
- * changing every agent or product surface. */
 export interface FreshIntelligenceEngine {
   understand(request: FreshReasoningRequest): Promise<{ intent: FreshIntent; context: Record<string, unknown> }>;
   retrieve(request: FreshReasoningRequest): Promise<Evidence[]>;
@@ -103,7 +105,5 @@ export interface FreshIntelligenceEngine {
 }
 
 export function assertFreshCoreHasNoRequiredApiKeys(env: Record<string, string | undefined> = {}): void {
-  // Deliberately informational: the native engine must not throw when provider
-  // credentials are absent. External credentials are optional tool configuration.
   void env;
 }
