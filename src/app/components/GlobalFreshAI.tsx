@@ -6,7 +6,7 @@ import "./GlobalFreshAI.css";
 type AskResponse = { answer?: string; confidence?: string; source?: string; error?: string };
 
 export default function GlobalFreshAI() {
-  const { activeRoute } = useLayout();
+  const { activeRoute, setActiveRoute } = useLayout();
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
@@ -24,10 +24,7 @@ export default function GlobalFreshAI() {
       const token = data.session?.access_token;
       const response = await fetch("/api/ai/ask", {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-          ...(token ? { authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ goal, route: activeRoute ?? "/" }),
       });
       const payload = (await response.json()) as AskResponse;
@@ -40,11 +37,15 @@ export default function GlobalFreshAI() {
     }
   }
 
+  function openFullAI() {
+    setOpen(false);
+    setActiveRoute("ai");
+  }
+
   return (
     <>
       <button className="global-fresh-ai-trigger" type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-controls="global-fresh-ai-panel">
-        <span className="global-fresh-ai-mark">F</span>
-        <span>Fresh AI</span>
+        <span className="global-fresh-ai-mark">F</span><span>Fresh AI</span>
       </button>
       {open && (
         <aside className="global-fresh-ai-panel" id="global-fresh-ai-panel" aria-label="Fresh AI assistant">
@@ -59,7 +60,7 @@ export default function GlobalFreshAI() {
           </form>
           {error && <p className="global-fresh-ai-error">{error}</p>}
           {answer && <div className="global-fresh-ai-answer"><span>Fresh AI</span><p>{answer}</p></div>}
-          <button className="global-fresh-ai-full" type="button" onClick={() => setOpen(false)}>Open full Fresh AI →</button>
+          <button className="global-fresh-ai-full" type="button" onClick={openFullAI}>Open full Fresh AI →</button>
         </aside>
       )}
     </>
