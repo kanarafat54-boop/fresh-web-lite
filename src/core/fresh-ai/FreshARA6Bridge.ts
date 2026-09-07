@@ -1,6 +1,7 @@
-import type { FreshAgent, FreshPlanStep } from "./FreshAIArchitecture";
-import { agentRuntime } from "../ara6/agents/agentRuntime";
-import type { AgentTask } from "../ara6/agents/agent";
+import type { FreshAgent, FreshPlanStep } from "./FreshAIArchitecture.js";
+import { agentRuntime } from "../ara6/agents/agentRuntime.js";
+import type { AgentTask } from "../ara6/agents/agent.js";
+import "../ara6/agents/defaultAgents.js";
 
 export type FreshARA6Execution = {
   stepId: string;
@@ -8,6 +9,12 @@ export type FreshARA6Execution = {
   accepted: boolean;
   status: "executed" | "approval-required" | "unavailable" | "failed";
   detail: string;
+};
+
+type FreshARA6Context = {
+  requestId?: string;
+  origin?: string;
+  userId?: string | null;
 };
 
 const AGENT_ALIASES: Record<string, string> = {
@@ -20,6 +27,7 @@ const AGENT_ALIASES: Record<string, string> = {
 export async function executeFreshPlanThroughAra6(
   plan: FreshPlanStep[],
   approve = false,
+  context: FreshARA6Context = {},
 ): Promise<FreshARA6Execution[]> {
   return Promise.all(plan.map(async (step) => {
     if (step.requiresApproval && !approve) {
@@ -38,11 +46,17 @@ export async function executeFreshPlanThroughAra6(
     const task: AgentTask = {
       action: step.description,
       taskId: step.id,
+      requestId: context.requestId,
       approved: approve,
+      metadata: {
+        origin: context.origin,
+        userId: context.userId,
+        freshAi: true,
+      },
     };
     const execution = await agentRuntime.execute(agentId, task);
     const result = execution.result;
-    const status = result?.status === "failed" ? "failed" : execution.accepted ? "executed" : "unavailable";
+    const status = result?.status === "failed" || result?.status === "timed-out" ? "failed" : execution.accepted ? "executed" : "unavailable";
 
     return {
       stepId: step.id,
