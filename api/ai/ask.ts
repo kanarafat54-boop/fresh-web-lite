@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { reasonAcrossDimensions } from "../../src/core/fresh-ai/dimensionalIntelligence";
+import { reasonAcrossDimensions } from "../../src/core/fresh-ai/dimensionalIntelligence.js";
 
 export const config = { maxDuration: 30 };
 
@@ -70,7 +70,7 @@ async function providerAnswer(goal: string, route: string, evidence: Evidence[],
 function nativeAnswer(goal: string, route: string, dimensions: number): string {
   const normalized = goal.toLowerCase();
   if (normalized.includes("what can you do") || normalized.includes("help")) return `Fresh AI is active in ${route}. I can understand, research, reason, plan, analyze, and guide actions through Fresh intelligence using ${dimensions} reasoning dimensions.`;
-  if (normalized.includes("where") || normalized.includes("find")) return `You are currently in ${route}. Fresh Search can research across the public web and organize what it finds inside Fresh.`;
+  if (normalized.includes("where") || normalized.includes("find")) return `You are currently in ${route}. Fresh Search can research the public web and organize what it finds inside Fresh.`;
   if (normalized.includes("plan") || normalized.includes("next")) return `A good next step from ${route} is to define the outcome, identify the smallest useful action, then verify the result through Fresh Intelligence.`;
   return `Fresh AI analyzed your request in ${route} using native reasoning. Live research evidence was not available, so I will not pretend an unverified answer is proven.`;
 }
@@ -88,6 +88,6 @@ export async function POST(req: Request): Promise<Response> {
     const dimensionalContext = dimensions.map((item) => `${item.dimension}D:${item.lens.focus}; confidence=${item.confidence.toFixed(2)}`).join(" | ");
     const answer = await providerAnswer(goal, route, evidence.sources, dimensionalContext).catch(() => null);
     const publicEvidence: PublicEvidence[] = evidence.sources.slice(0, 8).map(({ title, snippet, publishedAt, kind }) => ({ title, snippet, publishedAt, kind }));
-    return json({ answer: answer ?? nativeAnswer(goal, route, dimensions.length), confidence: answer ? (evidence.verification?.confidence ?? "unknown") : "known", source: answer ? "Fresh Intelligence" : "Fresh native intelligence boundary", authenticated: Boolean(user), evidence: publicEvidence, verification: evidence.verification ?? null, proof: { mode: answer ? "research-grounded" : "native", evidenceCount: publicEvidence.length, provenance: "internal", dimensionalReasoning: { enabled: true, dimensions: dimensions.length } } });
+    return json({ answer: answer ?? nativeAnswer(goal, route, dimensions.length), confidence: answer ? (evidence.verification?.confidence ?? "unknown") : "known", source: answer ? "Fresh Intelligence" : "Fresh native intelligence boundary", authenticated: Boolean(user), evidence: publicEvidence, verification: evidence.verification ?? null, proof: { mode: answer ? "research-grounded" : "native", evidenceCount: publicEvidence.length, provenance: "internal", dimensionalReasoning: { enabled: true, dimensions: dimensions.length } });
   } catch (error) { return json({ error: error instanceof Error ? error.message : "Fresh AI request failed" }, 500); }
 }
