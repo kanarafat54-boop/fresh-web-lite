@@ -90,9 +90,10 @@ export class FreshAIKernel implements FreshIntelligenceEngine {
   }
 
   async execute(plan: FreshReasoningResult["plan"]) {
-    return executeFreshPlanThroughAra6(plan)
-      .filter((result) => result.accepted)
-      .map((result) => result.detail);
+    const executions = await executeFreshPlanThroughAra6(plan);
+    return executions
+      .filter((execution) => execution.accepted)
+      .map((execution) => execution.detail);
   }
 }
 
