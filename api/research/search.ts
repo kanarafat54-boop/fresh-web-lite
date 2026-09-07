@@ -1,11 +1,11 @@
 import { synthesizeResearch, type ResearchPass } from "./orchestrator.js";
 import { persistSemanticResearch } from "./persistSemanticResearch.js";
+import { reasonAcrossDimensions } from "../../src/core/fresh-ai/dimensionalIntelligence";
 
 type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
 type SearchRequest = { query?: string; maxSources?: number; context?: string[]; mode?: ResearchMode };
 type TavilyResult = { title?: string; url?: string; content?: string; published_date?: string };
 type SourceKind = "web" | "news" | "video" | "image" | "music";
-
 export const config = { maxDuration: 60 };
 
 const MODE_CONFIG: Record<ResearchMode, { searchDepth: "basic" | "advanced"; topic: "general" | "news"; prefix?: string }> = {
@@ -42,22 +42,17 @@ async function runTavily(apiKey: string, query: string, modeConfig: (typeof MODE
   logStage(runId, "research.tavily.start", { pass, maxResults });
   try {
     const upstream = await fetch("https://api.tavily.com/search", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      signal: controller.signal,
+      method: "POST", headers: { "content-type": "application/json" }, signal: controller.signal,
       body: JSON.stringify({ api_key: apiKey, query, search_depth: modeConfig.searchDepth, topic: modeConfig.topic, max_results: maxResults, include_answer: true, include_raw_content: false }),
     });
     if (!upstream.ok) throw new Error(`Search provider returned HTTP ${upstream.status}`);
     const payload = await upstream.json() as { answer?: string; results?: TavilyResult[] };
-    const result = {
-      answer: payload.answer ?? "",
-      sources: (payload.results ?? []).filter((item) => item.title && item.url).map((item) => {
-        const url = item.url as string;
-        let domain = "unknown";
-        try { domain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* preserve unknown */ }
-        return { title: item.title as string, url, snippet: item.content, publishedAt: item.published_date, provider: "Tavily", kind: sourceKind(url, item.published_date, mode), domain };
-      }),
-    };
+    const result = { answer: payload.answer ?? "", sources: (payload.results ?? []).filter((item) => item.title && item.url).map((item) => {
+      const url = item.url as string;
+      let domain = "unknown";
+      try { domain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* preserve unknown */ }
+      return { title: item.title as string, url, snippet: item.content, publishedAt: item.published_date, provider: "Tavily", kind: sourceKind(url, item.published_date, mode), domain };
+    }) };
     logStage(runId, "research.tavily.complete", { pass, durationMs: elapsed(started), sourceCount: result.sources.length });
     return result;
   } catch (error) {
@@ -93,8 +88,9 @@ export async function POST(req: Request): Promise<Response> {
     const synthesisStarted = Date.now();
     const synthesis = synthesizeResearch(passes);
     const researchedAt = new Date().toISOString();
+    const dimensions = reasonAcrossDimensions(query);
     const researchResult = { query, mode, answer: synthesis.answer, sources: synthesis.sources, claims: synthesis.claims, researchedAt };
-    logStage(runId, "research.synthesis.complete", { durationMs: elapsed(synthesisStarted), sourceCount: researchResult.sources.length, claimCount: researchResult.claims.length });
+    logStage(runId, "research.synthesis.complete", { durationMs: elapsed(synthesisStarted), sourceCount: researchResult.sources.length, claimCount: researchResult.claims.length, dimensionalLayers: dimensions.length });
     let persistenceWarning: string | undefined;
     let persistence: Awaited<ReturnType<typeof persistSemanticResearch>> | undefined;
     const persistenceStarted = Date.now();
@@ -110,7 +106,7 @@ export async function POST(req: Request): Promise<Response> {
       logStage(runId, "research.persistence.error", { durationMs: elapsed(persistenceStarted), error: error instanceof Error ? error.message : "unknown" });
     }
     const warnings = [...(failures.length ? [`${failures.length} research pass(es) failed or timed out; Fresh returned the successfully completed evidence.`] : []), ...(persistenceWarning ? [persistenceWarning] : [])];
-    return json({ answer: synthesis.answer, sources: synthesis.sources, claims: synthesis.claims, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && !persistenceWarning }, 200, { "x-truemode-run-id": runId });
+    return json({ answer: synthesis.answer, sources: synthesis.sources, claims: synthesis.claims, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && !persistenceWarning, proof: { provenance: "internal", dimensionalReasoning: { enabled: true, dimensions: dimensions.length, maxDimension: 11 } } }, 200, { "x-truemode-run-id": runId });
   } catch (error) {
     console.error("Fresh Web Research error", { runId, error });
     return json({ error: error instanceof Error ? error.message : "Web research provider unavailable", runId }, 502);
