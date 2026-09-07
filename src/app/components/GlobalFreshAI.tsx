@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useLayout } from "../contexts/useLayout";
 import { supabase } from "../../lib/supabase";
 import "./GlobalFreshAI.css";
