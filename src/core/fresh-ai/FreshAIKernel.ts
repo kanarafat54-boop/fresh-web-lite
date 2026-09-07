@@ -1,4 +1,4 @@
-import type { Evidence, FreshIntent, FreshReasoningRequest, FreshReasoningResult, FreshSkill, FreshIntelligenceEngine, FreshPlanStep } from "./FreshAIArchitecture.js";
+import type { Evidence, FreshIntent, FreshReasoningRequest, FreshReasoningResult, FreshSkill, FreshIntelligenceEngine, FreshPlanStep, FreshExecutionResult } from "./FreshAIArchitecture.js";
 import { SemanticTruthEngine } from "./semanticTruthEngine.js";
 import { reasonAcrossDimensions } from "./dimensionalIntelligence.js";
 import { executeFreshPlanThroughAra6 } from "./FreshARA6Bridge.js";
@@ -31,7 +31,7 @@ export class FreshAIKernel implements FreshIntelligenceEngine {
   }
   async plan(_request:FreshReasoningRequest,result:FreshReasoningResult){ return result.plan; }
   async verify(result:FreshReasoningResult){ const contradictions=result.claims.filter(claim=>claim.truth==="CONTRADICTED"), verified={...result,unknowns:contradictions.length?[...new Set([...result.unknowns,`${contradictions.length} contradiction(s) require resolution before a definitive answer.`])]:result.unknowns}; return {...verified,asi:evaluateASIState(verified.asi?.objective??verified.answer,verified,verified.plan)}; }
-  async execute(plan:FreshPlanStep[],context:FreshExecutionContext={}):Promise<unknown[]>{ return executeFreshPlanThroughAra6(plan,Boolean(context.approve),{requestId:context.requestId,origin:context.origin,userId:context.userId}); }
+  async execute(plan:FreshPlanStep[],context:FreshExecutionContext={}):Promise<FreshExecutionResult[]> { return executeFreshPlanThroughAra6(plan,Boolean(context.approve),{requestId:context.requestId,origin:context.origin,userId:context.userId}); }
 }
 
 function inferIntent(input:string):FreshIntent { const value=input.toLowerCase(); if(/research|investigate|sources|evidence|verify|fact.?check/.test(value))return"research"; if(/build|code|debug|program|implement|fix|refactor/.test(value))return"code"; if(/design|ui|ux|interface|layout/.test(value))return"design"; if(/plan|roadmap|strategy|steps|how should/.test(value))return"plan"; if(/analy[sz]e|compare|why|how|explain|difference/.test(value))return"analyze"; if(/send|post|publish|buy|pay|delete|change|update|book|schedule|execute|run/.test(value))return"act"; if(/learn|teach|study|lesson|practice/.test(value))return"learn"; if(/find|discover|recommend|show me|where/.test(value))return"discover"; if(/create|write|make|generate|draft/.test(value))return"create"; return"answer"; }
