@@ -2,7 +2,8 @@
 export type IntelligenceTask = "answer" | "research" | "coding" | "design" | "science" | "biology" | "robotics" | "optimization" | "planning" | "orchestration";
 export type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
 export type IntelligenceRequest = { prompt: string; task?: IntelligenceTask; query?: string; context?: readonly string[]; maxSources?: number; researchMode?: ResearchMode };
-export type IntelligenceSource = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string };
+export type IntelligenceSourceKind = "web" | "news" | "video" | "image";
+export type IntelligenceSource = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string; kind?: IntelligenceSourceKind; domain?: string };
 export type ResearchVerification = { passes: number; uniqueSources: number; uniqueDomains: number; sourceDiversity: "low" | "medium" | "high"; confidence: "low" | "medium" | "high"; independentPasses?: number; contradictionsDetected?: boolean };
 export type IntelligenceResponse = { text: string; provider: string; sources?: readonly IntelligenceSource[]; confidence?: "low" | "medium" | "high"; verification?: ResearchVerification; researchMode?: ResearchMode; searchedAt?: string };
 export interface IntelligenceConnector { readonly id: string; readonly name: string; readonly tasks: readonly IntelligenceTask[]; isAvailable(): boolean; run(request: IntelligenceRequest): Promise<IntelligenceResponse> }
@@ -12,7 +13,7 @@ export class ConnectorRegistry {
   register(connector: IntelligenceConnector): void { this.connectors.set(connector.id, connector); }
   get(id: string): IntelligenceConnector | undefined { return this.connectors.get(id); }
   all(): readonly IntelligenceConnector[] { return Array.from(this.connectors.values()); }
-  health(): readonly ConnectorHealth[] { return this.all().map((connector) => ({ id: connector.id, name: connector.name, available: connector.isAvailable(), tasks: connector.tasks })); }
+  health(): readonly ConnectorHealth[] { return this.all().map((connector) => ({ id: connector.id, name: connector.name, available: connector.isAvailable(), tasks: connector.tasks })) }
 }
 export const intelligenceConnectors = new ConnectorRegistry();
 export function createUnavailableConnector(id: string, name: string, tasks: readonly IntelligenceTask[]): IntelligenceConnector {
