@@ -6,7 +6,16 @@ import "./GlobalFreshAI.css";
 
 type Evidence = { title: string; snippet?: string; kind?: string; publishedAt?: string };
 type AskResponse = { answer?: string; confidence?: string; source?: string; error?: string; evidence?: Evidence[]; verification?: { uniqueSources?: number; uniqueDomains?: number; sourceDiversity?: string; confidence?: string; contradictionsDetected?: boolean } | null; proof?: { mode?: string; evidenceCount?: number; provenance?: string } };
-const kindLabel: Record<string, string> = { web: "Web evidence", news: "News evidence", video: "Video evidence", image: "Image evidence", music: "Music evidence" };
+const kindLabel: Record<string, string> = { web: "Web", news: "News", video: "Video", image: "Image", music: "Music" };
+
+const baseSuggestions = [
+  "Research this for me",
+  "Compare the evidence",
+  "Explain this clearly",
+  "Build the next step",
+  "Find risks and unknowns",
+  "Turn this into a plan",
+];
 
 export default function GlobalFreshAI() {
   const { activeRoute } = useLayout();
@@ -23,13 +32,22 @@ export default function GlobalFreshAI() {
 
   const suggestions = useMemo(() => {
     const route = (activeRoute || "home").toLowerCase();
-    if (route.includes("short")) return ["Find the best ideas in this Shorts feed", "Explain this video", "Turn this into a post", "Research this creator"];
-    if (route.includes("learn")) return ["Teach me this step by step", "Make a study plan", "Quiz me on this", "Find stronger sources"];
-    if (route.includes("wallet") || route.includes("crypto")) return ["Explain this market move", "Compare these assets", "Check the risks", "Summarize the latest news"];
-    if (route.includes("profile")) return ["Improve my profile", "Find relevant connections", "Organize my work", "Draft my next post"];
-    if (route.includes("work") || route.includes("studio")) return ["Plan this project", "Review my workflow", "Find blockers", "Build the next step"];
-    return ["Research something for me", "Compare the evidence", "Explain this clearly", "Help me build it"];
+    if (route.includes("short")) return ["Find the best ideas in this Shorts feed", "Explain this video", "Turn this into a post", "Research this creator", ...baseSuggestions.slice(4)];
+    if (route.includes("learn")) return ["Teach me this step by step", "Make a study plan", "Quiz me on this", "Find stronger sources", ...baseSuggestions.slice(4)];
+    if (route.includes("wallet") || route.includes("crypto")) return ["Explain this market move", "Compare these assets", "Check the risks", "Summarize the latest news", ...baseSuggestions.slice(4)];
+    if (route.includes("profile")) return ["Improve my profile", "Find relevant connections", "Organize my work", "Draft my next post", ...baseSuggestions.slice(4)];
+    if (route.includes("work") || route.includes("studio")) return ["Plan this project", "Review my workflow", "Find blockers", "Build the next step", ...baseSuggestions.slice(4)];
+    return baseSuggestions;
   }, [activeRoute]);
+
+  const capabilities = useMemo(() => [
+    { label: "Research", detail: "Web + evidence" },
+    { label: "Reason", detail: "Multi-lens analysis" },
+    { label: "Proof", detail: "Verification state" },
+    { label: "Create", detail: "Plans + drafts" },
+    { label: "Learn", detail: "Step-by-step" },
+    { label: "Act", detail: "Approval-gated" },
+  ], []);
 
   useEffect(() => {
     const onOpen = () => { setOpen(true); setFullscreen(true); };
@@ -54,10 +72,10 @@ export default function GlobalFreshAI() {
       const response = await fetch("/api/ai/ask", { method: "POST", headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ goal, route: activeRoute ?? "/" }) });
       const payload = await response.json() as AskResponse;
       if (!response.ok) throw new Error(payload.error ?? `Fresh AI request failed (${response.status})`);
-      setAnswer(payload.answer ?? "Fresh AI completed the request without a text answer.");
+      setAnswer(typeof payload.answer === "string" ? payload.answer : "Fresh AI completed the request without a text answer.");
       setEvidence(Array.isArray(payload.evidence) ? payload.evidence : []);
-      setVerification(payload.verification ?? null);
-      setSource(payload.source ?? null);
+      setVerification(payload.verification && typeof payload.verification === "object" ? payload.verification : null);
+      setSource(typeof payload.source === "string" ? payload.source : null);
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : "Fresh AI could not complete that request."); }
     finally { setLoading(false); }
   }
@@ -68,14 +86,16 @@ export default function GlobalFreshAI() {
 
   const content = <div className={fullscreen ? "global-fresh-ai-shell is-fullscreen" : "global-fresh-ai-shell"}>
     <div className="global-fresh-ai-header">
-      <div><strong>Fresh AI</strong><small>Research, reasoning and proof inside Fresh</small></div>
+      <div className="global-fresh-ai-brand"><span className="global-fresh-ai-orb">F</span><div><strong>Fresh AI</strong><small>Research, reasoning and proof inside Fresh</small></div></div>
       <div className="global-fresh-ai-header-actions"><button type="button" onClick={toggle} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>{theme === "dark" ? "☀" : "☾"}</button><button type="button" onClick={() => setFullscreen((value) => !value)} aria-label={fullscreen ? "Exit full screen" : "Open full screen"}>{fullscreen ? "↙" : "↗"}</button><button type="button" onClick={closeAI} aria-label="Close Fresh AI">×</button></div>
     </div>
-    <p className="global-fresh-ai-context">You are in <strong>{activeRoute || "Home"}</strong>. Fresh can research, reason, compare evidence and organize the result for this workspace.</p>
+    <div className="global-fresh-ai-capabilities" aria-label="Fresh AI capabilities">{capabilities.map((item) => <div key={item.label}><strong>{item.label}</strong><span>{item.detail}</span></div>)}</div>
+    <p className="global-fresh-ai-context">You are in <strong>{activeRoute || "Home"}</strong>. Fresh can research the public web, reason across multiple lenses, compare evidence, preserve uncertainty and organize the result for this workspace.</p>
+    <div className="global-fresh-ai-section-label">Suggested for you</div>
     <div className="global-fresh-ai-suggestions" aria-label="Fresh AI suggestions">{suggestions.map((item) => <button key={item} type="button" onClick={() => useSuggestion(item)}>{item}</button>)}</div>
-    <form onSubmit={ask}><textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Ask anything… Fresh will choose the right reasoning path." rows={fullscreen ? 5 : 3} aria-label="Ask Fresh AI" /><button type="submit" disabled={loading || !prompt.trim()}>{loading ? "Researching + verifying…" : "Ask Fresh AI"}</button></form>
+    <form onSubmit={ask}><textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Ask anything… Fresh will choose the right reasoning path." rows={fullscreen ? 6 : 3} aria-label="Ask Fresh AI" /><div className="global-fresh-ai-form-footer"><span>{loading ? "Researching · reasoning · verifying" : "Fresh chooses the path automatically"}</span><button type="submit" disabled={loading || !prompt.trim()}>{loading ? "Working…" : "Ask Fresh AI"}</button></div></form>
     {error && <p className="global-fresh-ai-error">Fresh AI could not complete that request. {error}</p>}
-    {answer && <div className="global-fresh-ai-answer"><span>Fresh AI</span><p>{answer}</p>{source && <small>{source}</small>}{verification && <div className="global-fresh-ai-proof"><strong>Fresh Proof</strong><div>{verification.confidence ?? "Uncalibrated"} confidence · {verification.uniqueSources ?? 0} independent results · {verification.uniqueDomains ?? 0} distinct domains</div><div>{verification.sourceDiversity ?? "Evidence diversity not reported"}{verification.contradictionsDetected ? " · conflicting evidence detected" : " · cross-checked"}</div></div>}{evidence.length > 0 && <div className="global-fresh-ai-evidence"><strong>Evidence used by Fresh</strong>{evidence.slice(0, 8).map((item, index) => <div className="global-fresh-ai-evidence-item" key={`${index}-${item.title}`}><div><strong>{item.title}</strong><span>{kindLabel[item.kind ?? "web"] ?? "Evidence"}</span></div>{item.snippet && <small>{item.snippet}</small>}</div>)}</div>}<small className="global-fresh-ai-note">Provenance is retained internally; the workspace shows the evidence and verification state without exposing a directory of external links.</small></div>}
+    {answer && <div className="global-fresh-ai-answer"><span>Fresh AI</span><p>{answer}</p>{source && <small>{source}</small>}{verification && <div className="global-fresh-ai-proof"><strong>Fresh Proof</strong><div>{verification.confidence ?? "Uncalibrated"} confidence · {verification.uniqueSources ?? 0} independent results · {verification.uniqueDomains ?? 0} distinct domains</div><div>{verification.sourceDiversity ?? "Evidence diversity not reported"}{verification.contradictionsDetected ? " · conflicting evidence detected" : " · cross-checked"}</div></div>}{evidence.length > 0 && <div className="global-fresh-ai-evidence"><strong>Evidence used by Fresh</strong>{evidence.slice(0, 8).map((item, index) => <div className="global-fresh-ai-evidence-item" key={`${index}-${item.title}`}><div><strong>{item.title}</strong><span>{kindLabel[item.kind ?? "web"] ?? "Evidence"}</span></div>{item.snippet && <small>{item.snippet}</small>}</div>)}</div>}<small className="global-fresh-ai-note">Provenance is retained internally; the workspace shows evidence and verification state without exposing a directory of external links.</small></div>}
     {!fullscreen && <button className="global-fresh-ai-full" type="button" onClick={openFullAI}>Open full Fresh AI →</button>}
   </div>;
 
