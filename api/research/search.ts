@@ -1,6 +1,6 @@
 import { synthesizeResearch, type ResearchPass } from "./orchestrator.js";
 import { persistSemanticResearch } from "./persistSemanticResearch.js";
-import { reasonAcrossDimensions } from "../../src/core/fresh-ai/dimensionalIntelligence";
+import { reasonAcrossDimensions } from "../../src/core/fresh-ai/dimensionalIntelligence.js";
 
 type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
 type SearchRequest = { query?: string; maxSources?: number; context?: string[]; mode?: ResearchMode };
