@@ -7,6 +7,8 @@ import type {
   FreshIntelligenceEngine,
 } from "./FreshAIArchitecture";
 import { SemanticTruthEngine } from "./semanticTruthEngine";
+import { reasonAcrossDimensions } from "./dimensionalIntelligence";
+import { executeFreshPlanThroughAra6 } from "./FreshARA6Bridge";
 
 export type FreshMemoryRecord = {
   id: string;
@@ -30,14 +32,6 @@ export type FreshTruthEngine = {
   evaluate(evidence: Evidence[]): Promise<Evidence[]>;
 };
 
-/**
- * Provider-free orchestration kernel. This is deliberately a deterministic
- * shell around pluggable native reasoning, memory, truth and skill services.
- * No API key is read or required by the kernel.
- *
- * The truth service defaults to the semantic TRUEMODE bridge so callers do
- * not accidentally instantiate a legacy/competing truth implementation.
- */
 export class FreshAIKernel implements FreshIntelligenceEngine {
   private readonly skills: FreshSkillRegistry;
   private readonly memory: FreshMemoryStore;
@@ -52,22 +46,21 @@ export class FreshAIKernel implements FreshIntelligenceEngine {
   async understand(request: FreshReasoningRequest) {
     const intent: FreshIntent = request.intent ?? inferIntent(request.input);
     const memories = await this.memory.search(request.input);
-    return {
-      intent,
-      context: { ...(request.context ?? {}), memories },
-    };
+    return { intent, context: { ...(request.context ?? {}), memories } };
   }
 
   async retrieve(request: FreshReasoningRequest): Promise<Evidence[]> {
-    const evidence = request.evidence ?? [];
-    return this.truth.evaluate(evidence);
+    return this.truth.evaluate(request.evidence ?? []);
   }
 
   async reason(request: FreshReasoningRequest, evidence: Evidence[]): Promise<FreshReasoningResult> {
     const capabilities = inferCapabilities(request.input);
     const selectedSkills = this.skills.find(capabilities);
+    const dimensionalReasoning = reasonAcrossDimensions(request.input, request.dimensions);
+    const agents = request.requestedAgents ?? [];
+
     return {
-      answer: buildGroundedAnswer(request.input, evidence),
+      answer: buildGroundedAnswer(request.input, evidence, dimensionalReasoning),
       claims: evidence.map((item) => ({
         statement: item.claim,
         truth: item.confidence >= 0.9 ? "KNOWN" : item.confidence >= 0.6 ? "PROBABLE" : "UNCERTAIN",
@@ -78,12 +71,13 @@ export class FreshAIKernel implements FreshIntelligenceEngine {
         id: `step-${index + 1}`,
         description: `Apply ${skill.name}`,
         skills: [skill.id],
+        agent: agents[index] ?? inferAgent(skill.id),
+        requiresApproval: false,
       })),
       actions: [],
-      unknowns: evidence.length ? [] : ["No evidence was supplied to the native truth layer."],
-      explanation: evidence.length
-        ? "Fresh AI separated available evidence from inference and preserved confidence."
-        : "Fresh AI has insufficient evidence and will not fabricate certainty.",
+      unknowns: evidence.length ? [] : ["No external or persistent evidence was supplied to the native truth layer."],
+      explanation: `Fresh AI used the native truth layer plus ${dimensionalReasoning.length} dimensional reasoning lens(es).`,
+      dimensionalReasoning,
     };
   }
 
@@ -96,9 +90,9 @@ export class FreshAIKernel implements FreshIntelligenceEngine {
   }
 
   async execute(plan: FreshReasoningResult["plan"]) {
-    // Execution is intentionally not performed by the kernel. Operational
-    // agents own side effects and must enforce their own authorization gates.
-    return plan.filter((step) => step.requiresApproval === false).map((step) => step.description);
+    return executeFreshPlanThroughAra6(plan)
+      .filter((result) => result.accepted)
+      .map((result) => result.detail);
   }
 }
 
@@ -124,7 +118,17 @@ function inferCapabilities(input: string): string[] {
   return capabilities;
 }
 
-function buildGroundedAnswer(input: string, evidence: Evidence[]): string {
-  if (!evidence.length) return `Fresh AI received: ${input}`;
-  return `Fresh AI evaluated ${evidence.length} evidence item(s) for: ${input}`;
+function inferAgent(skillId: string) {
+  if (skillId === "research") return "research" as const;
+  if (skillId === "security") return "security" as const;
+  if (skillId === "engineering") return "backend" as const;
+  if (skillId === "design") return "frontend" as const;
+  if (skillId === "mathematics") return "learning" as const;
+  return undefined;
+}
+
+function buildGroundedAnswer(input: string, evidence: Evidence[], dimensions: ReturnType<typeof reasonAcrossDimensions>): string {
+  const dimensionalSummary = dimensions.length ? ` across ${dimensions.length} dimensional reasoning layers` : "";
+  if (!evidence.length) return `Fresh AI analyzed “${input}”${dimensionalSummary}, while preserving uncertainty where evidence is missing.`;
+  return `Fresh AI evaluated ${evidence.length} evidence item(s) for “${input}”${dimensionalSummary}.`;
 }
