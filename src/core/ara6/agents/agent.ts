@@ -9,8 +9,8 @@ export interface AraAgent {
   version: string;
   role?: string;
   active?: boolean;
-  capabilities?: string[];
-  tools?: string[];
+  capabilities?: readonly string[];
+  tools?: readonly string[];
 }
 
 export interface AgentTask {
