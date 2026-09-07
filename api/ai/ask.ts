@@ -60,8 +60,22 @@ async function providerAnswer(goal: string, route: string, evidence: Evidence[],
   if (!key) return null;
   const model = process.env.FRESH_AI_MODEL || "gemini-2.5-flash";
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
-  const evidenceText = evidence.length ? `\n\nFresh Search evidence was retrieved from the public web. Use it as factual grounding. Do not expose raw URLs or source-directory links. Distinguish verified evidence from inference.\n${evidence.map((item, index) => `[Evidence ${index + 1}] ${item.title}${item.publishedAt ? ` · ${item.publishedAt}` : ""}\n${item.snippet ? item.snippet.slice(0, 700) : ""}`).join("\n\n")}` : "\n\nNo live web evidence was available. Be explicit about uncertainty and do not claim verification.";
-  const response = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ systemInstruction: { parts: [{ text: "You are Fresh AI inside Fresh Web Lite. Research-grounded answers are the default. Use supplied evidence, synthesize independent results, separate evidence from inference, acknowledge conflicts, and never fabricate proof. Never print raw URLs, citations, or a source directory; Fresh renders provenance as its own internal Proof and Evidence layer." }] }, contents: [{ role: "user", parts: [{ text: `Current Fresh workspace: ${route}\nUser request: ${goal}\nDimensional reasoning context: ${dimensionalContext}${evidenceText}` }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 900 } }) });
+  const evidenceText = evidence.length
+    ? "\n\nFresh Search evidence was retrieved from the public web. Use it as factual grounding. Do not expose raw URLs or source-directory links. Distinguish verified evidence from inference.\n" + evidence.map((item, index) => {
+        const published = item.publishedAt ? ` · ${item.publishedAt}` : "";
+        const snippet = item.snippet ? item.snippet.slice(0, 700) : "";
+        return `[Evidence ${index + 1}] ${item.title}${published}\n${snippet}`;
+      }).join("\n\n")
+    : "\n\nNo live web evidence was available. Be explicit about uncertainty and do not claim verification.";
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: "You are Fresh AI inside Fresh Web Lite. Research-grounded answers are the default. Use supplied evidence, synthesize independent results, separate evidence from inference, acknowledge conflicts, and never fabricate proof. Never print raw URLs, citations, or a source directory; Fresh renders provenance as its own internal Proof and Evidence layer." }] },
+      contents: [{ role: "user", parts: [{ text: `Current Fresh workspace: ${route}\nUser request: ${goal}\nDimensional reasoning context: ${dimensionalContext}${evidenceText}` }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 900 },
+    }),
+  });
   if (!response.ok) return null;
   const payload = await response.json() as GeminiResponse;
   return payload.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim() || null;
