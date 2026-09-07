@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import "./UniversalProfile.css";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { loadRealUniversalProfile, saveRealProfileVisibility } from "../services/realProfileService";
+import { loadCrossPlatformIdentity } from "../services/crossPlatformIdentityService";
 import { curateSmartProfile } from "../services/profileIntelligence";
+import type { CrossPlatformIdentity } from "../models/crossPlatformIdentity";
 import type { ProfileVisibility, SmartProfileData, UniversalProfile } from "../types/profile";
 
 const tabs = ["Overview", "Activity", "Identity", "Connections", "Insights"] as const;
@@ -12,6 +14,7 @@ export default function UniversalProfile() {
   const { user } = useFreshId();
   const [profile, setProfile] = useState<UniversalProfile | null>(null);
   const [smart, setSmart] = useState<SmartProfileData | null>(null);
+  const [crossPlatform, setCrossPlatform] = useState<CrossPlatformIdentity | null>(null);
   const [tab, setTab] = useState<Tab>("Overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,8 +23,12 @@ export default function UniversalProfile() {
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     setLoading(true); setError(null);
-    loadRealUniversalProfile(user)
-      .then((loaded) => { setProfile(loaded); setSmart(curateSmartProfile(loaded)); })
+    Promise.all([loadRealUniversalProfile(user), loadCrossPlatformIdentity(user)])
+      .then(([loaded, identity]) => {
+        setProfile(loaded);
+        setCrossPlatform(identity);
+        setSmart(curateSmartProfile(loaded));
+      })
       .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not load Fresh ID profile."))
       .finally(() => setLoading(false));
   }, [user]);
@@ -46,6 +53,7 @@ export default function UniversalProfile() {
 
   const recent = profile.activity.slice(0, 8);
   const connected = profile.connections.filter((item) => item.connected);
+  const enabledEcosystems = crossPlatform?.ecosystems.filter((item) => item.enabled) ?? [];
 
   return (
     <main className="universal-profile">
@@ -71,18 +79,19 @@ export default function UniversalProfile() {
           <div className="card-heading"><div><span className="eyebrow">FRESH INTELLIGENCE</span><h2>Smart profile</h2></div><span className="live-dot">LIVE DATA</span></div>
           <p>{smart?.summary}</p>
           {smart?.interests.length ? <div className="smart-tags">{smart.interests.map((interest) => <span key={interest}>{interest}</span>)}</div> : <p className="muted">Add interests or publish content and Fresh Intelligence will organize signals here.</p>}
-          <div className="smart-metrics"><div><strong>{smart?.highlights.length ?? 0}</strong><span>Highlights</span></div><div><strong>{connected.length}</strong><span>Connected identities</span></div><div><strong>{profile.skills.length}</strong><span>Skills</span></div></div>
+          <div className="smart-metrics"><div><strong>{smart?.highlights.length ?? 0}</strong><span>Highlights</span></div><div><strong>{connected.length}</strong><span>Connected identities</span></div><div><strong>{enabledEcosystems.length}</strong><span>Fresh ecosystems</span></div></div>
         </section>
         <section className="profile-card"><div className="card-heading"><h2>AI-curated highlights</h2><button onClick={() => setTab("Activity")}>View all</button></div>{smart?.highlights.length ? smart.highlights.slice(0, 3).map((item) => <article className="activity-row" key={`${item.kind}-${item.id}`}><span className="activity-kind">{item.kind}</span><div><strong>{item.title}</strong><p>{item.text || "Media content"}</p></div><span className="highlight-score">{item.score}</span></article>) : <p className="muted">No real activity is available to curate yet.</p>}</section>
         <section className="profile-card"><div className="card-heading"><h2>Reputation</h2><span className="profile-score">{profile.reputationScore}</span></div><p>Fresh ID reputation is shown from the persisted account score. Fresh Intelligence does not invent credibility.</p></section>
         <section className="profile-card"><div className="card-heading"><h2>Privacy layers</h2><button disabled={savingPrivacy} onClick={() => setTab("Identity")}>Manage</button></div><p>Visibility is controlled by the Fresh identity rather than by a visual-only switch.</p><div className="privacy-summary"><span>Public {profile.visibility.public ? "On" : "Off"}</span><span>Connections {profile.visibility.connections ? "On" : "Off"}</span><span>Private {profile.visibility.private ? "On" : "Off"}</span></div></section>
+        <section className="profile-card"><div className="card-heading"><h2>Fresh ecosystem</h2><span>{enabledEcosystems.length} active</span></div>{enabledEcosystems.length ? enabledEcosystems.slice(0, 4).map((item) => <div className="connection-row" key={item.ecosystemId}><span className="connection-icon">F</span><div><strong>{item.title || item.ecosystemId}</strong><p>{item.description || "Fresh ecosystem"}</p></div><span>Active</span></div>) : <p className="muted">No enabled ecosystem profile is stored for this Fresh ID yet.</p>}</section>
       </div>}
 
       {tab === "Activity" && <section className="profile-card full-card"><div className="card-heading"><h2>Universal activity</h2><span>{profile.activity.length} loaded</span></div>{recent.length === 0 ? <p className="muted">No activity stored yet.</p> : recent.map((item) => <article className="activity-row" key={`${item.kind}-${item.id}`}><span className="activity-kind">{item.kind}</span><div><strong>{item.title}</strong><p>{item.text || "Media content"}</p></div><time>{new Date(item.createdAt).toLocaleString()}</time></article>)}</section>}
 
       {tab === "Identity" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">FRESH ID</span><h2>Identity & privacy</h2></div></div><div className="identity-details"><p><b>Fresh ID:</b> {profile.freshId}</p><p><b>Email:</b> {profile.email}</p><p><b>Joined:</b> {new Date(profile.joinedAt).toLocaleDateString()}</p><p><b>Location:</b> {profile.location || "Not provided"}</p><p><b>Website:</b> {profile.website || "Not provided"}</p><p><b>Skills:</b> {profile.skills.length ? profile.skills.join(", ") : "Not provided"}</p></div><div className="privacy-controls">{(["public", "connections", "private"] as const).map((key) => <button key={key} disabled={savingPrivacy} className={profile.visibility[key] ? "privacy-on" : "privacy-off"} onClick={() => void updateVisibility(key)}>{key}: {profile.visibility[key] ? "visible" : "hidden"}</button>)}</div></section>}
 
-      {tab === "Connections" && <section className="profile-card full-card"><div className="card-heading"><h2>Cross-platform identities</h2><span>{connected.length} connected</span></div>{connected.length === 0 ? <p className="muted">No external identity is connected to this Fresh ID yet. This section never shows invented accounts.</p> : connected.map((item) => <div className="connection-row" key={`${item.provider}-${item.handle}`}><span className="connection-icon">{item.provider.slice(0, 1).toUpperCase()}</span><div><strong>{item.provider}</strong><p>{item.handle || "Linked account"}</p></div><span>Connected</span></div>)}</section>}
+      {tab === "Connections" && <section className="profile-card full-card"><div className="card-heading"><h2>Cross-platform identities</h2><span>{connected.length} connected</span></div>{connected.length === 0 ? <p className="muted">No external identity is connected to this Fresh ID yet. This section never shows invented accounts.</p> : connected.map((item) => <div className="connection-row" key={`${item.provider}-${item.handle}`}><span className="connection-icon">{item.provider.slice(0, 1).toUpperCase()}</span><div><strong>{item.provider}</strong><p>{item.handle || "Linked account"}</p></div><span>Connected</span></div>)}<div className="card-heading ecosystem-heading"><h2>Fresh ecosystems</h2><span>{crossPlatform?.ecosystems.length ?? 0} linked</span></div>{crossPlatform?.ecosystems.length ? crossPlatform.ecosystems.map((item) => <div className="connection-row" key={item.ecosystemId}><span className="connection-icon">F</span><div><strong>{item.title || item.ecosystemId}</strong><p>{item.description || "Fresh ecosystem"}</p></div><span>{item.enabled ? "Active" : "Disabled"}</span></div>) : <p className="muted">No ecosystem profile is linked yet.</p>}</section>}
 
       {tab === "Insights" && <section className="profile-card full-card"><div className="card-heading"><h2>Personal analytics</h2><span>Fresh Intelligence</span></div><div className="insight-grid">{smart?.insights.map((insight) => <div key={insight.label}><strong>{insight.value}</strong><span>{insight.label}</span><small>{insight.reason}</small></div>)}</div><p className="muted">These insights are calculated only from data currently stored for this Fresh ID. Deeper reach, views and impact analytics will require event-level engagement data.</p></section>}
     </main>
