@@ -27,18 +27,10 @@ export interface AraToolExecutionResult {
   startedAt: string;
   completedAt: string;
   durationMs?: number;
-  evidence?: Array<{
-    id: string;
-    kind: string;
-    summary: string;
-    confidence?: number;
-  }>;
+  evidence?: Array<{ id: string; kind: string; summary: string; confidence?: number }>;
 }
 
-export type AraToolHandler = (
-  input: AraToolExecutionInput,
-  context: AraToolExecutionContext,
-) => Promise<unknown> | unknown;
+export type AraToolHandler = (input: AraToolExecutionInput, context: AraToolExecutionContext) => Promise<unknown> | unknown;
 
 export interface AraToolPolicy {
   requiresApproval?: boolean;
