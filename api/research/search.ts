@@ -4,6 +4,7 @@ import { persistSemanticResearch } from "./persistSemanticResearch.js";
 type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
 type SearchRequest = { query?: string; maxSources?: number; context?: string[]; mode?: ResearchMode };
 type TavilyResult = { title?: string; url?: string; content?: string; published_date?: string };
+type SourceKind = "web" | "news" | "video" | "image" | "music";
 
 export const config = { maxDuration: 60 };
 
@@ -21,12 +22,13 @@ const MODE_CONFIG: Record<ResearchMode, { searchDepth: "basic" | "advanced"; top
 function elapsed(start: number): number { return Date.now() - start; }
 function logStage(runId: string, stage: string, details: Record<string, unknown> = {}): void { console.info("TRUEMODE", { runId, stage, ...details }); }
 
-function sourceKind(url: string, publishedAt?: string, mode?: ResearchMode): "web" | "news" | "video" | "image" {
+function sourceKind(url: string, publishedAt?: string, mode?: ResearchMode): SourceKind {
   try {
     const parsed = new URL(url);
-    const host = parsed.hostname.toLowerCase();
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
     const path = parsed.pathname.toLowerCase();
     if (/(youtube\.com|youtu\.be|vimeo\.com|dailymotion\.com|tiktok\.com)$/.test(host)) return "video";
+    if (/(spotify\.com|music\.apple\.com|soundcloud\.com|bandcamp\.com|deezer\.com|tidal\.com)$/.test(host)) return "music";
     if (/\.(png|jpe?g|gif|webp|avif|svg)(?:$|\?)/.test(path)) return "image";
     if (mode === "live" || publishedAt) return "news";
   } catch { /* keep web fallback */ }
