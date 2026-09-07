@@ -2,7 +2,8 @@
 export type IntelligenceTask = "answer" | "research" | "coding" | "design" | "science" | "biology" | "robotics" | "optimization" | "planning" | "orchestration";
 export type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
 export type IntelligenceRequest = { prompt: string; task?: IntelligenceTask; query?: string; context?: readonly string[]; maxSources?: number; researchMode?: ResearchMode };
-export type IntelligenceSourceKind = "web" | "news" | "video" | "image";
+export type IntelligenceSourceKind = "web" | "news" | "video" | "image" | "music";
+/** Fresh keeps provenance internally; the product UI renders proof/evidence rather than a source directory. */
 export type IntelligenceSource = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string; kind?: IntelligenceSourceKind; domain?: string };
 export type ResearchVerification = { passes: number; uniqueSources: number; uniqueDomains: number; sourceDiversity: "low" | "medium" | "high"; confidence: "low" | "medium" | "high"; independentPasses?: number; contradictionsDetected?: boolean };
 export type IntelligenceResponse = { text: string; provider: string; sources?: readonly IntelligenceSource[]; confidence?: "low" | "medium" | "high"; verification?: ResearchVerification; researchMode?: ResearchMode; searchedAt?: string };
