@@ -3,7 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 export const config = { maxDuration: 30 };
 
 type RequestBody = { goal?: string; route?: string };
-type Evidence = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string; kind?: "web" | "news" | "video" | "image"; domain?: string };
+type Evidence = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string; kind?: "web" | "news" | "video" | "image" | "music"; domain?: string };
+type PublicEvidence = { title: string; snippet?: string; publishedAt?: string; kind?: Evidence["kind"] };
 type GeminiResponse = { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
 
 function json(data: unknown, status = 200): Response { return Response.json(data, { status, headers: { "cache-control": "no-store" } }); }
@@ -23,9 +24,10 @@ function domainOf(url: string): string { try { return new URL(url).hostname.repl
 function kindOf(url: string, publishedAt?: string): Evidence["kind"] {
   try {
     const parsed = new URL(url);
-    const host = parsed.hostname.toLowerCase();
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
     const path = parsed.pathname.toLowerCase();
     if (/(youtube\.com|youtu\.be|vimeo\.com|dailymotion\.com|tiktok\.com)$/.test(host)) return "video";
+    if (/(spotify\.com|music\.apple\.com|soundcloud\.com|bandcamp\.com|deezer\.com|tidal\.com)$/.test(host)) return "music";
     if (/\.(png|jpe?g|gif|webp|avif|svg)(?:$|\?)/.test(path)) return "image";
   } catch { /* fallback */ }
   return publishedAt ? "news" : "web";
@@ -59,8 +61,8 @@ async function providerAnswer(goal: string, route: string, evidence: Evidence[])
   if (!key) return null;
   const model = process.env.FRESH_AI_MODEL || "gemini-2.5-flash";
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
-  const evidenceText = evidence.length ? `\n\nFresh Search evidence (cite only these URLs when making factual claims):\n${evidence.map((item, index) => `[${index + 1}] ${item.title} — ${item.url}${item.snippet ? `\n${item.snippet.slice(0, 500)}` : ""}`).join("\n\n")}` : "\n\nNo live web evidence was available. Be explicit about uncertainty and do not invent citations.";
-  const response = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ systemInstruction: { parts: [{ text: "You are Fresh AI inside Fresh Web Lite. Give useful, concise answers. For factual or current claims, prioritize the supplied Fresh Search evidence, distinguish evidence from inference, and never fabricate a source or claim verification that did not occur." }] }, contents: [{ role: "user", parts: [{ text: `Current Fresh workspace: ${route}\nUser request: ${goal}${evidenceText}` }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 900 } }) });
+  const evidenceText = evidence.length ? `\n\nFresh Search evidence retrieved from the public web. Use it as the factual grounding for your answer. Do not expose raw URLs or source-directory links in your answer. Distinguish verified evidence from inference.\n${evidence.map((item, index) => `[Evidence ${index + 1}] ${item.title}${item.publishedAt ? ` · ${item.publishedAt}` : ""}\n${item.snippet ? item.snippet.slice(0, 700) : ""}`).join("\n\n")}` : "\n\nNo live web evidence was available. Be explicit about uncertainty and do not claim verification.";
+  const response = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ systemInstruction: { parts: [{ text: "You are Fresh AI inside Fresh Web Lite. Research-grounded answers are your default. Use the supplied evidence, synthesize across independent results, separate evidence from inference, acknowledge conflicts, and never fabricate proof. Never print raw URLs, citations, or a source directory; Fresh renders provenance as its own internal Proof and Evidence layer." }] }, contents: [{ role: "user", parts: [{ text: `Current Fresh workspace: ${route}\nUser request: ${goal}${evidenceText}` }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 900 } }) });
   if (!response.ok) return null;
   const payload = await response.json() as GeminiResponse;
   return payload.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim() || null;
@@ -68,10 +70,10 @@ async function providerAnswer(goal: string, route: string, evidence: Evidence[])
 
 function nativeAnswer(goal: string, route: string): string {
   const normalized = goal.toLowerCase();
-  if (normalized.includes("what can you do") || normalized.includes("help")) return `Fresh AI is active in ${route}. I can help you understand this workspace, plan a task, summarize information you provide, and guide you to the next Fresh feature.`;
-  if (normalized.includes("where") || normalized.includes("find")) return `You are currently in ${route}. Use Fresh Search for platform-wide discovery, or open the relevant workspace from the navigation.`;
+  if (normalized.includes("what can you do") || normalized.includes("help")) return `Fresh AI is active in ${route}. I can help you understand this workspace, research information, plan a task, summarize information, and guide you to the next Fresh feature.`;
+  if (normalized.includes("where") || normalized.includes("find")) return `You are currently in ${route}. Fresh Search can research across the public web and organize what it finds inside Fresh.`;
   if (normalized.includes("plan") || normalized.includes("next")) return `A good next step from ${route} is to define the outcome, identify the smallest useful action, then verify the result. Tell me the outcome you want and I will turn it into a concrete plan.`;
-  return `Fresh AI received your request in ${route}. The native Fresh intelligence boundary is working. No external language-model provider is configured for this deployment, so I will not invent an answer or pretend it has been verified.`;
+  return `Fresh AI received your request in ${route}. Live research is not available on this deployment right now, so I will not pretend an unverified answer is proven.`;
 }
 
 export async function POST(req: Request): Promise<Response> {
@@ -84,6 +86,7 @@ export async function POST(req: Request): Promise<Response> {
     const user = await authenticatedUser(req);
     const evidence = await fetchEvidence(goal);
     const answer = await providerAnswer(goal, route, evidence.sources).catch(() => null);
-    return json({ answer: answer ?? nativeAnswer(goal, route), confidence: answer ? (evidence.verification?.confidence ?? "unknown") : "known", source: answer ? "Fresh AI grounded by Fresh Search" : "Fresh native intelligence boundary", authenticated: Boolean(user), evidence: evidence.sources, verification: evidence.verification ?? null });
+    const publicEvidence: PublicEvidence[] = evidence.sources.slice(0, 8).map(({ title, snippet, publishedAt, kind }) => ({ title, snippet, publishedAt, kind }));
+    return json({ answer: answer ?? nativeAnswer(goal, route), confidence: answer ? (evidence.verification?.confidence ?? "unknown") : "known", source: answer ? "Fresh Intelligence" : "Fresh native intelligence boundary", authenticated: Boolean(user), evidence: publicEvidence, verification: evidence.verification ?? null, proof: { mode: answer ? "research-grounded" : "native", evidenceCount: publicEvidence.length, provenance: "internal" } });
   } catch (error) { return json({ error: error instanceof Error ? error.message : "Fresh AI request failed" }, 500); }
 }
