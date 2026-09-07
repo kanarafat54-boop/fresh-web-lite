@@ -3,6 +3,7 @@ import type { FreshUser } from "../../fresh-id/types/user";
 import type { ProfileActivity, ProfileConnection, ProfileVisibility, UniversalProfile } from "../types/profile";
 
 type Identity = Record<string, unknown>;
+type ProfileDetails = { bio?: unknown; avatar_url?: unknown; cover_url?: unknown; location?: unknown; website_url?: unknown; occupation?: unknown; company?: unknown; pronouns?: unknown };
 const text = (value: unknown) => typeof value === "string" ? value : "";
 const identityOf = (user: FreshUser): Identity => user.identity && typeof user.identity === "object" ? user.identity as Identity : {};
 
@@ -20,7 +21,7 @@ function connectionsOf(user: FreshUser): ProfileConnection[] {
 export async function loadRealUniversalProfile(user: FreshUser): Promise<UniversalProfile> {
   const identity = identityOf(user);
   const detailsResult = await supabase.from("profile_details").select("bio, avatar_url, cover_url, location, website_url, occupation, company, pronouns").eq("user_id", user.id).maybeSingle();
-  const details = detailsResult.data ?? {};
+  const details: ProfileDetails = detailsResult.data ?? {};
 
   const [posts, shorts, followers, following] = await Promise.all([
     supabase.from("posts").select("id, content, image_url, video_url, created_at", { count: "exact" }).eq("author_id", user.id).order("created_at", { ascending: false }).limit(50),
