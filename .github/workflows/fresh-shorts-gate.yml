@@ -29,6 +29,9 @@ jobs:
       - name: Static Shorts contract
         run: npm run test:shorts
 
+      - name: Fresh Flow performance contract
+        run: node scripts/verify-fresh-flow-performance.mjs
+
       - name: Lint Shorts-owned changes
         run: npx eslint src/features/shorts/core/FreshShortsRuntime.ts src/features/fresh-flow/components/FreshFlowShortsExperience.tsx src/features/fresh-flow/core/shortsTelemetry.ts api/shorts/telemetry.ts
 
