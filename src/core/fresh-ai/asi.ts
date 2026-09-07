@@ -45,14 +45,18 @@ export type ASIState = {
 export function evaluateASIState(
   objective: string,
   result: FreshReasoningResult,
-  plan: FreshPlanStep[],
+  plan: FreshPlanStep[] = [],
 ): ASIState {
-  const weaknesses = [...result.unknowns];
+  const claims = Array.isArray(result?.claims) ? result.claims : [];
+  const dimensionalReasoning = Array.isArray(result?.dimensionalReasoning) ? result.dimensionalReasoning : [];
+  const resultUnknowns = Array.isArray(result?.unknowns) ? result.unknowns : [];
+  const safePlan = Array.isArray(plan) ? plan : [];
+  const weaknesses = [...resultUnknowns];
   const strengths: string[] = [];
-  if (result.claims.length) strengths.push("evidence-grounded reasoning");
-  if (result.dimensionalReasoning?.length) strengths.push("multi-perspective dimensional reasoning");
-  if (plan.length) strengths.push("goal decomposition and planning");
-  if (!result.claims.length) weaknesses.push("insufficient evidence");
+  if (claims.length) strengths.push("evidence-grounded reasoning");
+  if (dimensionalReasoning.length) strengths.push("multi-perspective dimensional reasoning");
+  if (safePlan.length) strengths.push("goal decomposition and planning");
+  if (!claims.length) weaknesses.push("insufficient evidence");
 
   const capabilities: ASICapability[] = [
     "general-cognition",
@@ -66,13 +70,13 @@ export function evaluateASIState(
     "self-improvement",
   ];
 
-  const proposal = makeImprovementProposal(result, plan);
+  const proposal = makeImprovementProposal(result, safePlan);
   return {
     objective,
     capabilities,
     strengths,
     weaknesses: [...new Set(weaknesses)],
-    unknowns: [...new Set(result.unknowns)],
+    unknowns: [...new Set(resultUnknowns)],
     constraints: [
       "No autonomous production-code mutation",
       "No autonomous permission escalation",
@@ -84,13 +88,15 @@ export function evaluateASIState(
   };
 }
 
-function makeImprovementProposal(result: FreshReasoningResult, plan: FreshPlanStep[]): ASIImprovementProposal | null {
-  if (!result.unknowns.length && !plan.length) return null;
+function makeImprovementProposal(result: FreshReasoningResult, plan: FreshPlanStep[] = []): ASIImprovementProposal | null {
+  const unknowns = Array.isArray(result?.unknowns) ? result.unknowns : [];
+  const safePlan = Array.isArray(plan) ? plan : [];
+  if (!unknowns.length && !safePlan.length) return null;
   const id = `asi-improvement-${Date.now()}`;
   return {
     id,
-    target: result.unknowns.length ? "evidence-and-verification pipeline" : "planning quality",
-    hypothesis: result.unknowns.length
+    target: unknowns.length ? "evidence-and-verification pipeline" : "planning quality",
+    hypothesis: unknowns.length
       ? "Increase retrieval diversity and verification before committing to high-confidence claims."
       : "Evaluate completed plans against outcomes and use failures to improve future decomposition.",
     expectedGain: "Higher reliability, better transfer to novel requests, and fewer unresolved errors.",
@@ -102,14 +108,15 @@ function makeImprovementProposal(result: FreshReasoningResult, plan: FreshPlanSt
       "verify no policy or permission boundary changed",
     ],
     rollbackPlan: ["retain the previous version", "require a reversible deployment", "revert if validation thresholds regress"],
-    risk: result.unknowns.length > 2 ? "medium" : "low",
+    risk: unknowns.length > 2 ? "medium" : "low",
     status: "proposed",
     requiresHumanApproval: true,
   };
 }
 
 export function summarizeASIClaims(state: ASIState): FreshClaim[] {
-  return state.strengths.map((strength, index) => ({
+  const strengths = Array.isArray(state?.strengths) ? state.strengths : [];
+  return strengths.map((strength, index) => ({
     statement: `Fresh AI demonstrated ${strength}.`,
     truth: "PROBABLE",
     confidence: Math.min(0.95, 0.65 + index * 0.05),
