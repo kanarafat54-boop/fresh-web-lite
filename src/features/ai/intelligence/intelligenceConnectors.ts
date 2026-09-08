@@ -1,7 +1,8 @@
 /** Fresh Intelligence connector contracts. */
 export type IntelligenceTask = "answer" | "research" | "coding" | "design" | "science" | "biology" | "robotics" | "optimization" | "planning" | "orchestration";
 export type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
-export type IntelligenceRequest = { prompt: string; task?: IntelligenceTask; query?: string; context?: readonly string[]; maxSources?: number; researchMode?: ResearchMode };
+export type IntelligenceConversationTurn = { role: "user" | "assistant"; content: string };
+export type IntelligenceRequest = { prompt: string; task?: IntelligenceTask; query?: string; context?: readonly string[]; maxSources?: number; researchMode?: ResearchMode; conversation?: readonly IntelligenceConversationTurn[] };
 export type IntelligenceSourceKind = "web" | "news" | "video" | "image" | "music";
 /** Fresh keeps provenance internally; the product UI renders proof/evidence rather than a source directory. */
 export type IntelligenceSource = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string; kind?: IntelligenceSourceKind; domain?: string };
