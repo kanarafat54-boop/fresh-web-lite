@@ -17,6 +17,7 @@ export type FreshClaim = { statement: string; truth: TruthState; confidence: num
 export type FreshSkill = { id: string; name: string; description: string; capabilities: string[]; requiredTools?: string[] };
 export type FreshPlanStep = { id: string; description: string; agent?: FreshAgent; skills: string[]; requiresApproval?: boolean };
 export type FreshExecutionResult = { stepId: string; agent?: FreshAgent; accepted: boolean; status: "executed" | "approval-required" | "unavailable" | "failed"; detail: string };
+export type FreshConversationTurn = { role: "user" | "assistant"; content: string; createdAt?: string };
 export type FreshReasoningRequest = { input: string; intent?: FreshIntent; context?: Record<string, unknown>; evidence?: Evidence[]; requestedAgents?: FreshAgent[]; dimensions?: FreshDimension[] };
 
 /** Explicit interpretation prevents Fresh from treating every message as a research task. */
@@ -30,6 +31,7 @@ export type FreshGoalInterpretation = {
   needsClarification: boolean;
   constraints: string[];
   entities: string[];
+  contextDependency?: "none" | "conversation" | "memory" | "both";
 };
 
 /** Observable stages let Fresh grow into a measured intelligence platform instead of a black-box answer call. */
