@@ -9,7 +9,7 @@ import type { FreshDimension, DimensionalReasoning } from "./dimensionalIntellig
 import type { ASIState } from "./asi.js";
 
 export type TruthState = "KNOWN" | "PROBABLE" | "UNCERTAIN" | "CONTRADICTED" | "UNKNOWN" | "BLOCKED";
-export type FreshIntent = "answer" | "research" | "create" | "code" | "design" | "analyze" | "plan" | "act" | "learn" | "discover";
+export type FreshIntent = "chat" | "answer" | "research" | "create" | "code" | "design" | "analyze" | "plan" | "act" | "learn" | "discover";
 export type FreshAgent = "wallet" | "feed" | "security" | "research" | "architecture" | "backend" | "frontend" | "testing" | "documentation" | "deployment" | "media" | "learning";
 
 export type Evidence = { id: string; source: string; claim: string; observedAt?: string; confidence: number };
@@ -18,6 +18,19 @@ export type FreshSkill = { id: string; name: string; description: string; capabi
 export type FreshPlanStep = { id: string; description: string; agent?: FreshAgent; skills: string[]; requiresApproval?: boolean };
 export type FreshExecutionResult = { stepId: string; agent?: FreshAgent; accepted: boolean; status: "executed" | "approval-required" | "unavailable" | "failed"; detail: string };
 export type FreshReasoningRequest = { input: string; intent?: FreshIntent; context?: Record<string, unknown>; evidence?: Evidence[]; requestedAgents?: FreshAgent[]; dimensions?: FreshDimension[] };
+
+/** Explicit interpretation prevents Fresh from treating every message as a research task. */
+export type FreshGoalInterpretation = {
+  intent: FreshIntent;
+  objective: string;
+  desiredOutcome: string;
+  outputMode: "conversation" | "answer" | "research" | "creation" | "code" | "plan" | "action";
+  needsEvidence: boolean;
+  needsAction: boolean;
+  needsClarification: boolean;
+  constraints: string[];
+  entities: string[];
+};
 
 /** Observable stages let Fresh grow into a measured intelligence platform instead of a black-box answer call. */
 export type FreshPipelineStage = "understand" | "memory" | "retrieve" | "research" | "reason" | "plan" | "coordinate" | "execute" | "verify" | "proof" | "feedback" | "improve" | "govern";
@@ -43,7 +56,7 @@ export const FRESH_AI_AGENTS: FreshAgent[] = ["wallet","feed","security","resear
 export const FRESH_AI_POLICY = { coreRequiresApiKey:false, externalIntelligenceRequired:false, agentsOwnReasoning:false, freshOwnsDecisionBoundary:true, preserveUnknowns:true, preserveContradictions:true, dimensionalReasoning:true, maxReasoningDimension:11, autonomousSelfModification:false, improvementProposalsRequireApproval:true, highImpactActionsRequireApproval:true, reversibleImprovementsOnly:true } as const;
 
 export interface FreshIntelligenceEngine {
-  understand(request: FreshReasoningRequest): Promise<{ intent: FreshIntent; context: Record<string, unknown> }>;
+  understand(request: FreshReasoningRequest): Promise<{ intent: FreshIntent; context: Record<string, unknown>; interpretation: FreshGoalInterpretation }>;
   retrieve(request: FreshReasoningRequest): Promise<Evidence[]>;
   reason(request: FreshReasoningRequest, evidence: Evidence[]): Promise<FreshReasoningResult>;
   plan(request: FreshReasoningRequest, result: FreshReasoningResult): Promise<FreshPlanStep[]>;
