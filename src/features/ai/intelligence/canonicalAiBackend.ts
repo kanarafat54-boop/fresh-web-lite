@@ -50,7 +50,7 @@ export async function runCanonicalAI(
     body: JSON.stringify({
       goal,
       route: request.researchMode ? `/search/${request.researchMode}` : "/",
-      conversation: [],
+      conversation: request.conversation?.slice(-8) ?? [],
     }),
   });
 
