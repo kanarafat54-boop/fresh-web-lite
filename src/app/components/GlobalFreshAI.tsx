@@ -5,7 +5,8 @@ import { supabase } from "../../lib/supabase";
 import "./GlobalFreshAI.css";
 
 type Evidence = { title: string; snippet?: string; kind?: string; publishedAt?: string };
-type AskResponse = { answer?: string; confidence?: string; source?: string; error?: string; evidence?: Evidence[]; verification?: { uniqueSources?: number; uniqueDomains?: number; sourceDiversity?: string; confidence?: string; contradictionsDetected?: boolean } | null; proof?: { mode?: string; evidenceCount?: number; provenance?: string } };
+type PipelineEvent = { stage: string; status: string; detail?: string; metrics?: Record<string, number> };
+type AskResponse = { requestId?: string; answer?: string; confidence?: string; source?: string; error?: string; evidence?: Evidence[]; pipeline?: PipelineEvent[]; governance?: { autonomousSelfModification?: boolean; improvementProposalsRequireApproval?: boolean; highImpactActionsRequireApproval?: boolean; reversibleImprovementsOnly?: boolean }; verification?: { uniqueSources?: number; uniqueDomains?: number; sourceDiversity?: string; confidence?: string; contradictionsDetected?: boolean } | null; proof?: { mode?: string; evidenceCount?: number; provenance?: string } };
 const kindLabel: Record<string, string> = { web: "Web", news: "News", video: "Video", image: "Image", music: "Music" };
 
 const baseSuggestions = [
@@ -25,7 +26,11 @@ export default function GlobalFreshAI() {
   const [prompt, setPrompt] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
+  const [pipeline, setPipeline] = useState<PipelineEvent[]>([]);
   const [verification, setVerification] = useState<AskResponse["verification"]>(null);
+  const [governance, setGovernance] = useState<AskResponse["governance"]>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
   const [source, setSource] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,11 +56,7 @@ export default function GlobalFreshAI() {
 
   useEffect(() => {
     const onOpen = () => { setOpen(true); setFullscreen(true); };
-    const onSuggestion = (event: Event) => {
-      const value = (event as CustomEvent<{ prompt?: string }>).detail?.prompt;
-      if (value) setPrompt(value);
-      setOpen(true); setFullscreen(true);
-    };
+    const onSuggestion = (event: Event) => { const value = (event as CustomEvent<{ prompt?: string }>).detail?.prompt; if (value) setPrompt(value); setOpen(true); setFullscreen(true); };
     window.addEventListener("fresh-ai-open", onOpen);
     window.addEventListener("fresh-ai-suggestion", onSuggestion);
     return () => { window.removeEventListener("fresh-ai-open", onOpen); window.removeEventListener("fresh-ai-suggestion", onSuggestion); };
@@ -65,19 +66,31 @@ export default function GlobalFreshAI() {
     event?.preventDefault();
     const goal = prompt.trim();
     if (!goal || loading) return;
-    setLoading(true); setError(null); setAnswer(null); setEvidence([]); setVerification(null); setSource(null); setOpen(true);
+    setLoading(true); setError(null); setAnswer(null); setEvidence([]); setPipeline([]); setVerification(null); setGovernance(null); setRequestId(null); setFeedback(null); setSource(null); setOpen(true);
     try {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       const response = await fetch("/api/ai/ask", { method: "POST", headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ goal, route: activeRoute ?? "/" }) });
       const payload = await response.json() as AskResponse;
       if (!response.ok) throw new Error(payload.error ?? `Fresh AI request failed (${response.status})`);
+      setRequestId(typeof payload.requestId === "string" ? payload.requestId : null);
       setAnswer(typeof payload.answer === "string" ? payload.answer : "Fresh AI completed the request without a text answer.");
       setEvidence(Array.isArray(payload.evidence) ? payload.evidence : []);
+      setPipeline(Array.isArray(payload.pipeline) ? payload.pipeline : []);
+      setGovernance(payload.governance && typeof payload.governance === "object" ? payload.governance : null);
       setVerification(payload.verification && typeof payload.verification === "object" ? payload.verification : null);
       setSource(typeof payload.source === "string" ? payload.source : null);
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : "Fresh AI could not complete that request."); }
     finally { setLoading(false); }
+  }
+
+  async function sendFeedback(value: "up" | "down") {
+    if (!requestId || feedback || loading) return;
+    setFeedback(value);
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return;
+    await fetch("/api/ai/feedback", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify({ requestId, rating: value === "up" ? 5 : 1, correct: value === "up" }) }).catch(() => undefined);
   }
 
   function useSuggestion(value: string) { setPrompt(value); setFullscreen(true); setOpen(true); }
@@ -93,9 +106,15 @@ export default function GlobalFreshAI() {
     <p className="global-fresh-ai-context">You are in <strong>{activeRoute || "Home"}</strong>. Fresh can research the public web, reason across multiple lenses, compare evidence, preserve uncertainty and organize the result for this workspace.</p>
     <div className="global-fresh-ai-section-label">Suggested for you</div>
     <div className="global-fresh-ai-suggestions" aria-label="Fresh AI suggestions">{suggestions.map((item) => <button key={item} type="button" onClick={() => useSuggestion(item)}>{item}</button>)}</div>
-    <form onSubmit={ask}><textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Ask anything… Fresh will choose the right reasoning path." rows={fullscreen ? 6 : 3} aria-label="Ask Fresh AI" /><div className="global-fresh-ai-form-footer"><span>{loading ? "Researching · reasoning · verifying" : "Fresh chooses the path automatically"}</span><button type="submit" disabled={loading || !prompt.trim()}>{loading ? "Working…" : "Ask Fresh AI"}</button></div></form>
+    <form onSubmit={ask}><textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Ask anything… Fresh will choose the right reasoning path." rows={fullscreen ? 6 : 3} aria-label="Ask Fresh AI" /><div className="global-fresh-ai-form-footer"><span>{loading ? "Understanding · researching · reasoning · verifying" : "Fresh chooses the path automatically"}</span><button type="submit" disabled={loading || !prompt.trim()}>{loading ? "Working…" : "Ask Fresh AI"}</button></div></form>
     {error && <p className="global-fresh-ai-error">Fresh AI could not complete that request. {error}</p>}
-    {answer && <div className="global-fresh-ai-answer"><span>Fresh AI</span><p>{answer}</p>{source && <small>{source}</small>}{verification && <div className="global-fresh-ai-proof"><strong>Fresh Proof</strong><div>{verification.confidence ?? "Uncalibrated"} confidence · {verification.uniqueSources ?? 0} independent results · {verification.uniqueDomains ?? 0} distinct domains</div><div>{verification.sourceDiversity ?? "Evidence diversity not reported"}{verification.contradictionsDetected ? " · conflicting evidence detected" : " · cross-checked"}</div></div>}{evidence.length > 0 && <div className="global-fresh-ai-evidence"><strong>Evidence used by Fresh</strong>{evidence.slice(0, 8).map((item, index) => <div className="global-fresh-ai-evidence-item" key={`${index}-${item.title}`}><div><strong>{item.title}</strong><span>{kindLabel[item.kind ?? "web"] ?? "Evidence"}</span></div>{item.snippet && <small>{item.snippet}</small>}</div>)}</div>}<small className="global-fresh-ai-note">Provenance is retained internally; the workspace shows evidence and verification state without exposing a directory of external links.</small></div>}
+    {answer && <div className="global-fresh-ai-answer"><span>Fresh AI</span><p>{answer}</p>{source && <small>{source}</small>}
+      {pipeline.length > 0 && <div className="global-fresh-ai-pipeline"><strong>Fresh Intelligence Path</strong><div>{pipeline.map((item) => <span key={item.stage} data-status={item.status} title={item.detail}>{item.stage}</span>)}</div></div>}
+      {verification && <div className="global-fresh-ai-proof"><strong>Fresh Proof</strong><div>{verification.confidence ?? "Uncalibrated"} confidence · {verification.uniqueSources ?? 0} independent results · {verification.uniqueDomains ?? 0} distinct domains</div><div>{verification.sourceDiversity ?? "Evidence diversity not reported"}{verification.contradictionsDetected ? " · conflicting evidence detected" : " · cross-checked"}</div></div>}
+      {governance && <div className="global-fresh-ai-governance"><strong>Governance</strong><span>{governance.autonomousSelfModification ? "Autonomous mutation enabled" : "Self-modification locked"}</span><span>{governance.highImpactActionsRequireApproval ? "High-impact actions require approval" : "High-impact actions open"}</span><span>{governance.reversibleImprovementsOnly ? "Improvements must be reversible" : "Irreversible improvements allowed"}</span></div>}
+      {evidence.length > 0 && <div className="global-fresh-ai-evidence"><strong>Evidence used by Fresh</strong>{evidence.slice(0, 8).map((item, index) => <div className="global-fresh-ai-evidence-item" key={`${index}-${item.title}`}><div><strong>{item.title}</strong><span>{kindLabel[item.kind ?? "web"] ?? "Evidence"}</span></div>{item.snippet && <small>{item.snippet}</small>}</div>)}</div>}
+      {requestId && <div className="global-fresh-ai-feedback"><span>Was this useful?</span><button type="button" onClick={() => sendFeedback("up")} disabled={Boolean(feedback)}>Helpful</button><button type="button" onClick={() => sendFeedback("down")} disabled={Boolean(feedback)}>Needs work</button>{feedback && <small>Feedback recorded for governed improvement.</small>}</div>}
+      <small className="global-fresh-ai-note">Provenance is retained internally; the workspace shows evidence and verification state without exposing a directory of external links.</small></div>}
     {!fullscreen && <button className="global-fresh-ai-full" type="button" onClick={openFullAI}>Open full Fresh AI →</button>}
   </div>;
 
