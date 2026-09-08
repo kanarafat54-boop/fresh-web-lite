@@ -1,3 +1,4 @@
+import { supabase } from "../../../lib/supabase";
 import type {
   IntelligenceRequest,
   IntelligenceResponse,
@@ -9,8 +10,11 @@ export type CanonicalAIResponse = {
   answer?: string;
   source?: string;
   confidence?: "low" | "medium" | "high";
+  authenticated?: boolean;
+  intent?: string;
   evidence?: Array<{
     title: string;
+    url?: string;
     snippet?: string;
     publishedAt?: string;
     kind?: IntelligenceSource["kind"];
@@ -31,9 +35,18 @@ export async function runCanonicalAI(
   const goal = (request.query ?? request.prompt).trim();
   if (!goal) throw new Error("An intelligence request is required.");
 
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   const response = await fetch("/api/ai/ask", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      ...(session?.access_token
+        ? { authorization: `Bearer ${session.access_token}` }
+        : {}),
+    },
     body: JSON.stringify({
       goal,
       route: request.researchMode ? `/search/${request.researchMode}` : "/",
@@ -56,7 +69,7 @@ export async function runCanonicalAI(
   const sources: IntelligenceSource[] = (payload.evidence ?? []).map(
     (item) => ({
       title: item.title,
-      url: "",
+      url: item.url ?? "",
       snippet: item.snippet,
       publishedAt: item.publishedAt,
       provider: payload.source ?? "Fresh AI",
