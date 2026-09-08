@@ -1,114 +1,21 @@
 import { createClient } from "@supabase/supabase-js";
-import { FreshAIKernel } from "../../src/core/fresh-ai/FreshAIKernel.js";
+import { FreshAIKernel, type FreshMemoryRecord } from "../../src/core/fresh-ai/FreshAIKernel.js";
 import { createCoreFreshSkillRegistry } from "../../src/core/fresh-ai/FreshAISkillFabric.js";
 import { reasonAcrossDimensions } from "../../src/core/fresh-ai/dimensionalIntelligence.js";
 import "../../src/core/ara6/agents/defaultAgents.js";
-
-export const config = { maxDuration: 30 };
-
-type RequestBody = { goal?: string; route?: string; approve?: boolean };
-type Evidence = { id: string; title: string; url: string; snippet?: string; publishedAt?: string; provider: string; kind?: "web" | "news" | "video" | "image" | "music"; domain?: string };
-type PublicEvidence = { title: string; snippet?: string; publishedAt?: string; kind?: Evidence["kind"] };
-type GeminiResponse = { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
-
-function json(data: unknown, status = 200): Response { return Response.json(data, { status, headers: { "cache-control": "no-store" } }); }
-
-async function authenticatedUser(req: Request) {
-  const url = process.env.VITE_SUPABASE_URL;
-  const key = process.env.VITE_SUPABASE_ANON_KEY;
-  const authorization = req.headers.get("authorization") ?? "";
-  const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
-  if (!url || !key || !token) return null;
-  const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data } = await client.auth.getUser(token);
-  return data.user ?? null;
-}
-
-async function persistPipeline(requestId:string, userId:string|null|undefined, pipeline:unknown) {
-  const url=process.env.SUPABASE_URL||process.env.VITE_SUPABASE_URL;
-  const key=process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if(!url||!key||!Array.isArray(pipeline)||!pipeline.length)return;
-  const client=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
-  const rows=pipeline.map((event:any)=>({request_id:requestId,user_id:userId??null,stage:event.stage,status:event.status,started_at:event.startedAt,completed_at:event.completedAt??null,detail:event.detail??null,metrics:event.metrics??{}}));
-  await client.from("fresh_ai_pipeline_events").insert(rows);
-}
-
-function domainOf(url: string): string { try { return new URL(url).hostname.replace(/^www\\./, ""); } catch { return "unknown"; } }
-function kindOf(url: string, publishedAt?: string): Evidence["kind"] {
-  try {
-    const parsed = new URL(url); const host = parsed.hostname.toLowerCase().replace(/^www\\./, ""); const path = parsed.pathname.toLowerCase();
-    if (/(youtube\\.com|youtu\\.be|vimeo\\.com|dailymotion\\.com|tiktok\\.com)$/.test(host)) return "video";
-    if (/(spotify\\.com|music\\.apple\\.com|soundcloud\\.com|bandcamp\\.com|deezer\\.com|tidal\\.com)$/.test(host)) return "music";
-    if (/\\.(png|jpe?g|gif|webp|avif|svg)(?:$|\\?)/.test(path)) return "image";
-  } catch { /* fallback */ }
-  return publishedAt ? "news" : "web";
-}
-
-async function fetchEvidence(goal: string): Promise<{ sources: Evidence[]; verification?: { uniqueSources: number; uniqueDomains: number; sourceDiversity: string; confidence: string; contradictionsDetected?: boolean } }> {
-  const apiKey = process.env.TAVILY_API_KEY;
-  if (!apiKey) return { sources: [] };
-  const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 8_000);
-  try {
-    const response = await fetch("https://api.tavily.com/search", { method: "POST", headers: { "content-type": "application/json" }, signal: controller.signal, body: JSON.stringify({ api_key: apiKey, query: goal, search_depth: "advanced", topic: "general", max_results: 8, include_answer: false, include_raw_content: false }) });
-    if (!response.ok) return { sources: [] };
-    const payload = await response.json() as { results?: Array<{ title?: string; url?: string; content?: string; published_date?: string }> };
-    const sources = (payload.results ?? []).filter((item) => item.title && item.url).map((item, index) => { const url = item.url as string; return { id: `web-${index + 1}`, title: item.title as string, url, snippet: item.content, publishedAt: item.published_date, provider: "Tavily", kind: kindOf(url, item.published_date), domain: domainOf(url) }; });
-    const domains = new Set(sources.map((source) => source.domain));
-    return { sources, verification: { uniqueSources: sources.length, uniqueDomains: domains.size, sourceDiversity: domains.size >= 6 ? "high" : domains.size >= 3 ? "medium" : "low", confidence: sources.length >= 6 && domains.size >= 4 ? "high" : sources.length >= 3 ? "medium" : "low" } };
-  } catch { return { sources: [] }; } finally { clearTimeout(timeout); }
-}
-
-async function providerAnswer(goal: string, route: string, intent: string, evidence: Evidence[], dimensionalContext: string, plan: string, executions: string): Promise<string | null> {
-  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (!key) return null;
-  const model = process.env.FRESH_AI_MODEL || "gemini-2.5-flash";
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
-  const evidenceText = evidence.length ? "\\n\\nEvidence retrieved by Fresh Search. Use it for grounding; do not expose raw URLs or source-directory links.\\n" + evidence.map((item, index) => `[Evidence ${index + 1}] ${item.title}${item.publishedAt ? ` · ${item.publishedAt}` : ""}\\n${(item.snippet ?? "").slice(0, 700)}`).join("\\n\\n") : "\\n\\nNo live web evidence was available. Do not claim current verification.";
-  const executionText = executions ? `\\n\\nARA6 execution results:\\n${executions}` : "";
-  const response = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ systemInstruction: { parts: [{ text: "You are Fresh AI, the universal intelligence and action layer inside Fresh Web Lite. Understand the user's actual goal, including vague, conversational, implicit and multi-step requests. Decide what the user needs and fulfill it directly when the available Fresh capabilities allow it. You coordinate multimodal understanding, memory, knowledge retrieval, research, reasoning, planning, multi-agent work, verification, proof, feedback and governed improvement. Never claim an external action happened unless it actually happened. Use evidence when supplied, distinguish fact from inference, preserve uncertainty and conflicts, and never expose raw URLs, citations, domains or a source directory; Fresh presents provenance through its Proof and Evidence layer." }] }, contents: [{ role: "user", parts: [{ text: `Workspace: ${route}\\nInterpreted intent: ${intent}\\nUser request: ${goal}\\nReasoning context: ${dimensionalContext}\\nPlanned capability path: ${plan}${executionText}${evidenceText}` }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 1400 } }) });
-  if (!response.ok) return null;
-  const payload = await response.json() as GeminiResponse;
-  return payload.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim() || null;
-}
-
-function nativeAnswer(goal: string, route: string, intent: string, dimensions: number, executions: Array<{ accepted: boolean; status: string; detail: string }>): string {
-  const normalized = goal.toLowerCase();
-  if (normalized.includes("what can you do") || normalized.includes("help")) return `Fresh AI is active in ${route}. I understand requests as goals, choose the required capabilities, reason across ${dimensions} dimensions, and coordinate research, creation, coding, planning, learning and permitted actions.`;
-  if (normalized.includes("where") || normalized.includes("find")) return `I understand this as a ${intent} request. Fresh AI routed it through the intelligence and execution fabric${executions.some((item) => item.accepted) ? " and completed the available capability step" : ""}.`;
-  return `I understand this as a ${intent} request: ${goal}. Fresh AI selected the required capability path and preserved anything that needs evidence, approval or an unavailable tool.`;
-}
-
-const memoryStore = { search: async (_query:string) => [], remember: async (_record:unknown) => undefined };
-
-export async function POST(req: Request): Promise<Response> {
-  const requestId=crypto.randomUUID();
-  try {
-    const body = await req.json() as RequestBody;
-    const goal = typeof body.goal === "string" ? body.goal.trim() : "";
-    const route = typeof body.route === "string" && body.route.trim() ? body.route.trim().slice(0, 120) : "/";
-    if (!goal) return json({ error: "A goal is required" }, 400);
-    if (goal.length > 4000) return json({ error: "Keep the request under 4,000 characters" }, 400);
-    const user = await authenticatedUser(req);
-    const evidence = await fetchEvidence(goal);
-    const nativeEvidence = evidence.sources.map((item) => ({ id: item.id, source: item.provider, claim: item.snippet || item.title, observedAt: item.publishedAt, confidence: 0.7 }));
-    const kernel = new FreshAIKernel(createCoreFreshSkillRegistry(), memoryStore);
-    const understood = await kernel.understand({ input: goal, context: { route, userId: user?.id ?? null } });
-    const retrieved = await kernel.retrieve({ input: goal, evidence: nativeEvidence });
-    const reasoning = await kernel.reason({ input: goal, intent: understood.intent, context: understood.context, evidence: retrieved }, retrieved);
-    const planned = await kernel.plan({ input: goal, intent: understood.intent, context: understood.context, evidence: retrieved }, reasoning);
-    const verified = await kernel.verify({ ...reasoning, plan: planned });
-    const shouldExecute = understood.intent === "research" || understood.intent === "discover" || understood.intent === "learn" || understood.intent === "act";
-    const executions = shouldExecute ? await kernel.execute(planned, { approve: Boolean(body.approve), requestId, origin: new URL(req.url).origin, userId: user?.id ?? null }) : [];
-
-    const dimensions = reasonAcrossDimensions(goal, undefined);
-    const dimensionalContext = dimensions.map((item) => `${item.dimension}D:${item.lens.focus}; confidence=${item.confidence.toFixed(2)}`).join(" | ");
-    const planText = planned.map((step) => `${step.agent ?? "native"}:${step.skills.join(",")}`).join(" → ");
-    const executionText = executions.map((item) => `${item.agent ?? "native"}:${item.status}:${item.detail}`).join("\\n");
-    const answer = await providerAnswer(goal, route, understood.intent, evidence.sources, dimensionalContext, planText, executionText).catch(() => null);
-    const publicEvidence: PublicEvidence[] = evidence.sources.slice(0, 8).map(({ title, snippet, publishedAt, kind }) => ({ title, snippet, publishedAt, kind }));
-    const pipeline=(verified.pipeline??reasoning.pipeline??[]).map((event)=>event.stage==="execute"?{...event,status:executions.length?"completed":"skipped",completedAt:new Date().toISOString(),metrics:{count:executions.length}}:event.stage==="research"?{...event,status:evidence.sources.length?"completed":"skipped",completedAt:new Date().toISOString(),metrics:{sources:evidence.sources.length,domains:evidence.verification?.uniqueDomains??0}}:event.stage==="proof"?{...event,status:"completed",completedAt:new Date().toISOString(),metrics:{evidence:publicEvidence.length,claims:verified.claims.length}}:event.stage==="govern"?{...event,status:"completed",completedAt:new Date().toISOString(),detail:"High-impact actions and production mutation remain policy-gated"}:event);
-    await persistPipeline(requestId,user?.id,pipeline).catch(()=>undefined);
-
-    return json({ requestId, answer: answer ?? nativeAnswer(goal, route, understood.intent, dimensions.length, executions), confidence: answer ? (evidence.verification?.confidence ?? "unknown") : "unknown", source: "Fresh Intelligence", authenticated: Boolean(user), intent: understood.intent, plan: planned.map((step) => ({ id: step.id, agent: step.agent ?? null, skills: step.skills, requiresApproval: Boolean(step.requiresApproval) })), execution: executions, evidence: publicEvidence, verification: { ...(evidence.verification ?? {}), unknowns: verified.unknowns }, proof: { mode: evidence.sources.length ? "research-grounded" : "native", evidenceCount: publicEvidence.length, provenance: "internal", dimensionalReasoning: { enabled: true, dimensions: dimensions.length } }, pipeline, governance: { autonomousSelfModification: false, improvementProposalsRequireApproval: true, highImpactActionsRequireApproval: true, reversibleImprovementsOnly: true } });
-  } catch (error) { return json({ requestId, error: error instanceof Error ? error.message : "Fresh AI request failed" }, 500); }
-}
+export const config={maxDuration:30};
+type RequestBody={goal?:string;route?:string;approve?:boolean};
+type Evidence={id:string;title:string;url:string;snippet?:string;publishedAt?:string;provider:string;kind?:"web"|"news"|"video"|"image"|"music";domain?:string};
+type PublicEvidence={title:string;snippet?:string;publishedAt?:string;kind?:Evidence["kind"]};type GeminiResponse={candidates?:Array<{content?:{parts?:Array<{text?:string}>}}>};
+function json(data:unknown,status=200):Response{return Response.json(data,{status,headers:{"cache-control":"no-store"}})}
+async function authenticatedUser(req:Request){const url=process.env.VITE_SUPABASE_URL,key=process.env.VITE_SUPABASE_ANON_KEY,authorization=req.headers.get("authorization")??"",token=authorization.startsWith("Bearer ")?authorization.slice(7):"";if(!url||!key||!token)return null;const client=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});const{data}=await client.auth.getUser(token);return data.user??null}
+function serviceClient(){const url=process.env.SUPABASE_URL||process.env.VITE_SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;return url&&key?createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}}):null}
+async function persistPipeline(requestId:string,userId:string|null|undefined,pipeline:unknown){const client=serviceClient();if(!client||!Array.isArray(pipeline)||!pipeline.length)return;const rows=pipeline.map((event:any)=>({request_id:requestId,user_id:userId??null,stage:event.stage,status:event.status,started_at:event.startedAt,completed_at:event.completedAt??null,detail:event.detail??null,metrics:event.metrics??{}}));await client.from("fresh_ai_pipeline_events").insert(rows)}
+function domainOf(url:string){try{return new URL(url).hostname.replace(/^www\./,"")}catch{return"unknown"}}
+function kindOf(url:string,publishedAt?:string):Evidence["kind"]{try{const p=new URL(url),h=p.hostname.toLowerCase().replace(/^www\./,""),path=p.pathname.toLowerCase();if(/(youtube\.com|youtu\.be|vimeo\.com|dailymotion\.com|tiktok\.com)$/.test(h))return"video";if(/(spotify\.com|music\.apple\.com|soundcloud\.com|bandcamp\.com|deezer\.com|tidal\.com)$/.test(h))return"music";if(/\.(png|jpe?g|gif|webp|avif|svg)(?:$|\?)/.test(path))return"image"}catch{}return publishedAt?"news":"web"}
+async function fetchEvidence(goal:string){const apiKey=process.env.TAVILY_API_KEY;if(!apiKey)return{sources:[] as Evidence[]};const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),8000);try{const response=await fetch("https://api.tavily.com/search",{method:"POST",headers:{"content-type":"application/json"},signal:controller.signal,body:JSON.stringify({api_key:apiKey,query:goal,search_depth:"advanced",topic:"general",max_results:8,include_answer:false,include_raw_content:false})});if(!response.ok)return{sources:[] as Evidence[]};const payload=await response.json() as{results?:Array<{title?:string;url?:string;content?:string;published_date?:string}>};const sources=(payload.results??[]).filter(x=>x.title&&x.url).map((x,i)=>{const url=x.url as string;return{id:`web-${i+1}`,title:x.title as string,url,snippet:x.content,publishedAt:x.published_date,provider:"Tavily",kind:kindOf(url,x.published_date),domain:domainOf(url)}});const domains=new Set(sources.map(x=>x.domain));return{sources,verification:{uniqueSources:sources.length,uniqueDomains:domains.size,sourceDiversity:domains.size>=6?"high":domains.size>=3?"medium":"low",confidence:sources.length>=6&&domains.size>=4?"high":sources.length>=3?"medium":"low"}}}catch{return{sources:[] as Evidence[]}}finally{clearTimeout(timeout)}}
+async function providerAnswer(goal:string,route:string,intent:string,evidence:Evidence[],dimensionalContext:string,plan:string,executions:string,memoryContext:string){const key=process.env.GEMINI_API_KEY||process.env.GOOGLE_GENERATIVE_AI_API_KEY;if(!key)return null;const model=process.env.FRESH_AI_MODEL||"gemini-2.5-flash",endpoint=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;const evidenceText=evidence.length?"\n\nEvidence retrieved by Fresh Search. Use it for grounding; do not expose raw URLs.\n"+evidence.map((x,i)=>`[Evidence ${i+1}] ${x.title}\n${(x.snippet??"").slice(0,700)}`).join("\n\n"):"\n\nNo live web evidence was available. Do not claim current verification.";const response=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({systemInstruction:{parts:[{text:"You are Fresh AI, the universal intelligence and action layer inside Fresh Web Lite. Understand goals, use durable memory when relevant, retrieve knowledge and evidence, reason, plan, coordinate governed capabilities, verify claims and preserve uncertainty. Never claim an action happened unless it actually happened. Treat memory as contextual evidence, not unquestionable truth."}]},contents:[{role:"user",parts:[{text:`Workspace: ${route}\nIntent: ${intent}\nUser request: ${goal}\nRelevant memory: ${memoryContext||"none"}\nReasoning: ${dimensionalContext}\nPlan: ${plan}\n${executions?`Execution:\n${executions}`:""}${evidenceText}`}] }],generationConfig:{temperature:.2,maxOutputTokens:1400}})});if(!response.ok)return null;const payload=await response.json() as GeminiResponse;return payload.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("").trim()||null}
+function nativeAnswer(goal:string,route:string,intent:string,dimensions:number,executions:Array<{accepted:boolean;status:string;detail:string}>){if(/what can you do|help/.test(goal.toLowerCase()))return`Fresh AI is active in ${route}. I interpret goals, load relevant memory, retrieve evidence, reason across ${dimensions} dimensions, plan capabilities, verify outcomes and keep high-impact actions governed.`;return`I understand this as a ${intent} request: ${goal}. Fresh AI selected the required capability path and preserved anything that needs evidence, approval or an unavailable tool.`}
+function memoryStoreFor(userId:string|null){const client=serviceClient();return{search:async(query:string,scope?:FreshMemoryRecord["scope"]):Promise<FreshMemoryRecord[]>=>{if(!client||!userId)return[];let q=client.from("fresh_ai_memory").select("id,content,scope,created_at,source").eq("user_id",userId).order("updated_at",{ascending:false}).limit(12);if(scope)q=q.eq("scope",scope);const{data}=await q;const needle=query.toLowerCase().split(/\s+/).filter(x=>x.length>3);return(data??[]).filter((row:any)=>needle.length===0||needle.some(word=>String(row.content).toLowerCase().includes(word))).map((row:any)=>({id:row.id,content:row.content,scope:row.scope,createdAt:row.created_at,source:row.source}))},remember:async(record:FreshMemoryRecord)=>{if(!client||!userId)return;await client.from("fresh_ai_memory").upsert({id:record.id,user_id:userId,scope:record.scope,content:record.content,source:record.source,created_at:record.createdAt,updated_at:new Date().toISOString()})}}}
+export async function POST(req:Request):Promise<Response>{const requestId=crypto.randomUUID();try{const body=await req.json() as RequestBody,goal=typeof body.goal==="string"?body.goal.trim():"",route=typeof body.route==="string"&&body.route.trim()?body.route.trim().slice(0,120):"/";if(!goal)return json({error:"A goal is required"},400);if(goal.length>4000)return json({error:"Keep the request under 4,000 characters"},400);const user=await authenticatedUser(req),memoryStore=memoryStoreFor(user?.id??null),evidence=await fetchEvidence(goal),nativeEvidence=evidence.sources.map(x=>({id:x.id,source:x.provider,claim:x.snippet||x.title,observedAt:x.publishedAt,confidence:.7})),kernel=new FreshAIKernel(createCoreFreshSkillRegistry(),memoryStore),understood=await kernel.understand({input:goal,context:{route,userId:user?.id??null}}),retrieved=await kernel.retrieve({input:goal,evidence:nativeEvidence}),reasoning=await kernel.reason({input:goal,intent:understood.intent,context:understood.context,evidence:retrieved},retrieved),planned=await kernel.plan({input:goal,intent:understood.intent,context:understood.context,evidence:retrieved},reasoning),verified=await kernel.verify({...reasoning,plan:planned}),shouldExecute=["research","discover","learn","act"].includes(understood.intent),executions=shouldExecute?await kernel.execute(planned,{approve:Boolean(body.approve),requestId,origin:new URL(req.url).origin,userId:user?.id??null}):[],dimensions=reasonAcrossDimensions(goal,undefined),dimensionalContext=dimensions.map(x=>`${x.dimension}D:${x.lens.focus}; confidence=${x.confidence.toFixed(2)}`).join(" | "),planText=planned.map(x=>`${x.agent??"native"}:${x.skills.join(",")}`).join(" → "),executionText=executions.map(x=>`${x.agent??"native"}:${x.status}:${x.detail}`).join("\n"),memories=Array.isArray(understood.context?.memories)?understood.context.memories:[],memoryContext=memories.map((x:any)=>x.content).slice(0,6).join("\n"),answer=await providerAnswer(goal,route,understood.intent,evidence.sources,dimensionalContext,planText,executionText,memoryContext).catch(()=>null),publicEvidence:PublicEvidence[]=evidence.sources.slice(0,8).map(({title,snippet,publishedAt,kind})=>({title,snippet,publishedAt,kind})),pipeline=(verified.pipeline??reasoning.pipeline??[]).map(event=>event.stage==="execute"?{...event,status:executions.length?"completed":"skipped",completedAt:new Date().toISOString(),metrics:{count:executions.length}}:event.stage==="research"?{...event,status:evidence.sources.length?"completed":"skipped",completedAt:new Date().toISOString(),metrics:{sources:evidence.sources.length,domains:evidence.verification?.uniqueDomains??0}}:event.stage==="proof"?{...event,status:"completed",completedAt:new Date().toISOString(),metrics:{evidence:publicEvidence.length,claims:verified.claims.length}}:event.stage==="memory"?{...event,status:memories.length?"completed":"empty",completedAt:new Date().toISOString(),metrics:{records:memories.length}}:event.stage==="govern"?{...event,status:"completed",completedAt:new Date().toISOString(),detail:"High-impact actions and production mutation remain policy-gated"}:event);await persistPipeline(requestId,user?.id,pipeline).catch(()=>undefined);if(user&&clientCanWriteMemory()){await memoryStore.remember({id:crypto.randomUUID(),content:`Request: ${goal}\nOutcome: ${(answer??verified.answer).slice(0,1200)}`,scope:"user",createdAt:new Date().toISOString(),source:"fresh-ai"}).catch(()=>undefined)}return json({requestId,answer:answer??nativeAnswer(goal,route,understood.intent,dimensions.length,executions),confidence:answer?(evidence.verification?.confidence??"unknown"):"unknown",source:"Fresh Intelligence",authenticated:Boolean(user),intent:understood.intent,plan:planned.map(x=>({id:x.id,agent:x.agent??null,skills:x.skills,requiresApproval:Boolean(x.requiresApproval)})),execution:executions,evidence:publicEvidence,verification:{...(evidence.verification??{}),unknowns:verified.unknowns},proof:{mode:evidence.sources.length?"research-grounded":"native",evidenceCount:publicEvidence.length,provenance:"internal",dimensionalReasoning:{enabled:true,dimensions:dimensions.length}},pipeline,governance:{autonomousSelfModification:false,improvementProposalsRequireApproval:true,highImpactActionsRequireApproval:true,reversibleImprovementsOnly:true}})}catch(error){return json({requestId,error:error instanceof Error?error.message:"Fresh AI request failed"},500)}}
+function clientCanWriteMemory(){return Boolean(process.env.SUPABASE_URL&&process.env.SUPABASE_SERVICE_ROLE_KEY)}
