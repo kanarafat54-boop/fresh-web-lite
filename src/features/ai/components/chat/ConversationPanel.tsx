@@ -71,18 +71,19 @@ export default function ConversationPanel() {
 
   return (
     <section className="conversation-card">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+      <div className="conversation-header">
         <h2>Fresh AI</h2>
-        <small aria-live="polite" style={{ opacity: 0.72 }}>{status}</small>
+        <small aria-live="polite">{status}</small>
       </div>
+
       <div className="conversation-history" aria-live="polite">
         {messages.map((m) => (
           <div key={m.id} className={m.role === "assistant" ? "assistant-message" : "user-message"} style={{ whiteSpace: "pre-line" }}>
             {m.text}
             {m.sources && m.sources.length > 0 && (
-              <div style={{ marginTop: 6, fontSize: "0.85em", opacity: 0.8 }}>
+              <div className="conversation-sources">
                 {m.sources.map((source) => (
-                  <a key={source.url} href={source.url} target="_blank" rel="noreferrer" style={{ display: "block" }}>
+                  <a key={source.url} href={source.url} target="_blank" rel="noreferrer">
                     {source.title}
                   </a>
                 ))}
@@ -92,31 +93,33 @@ export default function ConversationPanel() {
         ))}
         {sending && <div className="assistant-message">Fresh AI is working…</div>}
       </div>
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", marginBottom: 8 }} aria-label="Fresh AI quick actions">
-        {quickPrompts.map(([title, prompt]) => (
-          <button
-            key={title}
-            type="button"
-            onClick={() => void send(prompt)}
+
+      <div className="conversation-composer" aria-label="Fresh AI composer">
+        <div className="conversation-quick-actions" aria-label="Fresh AI quick actions">
+          {quickPrompts.map(([title, prompt]) => (
+            <button
+              key={title}
+              type="button"
+              onClick={() => void send(prompt)}
+              disabled={sending}
+            >
+              {title}
+            </button>
+          ))}
+        </div>
+        <div className="conversation-input">
+          <input
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            placeholder="Describe your goal..."
+            onKeyDown={(event) => event.key === "Enter" && void send()}
             disabled={sending}
-            style={{ flex: "0 0 auto", border: "1px solid var(--border)", borderRadius: 999, padding: "6px 10px", background: "transparent", color: "inherit", fontSize: "0.78em" }}
-          >
-            {title}
+            aria-label="Message Fresh AI"
+          />
+          <button onClick={() => void send()} disabled={sending || !message.trim()}>
+            {sending ? "Working…" : "Send"}
           </button>
-        ))}
-      </div>
-      <div className="conversation-input">
-        <input
-          value={message}
-          onChange={(event) => setMessage(event.target.value)}
-          placeholder="Describe your goal..."
-          onKeyDown={(event) => event.key === "Enter" && void send()}
-          disabled={sending}
-          aria-label="Message Fresh AI"
-        />
-        <button onClick={() => void send()} disabled={sending || !message.trim()}>
-          {sending ? "Working…" : "Send"}
-        </button>
+        </div>
       </div>
     </section>
   );
