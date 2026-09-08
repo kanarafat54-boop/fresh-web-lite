@@ -3,6 +3,7 @@ import { SemanticTruthEngine } from "./semanticTruthEngine.js";
 import { reasonAcrossDimensions } from "./dimensionalIntelligence.js";
 import { executeFreshPlanThroughAra6 } from "./FreshARA6Bridge.js";
 import { evaluateASIState } from "./asi.js";
+import { FRESH_AI_ALIGNMENT_PRINCIPLES, FRESH_AI_SERVING_POLICY, FRESH_AI_TRAINING_STACK } from "./FreshAITrainingStack.js";
 
 export type FreshMemoryRecord = { id:string; content:string; scope:"user"|"project"|"platform"|"session"; createdAt:string; source?:string };
 export type FreshSkillRegistry = { register(skill:FreshSkill):void; find(capabilities:string[]):FreshSkill[] };
@@ -50,7 +51,7 @@ export class FreshAIKernel implements FreshIntelligenceEngine {
       answer:buildGroundedAnswer(request.input,safeEvidence,safeDimensions,interpretation),
       claims:safeEvidence.map(item=>({statement:item.claim,truth:item.confidence>=.9?"KNOWN":item.confidence>=.6?"PROBABLE":"UNCERTAIN",confidence:item.confidence,evidence:[item]})),
       plan:Array.isArray(plan)?plan:[], actions:[], unknowns:conversational?[]:(safeEvidence.length?[]:["No external or persistent evidence was supplied to the native truth layer."]),
-      explanation:conversational?"Fresh recognized this as conversation and avoided forcing a research workflow.":`Fresh AI used explicit goal interpretation, native capability composition, ${safeDimensions.length} dimensional reasoning lens(es), evidence grounding and governed execution boundaries.`,
+      explanation:conversational?"Fresh recognized this as conversation and avoided forcing a research workflow.":`Fresh AI used explicit goal interpretation, native capability composition, ${safeDimensions.length} dimensional reasoning lens(es), evidence grounding and governed execution boundaries. Training/alignment serving policy: ${FRESH_AI_TRAINING_STACK.length} lifecycle controls and ${FRESH_AI_ALIGNMENT_PRINCIPLES.length} runtime principles. Autonomous model-weight modification is ${FRESH_AI_SERVING_POLICY.autonomousModelWeightModification?"enabled":"disabled"}.`,
       dimensionalReasoning:safeDimensions,
       pipeline:createPipeline()
     };
