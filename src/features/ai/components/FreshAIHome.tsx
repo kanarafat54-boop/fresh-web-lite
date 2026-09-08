@@ -14,6 +14,19 @@ const suggestions = [
   ["Plan", "Turn a goal into an executable plan"],
 ] as const;
 
+const intelligenceHorizon = [
+  ["Extremely broad competence", "Outperform humans across nearly all intellectual tasks, not just a narrow specialty."],
+  ["Reliable self-improvement", "Improve its own models, tools or architecture in a sustained way."],
+  ["Advanced strategic planning", "Manage long-horizon goals and complex multi-step decisions beyond the best human performance."],
+  ["Scientific and creative discovery", "Generate new theories, designs and solutions faster and more deeply than human researchers."],
+  ["Wide transfer learning", "Apply knowledge across domains with little additional training."],
+  ["Strong social and environmental understanding", "Operate effectively in human, cultural and real-world settings."],
+  ["General cognitive superiority", "Exceed the best human minds across virtually all important cognitive domains."],
+  ["Creative and strategic reasoning", "Produce novel ideas and long-term plans beyond top-human capability."],
+  ["Fast adaptation", "Apply knowledge to new situations with little or no retraining."],
+  ["Autonomous self-improvement", "Improve methods or architecture without requiring human help."],
+] as const;
+
 export default function FreshAIHome() {
   const [activeSuggestion, setActiveSuggestion] = useState("");
 
@@ -41,6 +54,25 @@ export default function FreshAIHome() {
         <section className="fresh-ai-ask-card" aria-label="Start with Fresh AI">
           <div><strong>What should Fresh help you do?</strong><span>Fresh adapts to the workspace, device and task.</span></div>
           <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("fresh-ai-open"))}>Open Fresh AI ↗</button>
+        </section>
+
+        <section className="fresh-ai-horizon" aria-labelledby="fresh-ai-horizon-title">
+          <details>
+            <summary>
+              <span><b>INTELLIGENCE HORIZON</b><strong id="fresh-ai-horizon-title">Beyond human-level intelligence</strong></span>
+              <small>Hypothetical · no single agreed standard</small>
+            </summary>
+            <div className="fresh-ai-horizon-body">
+              <p>If AI goes beyond superintelligence, there is no single agreed standard yet because that stage is still hypothetical. A more speculative post-ASI concept describes intelligence that not only exceeds humans but can reshape its own capabilities and environment at massive scale.</p>
+              <p>The important distinction is that such a system would be judged not only by raw capability, but also by <strong>alignment, autonomy, resilience, integrity, morality, embodiment and embeddedness</strong> if it is to function safely in the world.</p>
+              <div className="fresh-ai-horizon-grid">
+                {intelligenceHorizon.map(([title, description]) => (
+                  <article key={title}><strong>{title}</strong><span>{description}</span></article>
+                ))}
+              </div>
+              <p className="fresh-ai-horizon-note"><strong>Consciousness is not required by many definitions.</strong> The main capability test is broad, human-exceeding performance across virtually all relevant intellectual domains.</p>
+            </div>
+          </details>
         </section>
 
         <section className="fresh-ai-suggestion-section" aria-labelledby="fresh-ai-suggestions-title">
