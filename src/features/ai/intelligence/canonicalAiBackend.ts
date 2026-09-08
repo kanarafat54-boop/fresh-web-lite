@@ -21,9 +21,9 @@ export type CanonicalAIResponse = {
 /**
  * Canonical Fresh AI transport.
  *
- * All product-level intelligence requests should cross this boundary. The
- * legacy connector registry remains a compatibility surface while callers
- * migrate away from connector-specific execution.
+ * All product-level intelligence requests cross this boundary. The legacy
+ * connector registry remains a compatibility surface while callers migrate
+ * away from connector-specific execution.
  */
 export async function runCanonicalAI(
   request: IntelligenceRequest,
@@ -54,7 +54,7 @@ export async function runCanonicalAI(
 
   const payload = (await response.json()) as CanonicalAIResponse;
   const sources: IntelligenceSource[] = (payload.evidence ?? []).map(
-    (item, index) => ({
+    (item) => ({
       title: item.title,
       url: "",
       snippet: item.snippet,
@@ -65,7 +65,9 @@ export async function runCanonicalAI(
   );
 
   return {
-    text: payload.answer ?? "Fresh AI completed the request without a text answer.",
+    text:
+      payload.answer ??
+      "Fresh AI completed the request without a text answer.",
     provider: payload.source ?? "Fresh AI",
     sources,
     confidence: payload.confidence ?? payload.verification?.confidence,
