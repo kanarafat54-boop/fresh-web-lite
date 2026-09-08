@@ -78,7 +78,7 @@ function nativeAnswer(goal: string, route: string, intent: string, dimensions: n
   return `I understand this as a ${intent} request: ${goal}. Fresh AI selected the required capability path and preserved anything that needs evidence, approval or an unavailable tool.`;
 }
 
-const memoryStore = { search: async () => [], remember: async () => undefined };
+const memoryStore = { search: async (_query:string) => [], remember: async (_record:unknown) => undefined };
 
 export async function POST(req: Request): Promise<Response> {
   const requestId=crypto.randomUUID();
@@ -94,7 +94,7 @@ export async function POST(req: Request): Promise<Response> {
     const kernel = new FreshAIKernel(createCoreFreshSkillRegistry(), memoryStore);
     const understood = await kernel.understand({ input: goal, context: { route, userId: user?.id ?? null } });
     const retrieved = await kernel.retrieve({ input: goal, evidence: nativeEvidence });
-    const reasoning = await kernel.reason({ input: goal, intent: understood.intent, context: understood.context, evidence: retrieved });
+    const reasoning = await kernel.reason({ input: goal, intent: understood.intent, context: understood.context, evidence: retrieved }, retrieved);
     const planned = await kernel.plan({ input: goal, intent: understood.intent, context: understood.context, evidence: retrieved }, reasoning);
     const verified = await kernel.verify({ ...reasoning, plan: planned });
     const shouldExecute = understood.intent === "research" || understood.intent === "discover" || understood.intent === "learn" || understood.intent === "act";
@@ -109,20 +109,6 @@ export async function POST(req: Request): Promise<Response> {
     const pipeline=(verified.pipeline??reasoning.pipeline??[]).map((event)=>event.stage==="execute"?{...event,status:executions.length?"completed":"skipped",completedAt:new Date().toISOString(),metrics:{count:executions.length}}:event.stage==="research"?{...event,status:evidence.sources.length?"completed":"skipped",completedAt:new Date().toISOString(),metrics:{sources:evidence.sources.length,domains:evidence.verification?.uniqueDomains??0}}:event.stage==="proof"?{...event,status:"completed",completedAt:new Date().toISOString(),metrics:{evidence:publicEvidence.length,claims:verified.claims.length}}:event.stage==="govern"?{...event,status:"completed",completedAt:new Date().toISOString(),detail:"High-impact actions and production mutation remain policy-gated"}:event);
     await persistPipeline(requestId,user?.id,pipeline).catch(()=>undefined);
 
-    return json({
-      requestId,
-      answer: answer ?? nativeAnswer(goal, route, understood.intent, dimensions.length, executions),
-      confidence: answer ? (evidence.verification?.confidence ?? "unknown") : "unknown",
-      source: "Fresh Intelligence",
-      authenticated: Boolean(user),
-      intent: understood.intent,
-      plan: planned.map((step) => ({ id: step.id, agent: step.agent ?? null, skills: step.skills, requiresApproval: Boolean(step.requiresApproval) })),
-      execution: executions,
-      evidence: publicEvidence,
-      verification: { ...(evidence.verification ?? {}), unknowns: verified.unknowns },
-      proof: { mode: evidence.sources.length ? "research-grounded" : "native", evidenceCount: publicEvidence.length, provenance: "internal", dimensionalReasoning: { enabled: true, dimensions: dimensions.length } },
-      pipeline,
-      governance: { autonomousSelfModification: false, improvementProposalsRequireApproval: true, highImpactActionsRequireApproval: true, reversibleImprovementsOnly: true },
-    });
+    return json({ requestId, answer: answer ?? nativeAnswer(goal, route, understood.intent, dimensions.length, executions), confidence: answer ? (evidence.verification?.confidence ?? "unknown") : "unknown", source: "Fresh Intelligence", authenticated: Boolean(user), intent: understood.intent, plan: planned.map((step) => ({ id: step.id, agent: step.agent ?? null, skills: step.skills, requiresApproval: Boolean(step.requiresApproval) })), execution: executions, evidence: publicEvidence, verification: { ...(evidence.verification ?? {}), unknowns: verified.unknowns }, proof: { mode: evidence.sources.length ? "research-grounded" : "native", evidenceCount: publicEvidence.length, provenance: "internal", dimensionalReasoning: { enabled: true, dimensions: dimensions.length } }, pipeline, governance: { autonomousSelfModification: false, improvementProposalsRequireApproval: true, highImpactActionsRequireApproval: true, reversibleImprovementsOnly: true } });
   } catch (error) { return json({ requestId, error: error instanceof Error ? error.message : "Fresh AI request failed" }, 500); }
 }
