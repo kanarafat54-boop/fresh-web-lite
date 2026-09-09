@@ -2,6 +2,7 @@ import AppRouter from "./AppRouter";
 import { ThemeProvider, useTheme } from "./providers/ThemeProvider";
 import { LayoutProvider } from "./contexts/LayoutProvider";
 import GlobalFreshAI from "./components/GlobalFreshAI";
+import FreshAIContextPanel from "./components/FreshAIContextPanel";
 import "../index.css";
 
 function GlobalThemeControl() {
@@ -21,6 +22,7 @@ export default function AppShell() {
         <div className="app-shell-root">
           <AppRouter />
           <GlobalThemeControl />
+          <FreshAIContextPanel />
           <GlobalFreshAI />
         </div>
       </LayoutProvider>
