@@ -105,9 +105,9 @@ const SURFACE_RULES: Array<{
   { match: /\/connect|communication/i, surface: "communication", featureName: "Fresh Connect", capabilities: ["chat", "connect", "search", "summarize", "write", "translate"], toolNamespaces: ["connections", "messaging", "profiles"] },
   { match: /\/learn|learning/i, surface: "learning", featureName: "Fresh Academy", capabilities: ["chat", "learn", "research", "summarize", "write", "translate", "verify"], toolNamespaces: ["learning", "research", "knowledge"] },
   { match: /\/software|code/i, surface: "code", featureName: "Software Studio", capabilities: ["chat", "code", "analyze", "review", "plan", "search", "automate"], toolNamespaces: ["code", "repository", "testing", "deployment"] },
-  { match: /\/studio|\/creator|design/i, surface: "design", featureName: "Creator Studio", capabilities: ["chat", "design", "image", "video", "audio", "write", "review", "plan"], toolNamespaces: ["design", "assets", "media", "publishing"] },
-  { match: /\/wallet|\/crypto/i, surface: "wallet", featureName: "Fresh Wallet", capabilities: ["chat", "analyze", "research", "verify", "plan", "act"], toolNamespaces: ["wallet", "market", "risk", "security"] },
+  { match: /\/studio|design/i, surface: "design", featureName: "Creator Studio", capabilities: ["chat", "design", "image", "video", "audio", "write", "review", "plan"], toolNamespaces: ["design", "assets", "media", "publishing"] },
   { match: /\/creator/i, surface: "creator", featureName: "Creator", capabilities: ["chat", "write", "image", "video", "audio", "research", "plan", "publish"], toolNamespaces: ["creator", "media", "publishing"] },
+  { match: /\/wallet|\/crypto/i, surface: "wallet", featureName: "Fresh Wallet", capabilities: ["chat", "analyze", "research", "verify", "plan", "act"], toolNamespaces: ["wallet", "market", "risk", "security"] },
   { match: /\/profile/i, surface: "profile", featureName: "Fresh Profile", capabilities: ["chat", "write", "summarize", "organize", "connect", "search"], toolNamespaces: ["profile", "connections"] },
   { match: /\/admin/i, surface: "admin", featureName: "Fresh Admin", capabilities: ["chat", "analyze", "search", "review", "verify", "plan"], toolNamespaces: ["admin", "analytics", "audit"] },
   { match: /\/marketplace/i, surface: "marketplace", featureName: "Fresh Marketplace", capabilities: ["chat", "search", "analyze", "compare", "research", "act"], toolNamespaces: ["marketplace", "search", "orders"] },
@@ -116,6 +116,7 @@ const SURFACE_RULES: Array<{
   { match: /\/live|\/calls|\/stories|\/groups|\/communities/i, surface: "social", featureName: "Fresh Social", capabilities: ["chat", "write", "audio", "voice", "video", "connect", "search", "moderate"], toolNamespaces: ["social", "media", "communication"] },
   { match: /\/true-mode|\/media/i, surface: "media", featureName: "TrueMode", capabilities: ["chat", "video", "image", "audio", "voice", "write", "design", "review"], toolNamespaces: ["media", "generation", "editing", "publishing"] },
   { match: /\/research/i, surface: "research", featureName: "Fresh Research", capabilities: ["chat", "research", "search", "verify", "analyze", "summarize"], toolNamespaces: ["research", "evidence", "knowledge"] },
+  { match: /\/chat/i, surface: "chat", featureName: "Fresh Chat", capabilities: ["chat", "voice", "audio", "translate", "summarize", "write", "search"], toolNamespaces: ["chat", "messaging", "voice", "memory"] },
   { match: /\/ai/i, surface: "chat", featureName: "Fresh AI", capabilities: ["chat", "understand", "research", "write", "summarize", "analyze", "plan", "code", "design", "voice"], toolNamespaces: ["fresh-ai", "research", "memory", "tools"] },
 ];
 
@@ -126,7 +127,7 @@ function unique<T>(items: T[]): T[] {
 export function createFreshAIWorkspaceContext(route = "/"): FreshAIWorkspaceContext {
   const rule = SURFACE_RULES.find((item) => item.match.test(route));
   const surface = rule?.surface ?? (route === "/" ? "home" : "workspace");
-  const capabilities = unique(rule?.capabilities ?? ["chat", "understand", "search", "research", "write", "summarize", "analyze", "plan"]);
+  const capabilities: FreshAICapability[] = unique(rule?.capabilities ?? ["chat", "understand", "search", "research", "write", "summarize", "analyze", "plan"]);
   const models = BASE_MODELS.map((model) => ({ ...model, capabilities: [...model.capabilities] }));
   return {
     surface,
