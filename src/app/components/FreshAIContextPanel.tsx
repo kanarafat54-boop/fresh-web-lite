@@ -17,55 +17,16 @@ type SpeechRecognitionLike = {
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
 
 const surfaceLabel: Record<string, string> = {
-  home: "Home",
-  chat: "Chat",
-  workspace: "Workspace",
-  design: "Design",
-  code: "Code",
-  media: "Media",
-  learning: "Learning",
-  wallet: "Wallet",
-  creator: "Creator",
-  communication: "Chat & Connect",
-  marketplace: "Marketplace",
-  automation: "Automation",
-  trust: "Trust",
-  research: "Research",
-  social: "Social",
-  profile: "Profile",
-  admin: "Admin",
-  live: "Live",
-  other: "Workspace",
+  home: "Home", chat: "Chat", workspace: "Workspace", design: "Design", code: "Code", media: "Media", learning: "Learning", wallet: "Wallet", creator: "Creator", communication: "Chat & Connect", marketplace: "Marketplace", automation: "Automation", trust: "Trust", research: "Research", social: "Social", profile: "Profile", admin: "Admin", live: "Live", other: "Workspace",
 };
 
 const actionForCapability: Record<string, string> = {
-  chat: "Chat about this",
-  research: "Research this",
-  write: "Draft this",
-  summarize: "Summarize this",
-  analyze: "Analyze this",
-  plan: "Plan the next step",
-  code: "Help with code",
-  design: "Improve the design",
-  image: "Create an image",
-  video: "Work on video",
-  audio: "Work on audio",
-  learn: "Teach me",
-  organize: "Organize this",
-  connect: "Find connections",
-  search: "Search this",
-  automate: "Automate this",
-  review: "Review this",
-  verify: "Verify this",
-  act: "Take the next action",
+  chat: "Chat about this", research: "Research this", write: "Draft this", summarize: "Summarize this", analyze: "Analyze this", plan: "Plan the next step", code: "Help with code", design: "Improve the design", image: "Create an image", video: "Work on video", audio: "Work on audio", learn: "Teach me", organize: "Organize this", connect: "Find connections", search: "Search this", automate: "Automate this", review: "Review this", verify: "Verify this", act: "Take the next action",
 };
 
 function recognitionConstructor(): SpeechRecognitionConstructor | null {
   if (typeof window === "undefined") return null;
-  const browserWindow = window as Window & {
-    SpeechRecognition?: SpeechRecognitionConstructor;
-    webkitSpeechRecognition?: SpeechRecognitionConstructor;
-  };
+  const browserWindow = window as Window & { SpeechRecognition?: SpeechRecognitionConstructor; webkitSpeechRecognition?: SpeechRecognitionConstructor };
   return browserWindow.SpeechRecognition ?? browserWindow.webkitSpeechRecognition ?? null;
 }
 
@@ -78,6 +39,8 @@ export default function FreshAIContextPanel() {
   useEffect(() => {
     setVoiceAvailable(Boolean(recognitionConstructor()) || (typeof window !== "undefined" && "speechSynthesis" in window));
   }, []);
+
+  if ((activeRoute ?? "/") === "/ai") return null;
 
   function open(prompt?: string) {
     window.dispatchEvent(new CustomEvent("fresh-ai-open", { detail: { prompt } }));
@@ -116,20 +79,10 @@ export default function FreshAIContextPanel() {
         </div>
         <button type="button" onClick={() => open()} aria-label="Open Fresh AI">F</button>
       </div>
-      <p>
-        Context: <b>{context.featureName}</b> · {context.route}. Fresh can use the tools and capabilities mapped to this surface instead of treating it like a generic chat.
-      </p>
+      <p>Context: <b>{context.featureName}</b> · {context.route}. Fresh uses the tools and capabilities mapped to this surface instead of treating it like a generic chat.</p>
       <div className="fresh-ai-context-actions">
-        {actions.map((capability) => (
-          <button key={capability} type="button" onClick={() => open(actionForCapability[capability])}>
-            {actionForCapability[capability]}
-          </button>
-        ))}
-        {voiceAvailable && (
-          <button type="button" onClick={startVoice} data-listening={listening}>
-            {listening ? "Listening…" : "Voice Fresh"}
-          </button>
-        )}
+        {actions.map((capability) => <button key={capability} type="button" onClick={() => open(actionForCapability[capability])}>{actionForCapability[capability]}</button>)}
+        {voiceAvailable && <button type="button" onClick={startVoice} data-listening={listening}>{listening ? "Listening…" : "Voice Fresh"}</button>}
       </div>
       <div className="fresh-ai-context-meta">
         <span>Model: {context.models.find((model) => model.id === context.activeModelId)?.name ?? "Fresh Auto"}</span>
@@ -137,9 +90,7 @@ export default function FreshAIContextPanel() {
         <span>{modelNames.length} available model endpoints</span>
       </div>
       <div className="fresh-ai-context-identifiers" aria-label="Fresh AI identifiers">
-        <span>surface:{context.surface}</span>
-        <span>feature:{context.featureId}</span>
-        <span>ctx:v{context.contextVersion}</span>
+        <span>surface:{context.surface}</span><span>feature:{context.featureId}</span><span>ctx:v{context.contextVersion}</span>
       </div>
     </aside>
   );
