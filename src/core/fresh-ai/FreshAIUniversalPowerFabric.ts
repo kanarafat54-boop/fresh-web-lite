@@ -1,14 +1,7 @@
-/**
- * Fresh AI Universal Power Fabric
- *
- * Canonical power registry. The capability vocabulary is owned by the
- * Universal Capability Fabric; this layer maps those capabilities to the
- * existing Fresh AI engines, skills, Truth system and ARA6 without deleting
- * any previously implemented power.
- */
-import type { FreshAIEntryPoint } from "./FreshAIEverywhere";
-import type { FreshAIUniversalCapability } from "./FreshAIUniversalCapabilityFabric";
-import { normalizeFreshAICapability } from "./FreshAIUniversalCapabilityFabric";
+/** Canonical Fresh AI power registry. Existing AI engines remain capability sources underneath this contract. */
+import type { FreshAIEntryPoint } from "./FreshAIEverywhere.js";
+import type { FreshAIUniversalCapability } from "./FreshAIUniversalCapabilityFabric.js";
+import { normalizeFreshAICapability } from "./FreshAIUniversalCapabilityFabric.js";
 
 export type FreshAIPowerDomain = "understanding"|"conversation"|"knowledge"|"reasoning"|"memory"|"creation"|"execution"|"communication"|"media"|"developer"|"automation"|"verification"|"governance";
 export type FreshAIPower = { id:string; name:string; domain:FreshAIPowerDomain; capabilities:FreshAIUniversalCapability[]; source:string; enabled:boolean };
@@ -31,7 +24,7 @@ export const FRESH_AI_UNIVERSAL_POWERS: readonly FreshAIPower[] = [
   { id:"governance", name:"Safety & Governance", domain:"governance", capabilities:["verify","act","moderate"], source:"Safety / permissions / policy / approval", enabled:true },
 ];
 
-const POWER_ALIASES:Record<string,string>={understanding:"understand",context:"understand",intelligence:"reason",reasoning:"reason",research:"knowledge",search:"knowledge",creation:"creation",creative:"creation",engineering:"developer",coding:"developer",developer:"developer",agents:"execution",execution:"execution",action:"execution",automation:"automation",verification:"verification",truth:"verification",safety:"governance",governance:"governance"};
+const POWER_ALIASES:Record<string,string>={understanding:"understand",context:"understand",intelligence:"reason",reasoning:"reasoning",research:"knowledge",search:"knowledge",creation:"creation",creative:"creation",engineering:"developer",coding:"developer",developer:"developer",agents:"execution",execution:"execution",action:"execution",automation:"automation",verification:"verification",truth:"verification",safety:"governance",governance:"governance"};
 export function normalizeFreshAIPower(power?:string):string|undefined{if(!power)return undefined;const normalized=power.trim().toLowerCase();return POWER_ALIASES[normalized]??normalized;}
 export function getFreshAIPower(powerId:string):FreshAIPower|undefined{return FRESH_AI_UNIVERSAL_POWERS.find(power=>power.id===normalizeFreshAIPower(powerId));}
 export function resolveFreshAIPower(request:FreshAIPowerRequest):FreshAIPowerResolution|undefined{const capability=normalizeFreshAICapability(String(request.capability));if(!capability)return undefined;const candidates=request.power?[getFreshAIPower(request.power)]:FRESH_AI_UNIVERSAL_POWERS.filter(power=>power.capabilities.includes(capability));const power=candidates.find((candidate):candidate is FreshAIPower=>Boolean(candidate?.enabled&&candidate.capabilities.includes(capability)));return power?{power,capability,approved:request.requiresApproval!==true}:undefined;}
