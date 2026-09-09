@@ -12,7 +12,7 @@ type Body = { goal?: string; route?: string; approve?: boolean; conversation?: F
 type Gemini = { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
 
 const encoder = new TextEncoder();
-const event = (type: string, payload: unknown) => encoder.encode(`data: ${JSON.stringify({ type, ...((payload && typeof payload === "object") ? payload : { value: payload }) })}\n\n`);
+const event = (type: string, payload: unknown) => encoder.encode(`data: ${JSON.stringify({ type, ...((payload && typeof payload === "object") ? payload : { value: payload })})}\n\n`);
 const service = () => { const u = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL, k = process.env.SUPABASE_SERVICE_ROLE_KEY; return u && k ? createClient(u, k, { auth: { persistSession: false, autoRefreshToken: false } }) : null; };
 
 async function auth(req: Request) {
@@ -62,7 +62,7 @@ async function research(goal: string): Promise<Evidence[]> {
     const r = await fetch("https://api.tavily.com/search", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ api_key: key, query: goal, search_depth: "advanced", topic: "general", max_results: 8, include_answer: false }) });
     if (!r.ok) return [];
     const p = await r.json() as { results?: Array<{ title?: string; url?: string; content?: string; published_date?: string }> };
-    return (p.results ?? []).filter((x) => x.title && x.url).map((x, i) => ({ id: `web-${i + 1}`, title: x.title!, url: x.url!, snippet: x.content, claim: x.content || x.title!, observedAt: x.published_date, publishedAt: x.published_date, provider: "Tavily", confidence: .7 } as Evidence));
+    return (p.results ?? []).filter((x) => x.title && x.url).map((x, i) => ({ id: `web-${i + 1}`, source: x.url!, claim: x.content || x.title!, observedAt: x.published_date, confidence: .7 }));
   } catch { return []; }
 }
 
@@ -73,7 +73,7 @@ async function streamGemini(goal: string, interpretation: FreshGoalInterpretatio
   const model = modelId === "gemini-2.5-flash" ? "gemini-2.5-flash" : configured;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(key)}`;
   const context = workspace ? `Surface: ${workspace.surface}\nFeature: ${workspace.featureName || "unknown"}\nRoute: ${workspace.route}\nCapabilities: ${workspace.capabilities.join(", ")}\nTools: ${workspace.toolNamespaces.join(", ")}` : "No workspace context supplied";
-  const sources = evidence.map((x, i) => `[${i + 1}] ${x.title}\n${(x.snippet || x.claim || "").slice(0, 900)}`).join("\n\n");
+  const sources = evidence.map((x, i) => `[${i + 1}] ${x.source}\n${x.claim.slice(0, 900)}`).join("\n\n");
   const prompt = `You are Fresh AI's streaming answer layer. Answer directly. Use the interpretation, workspace, memory and evidence as grounding. Do not invent current facts, tool results, citations or completed actions. Preserve uncertainty. Do not reveal hidden chain-of-thought.\nGoal: ${goal}\nWorkspace:\n${context}\nModel: ${model}\nInterpretation: ${JSON.stringify(interpretation)}\nMemory:\n${memoryHits.map((x) => x.content).join("\n").slice(0, 5000) || "none"}\nGateway result:\n${JSON.stringify(response.result).slice(0, 9000)}\nEvidence:\n${sources || "none"}`;
   const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, signal, body: JSON.stringify({ systemInstruction: { parts: [{ text: prompt }] }, contents: [{ role: "user", parts: [{ text: goal }] }], generationConfig: { temperature: .4, maxOutputTokens: 1400 } }) });
   if (!r.ok || !r.body) return null;
