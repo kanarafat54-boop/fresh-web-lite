@@ -41,7 +41,10 @@ export type FreshAICapability =
   | "automate"
   | "review"
   | "verify"
-  | "act";
+  | "act"
+  | "publish"
+  | "compare"
+  | "moderate";
 
 export type FreshAIModelDescriptor = {
   id: string;
@@ -104,13 +107,13 @@ const SURFACE_RULES: Array<{
   { match: /\/software|code/i, surface: "code", featureName: "Software Studio", capabilities: ["chat", "code", "analyze", "review", "plan", "search", "automate"], toolNamespaces: ["code", "repository", "testing", "deployment"] },
   { match: /\/studio|\/creator|design/i, surface: "design", featureName: "Creator Studio", capabilities: ["chat", "design", "image", "video", "audio", "write", "review", "plan"], toolNamespaces: ["design", "assets", "media", "publishing"] },
   { match: /\/wallet|\/crypto/i, surface: "wallet", featureName: "Fresh Wallet", capabilities: ["chat", "analyze", "research", "verify", "plan", "act"], toolNamespaces: ["wallet", "market", "risk", "security"] },
-  { match: /\/creator/i, surface: "creator", featureName: "Creator", capabilities: ["chat", "write", "image", "video", "audio", "research", "plan", "publish" as FreshAICapability], toolNamespaces: ["creator", "media", "publishing"] },
+  { match: /\/creator/i, surface: "creator", featureName: "Creator", capabilities: ["chat", "write", "image", "video", "audio", "research", "plan", "publish"], toolNamespaces: ["creator", "media", "publishing"] },
   { match: /\/profile/i, surface: "profile", featureName: "Fresh Profile", capabilities: ["chat", "write", "summarize", "organize", "connect", "search"], toolNamespaces: ["profile", "connections"] },
   { match: /\/admin/i, surface: "admin", featureName: "Fresh Admin", capabilities: ["chat", "analyze", "search", "review", "verify", "plan"], toolNamespaces: ["admin", "analytics", "audit"] },
   { match: /\/marketplace/i, surface: "marketplace", featureName: "Fresh Marketplace", capabilities: ["chat", "search", "analyze", "compare", "research", "act"], toolNamespaces: ["marketplace", "search", "orders"] },
   { match: /\/automation/i, surface: "automation", featureName: "Fresh Automation", capabilities: ["chat", "plan", "automate", "review", "act"], toolNamespaces: ["automation", "tools", "jobs"] },
   { match: /\/trust/i, surface: "trust", featureName: "Fresh Trust", capabilities: ["chat", "research", "verify", "analyze", "review"], toolNamespaces: ["trust", "security", "evidence"] },
-  { match: /\/live|\/calls|\/stories|\/groups|\/communities/i, surface: "social", featureName: "Fresh Social", capabilities: ["chat", "write", "audio", "voice", "video", "connect", "search", "moderate" as FreshAICapability], toolNamespaces: ["social", "media", "communication"] },
+  { match: /\/live|\/calls|\/stories|\/groups|\/communities/i, surface: "social", featureName: "Fresh Social", capabilities: ["chat", "write", "audio", "voice", "video", "connect", "search", "moderate"], toolNamespaces: ["social", "media", "communication"] },
   { match: /\/true-mode|\/media/i, surface: "media", featureName: "TrueMode", capabilities: ["chat", "video", "image", "audio", "voice", "write", "design", "review"], toolNamespaces: ["media", "generation", "editing", "publishing"] },
   { match: /\/research/i, surface: "research", featureName: "Fresh Research", capabilities: ["chat", "research", "search", "verify", "analyze", "summarize"], toolNamespaces: ["research", "evidence", "knowledge"] },
   { match: /\/ai/i, surface: "chat", featureName: "Fresh AI", capabilities: ["chat", "understand", "research", "write", "summarize", "analyze", "plan", "code", "design", "voice"], toolNamespaces: ["fresh-ai", "research", "memory", "tools"] },
