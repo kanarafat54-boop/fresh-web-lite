@@ -1,6 +1,8 @@
 import AppRouter from "./AppRouter";
 import { ThemeProvider, useTheme } from "./providers/ThemeProvider";
 import { LayoutProvider } from "./contexts/LayoutProvider";
+import { useLayout } from "./contexts/useLayout";
+import GlobalFreshAI from "./components/GlobalFreshAI";
 import FreshAIMain from "./components/FreshAIMain";
 import FreshAIContextPanel from "./components/FreshAIContextPanel";
 import "../index.css";
@@ -15,6 +17,12 @@ function GlobalThemeControl() {
   );
 }
 
+function FreshAIExperience() {
+  const { activeRoute } = useLayout();
+  const isAI = (activeRoute ?? "").toLowerCase() === "/ai";
+  return isAI ? <FreshAIMain /> : <GlobalFreshAI />;
+}
+
 export default function AppShell() {
   return (
     <ThemeProvider>
@@ -23,7 +31,7 @@ export default function AppShell() {
           <AppRouter />
           <GlobalThemeControl />
           <FreshAIContextPanel />
-          <FreshAIMain />
+          <FreshAIExperience />
         </div>
       </LayoutProvider>
     </ThemeProvider>
