@@ -19,7 +19,8 @@ function GlobalThemeControl() {
 
 function FreshAIExperience() {
   const { activeRoute } = useLayout();
-  const isAI = (activeRoute ?? "").toLowerCase() === "/ai";
+  const normalized = (activeRoute ?? "").toLowerCase().replace(/\/$/, "");
+  const isAI = normalized === "/ai" || normalized === "ai";
   return isAI ? <FreshAIMain /> : <GlobalFreshAI />;
 }
 
