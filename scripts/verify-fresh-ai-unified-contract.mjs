@@ -7,7 +7,7 @@ for(const required of ["Fresh Native 1D Signal Engine","Fresh Native 2D Composit
 if(!native.includes("FRESH_NATIVE_DIMENSIONAL_ENGINES")||!native.includes("enabled:true"))throw new Error("Native dimensional registry is not active")
 for(const required of ["/api/ai/ask","/api/ai/conversations","FreshAIRichText","speechSynthesis","AbortController","👍","👎","dimensionalArtifact","Native Dimensions 1D–11D"]){if(!ui.includes(required))throw new Error(`Missing unified Fresh AI UX contract: ${required}`)}
 if(!history.includes("fresh_ai_conversation_turns")||!history.includes("auth"))throw new Error("Conversation history boundary is incomplete")
-if(!rich.includes("```")||!rich.includes("<pre>"))throw new Error("Rich text code rendering is incomplete")
+if(!rich.includes("text.split(/```")||!rich.includes("<pre"))throw new Error("Rich text code rendering is incomplete")
 if(!shell.includes("FreshAIUnified"))throw new Error("AppShell is not using the unified Fresh AI UI")
 if(shell.includes("GlobalFreshAI")||shell.includes("FreshAIMain")||shell.includes("FreshAIContextPanel"))throw new Error("Legacy duplicate Fresh AI surfaces are still mounted in AppShell")
 for(const required of ["SUPABASE_SECRET_KEY","SUPABASE_SERVICE_ROLE_KEY","OPENAI_API_KEY","gpt-image-2"]){if(!services.includes(required))throw new Error(`Missing server environment/provider contract: ${required}`)}
