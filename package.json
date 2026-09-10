@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test:shorts": "node scripts/verify-fresh-shorts-contract.mjs",
+    "test:fresh-ai": "node scripts/verify-fresh-ai-unified-contract.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
