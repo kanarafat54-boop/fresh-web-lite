@@ -2,7 +2,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 export type FreshAIServerConfig = {
   supabaseUrl: string | null;
-  supabaseServiceRoleKey: string | null;
+  supabaseSecretKey: string | null;
   openAIKey: string | null;
   imageModel: string;
   vercelEnvironment: string | null;
@@ -11,7 +11,7 @@ export type FreshAIServerConfig = {
 export function getFreshAIServerConfig(): FreshAIServerConfig {
   return {
     supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || null,
-    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || null,
+    supabaseSecretKey: process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || null,
     openAIKey: process.env.OPENAI_API_KEY || null,
     imageModel: process.env.FRESH_IMAGE_MODEL || "gpt-image-2",
     vercelEnvironment: process.env.VERCEL_ENV || null,
@@ -20,8 +20,8 @@ export function getFreshAIServerConfig(): FreshAIServerConfig {
 
 export function createFreshAIServerSupabase(): SupabaseClient | null {
   const config = getFreshAIServerConfig();
-  if (!config.supabaseUrl || !config.supabaseServiceRoleKey) return null;
-  return createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+  if (!config.supabaseUrl || !config.supabaseSecretKey) return null;
+  return createClient(config.supabaseUrl, config.supabaseSecretKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
@@ -33,7 +33,7 @@ export function getFreshAIPersistenceStatus(): {
 } {
   const config = getFreshAIServerConfig();
   if (!config.supabaseUrl) return { configured: false, environment: config.vercelEnvironment, reason: "SUPABASE_URL is missing" };
-  if (!config.supabaseServiceRoleKey) return { configured: false, environment: config.vercelEnvironment, reason: "SUPABASE_SERVICE_ROLE_KEY is missing from the server environment" };
+  if (!config.supabaseSecretKey) return { configured: false, environment: config.vercelEnvironment, reason: "SUPABASE_SECRET_KEY (or legacy SUPABASE_SERVICE_ROLE_KEY) is missing from the server environment" };
   return { configured: true, environment: config.vercelEnvironment };
 }
 
@@ -73,12 +73,8 @@ export async function generateFreshAIImage(prompt: string, options?: {
     error?: { message?: string };
   } | null;
 
-  if (!response.ok) {
-    throw new Error(payload?.error?.message || `Image generation provider failed (${response.status})`);
-  }
-
+  if (!response.ok) throw new Error(payload?.error?.message || `Image generation provider failed (${response.status})`);
   const b64Json = payload?.data?.[0]?.b64_json;
   if (!b64Json) throw new Error("Image generation provider returned no image data");
-
   return { b64Json, model, outputFormat: "png", size: options?.size || "1024x1024" };
 }
