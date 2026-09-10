@@ -1,9 +1,9 @@
-/** Canonical Fresh AI power registry. Existing AI engines remain capability sources underneath this contract. */
+/** Canonical Fresh AI power registry. Native generation is a first-class Fresh-owned power. */
 import type { FreshAIEntryPoint } from "./FreshAIEverywhere.js";
 import type { FreshAIUniversalCapability } from "./FreshAIUniversalCapabilityFabric.js";
 import { normalizeFreshAICapability } from "./FreshAIUniversalCapabilityFabric.js";
 
-export type FreshAIPowerDomain = "understanding"|"conversation"|"knowledge"|"reasoning"|"memory"|"creation"|"execution"|"communication"|"media"|"developer"|"automation"|"verification"|"governance";
+export type FreshAIPowerDomain = "understanding"|"conversation"|"knowledge"|"reasoning"|"memory"|"creation"|"native-generation"|"execution"|"communication"|"media"|"developer"|"automation"|"verification"|"governance";
 export type FreshAIPower = { id:string; name:string; domain:FreshAIPowerDomain; capabilities:FreshAIUniversalCapability[]; source:string; enabled:boolean };
 export type FreshAIPowerRequest = { capability:FreshAIUniversalCapability|string; ecosystem:FreshAIEntryPoint["ecosystem"]; power?:string; input:unknown; userId?:string; sessionId?:string; requiresApproval?:boolean };
 export type FreshAIPowerResolution = { power:FreshAIPower; capability:FreshAIUniversalCapability; approved:boolean };
@@ -14,7 +14,8 @@ export const FRESH_AI_UNIVERSAL_POWERS: readonly FreshAIPower[] = [
   { id:"knowledge", name:"Knowledge & Search", domain:"knowledge", capabilities:["search","research","knowledge","learn","verify"], source:"Research / search / knowledge systems", enabled:true },
   { id:"reasoning", name:"Reasoning", domain:"reasoning", capabilities:["reason","analyze","plan","verify"], source:"Fresh Reasoning / dimensional intelligence", enabled:true },
   { id:"memory", name:"Memory", domain:"memory", capabilities:["remember","learn","chat"], source:"Fresh Memory Fabric", enabled:true },
-  { id:"creation", name:"Creation", domain:"creation", capabilities:["create","write","code","design","image","video","audio","generate","edit"], source:"Creative / developer capabilities", enabled:true },
+  { id:"creation", name:"Creation", domain:"creation", capabilities:["create","write","code","design","image","video","audio","generate","edit"], source:"Fresh creation contracts / provider adapters", enabled:true },
+  { id:"native-generation", name:"Fresh Native Generation", domain:"native-generation", capabilities:["create","generate","design","image","video","audio","edit"], source:"Fresh Native Generation Fabric / 1D–11D engines", enabled:true },
   { id:"execution", name:"Action & Agents", domain:"execution", capabilities:["act","plan","verify"], source:"ARA6 / agent execution", enabled:true },
   { id:"communication", name:"Communication", domain:"communication", capabilities:["chat","voice","translate","summarize","connect"], source:"Messages / Chatting / Communities", enabled:true },
   { id:"media", name:"Media Intelligence", domain:"media", capabilities:["analyze","search","create","summarize","image","video","audio"], source:"Fresh Flow / shared media intelligence", enabled:true },
@@ -24,7 +25,7 @@ export const FRESH_AI_UNIVERSAL_POWERS: readonly FreshAIPower[] = [
   { id:"governance", name:"Safety & Governance", domain:"governance", capabilities:["verify","act","moderate"], source:"Safety / permissions / policy / approval", enabled:true },
 ];
 
-const POWER_ALIASES:Record<string,string>={understanding:"understand",context:"understand",intelligence:"reason",reasoning:"reasoning",research:"knowledge",search:"knowledge",creation:"creation",creative:"creation",engineering:"developer",coding:"developer",developer:"developer",agents:"execution",execution:"execution",action:"execution",automation:"automation",verification:"verification",truth:"verification",safety:"governance",governance:"governance"};
+const POWER_ALIASES:Record<string,string>={understanding:"understand",context:"understand",intelligence:"reason",reasoning:"reasoning",research:"knowledge",search:"knowledge",creation:"creation",creative:"creation",native:"native-generation",dimensions:"native-generation",dimensional:"native-generation",generation:"native-generation",generative:"native-generation",engineering:"developer",coding:"developer",developer:"developer",agents:"execution",execution:"execution",action:"execution",automation:"automation",verification:"verification",truth:"verification",safety:"governance",governance:"governance"};
 export function normalizeFreshAIPower(power?:string):string|undefined{if(!power)return undefined;const normalized=power.trim().toLowerCase();return POWER_ALIASES[normalized]??normalized;}
 export function getFreshAIPower(powerId:string):FreshAIPower|undefined{return FRESH_AI_UNIVERSAL_POWERS.find(power=>power.id===normalizeFreshAIPower(powerId));}
 export function resolveFreshAIPower(request:FreshAIPowerRequest):FreshAIPowerResolution|undefined{const capability=normalizeFreshAICapability(String(request.capability));if(!capability)return undefined;const candidates=request.power?[getFreshAIPower(request.power)]:FRESH_AI_UNIVERSAL_POWERS.filter(power=>power.capabilities.includes(capability));const power=candidates.find((candidate):candidate is FreshAIPower=>Boolean(candidate?.enabled&&candidate.capabilities.includes(capability)));return power?{power,capability,approved:request.requiresApproval!==true}:undefined;}
