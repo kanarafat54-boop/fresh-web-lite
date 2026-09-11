@@ -40,6 +40,9 @@ export class FreshUnifiedModelRuntime implements FreshUnifiedModel {
       };
     }
 
+    // Native reasoning is an internal capability of the single Fresh model,
+    // not a second model identity. Until a trained checkpoint is attached,
+    // return only the bounded conclusion exposed by the reasoning substrate.
     const reasoning = new FreshReasoningEngine();
     const analysis = reasoning.reason(input, request.context ?? {});
     return {
