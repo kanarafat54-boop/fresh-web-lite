@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./UniversalProfile.css";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { loadRealUniversalProfile, saveRealProfileVisibility } from "../services/realProfileService";
@@ -7,12 +7,33 @@ import { curateSmartProfile } from "../services/profileIntelligence";
 import { groupProfileActivity } from "../services/profileContentOrganizer";
 import { loadProfileSuggestionCandidates } from "../services/profileConnectionCandidateService";
 import { profileConnectionSuggestionEngine } from "../services/profileConnectionSuggestions";
+import { uploadAvatar, isVideoUrl } from "../services/profileMediaService";
 import type { CrossPlatformIdentity } from "../models/crossPlatformIdentity";
 import type { ProfileConnectionSuggestion } from "../models/profileConnectionSuggestions";
 import type { ProfileVisibility, SmartProfileData, UniversalProfile } from "../types/profile";
 
 const tabs = ["Overview", "Activity", "Identity", "Connections", "Insights"] as const;
 type Tab = typeof tabs[number];
+
+type GeneratedImageResponse = {
+  generatedImage?: { dataUrl?: string; signedUrl?: string; model?: string };
+  error?: string;
+};
+
+function dataUrlToFile(dataUrl: string): File {
+  const [header, base64] = dataUrl.split(",");
+  if (!header || !base64) throw new Error("Fresh AI returned an invalid image.");
+  const mime = /data:([^;]+);base64/i.exec(header)?.[1] || "image/png";
+  const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+  return new File([bytes], `fresh-ai-avatar-${crypto.randomUUID()}.png`, { type: mime });
+}
+
+async function signedImageToFile(url: string): Promise<File> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Could not retrieve the generated avatar (${response.status}).`);
+  const blob = await response.blob();
+  return new File([blob], `fresh-ai-avatar-${crypto.randomUUID()}.png`, { type: blob.type || "image/png" });
+}
 
 export default function UniversalProfile() {
   const { user } = useFreshId();
@@ -25,6 +46,8 @@ export default function UniversalProfile() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -63,6 +86,50 @@ export default function UniversalProfile() {
     } finally { setSavingPrivacy(false); }
   }
 
+  async function handleAvatarUpload(file: File) {
+    if (!user || !profile) return;
+    setSavingAvatar(true); setError(null);
+    try {
+      const url = await uploadAvatar(user.id, file);
+      setProfile((current) => current ? { ...current, avatar: url } : current);
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "Could not upload avatar.");
+    } finally { setSavingAvatar(false); }
+  }
+
+  async function generateAvatar() {
+    if (!user || !profile || savingAvatar) return;
+    setSavingAvatar(true); setError(null);
+    try {
+      const { data: sessionData } = await import("../../../lib/supabase").then(({ supabase }) => supabase.auth.getSession());
+      const response = await fetch("/api/ai/ask", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...(sessionData.session?.access_token ? { authorization: `Bearer ${sessionData.session.access_token}` } : {}),
+        },
+        body: JSON.stringify({
+          goal: `Create a polished professional profile avatar for ${profile.displayName}. Preserve a natural, trustworthy human presentation. Use the person's known profile context only; do not invent identity claims. Clean studio lighting, centered head-and-shoulders composition, refined modern visual style, suitable for a universal social and professional profile.`,
+          mode: "create",
+          route: "/profile/avatar",
+          image: { size: "1024x1024", quality: "high" },
+        }),
+      });
+      const payload = await response.json() as GeneratedImageResponse;
+      if (!response.ok) throw new Error(payload.error || `Fresh AI avatar generation failed (${response.status}).`);
+      const generated = payload.generatedImage?.dataUrl
+        ? dataUrlToFile(payload.generatedImage.dataUrl)
+        : payload.generatedImage?.signedUrl
+          ? await signedImageToFile(payload.generatedImage.signedUrl)
+          : null;
+      if (!generated) throw new Error("Fresh AI completed without returning an avatar image.");
+      const url = await uploadAvatar(user.id, generated);
+      setProfile((current) => current ? { ...current, avatar: url } : current);
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "Could not generate your avatar.");
+    } finally { setSavingAvatar(false); }
+  }
+
   if (!user) return <div className="universal-profile empty-profile"><h2>Fresh ID</h2><p>Sign in to open your real universal profile.</p></div>;
   if (loading) return <div className="universal-profile empty-profile"><p>Loading your Fresh ID profile…</p></div>;
   if (!profile) return <div className="universal-profile empty-profile"><p>{error || "Profile unavailable."}</p></div>;
@@ -74,10 +141,19 @@ export default function UniversalProfile() {
     <main className="universal-profile">
       {error && <div className="profile-error" role="alert">{error}</div>}
       <section className="profile-hero">
-        <div className="profile-cover" style={profile.coverPhoto ? { backgroundImage: `url(${profile.coverPhoto})` } : undefined} />
+        {profile.coverPhoto && isVideoUrl(profile.coverPhoto) ? (
+          <video className="profile-cover profile-cover-video" src={profile.coverPhoto} autoPlay muted loop playsInline aria-label="Profile cover video" />
+        ) : (
+          <div className="profile-cover" style={profile.coverPhoto ? { backgroundImage: `url(${profile.coverPhoto})` } : undefined} />
+        )}
         <div className="profile-identity-row">
           <div className="profile-avatar" style={profile.avatar ? { backgroundImage: `url(${profile.avatar})` } : undefined}>{!profile.avatar && initials}</div>
           <div className="profile-name-block"><div className="profile-title-line"><h1>{profile.displayName}</h1>{profile.verified && <span className="profile-badge">✓ Verified</span>}</div><p>@{profile.username} · {profile.freshId}</p>{profile.occupation && <span>{profile.occupation}{profile.company ? ` · ${profile.company}` : ""}</span>}</div>
+        </div>
+        <div className="profile-hero-actions" aria-label="Profile media actions">
+          <input ref={avatarInputRef} className="profile-file-input" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; if (file) void handleAvatarUpload(file); }} />
+          <button type="button" className="profile-media-button" disabled={savingAvatar} onClick={() => avatarInputRef.current?.click()}>{savingAvatar ? "Working…" : "Upload avatar"}</button>
+          <button type="button" className="profile-media-button profile-ai-button" disabled={savingAvatar} onClick={() => void generateAvatar()}>{savingAvatar ? "Generating…" : "✦ Generate avatar"}</button>
         </div>
         {profile.bio && <p className="profile-bio">{profile.bio}</p>}
         <div className="profile-stats"><span><strong>{profile.followerCount}</strong> followers</span><span><strong>{profile.followingCount}</strong> following</span><span><strong>{profile.postCount}</strong> posts</span><span><strong>{profile.shortCount}</strong> shorts</span><span><strong>{profile.reputationScore}</strong> reputation</span></div>
