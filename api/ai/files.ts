@@ -3,6 +3,8 @@ import { executeFreshFileUpload } from "../../src/core/fresh-ai/FreshAICapabilit
 
 export const config = { maxDuration: 30 };
 
+const MAX_FILE_BYTES = 25 * 1024 * 1024;
+
 const json = (value: unknown, status = 200) => Response.json(value, {
   status,
   headers: { "cache-control": "no-store" },
@@ -25,6 +27,13 @@ type Body = {
   bytesBase64?: string;
 };
 
+function decodedBase64Bytes(value: string): number {
+  const normalized = value.replace(/\s/g, "");
+  if (!normalized || normalized.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(normalized)) return -1;
+  const padding = normalized.endsWith("==") ? 2 : normalized.endsWith("=") ? 1 : 0;
+  return Math.floor(normalized.length * 3 / 4) - padding;
+}
+
 export async function POST(req: Request): Promise<Response> {
   try {
     const user = await authenticatedUser(req);
@@ -39,11 +48,15 @@ export async function POST(req: Request): Promise<Response> {
     if (!/^(application|text)\//i.test(mimeType)) return json({ error: "Unsupported file type" }, 415);
     if (!bytesBase64) return json({ error: "bytesBase64 is required" }, 400);
 
+    const byteLength = decodedBase64Bytes(bytesBase64);
+    if (byteLength < 0) return json({ error: "bytesBase64 must be valid base64" }, 400);
+    if (byteLength > MAX_FILE_BYTES) return json({ error: "File exceeds the 25 MB limit" }, 413);
+
     const result = await executeFreshFileUpload({
       userId: user.id,
       requestId,
       mimeType,
-      bytesBase64,
+      b64: bytesBase64,
     });
 
     return json({ ok: true, model: "fresh-unified-1", ...result });
