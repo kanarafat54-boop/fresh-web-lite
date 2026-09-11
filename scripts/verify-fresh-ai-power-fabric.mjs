@@ -1,0 +1,12 @@
+import fs from "node:fs";
+const fabric = fs.readFileSync("src/core/fresh-ai/FreshAIUniversalPowerFabric.ts", "utf8");
+const vocabulary = fs.readFileSync("src/core/fresh-ai/FreshAIUniversalCapabilityFabric.ts", "utf8");
+const router = fs.readFileSync("src/core/fresh-ai/FreshAIUniversalPowerRouter.ts", "utf8");
+const everywhere = fs.readFileSync("src/core/fresh-ai/FreshAIEverywhere.ts", "utf8");
+const requiredPowers = ["understand", "conversation", "knowledge", "reasoning", "memory", "creation", "execution", "communication", "media", "developer", "automation", "verification", "governance"];
+for (const power of requiredPowers) if (!fabric.includes(`id: "${power}"`)) throw new Error(`Missing canonical Fresh AI power: ${power}`);
+for (const capability of ["chat", "voice", "research", "create", "code", "design", "image", "video", "audio", "remember", "automate", "verify", "act"]) if (!vocabulary.includes(`"${capability}"`)) throw new Error(`Missing universal capability: ${capability}`);
+if (!fabric.includes("resolveFreshAIPower")) throw new Error("Missing Fresh AI power resolver");
+if (!router.includes("resolveFreshAIUniversalPowerPlan")) throw new Error("Missing universal power router");
+if (!everywhere.includes("usesCanonicalGateway: true")) throw new Error("Fresh AI Everywhere is not aligned to the canonical gateway contract");
+console.log("Fresh AI Universal Capability + Power Fabric contract: PASS");

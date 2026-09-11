@@ -3,114 +3,31 @@ import { SemanticTruthEngine } from "./semanticTruthEngine.js";
 import { reasonAcrossDimensions } from "./dimensionalIntelligence.js";
 import { executeFreshPlanThroughAra6 } from "./FreshARA6Bridge.js";
 import { evaluateASIState } from "./asi.js";
+import { FRESH_AI_ALIGNMENT_PRINCIPLES, FRESH_AI_SERVING_POLICY, FRESH_AI_TRAINING_STACK } from "./FreshAITrainingStack.js";
+import { rankMemory, rankEvidence, resolveContextDependency } from "./semanticCognitiveFabric.js";
 
 export type FreshMemoryRecord = { id:string; content:string; scope:"user"|"project"|"platform"|"session"; createdAt:string; source?:string };
 export type FreshSkillRegistry = { register(skill:FreshSkill):void; find(capabilities:string[]):FreshSkill[] };
 export type FreshMemoryStore = { search(query:string, scope?:FreshMemoryRecord["scope"]):Promise<FreshMemoryRecord[]>; remember(record:FreshMemoryRecord):Promise<void> };
 export type FreshTruthEngine = { evaluate(evidence:Evidence[]):Promise<Evidence[]> };
 export type FreshExecutionContext = { approve?:boolean; requestId?:string; origin?:string; userId?:string|null };
-
 const STAGES: FreshPipelineStage[] = ["understand","memory","retrieve","research","reason","plan","coordinate","execute","verify","proof","feedback","improve","govern"];
-
 export class FreshAIKernel implements FreshIntelligenceEngine {
-  private readonly skills: FreshSkillRegistry;
-  private readonly memory: FreshMemoryStore;
-  private readonly truth: FreshTruthEngine;
-
-  constructor(skills: FreshSkillRegistry, memory: FreshMemoryStore, truth: FreshTruthEngine = new SemanticTruthEngine()) {
-    this.skills = skills;
-    this.memory = memory;
-    this.truth = truth;
-  }
-
-  async understand(request:FreshReasoningRequest){
-    const interpretation=interpretGoal(request.input,request.intent);
-    const memories=await this.memory.search(request.input);
-    const safeMemories=Array.isArray(memories)?memories:[];
-    return {intent:interpretation.intent,context:{...(request.context??{}),memories:safeMemories,interpretation},interpretation};
-  }
-
-  async retrieve(request:FreshReasoningRequest):Promise<Evidence[]> {
-    const input=Array.isArray(request.evidence)?request.evidence:[];
-    const evaluated=await this.truth.evaluate(input);
-    return Array.isArray(evaluated)?evaluated:input;
-  }
-
-  async reason(request:FreshReasoningRequest,evidence:Evidence[]):Promise<FreshReasoningResult> {
-    const safeEvidence=Array.isArray(evidence)?evidence:[];
-    const capabilities=inferCapabilities(request.input,request.intent);
-    const selectedSkills=this.skills.find(capabilities)??[];
-    const dimensionalReasoning=reasonAcrossDimensions(request.input,Array.isArray(request.dimensions)?request.dimensions:undefined);
-    const safeDimensions=Array.isArray(dimensionalReasoning)?dimensionalReasoning:[];
-    const agents=Array.isArray(request.requestedAgents)?request.requestedAgents:[];
-    const interpretation=(request.context?.interpretation as FreshGoalInterpretation|undefined)??interpretGoal(request.input,request.intent);
-    const conversational=interpretation.outputMode==="conversation";
-    const plan=conversational?[]:selectedSkills.map((skill,index)=>({id:`step-${index+1}`,description:`Apply ${skill.name}`,skills:[skill.id],agent:agents[index]??inferAgent(skill.id),requiresApproval:false}));
-    const base:FreshReasoningResult={
-      answer:buildGroundedAnswer(request.input,safeEvidence,safeDimensions,interpretation),
-      claims:safeEvidence.map(item=>({statement:item.claim,truth:item.confidence>=.9?"KNOWN":item.confidence>=.6?"PROBABLE":"UNCERTAIN",confidence:item.confidence,evidence:[item]})),
-      plan:Array.isArray(plan)?plan:[], actions:[], unknowns:conversational?[]:(safeEvidence.length?[]:["No external or persistent evidence was supplied to the native truth layer."]),
-      explanation:conversational?"Fresh recognized this as conversation and avoided forcing a research workflow.":`Fresh AI used explicit goal interpretation, native capability composition, ${safeDimensions.length} dimensional reasoning lens(es), evidence grounding and governed execution boundaries.`,
-      dimensionalReasoning:safeDimensions,
-      pipeline:createPipeline()
-    };
-    return {...base,asi:evaluateASIState(request.input,base,base.plan)};
-  }
-
-  async plan(_request:FreshReasoningRequest,result:FreshReasoningResult){
-    return Array.isArray(result.plan)?result.plan:[];
-  }
-
-  async verify(result:FreshReasoningResult){
-    const claims=Array.isArray(result.claims)?result.claims:[];
-    const unknowns=Array.isArray(result.unknowns)?result.unknowns:[];
-    const plan=Array.isArray(result.plan)?result.plan:[];
-    const dimensionalReasoning=Array.isArray(result.dimensionalReasoning)?result.dimensionalReasoning:[];
-    const pipeline=markStage(result.pipeline??createPipeline(),"verify","completed","Contradiction and unknown checks applied",{claims:claims.length,unknowns:unknowns.length});
-    const contradictions=claims.filter(claim=>claim.truth==="CONTRADICTED");
-    const verified={...result,claims,plan,dimensionalReasoning,pipeline,unknowns:contradictions.length?[...new Set([...unknowns,`${contradictions.length} contradiction(s) require resolution before a definitive answer.`])]:unknowns};
-    return {...verified,asi:evaluateASIState(verified.asi?.objective??verified.answer,verified,verified.plan)};
-  }
-
-  async execute(plan:FreshPlanStep[],context:FreshExecutionContext={}):Promise<FreshExecutionResult[]> {
-    const safePlan=Array.isArray(plan)?plan:[];
-    return executeFreshPlanThroughAra6(safePlan,Boolean(context.approve),{requestId:context.requestId,origin:context.origin,userId:context.userId});
-  }
+  private readonly skills: FreshSkillRegistry; private readonly memory: FreshMemoryStore; private readonly truth: FreshTruthEngine;
+  constructor(skills:FreshSkillRegistry,memory:FreshMemoryStore,truth:FreshTruthEngine=new SemanticTruthEngine()){this.skills=skills;this.memory=memory;this.truth=truth;}
+  async understand(request:FreshReasoningRequest){const fallback=interpretGoal(request.input,request.intent);const memories=await this.memory.search(request.input);const safeMemories=rankMemory(request.input,Array.isArray(memories)?memories:[],8);const provider=request.context?.providerInterpretation as FreshGoalInterpretation|undefined;const effective=provider??fallback;const contextDependency=resolveContextDependency(request.input,safeMemories,request.conversation??[]);const interpretation={...effective,contextDependency:effective.contextDependency&&effective.contextDependency!=="none"?effective.contextDependency:contextDependency};return{intent:interpretation.intent,context:{...(request.context??{}),memories:safeMemories,interpretation},interpretation};}
+  async retrieve(request:FreshReasoningRequest):Promise<Evidence[]>{const input=Array.isArray(request.evidence)?request.evidence:[];const evaluated=await this.truth.evaluate(input);return rankEvidence(request.input,Array.isArray(evaluated)?evaluated:input,8);}
+  async reason(request:FreshReasoningRequest,evidence:Evidence[]):Promise<FreshReasoningResult>{const safeEvidence=Array.isArray(evidence)?evidence:[];const capabilities=inferCapabilities(request.input,request.intent);const selectedSkills=this.skills.find(capabilities)??[];const dimensionalReasoning=reasonAcrossDimensions(request.input,Array.isArray(request.dimensions)?request.dimensions:undefined);const safeDimensions=Array.isArray(dimensionalReasoning)?dimensionalReasoning:[];const agents=Array.isArray(request.requestedAgents)?request.requestedAgents:[];const interpretation=(request.context?.interpretation as FreshGoalInterpretation|undefined)??interpretGoal(request.input,request.intent);const conversational=interpretation.outputMode==="conversation";const needsClarification=interpretation.needsClarification;const executable=interpretation.needsAction===true||interpretation.intent==="act";const plan=conversational||needsClarification||!executable?[]:selectedSkills.map((skill,index)=>({id:`step-${index+1}`,description:`Apply ${skill.name}`,skills:[skill.id],agent:agents[index]??inferAgent(skill.id),requiresApproval:false}));const base:FreshReasoningResult={answer:needsClarification?"I need a little more context before I choose a workflow.":buildGroundedAnswer(request.input,safeEvidence,safeDimensions,interpretation),claims:safeEvidence.map(item=>({statement:item.claim,truth:item.confidence>=.9?"KNOWN":item.confidence>=.6?"PROBABLE":"UNCERTAIN",confidence:item.confidence,evidence:[item]})),plan:Array.isArray(plan)?plan:[],actions:[],unknowns:conversational||needsClarification?[]:(safeEvidence.length?[]:["No external or persistent evidence was supplied to the native truth layer."]),explanation:conversational?"Fresh recognized this as conversation and avoided forcing a research workflow.":needsClarification?"Fresh detected ambiguity and withheld planning or action until the goal is clear.":executable?"Fresh recognized an explicit action goal; execution remains governed by approval and tool boundaries.":`Fresh AI used explicit goal interpretation, semantic context ranking, native capability composition, ${safeDimensions.length} dimensional reasoning lens(es), evidence grounding and governed execution boundaries. Training/alignment serving policy: ${FRESH_AI_TRAINING_STACK.length} lifecycle controls and ${FRESH_AI_ALIGNMENT_PRINCIPLES.length} runtime principles. Autonomous model-weight modification is ${FRESH_AI_SERVING_POLICY.autonomousModelWeightModification?"enabled":"disabled"}.`,dimensionalReasoning:safeDimensions,pipeline:createPipeline()};return{...base,asi:evaluateASIState(request.input,base,base.plan)};}
+  async plan(request:FreshReasoningRequest,result:FreshReasoningResult){const interpretation=request.context?.interpretation as FreshGoalInterpretation|undefined;if(interpretation?.needsClarification||interpretation?.outputMode==="conversation"||!(interpretation?.needsAction===true||interpretation?.intent==="act"))return[];return Array.isArray(result.plan)?result.plan:[];}
+  async verify(result:FreshReasoningResult){const claims=Array.isArray(result.claims)?result.claims:[];const unknowns=Array.isArray(result.unknowns)?result.unknowns:[];const plan=Array.isArray(result.plan)?result.plan:[];const dimensionalReasoning=Array.isArray(result.dimensionalReasoning)?result.dimensionalReasoning:[];const pipeline=markStage(result.pipeline??createPipeline(),"verify","completed","Contradiction and unknown checks applied",{claims:claims.length,unknowns:unknowns.length});const contradictions=claims.filter(claim=>claim.truth==="CONTRADICTED");const verified={...result,claims,plan,dimensionalReasoning,pipeline,unknowns:contradictions.length?[...new Set([...unknowns,`${contradictions.length} contradiction(s) require resolution before a definitive answer.`])]:unknowns};return{...verified,asi:evaluateASIState(verified.asi?.objective??verified.answer,verified,verified.plan)};}
+  async execute(plan:FreshPlanStep[],context:FreshExecutionContext={}):Promise<FreshExecutionResult[]>{const safePlan=Array.isArray(plan)?plan:[];return executeFreshPlanThroughAra6(safePlan,Boolean(context.approve),{requestId:context.requestId,origin:context.origin,userId:context.userId});}
 }
-
-function createPipeline():FreshPipelineEvent[]{
-  const now=new Date().toISOString();
-  return STAGES.map((stage,index)=>({stage,status:index<4?"completed":"ready",startedAt:now,detail:stageDetail(stage)}));
-}
-function markStage(pipeline:FreshPipelineEvent[],stage:FreshPipelineStage,status:FreshPipelineEvent["status"],detail:string,metrics?:Record<string,number>):FreshPipelineEvent[]{
-  const safe=Array.isArray(pipeline)?pipeline:createPipeline();
-  return safe.map(event=>event.stage===stage?{...event,status,completedAt:new Date().toISOString(),detail,metrics}:event);
-}
-function stageDetail(stage:FreshPipelineStage):string { const labels:Record<FreshPipelineStage,string>={understand:"Interpret intent, objective and desired outcome",memory:"Load relevant durable and session context",retrieve:"Evaluate supplied evidence",research:"Select research only when evidence is needed",reason:"Compose native reasoning",plan:"Construct executable capability plan",coordinate:"Assign work to governed agents",execute:"Run approved tool actions",verify:"Check contradictions and unknowns",proof:"Assemble provenance and verification",feedback:"Accept outcome feedback",improve:"Generate measurable improvement proposals",govern:"Enforce policy and mutation boundaries"}; return labels[stage]; }
-
-function interpretGoal(input:string,forcedIntent?:FreshIntent):FreshGoalInterpretation {
-  const raw=input.trim();
-  const value=raw.toLowerCase();
-  const conversation=/^(hi|hello|hey|hiya|yo|good morning|good afternoon|good evening|let'?s chat|lets chat|talk to me|can we talk|chat with me|what'?s up|whats up|how are you|are you there|just chatting)[.!?\s]*$/i.test(raw)||raw.length<3;
-  const intent=forcedIntent??(conversation?"chat":inferIntent(raw));
-  const needsAction=intent==="act";
-  const needsEvidence=intent==="research"||/(latest|today|now|current|recent|source|sources|evidence|verify|fact.?check|according to|citation|cite|proof)/.test(value);
-  const outputMode:FreshGoalInterpretation["outputMode"]=intent==="chat"?"conversation":intent==="research"?"research":intent==="create"?"creation":intent==="code"?"code":intent==="plan"?"plan":intent==="act"?"action":"answer";
-  const objective=conversation?"Have a natural conversation with the user.":raw;
-  const desiredOutcome=conversation?"A helpful, natural reply that invites the user to continue.":needsAction?"Complete the requested action safely, or explain the approval/tool boundary.":intent==="research"?"Provide an evidence-grounded answer with uncertainty preserved.":intent==="create"?"Produce the requested artifact or draft.":intent==="code"?"Provide or implement a correct technical solution.":intent==="plan"?"Turn the goal into clear, executable steps.":"Directly satisfy the user's request with the appropriate level of explanation.";
-  const constraints:string[]=[];
-  if(/brief|short|quick|concise/.test(value))constraints.push("be concise");
-  if(/step.?by.?step|steps/.test(value))constraints.push("show steps");
-  if(/beginner|simple|easy|eli5/.test(value))constraints.push("use accessible language");
-  if(/detailed|deep|comprehensive|thorough/.test(value))constraints.push("be comprehensive");
-  const entities=extractEntities(raw);
-  return {intent,objective,desiredOutcome,outputMode,needsEvidence,needsAction,needsClarification:!conversation&&raw.length<8,constraints,entities};
-}
-function extractEntities(input:string):string[]{
-  return (input.match(/\b[A-Z][A-Za-z0-9_-]{2,}(?:\s+[A-Z][A-Za-z0-9_-]{2,})*/g)??[]).slice(0,12);
-}
-function inferIntent(input:string):FreshIntent { const value=input.toLowerCase(); if(/research|investigate|sources|evidence|verify|fact.?check/.test(value))return"research"; if(/build|code|debug|program|implement|fix|refactor/.test(value))return"code"; if(/design|ui|ux|interface|layout/.test(value))return"design"; if(/plan|roadmap|strategy|steps|how should/.test(value))return"plan"; if(/analy[sz]e|compare|why|how|explain|difference/.test(value))return"analyze"; if(/send|post|publish|buy|pay|delete|change|update|book|schedule|execute|run/.test(value))return"act"; if(/learn|teach|study|lesson|practice/.test(value))return"learn"; if(/find|discover|recommend|show me|where/.test(value))return"discover"; if(/create|write|make|generate|draft/.test(value))return"create"; return"answer"; }
-function inferCapabilities(input:string,intent?:FreshIntent):string[]{ const value=input.toLowerCase(); const capabilities=["general-reasoning","deduction","induction","abduction","planning","causal-reasoning","constraint-solving","confidence-calibration","unknown-detection","metacognition"]; if(intent==="research"||/research|evidence|source|verify|fact.?check/.test(value))capabilities.push("research","evidence-analysis","scientific-discovery"); if(intent==="code"||/code|debug|build|program|implement|fix|refactor/.test(value))capabilities.push("code-generation","code-review","testing","architecture","optimization"); if(/security|vulnerability|threat|privacy/.test(value))capabilities.push("security","risk-analysis"); if(/math|equation|calculate|proof|statistics/.test(value))capabilities.push("mathematics","statistics"); if(intent==="design"||/design|ui|ux|interface|layout/.test(value))capabilities.push("ui-ux-design","design-systems","creative-synthesis"); if(intent==="learn"||/learn|teach|study|lesson|practice/.test(value))capabilities.push("learning","transfer-learning"); if(intent==="act"||/send|post|publish|buy|pay|delete|change|update|book|schedule|execute|run/.test(value))capabilities.push("automation","environment-modeling"); if(/strategy|long.?term|future|roadmap|mission/.test(value))capabilities.push("strategic-planning","counterfactual-reasoning"); return capabilities; }
-function inferAgent(skillId:string){ if(skillId==="research")return"research" as const; if(skillId==="security")return"security" as const; if(skillId==="engineering")return"backend" as const; if(skillId==="design")return"frontend" as const; if(skillId==="mathematics")return"learning" as const; return undefined; }
-function buildGroundedAnswer(input:string,evidence:Evidence[],dimensions:ReturnType<typeof reasonAcrossDimensions>,interpretation:FreshGoalInterpretation):string { const safeEvidence=Array.isArray(evidence)?evidence:[]; const safeDimensions=Array.isArray(dimensions)?dimensions:[]; if(interpretation.intent==="chat")return`Absolutely. I'm here. We can chat, brainstorm, solve something, plan a project, work on code, or explore an idea together. What would you like to talk about?`; const dimensionalSummary=safeDimensions.length?` across ${safeDimensions.length} reasoning layers`:""; if(!safeEvidence.length)return`Fresh AI interpreted your goal as: “${input}”. ${interpretation.desiredOutcome}${dimensionalSummary}.`; return`Fresh AI interpreted your goal as: “${input}”. ${interpretation.desiredOutcome} It evaluated ${safeEvidence.length} evidence item(s)${dimensionalSummary}.`;
-}
+function createPipeline():FreshPipelineEvent[]{const now=new Date().toISOString();return STAGES.map((stage,index)=>({stage,status:index<4?"completed":"ready",startedAt:now,detail:stageDetail(stage)}));}
+function markStage(pipeline:FreshPipelineEvent[],stage:FreshPipelineStage,status:FreshPipelineEvent["status"],detail:string,metrics?:Record<string,number>):FreshPipelineEvent[]{const safe=Array.isArray(pipeline)?pipeline:createPipeline();return safe.map(event=>event.stage===stage?{...event,status,completedAt:new Date().toISOString(),detail,metrics}:event);}
+function stageDetail(stage:FreshPipelineStage):string{const labels:Record<FreshPipelineStage,string>={understand:"Interpret intent, objective and desired outcome",memory:"Load and rank relevant durable and session context",retrieve:"Evaluate and rank supplied evidence",research:"Select research only when evidence is needed",reason:"Compose native reasoning",plan:"Construct executable capability plan",coordinate:"Assign work to governed agents",execute:"Run approved tool actions",verify:"Check contradictions and unknowns",proof:"Assemble provenance and verification",feedback:"Accept outcome feedback",improve:"Generate measurable improvement proposals",govern:"Enforce policy and mutation boundaries"};return labels[stage];}
+function interpretGoal(input:string,forcedIntent?:FreshIntent):FreshGoalInterpretation{const raw=input.trim(),value=raw.toLowerCase(),conversation=/^(hi|hello|hey|hiya|yo|good morning|good afternoon|good evening|let'?s chat|lets chat|talk to me|can we talk|chat with me|what'?s up|whats up|how are you|are you there|just chatting)[.!?\s]*$/i.test(raw)||raw.length<3,intent=forcedIntent??(conversation?"chat":inferIntent(raw)),needsAction=intent==="act",needsEvidence=intent==="research"||/(latest|today|now|current|recent|source|sources|evidence|verify|fact.?check|according to|citation|cite|proof)/.test(value),outputMode:FreshGoalInterpretation["outputMode"]=intent==="chat"?"conversation":intent==="research"?"research":intent==="create"?"creation":intent==="code"?"code":intent==="plan"?"plan":intent==="act"?"action":"answer",objective=conversation?"Have a natural conversation with the user.":raw,desiredOutcome=conversation?"A helpful, natural reply that invites the user to continue.":needsAction?"Complete the requested action safely, or explain the approval/tool boundary.":intent==="research"?"Provide an evidence-grounded answer with uncertainty preserved.":intent==="create"?"Produce the requested artifact or draft.":intent==="code"?"Provide or implement a correct technical solution.":intent==="plan"?"Turn the goal into clear, executable steps.":"Directly satisfy the user's request with the appropriate level of explanation.";const constraints:string[]=[];if(/brief|short|quick|concise/.test(value))constraints.push("be concise");if(/step.?by.?step|steps/.test(value))constraints.push("show steps");if(/beginner|simple|easy|eli5/.test(value))constraints.push("use accessible language");if(/detailed|deep|comprehensive|thorough/.test(value))constraints.push("be comprehensive");return{intent,objective,desiredOutcome,outputMode,needsEvidence,needsAction,needsClarification:!conversation&&raw.length<8,constraints,entities:extractEntities(raw)};}
+function extractEntities(input:string):string[]{return(input.match(/\b[A-Z][A-Za-z0-9_-]{2,}(?:\s+[A-Z][A-Za-z0-9_-]{2,})*/g)??[]).slice(0,12);}
+function inferIntent(input:string):FreshIntent{const value=input.toLowerCase();if(/research|investigate|sources|evidence|verify|fact.?check/.test(value))return"research";if(/build|code|debug|program|implement|fix|refactor/.test(value))return"code";if(/design|ui|ux|interface|layout/.test(value))return"design";if(/plan|roadmap|strategy|steps|how should/.test(value))return"plan";if(/analy[sz]e|compare|why|how|explain|difference/.test(value))return"analyze";if(/send|post|publish|buy|pay|delete|change|update|book|schedule|execute|run/.test(value))return"act";if(/learn|teach|study|lesson|practice/.test(value))return"learn";if(/find|discover|recommend|show me|where/.test(value))return"discover";if(/create|write|make|generate|draft/.test(value))return"create";return"answer";}
+function inferCapabilities(input:string,intent?:FreshIntent):string[]{const value=input.toLowerCase();const capabilities=["general-reasoning","deduction","induction","abduction","planning","causal-reasoning","constraint-solving","confidence-calibration","unknown-detection","metacognition"];if(intent==="research"||/research|evidence|source|verify|fact.?check/.test(value))capabilities.push("research","evidence-analysis","scientific-discovery");if(intent==="code"||/code|debug|build|program|implement|fix|refactor/.test(value))capabilities.push("code-generation","code-review","testing","architecture","optimization");if(/security|vulnerability|threat|privacy/.test(value))capabilities.push("security","risk-analysis");if(/math|equation|calculate|proof|statistics/.test(value))capabilities.push("mathematics","statistics");if(intent==="design"||/design|ui|ux|interface|layout/.test(value))capabilities.push("ui-ux-design","design-systems","creative-synthesis");if(intent==="learn"||/learn|teach|study|lesson|practice/.test(value))capabilities.push("learning","transfer-learning");if(intent==="act"||/send|post|publish|buy|pay|delete|change|update|book|schedule|execute|run/.test(value))capabilities.push("automation","environment-modeling");if(/strategy|long.?term|future|roadmap|mission/.test(value))capabilities.push("strategic-planning","counterfactual-reasoning");return capabilities;}
+function inferAgent(skillId:string){if(skillId==="research")return"research" as const;if(skillId==="security")return"security" as const;if(skillId==="engineering")return"backend" as const;if(skillId==="design")return"frontend" as const;if(skillId==="mathematics")return"learning" as const;return undefined;}
+function buildGroundedAnswer(input:string,evidence:Evidence[],dimensions:ReturnType<typeof reasonAcrossDimensions>,interpretation:FreshGoalInterpretation):string{const safeEvidence=Array.isArray(evidence)?evidence:[],safeDimensions=Array.isArray(dimensions)?dimensions:[];if(interpretation.intent==="chat")return`Absolutely. I'm here. We can chat, brainstorm, solve something, plan a project, work on code, or explore an idea together. What would you like to talk about?`;const dimensionalSummary=safeDimensions.length?` across ${safeDimensions.length} reasoning layers`:"";if(!safeEvidence.length)return`Fresh AI interpreted your goal as: “${input}”. ${interpretation.desiredOutcome}${dimensionalSummary}.`;return`Fresh AI interpreted your goal as: “${input}”. ${interpretation.desiredOutcome} It evaluated ${safeEvidence.length} evidence item(s)${dimensionalSummary}.`;}
