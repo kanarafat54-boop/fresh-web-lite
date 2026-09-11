@@ -58,6 +58,10 @@ export const FRESH_AI_CAPABILITIES: readonly FreshAICapabilityContract[] = [
   requiresVerification: requiresVerification as boolean,
 }));
 
+const VALID_ENTRY_POINTS = new Set<FreshAIEntryPoint>([
+  "ask", "voice", "search", "create", "research", "work", "files", "camera", "more", "settings", "contextual",
+]);
+
 export function getFreshAICapability(id: FreshAICapabilityId): FreshAICapabilityContract {
   const capability = FRESH_AI_CAPABILITIES.find((item) => item.id === id);
   if (!capability) throw new Error(`Unknown Fresh AI capability: ${id}`);
@@ -69,6 +73,13 @@ export function assertFreshAICapabilityRegistryIntegrity(): void {
   if (new Set(ids).size !== ids.length) throw new Error("Fresh AI capability registry contains duplicate IDs");
   for (const capability of FRESH_AI_CAPABILITIES) {
     if (!capability.entryPoints.length) throw new Error(`Fresh AI capability has no entry point: ${capability.id}`);
+    if (!capability.entryPoints.every((entry) => VALID_ENTRY_POINTS.has(entry))) {
+      throw new Error(`Fresh AI capability has an invalid entry point: ${capability.id}`);
+    }
     if (!capability.label.trim()) throw new Error(`Fresh AI capability has no label: ${capability.id}`);
+    if (!capability.requiresVerification) throw new Error(`Fresh AI capability bypasses verification: ${capability.id}`);
+    if (capability.status === "training-required" && capability.requiresApproval) {
+      throw new Error(`Training-required capability cannot imply executable approval flow: ${capability.id}`);
+    }
   }
 }
