@@ -14,7 +14,8 @@
     "test:fresh-ai-capabilities": "node scripts/verify-fresh-ai-capability-contract.mjs",
     "test:fresh-ai-power-fabric": "node scripts/verify-fresh-ai-power-fabric.mjs",
     "test:fresh-ai-capability-runtime": "node scripts/verify-fresh-ai-capability-runtime.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "vite preview --host 0.0.0.0 --port $PORT"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
