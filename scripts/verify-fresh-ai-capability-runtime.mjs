@@ -15,10 +15,13 @@ for (const required of [
 
 if (!gateway.includes("resolveFreshAICapabilityRuntimeSet")) throw new Error("Gateway does not resolve capability runtime state");
 if (!gateway.includes("capabilityRuntime")) throw new Error("Gateway does not expose capability runtime state");
+if (!gateway.includes("if(r.execute===true)")) throw new Error("Gateway does not guard execution against unavailable capabilities");
+if (!gateway.includes("!capability.executable")) throw new Error("Gateway does not fail closed on non-executable capabilities");
+if (!gateway.includes("Requested Fresh AI capability is not executable")) throw new Error("Gateway missing fail-closed capability error");
 if (!registry.includes("assertFreshAICapabilityRegistryIntegrity")) throw new Error("Capability registry integrity guard is missing");
 
 for (const id of ["voice", "vision", "files", "data", "code", "projects", "knowledge", "skills", "apps", "work", "tasks", "library", "automation", "media-3d"]) {
   if (!runtime.includes(`"${id}"`)) throw new Error(`Missing runtime mapping target: ${id}`);
 }
 
-console.log("Fresh AI capability runtime boundary contract: PASS");
+console.log("Fresh AI capability runtime enforcement contract: PASS");
