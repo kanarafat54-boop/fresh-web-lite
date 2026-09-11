@@ -19,5 +19,9 @@ for (const entry of ["Ask Fresh", "Voice", "Search", "Create", "Research", "Work
 if (!model.includes('id: "fresh-unified-1"')) throw new Error("Canonical Fresh model identity is missing");
 if (!model.includes("externalProviderRequired: false")) throw new Error("Fresh model contract permits external provider dependency");
 if (!contract.includes("training-required")) throw new Error("Training gate is missing from capability contract");
+if (!registry.includes("VALID_ENTRY_POINTS")) throw new Error("Capability registry lacks entry-point validation");
+if (!registry.includes("requiresVerification")) throw new Error("Capability registry lacks verification policy");
+if (!registry.includes('status === \"training-required\"')) throw new Error("Capability registry lacks truthful training-required handling");
+if (!registry.includes("bypasses verification")) throw new Error("Capability registry must reject verification bypasses");
 
 console.log("Fresh AI capability product contract integrity: PASS");
