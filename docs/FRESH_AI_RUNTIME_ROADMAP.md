@@ -1,34 +1,72 @@
-# Fresh AI Runtime Roadmap
+# Fresh AI Runtime Roadmap (#TRUEMODE)
 
-## Completed in this layer
+## Canonical product contract
 
-1. **Canonical backend** — `/api/ai/ask` is the primary Fresh AI request boundary for the unified UI.
-2. **Persistence hardening** — server persistence now uses one environment resolver, reports configuration failures instead of silently dropping pipeline events, and supports the newer `SUPABASE_SECRET_KEY` with legacy `SUPABASE_SERVICE_ROLE_KEY` fallback.
-3. **Everywhere surface** — `FreshAIUnified` is mounted once at the application shell and derives workspace context from the active Fresh route.
-4. **One UI** — duplicate `GlobalFreshAI`, `FreshAIMain`, and `FreshAIContextPanel` mounts were removed from `AppShell`; the unified surface handles global opening and the `/ai` full experience.
-5. **Real image generation** — Fresh AI `Create` requests that explicitly target images are routed through the OpenAI Images API from the server. The API key never enters browser code.
-6. **Verification** — `npm run test:fresh-ai` checks the canonical backend, persistence, provider, and single-UI contract.
+Fresh AI is one sovereign model identity, `fresh-unified-1`, with a canonical capability registry and product contract. The product contract is defined in `docs/FRESH_AI_CAPABILITY_PRODUCT_CONTRACT.md` and the runtime registry in `src/core/fresh-ai/FreshAICapabilityRegistry.ts`.
 
-## Required deployment environment
+The runtime must grow capabilities without turning them into separate provider-shaped brains.
 
-Production server environment must contain:
+## Current foundation
 
-- `SUPABASE_URL` (preferred server-side URL)
-- `SUPABASE_SECRET_KEY` (preferred new Supabase server key) **or** `SUPABASE_SERVICE_ROLE_KEY` for the legacy setup
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY` for request authentication compatibility
-- `GEMINI_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY` for the current answer/interpretation provider
-- `OPENAI_API_KEY` for real image generation
-- optional `FRESH_IMAGE_MODEL` (defaults to `gpt-image-2`)
+1. Canonical backend — `/api/ai/ask` remains the primary Fresh AI request boundary.
+2. Unified UI — `FreshAIUnified` is the application-level Fresh AI surface.
+3. Sovereign model boundary — `fresh-unified-1` is provider-independent and explicitly does not require an external AI provider for its core contract.
+4. Native generation boundary — image/avatar creation is routed through Fresh-owned generation contracts; the repository does not claim trained foundation-model weights where they do not exist.
+5. Persistence — Fresh AI state/events use the existing Supabase-backed persistence boundaries.
+6. Verification — Fresh AI has integrity checks for the unified model, native generation and capability contracts.
 
-On Vercel, server secrets must be assigned to the environment that actually serves production requests. Never expose `SUPABASE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, or `OPENAI_API_KEY` through `VITE_*` variables.
+## Product surface to implement progressively
 
-## Next integration sequence
+Primary entry points:
 
-- Add richer image edit/variation flows behind the same `/api/ai/ask` capability boundary.
-- Persist generated media into Fresh-owned storage/library instead of returning only an inline data URL.
-- Expand route-aware context adapters for Fresh Flow, Messages, Profile, Wallet, Academy, Creator Studio, Developer and Workspace.
-- Add voice/realtime providers behind the same capability resolver.
-- Add provider/model routing so Fresh AI can choose the best available provider per capability.
-- Keep verification, truth decisions, permissions and approval boundaries between planning and execution.
-- Retire legacy AI UI/components only after all imports and event producers are migrated.
+`Ask Fresh` · `Voice` · `Search` · `Create` · `Research` · `Work` · `Files` · `Camera`
+
+Secondary capabilities:
+
+`Code` · `Data` · `Projects` · `Tasks` · `Knowledge` · `Library` · `Skills` · `Apps` · `Automations` · `3D` · `Video` · `Settings`
+
+These are capability entry points, not permission to display fake controls. A control becomes user-visible only when its implementation boundary and truthful degraded state are ready.
+
+## Runtime layers
+
+1. Intent and context assembly.
+2. Memory and knowledge retrieval.
+3. Evidence and truth decision.
+4. Skill discovery and composition.
+5. Plan generation and checkpoints.
+6. Tool and agent execution behind permissions.
+7. Verification and result validation.
+8. Artifact persistence and provenance.
+9. Explanation without private chain-of-thought.
+10. Memory update from authorized, verified outcomes.
+11. Observability, evaluation and regression recording.
+
+## Capability expansion order
+
+1. Stabilize capability registry and contracts.
+2. Complete universal context, intent and evidence structures.
+3. Complete truth decision integration.
+4. Complete memory/provenance controls.
+5. Build the Skill Fabric.
+6. Connect existing agents to shared Fresh AI contracts.
+7. Complete Search + Research + citations.
+8. Complete Files + Vision + Camera.
+9. Complete Create across image/avatar/video/audio/3D with real engine boundaries.
+10. Complete Code + Data + project workspace execution.
+11. Complete Work + approvals + rollback + verification.
+12. Complete Tasks + Automations + notifications.
+13. Complete Apps/connectors with explicit scopes and audit trails.
+14. Complete evaluation, safety and production observability across every capability.
+15. Expand the trained `fresh-unified-1` checkpoint only after these contracts are stable.
+
+## Training gate
+
+Training is downstream of the product/runtime contract. The current model boundary intentionally reports `training-required` for the Fresh checkpoint. No document or UI may imply that a trained foundation-model checkpoint exists until an actual checkpoint is registered, loaded and verified.
+
+## Provider rule
+
+External model providers may exist only as explicit optional tool/compute adapters. They must not be required for Fresh AI core boot, reasoning, planning, memory, truth decisions, capability resolution or product identity. Provider-specific calls must never be hidden inside agents or product features.
+
+## Definition of production-complete
+
+A capability is complete only when its typed contract, implementation, permissions, verification, tests, observability and truthful failure/degraded behavior are present. A button alone is not an implementation.
