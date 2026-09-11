@@ -34,7 +34,7 @@ export const FRESH_AI_CAPABILITIES: readonly FreshAICapabilityContract[] = [
   ["search", "Search", ["search"], "implemented", false, true],
   ["research", "Research", ["research"], "implemented", false, true],
   ["creation", "Create", ["create"], "implemented", false, true],
-  ["files", "Files", ["files"], "contracted", false, true],
+  ["files", "Files", ["files"], "implemented", false, true],
   ["data", "Data", ["more"], "contracted", false, true],
   ["code", "Code", ["more"], "contracted", false, true],
   ["projects", "Projects", ["more"], "contracted", false, true],
