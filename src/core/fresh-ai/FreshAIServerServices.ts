@@ -1,6 +1,9 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { generateFreshNeuralMedia } from "./FreshNeuralGenerationRuntime.js";
 
+export const FRESH_AI_IMAGE_GENERATIONS_PATH = "/v1/images/generations";
+export const FRESH_AI_MEDIA_BUCKET = "fresh-ai-media";
+
 export type FreshAIServerConfig = {
   supabaseUrl: string | null;
   supabaseSecretKey: string | null;
@@ -51,7 +54,7 @@ export async function persistFreshAIMedia(input: {
   if (!input.userId) throw new Error("Media persistence requires an authenticated user");
   const client = createFreshAIServerSupabase();
   if (!client) throw new Error("Media persistence is not configured");
-  const bucket = "fresh-ai-media";
+  const bucket = FRESH_AI_MEDIA_BUCKET;
   const extension = input.mimeType.includes("jpeg") ? "jpg" : input.mimeType.includes("webp") ? "webp" : input.mimeType.includes("png") ? "png" : "bin";
   const path = `${input.userId}/${new Date().toISOString().slice(0,10)}/${input.requestId}.${extension}`;
   const bytes = Buffer.from(input.b64, "base64");
