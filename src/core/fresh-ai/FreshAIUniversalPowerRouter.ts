@@ -2,6 +2,7 @@ import type { FreshAIUniversalContext } from "./FreshAIUniversalCapabilityFabric
 import { normalizeFreshAICapabilities, FRESH_AI_SURFACE_DEFAULTS } from "./FreshAIUniversalCapabilityFabric.js";
 import { getFreshAIPowersForCapability } from "./FreshAIUniversalPowerFabric.js";
 import { resolveFreshNativeGeneration } from "./FreshNativeGenerationFabric.js";
+import { FRESH_UNIFIED_MODEL } from "./FreshUnifiedModelCore.js";
 
 export type FreshAIResolvedPowerPlan = {
   context: FreshAIUniversalContext;
@@ -23,7 +24,7 @@ export function resolveFreshAIUniversalPowerPlan(input: { surface?: string; rout
     surface, route: input.route, featureId: input.featureId, featureName: input.featureName,
     objectType: input.objectType, objectId: input.objectId, selection: input.selection,
     capabilities, toolNamespaces: [...new Set(input.toolNamespaces ?? ["fresh-ai", "memory", "search", "workspace"])],
-    models: input.models ?? [], activeModelId: input.activeModelId ?? "fresh-auto", activeVoiceModelId: input.activeVoiceModelId ?? "device-voice", contextVersion: "1",
+    models: input.models ?? [], activeModelId: FRESH_UNIFIED_MODEL.id, activeVoiceModelId: input.activeVoiceModelId ?? "device-voice", contextVersion: "1",
   };
-  return { context, requestedCapabilities: capabilities, powers, modelId: context.activeModelId, voiceModelId: context.activeVoiceModelId, nativeGeneration: nativeGeneration ? { dimension: nativeGeneration.dimension, engine: nativeGeneration.engine.name } : undefined };
+  return { context, requestedCapabilities: capabilities, powers, modelId: FRESH_UNIFIED_MODEL.id, voiceModelId: context.activeVoiceModelId, nativeGeneration: nativeGeneration ? { dimension: nativeGeneration.dimension, engine: nativeGeneration.engine.name } : undefined };
 }
