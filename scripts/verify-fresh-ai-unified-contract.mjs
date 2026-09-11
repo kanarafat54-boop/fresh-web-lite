@@ -11,7 +11,7 @@ if(!rich.includes("text.split(/```")&&!rich.includes("<pre"))throw new Error("Ri
 if(!shell.includes("FreshAIUnified"))throw new Error("AppShell is not using the unified Fresh AI UI")
 if(shell.includes("GlobalFreshAI")||shell.includes("FreshAIMain")||shell.includes("FreshAIContextPanel"))throw new Error("Legacy duplicate Fresh AI surfaces are still mounted in AppShell")
 for(const required of ["SUPABASE_SECRET_KEY","SUPABASE_SERVICE_ROLE_KEY"]){if(!services.includes(required))throw new Error(`Missing server persistence contract: ${required}`)}
-for(const required of ["fresh-unified-1","providerIndependent: true","externalProviderRequired: false","future-fresh-trained-checkpoint"]){if(!unified.includes(required))throw new Error(`Missing Fresh Unified Model contract: ${required}`)}
+for(const required of ["fresh-unified-1","providerIndependent: true","externalProviderRequired: false","weightsStatus: \"training-required\"","checkpointEnv: \"FRESH_UNIFIED_CHECKPOINT_ID\""]){if(!unified.includes(required))throw new Error(`Missing Fresh Unified Model contract: ${required}`)}
 for(const required of ["FRESH_UNIFIED_MODEL","assertFreshUnifiedModelIntegrity","modelId:FRESH_UNIFIED_MODEL.id"]){if(!gateway.includes(required))throw new Error(`Gateway is not bound to the Fresh Unified Model: ${required}`)}
 if(!router.includes("FRESH_UNIFIED_MODEL.id"))throw new Error("Universal power router is not bound to the Fresh Unified Model")
 console.log("Fresh AI unified + native dimensional + single-model contract: PASS");
