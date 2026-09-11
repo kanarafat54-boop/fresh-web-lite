@@ -9,4 +9,17 @@ for (const capability of ["chat", "voice", "research", "create", "code", "design
 if (!fabric.includes("resolveFreshAIPower")) throw new Error("Missing Fresh AI power resolver");
 if (!router.includes("resolveFreshAIUniversalPowerPlan")) throw new Error("Missing universal power router");
 if (!everywhere.includes("usesCanonicalGateway: true")) throw new Error("Fresh AI Everywhere is not aligned to the canonical gateway contract");
+
+// Structural runtime guard: a green name-presence check must not hide malformed powers.
+const powerObjects = [...fabric.matchAll(/\{ id:\"([^\"]+)\", name:\"[^\"]+\", domain:\"([^\"]+)\", capabilities:\[([^\]]+)\], source:\"([^\"]+)\", enabled:(true|false) \}/g)];
+if (powerObjects.length < requiredPowers.length) throw new Error("Canonical Fresh AI power definitions are incomplete or malformed");
+const ids = new Set();
+for (const [, id, domain, capabilities, source, enabled] of powerObjects) {
+  if (ids.has(id)) throw new Error(`Duplicate canonical Fresh AI power: ${id}`);
+  ids.add(id);
+  if (!domain || !source || !capabilities.trim()) throw new Error(`Malformed canonical Fresh AI power: ${id}`);
+  if (enabled !== "true" && enabled !== "false") throw new Error(`Fresh AI power enabled state is invalid: ${id}`);
+}
+for (const power of requiredPowers) if (!ids.has(power)) throw new Error(`Canonical Fresh AI power is not structurally registered: ${power}`);
+
 console.log("Fresh AI Universal Capability + Power Fabric contract: PASS");
