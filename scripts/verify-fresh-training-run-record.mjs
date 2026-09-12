@@ -19,7 +19,8 @@ const curriculum = readFileSync(record.curriculum.path, "utf8");
 const digest = (value) => createHash("sha256").update(value, "utf8").digest("hex");
 if (digest(dataset) !== record.dataset.sha256) throw new Error("Dataset SHA-256 does not match the training record");
 if (digest(curriculum) !== record.curriculum.sha256) throw new Error("Curriculum SHA-256 does not match the training record");
-if (!curriculum.includes('modelId: "fresh-unified-1"')) throw new Error("Curriculum/model binding is invalid");
+const curriculumModelBinding = /modelId:\s*FRESH_UNIFIED_MODEL\.id/.test(curriculum) || /modelId:\s*["']fresh-unified-1["']/.test(curriculum);
+if (!curriculumModelBinding) throw new Error("Curriculum/model binding is invalid");
 
 const lines = dataset.split(/\r?\n/).filter((line) => line.trim());
 if (lines.length !== record.dataset.exampleCount) throw new Error("Dataset example count changed after preparation");
