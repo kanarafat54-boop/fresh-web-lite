@@ -65,7 +65,8 @@ const curriculum = requiredFile(curriculumPath);
 const examples = parseJsonl(dataset.text);
 
 if (!curriculum.text.includes('id: "fresh-unified-curriculum-v1"')) throw new Error("Unexpected curriculum contract ID");
-if (!curriculum.text.includes('modelId: "fresh-unified-1"')) throw new Error("Curriculum is not bound to fresh-unified-1");
+const curriculumModelBinding = /modelId:\s*FRESH_UNIFIED_MODEL\.id/.test(curriculum.text) || /modelId:\s*["']fresh-unified-1["']/.test(curriculum.text);
+if (!curriculumModelBinding) throw new Error("Curriculum is not bound to fresh-unified-1");
 if (!curriculum.text.includes("synthetic-starter-plus-lawful-public-licensed-authorized-data")) throw new Error("Curriculum data policy is missing");
 if (!dataset.text.includes('"sourceType":"synthetic-starter"')) throw new Error("Starter dataset provenance marker is missing");
 
