@@ -8,12 +8,8 @@ import random
 from pathlib import Path
 
 MODEL_ID = "fresh-unified-1"
-PAD = 0
-BOS = 1
-EOS = 2
-SEP = 3
-BYTE_OFFSET = 4
-VOCAB_SIZE = 260
+PAD, BOS, EOS, SEP, BYTE_OFFSET = 0, 1, 2, 3, 4
+BYTE_VOCAB_SIZE = 260
 
 
 def sha256_file(path: Path) -> str:
@@ -45,11 +41,9 @@ def encode(text: str) -> list[int]:
 def make_examples(rows: list[dict], context: int):
     for row in rows:
         ids = [BOS] + encode(row["input"]) + [SEP] + encode(row["target"]) + [EOS]
-        if len(ids) > context:
-            ids = ids[:context]
-        if len(ids) < 2:
-            continue
-        yield ids[:-1], ids[1:]
+        ids = ids[:context]
+        if len(ids) >= 2:
+            yield ids[:-1], ids[1:]
 
 
 def main() -> int:
@@ -70,12 +64,17 @@ def main() -> int:
 
     dataset = Path(args.dataset)
     output = Path(args.output)
-    if not dataset.is_file():
-        raise SystemExit(f"Dataset not found: {dataset}")
+    spec_path = Path(__file__).with_name("model_spec.json")
+    spec = json.loads(spec_path.read_text(encoding="utf-8"))
+    if spec["modelId"] != MODEL_ID:
+        raise SystemExit("Model spec is not bound to fresh-unified-1")
     rows = load_dataset(dataset)
     digest = sha256_file(dataset)
     print(f"model={MODEL_ID}\nexamples={len(rows)}\ndataset_sha256={digest}")
 
+    # The starter tokenizer is deliberately byte-based. Its 260 symbols are
+    # embedded in the v1 vocabulary space; a learned 32k tokenizer artifact
+    # is required before production pretraining.
     if args.dry_run or not args.train:
         print("status=planned")
         print("checkpoint=not-created")
@@ -85,10 +84,16 @@ def main() -> int:
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = FreshUnifiedLM(vocab_size=VOCAB_SIZE, context_length=2048, hidden_size=256,
-                           layers=4, attention_heads=8, feed_forward_size=1024).to(device)
+    model = FreshUnifiedLM(
+        vocab_size=spec["vocabSize"],
+        context_length=spec["contextLength"],
+        hidden_size=spec["hiddenSize"],
+        layers=spec["layers"],
+        attention_heads=spec["attentionHeads"],
+        feed_forward_size=spec["feedForwardSize"],
+    ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
-    examples = list(make_examples(rows, 2048))
+    examples = list(make_examples(rows, spec["contextLength"]))
     if not examples:
         raise SystemExit("No trainable examples")
 
@@ -118,7 +123,7 @@ def main() -> int:
         "finalLoss": last_loss,
         "device": str(device),
         "pipelineSmokeTest": True,
-        "note": "Small architecture and starter corpus; not a production or frontier checkpoint."
+        "note": "Starter corpus and byte tokenizer; checkpoint is a pipeline smoke test, not production or frontier training."
     }
     output.with_suffix(output.suffix + ".json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(f"status=completed\ncheckpoint={output}\ncheckpoint_sha256={checkpoint_sha}")
