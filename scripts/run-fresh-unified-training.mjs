@@ -12,9 +12,14 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 const root = process.cwd();
-const datasetPath = process.argv[2] ?? "data/fresh-training/synthetic-starter-v1.jsonl";
-const curriculumPath = process.argv[3] ?? "src/core/fresh-ai/FreshUnifiedTrainingCurriculum.ts";
-const outputPath = process.argv[4] ?? `artifacts/fresh-training/jobs/${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+const positional = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
+const flag = (name) => {
+  const index = process.argv.indexOf(name);
+  return index >= 0 ? process.argv[index + 1] : undefined;
+};
+const datasetPath = positional[0] ?? "data/fresh-training/synthetic-starter-v1.jsonl";
+const curriculumPath = positional[1] ?? "src/core/fresh-ai/FreshUnifiedTrainingCurriculum.ts";
+const outputPath = flag("--output") ?? positional[2] ?? `artifacts/fresh-training/jobs/${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
 
 function sha256(text) {
   return createHash("sha256").update(text, "utf8").digest("hex");
@@ -55,36 +60,12 @@ const job = {
   schema: "fresh-unified-training-run-record-v1",
   jobId: `fresh-${randomUUID()}`,
   modelId: "fresh-unified-1",
-  dataset: {
-    path: datasetPath,
-    sha256: sha256(dataset.text),
-    exampleCount: examples.length,
-  },
-  curriculum: {
-    path: curriculumPath,
-    id: "fresh-unified-curriculum-v1",
-    sha256: sha256(curriculum.text),
-  },
+  dataset: { path: datasetPath, sha256: sha256(dataset.text), exampleCount: examples.length },
+  curriculum: { path: curriculumPath, id: "fresh-unified-curriculum-v1", sha256: sha256(curriculum.text) },
   provenancePolicy: "synthetic-starter-plus-lawful-public-licensed-authorized-data",
-  execution: {
-    status: "planned",
-    checkpointId: null,
-    checkpointSha256: null,
-    checkpointEvidence: null,
-  },
-  gates: {
-    datasetIntegrity: "passed",
-    curriculumBinding: "passed",
-    provenanceBinding: "passed",
-    training: "not-run",
-    evaluation: "not-run",
-    safety: "not-run",
-    checkpoint: "missing",
-  },
-  sovereignty: {
-    providerIndependent: true,
-    requiresExternalModelProvider: false,
-  },
+  execution: { status: "planned", checkpointId: null, checkpointSha256: null, checkpointEvidence: null },
+  gates: { datasetIntegrity: "passed", curriculumBinding: "passed", provenanceBinding: "passed", training: "not-run", evaluation: "not-run", safety: "not-run", checkpoint: "missing" },
+  sovereignty: { providerIndependent: true, requiresExternalModelProvider: false },
   createdAt: new Date().toISOString(),
   note: "Preparation record only. No weights were trained or created by this runner.",
 };
