@@ -1,0 +1,29 @@
+name: Fresh AI training contracts
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify-training-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run test:fresh-unified-training
+      - run: npm run test:fresh-unified-curriculum
+      - run: npm run test:fresh-training-job
+      - run: npm run prepare:fresh-training -- --output artifacts/fresh-training/jobs/ci-prepared.json
+      - run: npm run test:fresh-training-run-record -- artifacts/fresh-training/jobs/ci-prepared.json
+      - name: Verify prepared record is not a checkpoint
+        run: |
+          test ! -e artifacts/fresh-training/jobs/ci-prepared.safetensors
+          grep -q '"status": "planned"' artifacts/fresh-training/jobs/ci-prepared.json
+          grep -q '"checkpointId": null' artifacts/fresh-training/jobs/ci-prepared.json
