@@ -9,6 +9,7 @@ const candidatesPath = path.join(root, "training", "fresh_corpus_candidates.json
 
 const readJson = (p) => JSON.parse(fs.readFileSync(p, "utf8"));
 const fail = (message) => { throw new Error(message); };
+const isSha256 = (value) => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 
 const manifest = readJson(manifestPath);
 const auth = readJson(authPath);
@@ -18,7 +19,9 @@ if (manifest.schema !== "fresh-corpus-ingestion-manifest-v1") fail("Invalid inge
 if (manifest.modelId !== "fresh-unified-1") fail("Ingestion manifest is not bound to fresh-unified-1");
 if (manifest.policy?.unknownSourcesBlocked !== true) fail("Unknown sources must be blocked");
 if (manifest.policy?.authorizationRequired !== true) fail("Authorization is required");
+if (manifest.policy?.candidateSourcesRemainBlocked !== true) fail("Candidate sources must remain blocked");
 if (manifest.policy?.rawContentMustBeHashVerified !== true) fail("Raw content hash verification is required");
+if (manifest.policy?.productionTrainingRequiresExplicitPromotion !== true) fail("Production training promotion must be explicit");
 if (!Array.isArray(manifest.sources) || manifest.sources.length === 0) fail("Ingestion manifest has no sources");
 
 const authById = new Map(auth.sources.map((s) => [s.authorizationId, s]));
@@ -28,15 +31,23 @@ const seen = new Set();
 for (const source of manifest.sources) {
   if (!source.sourceId || seen.has(source.sourceId)) fail("Source IDs must be unique and non-empty");
   seen.add(source.sourceId);
+
   const authorization = authById.get(source.authorizationId);
   if (!authorization) fail(`Missing authorization for ${source.sourceId}`);
   if (authorization.status !== "eligible") fail(`Authorization is not eligible for ${source.sourceId}`);
   if (authorization.trainingPermission !== "verified") fail(`Training permission is not verified for ${source.sourceId}`);
+  if (authorization.derivativeModelPermission !== "verified") fail(`Derivative-model permission is not verified for ${source.sourceId}`);
   if (!authorization.evidenceRef) fail(`Missing authorization evidence for ${source.sourceId}`);
+
+  if (!source.sourceType) fail(`Missing source type for ${source.sourceId}`);
+  if (!source.license) fail(`Missing license for ${source.sourceId}`);
   if (source.trainingPermission !== "verified") fail(`Manifest training permission is not verified for ${source.sourceId}`);
-  if (source.derivativeModelPermission !== "verified") fail(`Derivative-model permission is not verified for ${source.sourceId}`);
+  if (source.derivativeModelPermission !== "verified") fail(`Manifest derivative-model permission is not verified for ${source.sourceId}`);
   if (!source.evidenceRef) fail(`Missing evidence reference for ${source.sourceId}`);
-  if (source.contentSha256 !== "computed-by-ingestion") fail(`Manifest must use computed content hash for ${source.sourceId}`);
+  if (source.evidenceRef !== authorization.evidenceRef) fail(`Manifest evidence does not match authorization for ${source.sourceId}`);
+  if (source.license !== authorization.license) fail(`Manifest license does not match authorization for ${source.sourceId}`);
+  if (source.productionTrainingEligible !== false) fail(`Production training must not be granted by ingestion: ${source.sourceId}`);
+  if (!source.transformation) fail(`Missing transformation version for ${source.sourceId}`);
   if (!source.contentLocation) fail(`Missing content location for ${source.sourceId}`);
 
   const candidate = candidateById.get(source.sourceId);
@@ -48,15 +59,26 @@ for (const source of manifest.sources) {
   if (!fs.existsSync(contentPath)) fail(`Missing source content: ${source.contentLocation}`);
   const bytes = fs.readFileSync(contentPath);
   const sha256 = crypto.createHash("sha256").update(bytes).digest("hex");
-  if (!sha256) fail(`Could not hash source content: ${source.sourceId}`);
+  if (!isSha256(sha256)) fail(`Could not compute SHA-256 for ${source.sourceId}`);
+
+  if (source.contentSha256 !== "computed-by-ingestion" && !isSha256(source.contentSha256)) {
+    fail(`Invalid content SHA-256 for ${source.sourceId}`);
+  }
+  if (source.contentSha256 !== "computed-by-ingestion" && source.contentSha256 !== sha256) {
+    fail(`Content SHA-256 mismatch for ${source.sourceId}: expected ${source.contentSha256}, got ${sha256}`);
+  }
+  console.log(`${source.sourceId}: contentSha256=${sha256}`);
 }
 
 for (const candidate of candidates.sources) {
   if (candidate.trainingEligible === true && !authById.has(candidate.candidateId)) {
     fail(`Candidate ${candidate.candidateId} is eligible without authorization registry entry`);
   }
+  if (candidate.status === "review-required" && candidate.trainingEligible !== false) {
+    fail(`Review-required candidate must remain blocked: ${candidate.candidateId}`);
+  }
 }
 
 console.log(`Fresh corpus ingestion manifest: PASS (${manifest.sources.length} authorized source(s))`);
-console.log("Content hashes are computed during ingestion; candidate sources remain blocked by default.");
+console.log("Content hashes are computed and verified during ingestion; candidate sources remain blocked by default.");
 console.log("Production training eligibility: NOT GRANTED by this manifest.");
