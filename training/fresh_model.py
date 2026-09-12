@@ -1,9 +1,4 @@
-"""Fresh Unified v1 decoder-only model.
-
-This is the Fresh-owned neural architecture used by the training backend.
-It is deliberately small enough for reproducible pipeline tests; it is not a
-claim of frontier-scale capability.
-"""
+"""Fresh Unified v1 decoder-only model with RoPE attention."""
 from __future__ import annotations
 
 import math
@@ -33,6 +28,14 @@ class SwiGLU(nn.Module):
         return self.down(torch.nn.functional.silu(self.gate(x)) * self.up(x))
 
 
+def rotate_half(x: torch.Tensor) -> torch.Tensor:
+    return torch.stack((-x[..., 1::2], x[..., ::2]), dim=-1).flatten(-2)
+
+
+def apply_rope(x: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor) -> torch.Tensor:
+    return x * cos + rotate_half(x) * sin
+
+
 class CausalSelfAttention(nn.Module):
     def __init__(self, dim: int, heads: int, max_seq: int):
         super().__init__()
@@ -40,9 +43,15 @@ class CausalSelfAttention(nn.Module):
             raise ValueError("hidden size must be divisible by attention heads")
         self.heads = heads
         self.head_dim = dim // heads
+        if self.head_dim % 2:
+            raise ValueError("attention head dimension must be even for RoPE")
         self.qkv = nn.Linear(dim, dim * 3, bias=False)
         self.out = nn.Linear(dim, dim, bias=False)
-        self.max_seq = max_seq
+        inv_freq = 1.0 / (10000 ** (torch.arange(0, self.head_dim, 2).float() / self.head_dim))
+        positions = torch.arange(max_seq).float()
+        freqs = torch.outer(positions, inv_freq)
+        self.register_buffer("rope_cos", freqs.cos().repeat_interleave(2, dim=-1)[None, None], persistent=False)
+        self.register_buffer("rope_sin", freqs.sin().repeat_interleave(2, dim=-1)[None, None], persistent=False)
         self.register_buffer("mask", torch.tril(torch.ones(max_seq, max_seq, dtype=torch.bool)), persistent=False)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -51,10 +60,12 @@ class CausalSelfAttention(nn.Module):
         q = q.view(b, t, self.heads, self.head_dim).transpose(1, 2)
         k = k.view(b, t, self.heads, self.head_dim).transpose(1, 2)
         v = v.view(b, t, self.heads, self.head_dim).transpose(1, 2)
+        cos = self.rope_cos[:, :, :t].to(dtype=q.dtype, device=q.device)
+        sin = self.rope_sin[:, :, :t].to(dtype=q.dtype, device=q.device)
+        q, k = apply_rope(q, cos, sin), apply_rope(k, cos, sin)
         scores = (q @ k.transpose(-2, -1)) / math.sqrt(self.head_dim)
         scores = scores.masked_fill(~self.mask[:t, :t], torch.finfo(scores.dtype).min)
-        probs = torch.softmax(scores, dim=-1)
-        y = probs @ v
+        y = torch.softmax(scores, dim=-1) @ v
         return self.out(y.transpose(1, 2).contiguous().view(b, t, c))
 
 
@@ -78,36 +89,22 @@ class FreshUnifiedLM(nn.Module):
         self.vocab_size = vocab_size
         self.context_length = context_length
         self.token_embedding = nn.Embedding(vocab_size, hidden_size)
-        self.position_embedding = nn.Embedding(context_length, hidden_size)
-        self.blocks = nn.ModuleList([
-            TransformerBlock(hidden_size, attention_heads, feed_forward_size, context_length)
-            for _ in range(layers)
-        ])
+        self.blocks = nn.ModuleList([TransformerBlock(hidden_size, attention_heads, feed_forward_size, context_length) for _ in range(layers)])
         self.norm = RMSNorm(hidden_size)
         self.lm_head = nn.Linear(hidden_size, vocab_size, bias=False)
         self.lm_head.weight = self.token_embedding.weight
 
     def forward(self, input_ids: torch.Tensor, labels: torch.Tensor | None = None):
-        b, t = input_ids.shape
+        _, t = input_ids.shape
         if t > self.context_length:
             raise ValueError(f"sequence length {t} exceeds context {self.context_length}")
-        pos = torch.arange(t, device=input_ids.device)
-        x = self.token_embedding(input_ids) + self.position_embedding(pos)[None, :, :]
+        x = self.token_embedding(input_ids)
         for block in self.blocks:
             x = block(x)
         logits = self.lm_head(self.norm(x))
-        loss = None
-        if labels is not None:
-            loss = nn.functional.cross_entropy(logits.reshape(-1, self.vocab_size), labels.reshape(-1), ignore_index=-100)
+        loss = None if labels is None else nn.functional.cross_entropy(logits.reshape(-1, self.vocab_size), labels.reshape(-1), ignore_index=-100)
         return logits, loss
 
 
 def build_fresh_model(spec: dict) -> FreshUnifiedLM:
-    return FreshUnifiedLM(
-        vocab_size=spec["vocabSize"],
-        context_length=spec["contextLength"],
-        hidden_size=spec["hiddenSize"],
-        layers=spec["layers"],
-        attention_heads=spec["attentionHeads"],
-        feed_forward_size=spec["feedForwardSize"],
-    )
+    return FreshUnifiedLM(vocab_size=spec["vocabSize"], context_length=spec["contextLength"], hidden_size=spec["hiddenSize"], layers=spec["layers"], attention_heads=spec["attentionHeads"], feed_forward_size=spec["feedForwardSize"])
