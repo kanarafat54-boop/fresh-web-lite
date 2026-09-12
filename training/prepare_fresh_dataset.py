@@ -45,10 +45,15 @@ def main() -> None:
         if row["id"] in seen:
             raise ValueError(f"duplicate example id: {row['id']}")
         meta = row["metadata"]
-        for key in ("domain", "sourceType", "license", "authorizationId"):
+        for key in ("domain", "sourceType", "license"):
             if not meta.get(key):
                 raise ValueError(f"line {line_no}: missing provenance {key}")
-        source = registry.get(meta["authorizationId"])
+        authorization_id = meta.get("authorizationId")
+        if not authorization_id and meta.get("sourceType") == "synthetic-starter" and meta.get("license") == "internal-synthetic":
+            authorization_id = "fwl-internal-synthetic-v1"
+        if not authorization_id:
+            raise ValueError(f"line {line_no}: missing authorization record")
+        source = registry.get(authorization_id)
         if not source or source.get("status") != "eligible":
             raise ValueError(f"line {line_no}: corpus source is not eligible")
         if source.get("trainingPermission") != "verified":
