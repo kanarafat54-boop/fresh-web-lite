@@ -39,6 +39,7 @@ jobs:
       - run: npm run test:fresh-training-backend
       - run: npm run test:fresh-model-spec
       - run: npm run test:fresh-training-model
+      - run: npm run test:fresh-dataset-preparation
       - run: npm run prepare:fresh-training -- --output artifacts/fresh-training/jobs/ci-prepared.json
       - run: npm run test:fresh-training-run-record -- artifacts/fresh-training/jobs/ci-prepared.json
       - name: Verify prepared record is not a checkpoint
