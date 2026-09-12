@@ -1,0 +1,37 @@
+{
+  "schema": "fresh-corpus-candidate-registry-v1",
+  "policy": {
+    "candidateSourcesAreBlockedByDefault": true,
+    "eligibilityRequiresAuthorizationRegistryEntry": true,
+    "legalReviewRequiredBeforeEligibility": true
+  },
+  "sources": [
+    {
+      "candidateId": "wikimedia-text-cc-by-sa-4",
+      "name": "Wikimedia text dumps",
+      "authorityType": "public-license",
+      "license": "CC BY-SA 4.0 / source-specific terms",
+      "status": "review-required",
+      "evidenceRefs": [
+        "https://foundation.wikimedia.org/wiki/Legal:Text_of_the_Creative_Commons_Attribution-ShareAlike_4.0_International_License",
+        "https://foundation.wikimedia.org/wiki/Legal:Wikimedia_Developer_App_Guidelines/en"
+      ],
+      "trainingEligible": false,
+      "notes": "Reuse is permitted subject to license obligations; model-training treatment and downstream ShareAlike/attribution compliance require project-specific legal review before promotion to the authorization registry."
+    },
+    {
+      "candidateId": "project-gutenberg-us-public-domain",
+      "name": "Project Gutenberg US public-domain works",
+      "authorityType": "public-domain-collection",
+      "license": "Item-specific; generally US public domain for qualifying works",
+      "status": "review-required",
+      "evidenceRefs": [
+        "https://www.gutenberg.org/policy/license",
+        "https://www.gutenberg.org/policy/permission",
+        "https://www.gutenberg.org/help/copyright"
+      ],
+      "trainingEligible": false,
+      "notes": "Only individually verified qualifying works should be considered. Project Gutenberg warns that copyright status can differ outside the US and its main site restricts automated bulk access; use permitted mirrors/catalogs and verify each work before ingestion."
+    }
+  ]
+}
