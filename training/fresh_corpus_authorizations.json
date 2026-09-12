@@ -1,0 +1,24 @@
+{
+  "schema": "fresh-corpus-authorization-registry-v1",
+  "policy": {
+    "unknownIsBlocked": true,
+    "trainingPermissionRequired": true,
+    "commercialTrainingPermissionRequired": false,
+    "evidenceRequired": true
+  },
+  "sources": [
+    {
+      "authorizationId": "fwl-internal-synthetic-v1",
+      "name": "Fresh Web Lite internally authored synthetic starter corpus",
+      "authorityType": "internal-authorship",
+      "owner": "Fresh Web Lite project",
+      "license": "internal-synthetic",
+      "trainingPermission": "verified",
+      "commercialTrainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "repo-authored-synthetic-v1",
+      "restrictions": [],
+      "status": "eligible"
+    }
+  ]
+}
