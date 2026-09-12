@@ -7,15 +7,23 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   verify-training-contracts:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+      - name: Print runtime versions
+        run: |
+          node --version
+          npm --version
       - run: npm ci
       - run: npm run test:fresh-unified-training
       - run: npm run test:fresh-unified-curriculum
