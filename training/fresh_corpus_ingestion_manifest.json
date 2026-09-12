@@ -1,0 +1,28 @@
+{
+  "schema": "fresh-corpus-ingestion-manifest-v1",
+  "modelId": "fresh-unified-1",
+  "policy": {
+    "unknownSourcesBlocked": true,
+    "authorizationRequired": true,
+    "candidateSourcesRemainBlocked": true,
+    "rawContentMustBeHashVerified": true,
+    "productionTrainingRequiresExplicitPromotion": true
+  },
+  "sources": [
+    {
+      "sourceId": "fwl-internal-synthetic-v1",
+      "authorizationId": "fwl-internal-synthetic-v1",
+      "sourceType": "synthetic-starter",
+      "status": "eligible",
+      "contentLocation": "data/fresh-training/synthetic-starter-v1.jsonl",
+      "contentSha256": "computed-by-ingestion",
+      "license": "internal-synthetic",
+      "trainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "repo-authored-synthetic-v1",
+      "transformation": "fresh-unified-jsonl-v1",
+      "productionTrainingEligible": false,
+      "notes": "The repository-authored starter corpus is eligible for pipeline validation only; it is not sufficient for meaningful pretraining."
+    }
+  ]
+}
