@@ -16,6 +16,7 @@
     "test:fresh-unified-curriculum": "node scripts/verify-fresh-unified-training-curriculum.mjs",
     "test:fresh-training-job": "node scripts/verify-fresh-training-job.mjs",
     "test:fresh-training-run-record": "node scripts/verify-fresh-training-run-record.mjs",
+    "test:fresh-training-backend": "node scripts/test-fresh-training-backend.mjs",
     "prepare:fresh-training": "node scripts/run-fresh-unified-training.mjs",
     "test:fresh-ai-capabilities": "node scripts/verify-fresh-ai-capability-contract.mjs",
     "test:fresh-ai-power-fabric": "node scripts/verify-fresh-ai-power-fabric.mjs",
