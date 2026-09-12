@@ -12,14 +12,27 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 const root = process.cwd();
-const positional = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
-const flag = (name) => {
-  const index = process.argv.indexOf(name);
-  return index >= 0 ? process.argv[index + 1] : undefined;
-};
-const datasetPath = positional[0] ?? "data/fresh-training/synthetic-starter-v1.jsonl";
-const curriculumPath = positional[1] ?? "src/core/fresh-ai/FreshUnifiedTrainingCurriculum.ts";
-const outputPath = flag("--output") ?? positional[2] ?? `artifacts/fresh-training/jobs/${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+const args = process.argv.slice(2);
+const positional = [];
+const flags = new Map();
+for (let i = 0; i < args.length; i += 1) {
+  const arg = args[i];
+  if (!arg.startsWith("--")) {
+    positional.push(arg);
+    continue;
+  }
+  const name = arg.slice(2);
+  const value = args[i + 1];
+  if (value === undefined || value.startsWith("--")) {
+    throw new Error(`Flag --${name} requires a value`);
+  }
+  flags.set(name, value);
+  i += 1;
+}
+
+const datasetPath = flags.get("dataset") ?? positional[0] ?? "data/fresh-training/synthetic-starter-v1.jsonl";
+const curriculumPath = flags.get("curriculum") ?? positional[1] ?? "src/core/fresh-ai/FreshUnifiedTrainingCurriculum.ts";
+const outputPath = flags.get("output") ?? positional[2] ?? `artifacts/fresh-training/jobs/${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
 
 function sha256(text) {
   return createHash("sha256").update(text, "utf8").digest("hex");
