@@ -13,6 +13,7 @@
     "test:fresh-neural": "node scripts/verify-fresh-neural-generation.mjs",
     "test:fresh-unified-inference": "node scripts/verify-fresh-unified-inference.mjs",
     "test:fresh-unified-training": "node scripts/verify-fresh-unified-training.mjs",
+    "test:fresh-unified-curriculum": "node scripts/verify-fresh-unified-training-curriculum.mjs",
     "test:fresh-ai-capabilities": "node scripts/verify-fresh-ai-capability-contract.mjs",
     "test:fresh-ai-power-fabric": "node scripts/verify-fresh-ai-power-fabric.mjs",
     "test:fresh-ai-capability-runtime": "node scripts/verify-fresh-ai-capability-runtime.mjs",
