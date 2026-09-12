@@ -22,6 +22,7 @@
     "test:fresh-dataset-preparation": "node scripts/test-fresh-dataset-preparation.mjs",
     "test:fresh-corpus-authorization": "node scripts/verify-fresh-corpus-authorization.mjs",
     "test:fresh-corpus-candidates": "node scripts/verify-fresh-corpus-candidates.mjs",
+    "test:fresh-corpus-ingestion": "node scripts/verify-fresh-corpus-ingestion.mjs",
     "prepare:fresh-training": "node scripts/run-fresh-unified-training.mjs",
     "test:fresh-ai-capabilities": "node scripts/verify-fresh-ai-capability-contract.mjs",
     "test:fresh-ai-power-fabric": "node scripts/verify-fresh-ai-power-fabric.mjs",
