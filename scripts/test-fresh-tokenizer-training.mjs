@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
 
 const root = process.cwd();
@@ -24,9 +25,11 @@ if (manifest.vocabSize !== 32000) throw new Error("Tokenizer vocab size must mat
 if (manifest.status !== "starter-trained") throw new Error("Unexpected tokenizer training status");
 if (manifest.productionReady !== false) throw new Error("Starter tokenizer must not be production-ready");
 if (!/^[a-f0-9]{64}$/.test(manifest.datasetSha256)) throw new Error("Tokenizer dataset hash is missing or invalid");
+const datasetSha256 = crypto.createHash("sha256").update(fs.readFileSync(dataset)).digest("hex");
+if (manifest.datasetSha256 !== datasetSha256) throw new Error("Tokenizer artifact is not bound to the exact current dataset");
 if (!Array.isArray(artifact.merges)) throw new Error("Tokenizer merges are missing");
 for (const merge of artifact.merges) {
   if (!merge.left || !merge.right || !Number.isInteger(merge.tokenId)) throw new Error("Invalid tokenizer merge record");
 }
 console.log(`Fresh tokenizer training verifier: PASS (${artifact.merges.length} deterministic merges)`);
-console.log("Tokenizer is trained from the authorized starter corpus; production readiness remains blocked.");
+console.log("Tokenizer is trained from the exact authorized starter corpus; production readiness remains blocked.");
