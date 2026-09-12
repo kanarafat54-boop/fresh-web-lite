@@ -19,6 +19,7 @@
     "test:fresh-training-backend": "node scripts/test-fresh-training-backend.mjs",
     "test:fresh-model-spec": "node scripts/verify-fresh-model-spec.mjs",
     "test:fresh-training-model": "node scripts/test-fresh-training-model.mjs",
+    "test:fresh-dataset-preparation": "node scripts/test-fresh-dataset-preparation.mjs",
     "prepare:fresh-training": "node scripts/run-fresh-unified-training.mjs",
     "test:fresh-ai-capabilities": "node scripts/verify-fresh-ai-capability-contract.mjs",
     "test:fresh-ai-power-fabric": "node scripts/verify-fresh-ai-power-fabric.mjs",
