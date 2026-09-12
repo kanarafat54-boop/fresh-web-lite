@@ -1,0 +1,20 @@
+{
+  "schema": "fresh-unified-model-spec-v1",
+  "modelId": "fresh-unified-1",
+  "tokenizerId": "fresh-unified-tokenizer-v1",
+  "architecture": "decoder-only-causal-transformer",
+  "vocabSize": 32000,
+  "contextLength": 2048,
+  "hiddenSize": 512,
+  "layers": 8,
+  "attentionHeads": 8,
+  "feedForwardSize": 2048,
+  "positionalEncoding": "rope",
+  "normalization": "rmsnorm",
+  "activation": "silu-gated",
+  "objective": "causal-language-modeling",
+  "precision": "bf16-when-supported",
+  "providerIndependent": true,
+  "externalModelRequired": false,
+  "status": "architecture-defined-training-required"
+}
