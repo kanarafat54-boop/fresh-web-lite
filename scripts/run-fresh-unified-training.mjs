@@ -1,74 +1,57 @@
 #!/usr/bin/env node
-/**
- * Prepare (but never fake) a real Fresh Unified training run.
- *
- * This runner consumes the starter dataset + curriculum, validates their
- * binding, computes immutable digests, and writes a training-job record in
- * `planned` state. A real backend must move the record through running /
- * evaluating and attach a real checkpoint before it can become validated.
- */
+/** Prepare a provider-independent Fresh Unified training run without fabricating weights. */
 import { createHash, randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 const root = process.cwd();
 const args = process.argv.slice(2);
-const positional = [];
 const flags = new Map();
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
-  if (!arg.startsWith("--")) {
-    positional.push(arg);
-    continue;
-  }
+  if (!arg.startsWith("--")) throw new Error(`Unexpected argument: ${arg}`);
   const name = arg.slice(2);
-  const value = args[i + 1];
-  if (value === undefined || value.startsWith("--")) {
-    throw new Error(`Flag --${name} requires a value`);
-  }
+  const value = args[++i];
+  if (value === undefined || value.startsWith("--")) throw new Error(`Flag --${name} requires a value`);
   flags.set(name, value);
-  i += 1;
 }
+const datasetPath = flags.get("dataset") ?? "data/fresh-training/synthetic-starter-v1.jsonl";
+const curriculumPath = flags.get("curriculum") ?? "src/core/fresh-ai/FreshUnifiedTrainingCurriculum.ts";
+const outputPath = flags.get("output") ?? `artifacts/fresh-training/jobs/${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
 
-const datasetPath = flags.get("dataset") ?? positional[0] ?? "data/fresh-training/synthetic-starter-v1.jsonl";
-const curriculumPath = flags.get("curriculum") ?? positional[1] ?? "src/core/fresh-ai/FreshUnifiedTrainingCurriculum.ts";
-const outputPath = flags.get("output") ?? positional[2] ?? `artifacts/fresh-training/jobs/${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
-
-function sha256(text) {
-  return createHash("sha256").update(text, "utf8").digest("hex");
-}
-function requiredFile(path) {
+const sha256 = (text) => createHash("sha256").update(text, "utf8").digest("hex");
+function readRequired(path) {
   const absolute = resolve(root, path);
   try { return { absolute, text: readFileSync(absolute, "utf8") }; }
   catch (error) { throw new Error(`Required training input is missing: ${path} (${error.message})`); }
 }
 function parseJsonl(text) {
-  const rows = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line, i) => {
-    try { return JSON.parse(line); }
-    catch (error) { throw new Error(`Invalid JSONL at line ${i + 1}: ${error.message}`); }
-  });
-  if (rows.length === 0) throw new Error("Training dataset is empty");
+  const rows = [];
   const ids = new Set();
-  for (const row of rows) {
-    if (!row.id || !row.input || !row.target) throw new Error("Every training example requires id, input, and target");
+  for (const [index, line] of text.split(/\r?\n/).entries()) {
+    if (!line.trim()) continue;
+    let row;
+    try { row = JSON.parse(line); } catch (error) { throw new Error(`Invalid JSONL at line ${index + 1}: ${error.message}`); }
+    if (!row.id || !row.input || !row.target) throw new Error(`Example at line ${index + 1} requires id, input and target`);
     if (ids.has(row.id)) throw new Error(`Duplicate training example: ${row.id}`);
     ids.add(row.id);
-    if (!row.metadata?.domain || !row.metadata?.sourceType || !row.metadata?.license) {
-      throw new Error(`Training example ${row.id} is missing domain/sourceType/license metadata`);
-    }
+    if (!row.metadata?.domain || !row.metadata?.sourceType || !row.metadata?.license) throw new Error(`Training example ${row.id} is missing provenance metadata`);
+    rows.push(row);
   }
+  if (!rows.length) throw new Error("Training dataset is empty");
   return rows;
 }
 
-const dataset = requiredFile(datasetPath);
-const curriculum = requiredFile(curriculumPath);
+const dataset = readRequired(datasetPath);
+const curriculum = readRequired(curriculumPath);
 const examples = parseJsonl(dataset.text);
 
-if (!curriculum.text.includes('id: "fresh-unified-curriculum-v1"')) throw new Error("Unexpected curriculum contract ID");
-const curriculumModelBinding = /modelId:\s*FRESH_UNIFIED_MODEL\.id/.test(curriculum.text) || /modelId:\s*["']fresh-unified-1["']/.test(curriculum.text);
-if (!curriculumModelBinding) throw new Error("Curriculum is not bound to fresh-unified-1");
+// Bind against the canonical curriculum source without depending on formatting.
+if (!curriculum.text.includes("fresh-unified-curriculum-v1")) throw new Error("Unexpected curriculum contract ID");
+const modelBound = /modelId\s*:\s*FRESH_UNIFIED_MODEL\.id/.test(curriculum.text) || /modelId\s*:\s*[\"']fresh-unified-1[\"']/.test(curriculum.text);
+if (!modelBound) throw new Error("Curriculum is not bound to fresh-unified-1");
 if (!curriculum.text.includes("synthetic-starter-plus-lawful-public-licensed-authorized-data")) throw new Error("Curriculum data policy is missing");
-if (!dataset.text.includes('"sourceType":"synthetic-starter"')) throw new Error("Starter dataset provenance marker is missing");
+if (!examples.every((row) => row.metadata.sourceType === "synthetic-starter")) throw new Error("Starter preparation requires synthetic-starter provenance");
 
 const job = {
   schema: "fresh-unified-training-run-record-v1",
@@ -81,9 +64,8 @@ const job = {
   gates: { datasetIntegrity: "passed", curriculumBinding: "passed", provenanceBinding: "passed", training: "not-run", evaluation: "not-run", safety: "not-run", checkpoint: "missing" },
   sovereignty: { providerIndependent: true, requiresExternalModelProvider: false },
   createdAt: new Date().toISOString(),
-  note: "Preparation record only. No weights were trained or created by this runner.",
+  note: "Preparation record only. No weights were trained or created by this runner."
 };
-
 const destination = resolve(root, outputPath);
 mkdirSync(dirname(destination), { recursive: true });
 writeFileSync(destination, `${JSON.stringify(job, null, 2)}\n`, "utf8");
