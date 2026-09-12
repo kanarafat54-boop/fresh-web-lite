@@ -1,0 +1,18 @@
+{
+  "schema": "fresh-unified-tokenizer-spec-v1",
+  "tokenizerId": "fresh-unified-tokenizer-v1",
+  "productionMode": "trained-subword",
+  "smokeMode": {
+    "type": "byte",
+    "vocabSize": 260,
+    "productionReady": false
+  },
+  "productionRequirements": [
+    "authorized-training-corpus",
+    "versioned-vocabulary",
+    "versioned-tokenizer-artifact",
+    "deterministic-encode-decode",
+    "special-token-contract",
+    "held-out-tokenization-evaluation"
+  ]
+}
