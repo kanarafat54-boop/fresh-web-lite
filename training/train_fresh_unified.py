@@ -8,8 +8,8 @@ import random
 from pathlib import Path
 
 MODEL_ID = "fresh-unified-1"
-PAD, BOS, EOS, SEP, BYTE_OFFSET = 0, 1, 2, 3, 4
-BYTE_VOCAB_SIZE = 260
+TOKENIZER_ID = "fresh-unified-tokenizer-v1"
+PAD, BOS, EOS, SEP = 0, 1, 2, 3
 
 
 def sha256_file(path: Path) -> str:
@@ -34,13 +34,47 @@ def load_dataset(path: Path) -> list[dict]:
     return rows
 
 
-def encode(text: str) -> list[int]:
-    return [BYTE_OFFSET + b for b in text.encode("utf-8")]
+def load_tokenizer(path: Path) -> tuple[dict, list[tuple[bytes, bytes, int]]]:
+    artifact = json.loads(path.read_text(encoding="utf-8"))
+    manifest = artifact.get("manifest") or {}
+    if manifest.get("modelId") != MODEL_ID:
+        raise ValueError("Tokenizer is not bound to fresh-unified-1")
+    if manifest.get("tokenizerId") != TOKENIZER_ID:
+        raise ValueError("Tokenizer ID mismatch")
+    if manifest.get("vocabSize") != 32000:
+        raise ValueError("Tokenizer vocabulary must be 32000")
+    if manifest.get("status") != "starter-trained":
+        raise ValueError("Unsupported tokenizer training status")
+    if manifest.get("productionReady") is not False:
+        raise ValueError("Starter tokenizer cannot be marked production-ready")
+    merges = []
+    for merge in artifact.get("merges", []):
+        merges.append((bytes.fromhex(merge["left"]), bytes.fromhex(merge["right"]), int(merge["tokenId"])))
+    return manifest, merges
 
 
-def make_examples(rows: list[dict], context: int):
+def encode_with_tokenizer(text: str, merges: list[tuple[bytes, bytes, int]]) -> list[int]:
+    symbols = [bytes([b]) for b in text.encode("utf-8", errors="replace")]
+    token_ids = {bytes([b]): 4 + b for b in range(256)}
+    for left, right, token_id in merges:
+        merged = left + right
+        rebuilt: list[bytes] = []
+        i = 0
+        while i < len(symbols):
+            if i + 1 < len(symbols) and symbols[i] == left and symbols[i + 1] == right:
+                rebuilt.append(merged)
+                i += 2
+            else:
+                rebuilt.append(symbols[i])
+                i += 1
+        symbols = rebuilt
+        token_ids[merged] = token_id
+    return [token_ids[symbol] for symbol in symbols]
+
+
+def make_examples(rows: list[dict], context: int, merges: list[tuple[bytes, bytes, int]]):
     for row in rows:
-        ids = [BOS] + encode(row["input"]) + [SEP] + encode(row["target"]) + [EOS]
+        ids = [BOS] + encode_with_tokenizer(row["input"], merges) + [SEP] + encode_with_tokenizer(row["target"], merges) + [EOS]
         ids = ids[:context]
         if len(ids) >= 2:
             yield ids[:-1], ids[1:]
@@ -49,6 +83,7 @@ def make_examples(rows: list[dict], context: int):
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", required=True)
+    parser.add_argument("--tokenizer", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--train", action="store_true")
@@ -63,18 +98,21 @@ def main() -> int:
         raise SystemExit(f"PyTorch training backend unavailable: {exc}") from exc
 
     dataset = Path(args.dataset)
+    tokenizer_path = Path(args.tokenizer)
     output = Path(args.output)
     spec_path = Path(__file__).with_name("model_spec.json")
     spec = json.loads(spec_path.read_text(encoding="utf-8"))
     if spec["modelId"] != MODEL_ID:
         raise SystemExit("Model spec is not bound to fresh-unified-1")
     rows = load_dataset(dataset)
+    tokenizer_manifest, merges = load_tokenizer(tokenizer_path)
     digest = sha256_file(dataset)
+    tokenizer_digest = sha256_file(tokenizer_path)
+    if tokenizer_manifest.get("datasetSha256") != digest:
+        raise SystemExit("Tokenizer was not trained from this exact dataset")
     print(f"model={MODEL_ID}\nexamples={len(rows)}\ndataset_sha256={digest}")
+    print(f"tokenizer={TOKENIZER_ID}\ntokenizer_sha256={tokenizer_digest}\nmerges={len(merges)}")
 
-    # The starter tokenizer is deliberately byte-based. Its 260 symbols are
-    # embedded in the v1 vocabulary space; a learned 32k tokenizer artifact
-    # is required before production pretraining.
     if args.dry_run or not args.train:
         print("status=planned")
         print("checkpoint=not-created")
@@ -93,7 +131,7 @@ def main() -> int:
         feed_forward_size=spec["feedForwardSize"],
     ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
-    examples = list(make_examples(rows, spec["contextLength"]))
+    examples = list(make_examples(rows, spec["contextLength"], merges))
     if not examples:
         raise SystemExit("No trainable examples")
 
@@ -111,19 +149,21 @@ def main() -> int:
         last_loss = float(loss.detach().cpu())
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"model_id": MODEL_ID, "state_dict": model.state_dict(), "seed": args.seed}, output)
+    torch.save({"model_id": MODEL_ID, "tokenizer_id": TOKENIZER_ID, "state_dict": model.state_dict(), "seed": args.seed}, output)
     checkpoint_sha = sha256_file(output)
     manifest = {
         "schema": "fresh-unified-checkpoint-v1",
         "modelId": MODEL_ID,
+        "tokenizerId": TOKENIZER_ID,
         "executionStatus": "completed",
         "datasetSha256": digest,
+        "tokenizerSha256": tokenizer_digest,
         "checkpointSha256": checkpoint_sha,
         "steps": max(1, args.steps),
         "finalLoss": last_loss,
         "device": str(device),
         "pipelineSmokeTest": True,
-        "note": "Starter corpus and byte tokenizer; checkpoint is a pipeline smoke test, not production or frontier training."
+        "note": "Starter corpus checkpoint using the deterministic trained-subword tokenizer; not production or frontier training."
     }
     output.with_suffix(output.suffix + ".json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(f"status=completed\ncheckpoint={output}\ncheckpoint_sha256={checkpoint_sha}")
