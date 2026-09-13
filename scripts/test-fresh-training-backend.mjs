@@ -2,11 +2,13 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 
 const dataset = "data/fresh-training/synthetic-starter-v1.jsonl";
+const tokenizer = "artifacts/fresh-training/tokenizer/starter-tokenizer.json";
 const backend = "training/train_fresh_unified.py";
 if (!existsSync(dataset)) throw new Error(`Missing dataset: ${dataset}`);
+if (!existsSync(tokenizer)) throw new Error(`Missing trained tokenizer: ${tokenizer}`);
 if (!existsSync(backend)) throw new Error(`Missing backend: ${backend}`);
 
-const result = spawnSync("python3", [backend, "--dataset", dataset, "--output", ".fresh-training-smoke", "--dry-run"], { encoding: "utf8" });
+const result = spawnSync("python3", [backend, "--dataset", dataset, "--tokenizer", tokenizer, "--output", ".fresh-training-smoke", "--dry-run"], { encoding: "utf8" });
 if (result.status !== 0) {
   process.stderr.write(result.stderr || result.stdout);
   throw new Error("Fresh Unified training backend smoke test failed");
