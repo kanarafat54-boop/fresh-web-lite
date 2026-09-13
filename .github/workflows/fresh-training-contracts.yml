@@ -36,13 +36,13 @@ jobs:
       - run: npm run test:fresh-unified-training
       - run: npm run test:fresh-unified-curriculum
       - run: npm run test:fresh-training-job
-      - run: npm run test:fresh-training-backend
       - run: npm run test:fresh-model-spec
       - run: npm run test:fresh-training-model
       - run: npm run test:fresh-corpus-authorization
       - run: npm run test:fresh-corpus-candidates
       - run: npm run test:fresh-corpus-ingestion
       - run: npm run test:fresh-tokenizer-training
+      - run: npm run test:fresh-training-backend
       - run: npm run test:fresh-dataset-preparation
       - run: npm run prepare:fresh-training -- --output artifacts/fresh-training/jobs/ci-prepared.json
       - run: npm run test:fresh-training-run-record -- artifacts/fresh-training/jobs/ci-prepared.json
