@@ -1,0 +1,43 @@
+{
+  "schema": "fresh-corpus-intake-v1",
+  "modelId": "fresh-unified-1",
+  "policy": {
+    "unknownSourcesBlocked": true,
+    "publicAvailabilityIsNotAuthorization": true,
+    "trainingPermissionRequired": true,
+    "derivativeModelPermissionRequired": true,
+    "contentHashRequired": true,
+    "provenanceRequired": true,
+    "privacySafetyQualityReviewRequired": true,
+    "legalReviewRequiredBeforeProductionPromotion": true,
+    "explicitPromotionRequired": true
+  },
+  "requiredSourceRecord": [
+    "sourceId",
+    "ownerOrLicensor",
+    "sourceUrl",
+    "rightsEvidence",
+    "licenseOrAgreement",
+    "trainingPermission",
+    "commercialTrainingPermission",
+    "derivativeModelPermission",
+    "acquisitionRoute",
+    "jurisdiction",
+    "collectionDate",
+    "contentSha256",
+    "privacyStatus",
+    "safetyStatus",
+    "qualityStatus",
+    "dedupStatus",
+    "legalReviewStatus",
+    "promotionDecision"
+  ],
+  "statusDefinitions": {
+    "pending": "Received as an intake candidate but not eligible for training.",
+    "blocked": "Cannot enter the training corpus until the missing authorization or review is resolved.",
+    "approved": "All required rights, provenance, privacy, safety, quality, deduplication and legal review evidence is present; eligible for explicit promotion.",
+    "rejected": "Must not be ingested into the production training corpus."
+  },
+  "intake": [],
+  "note": "No external source is being promoted by this file. The repository currently has no externally acquired production-training corpus with project-specific authorization. The internally authored synthetic corpus remains pipeline-validation data only."
+}
