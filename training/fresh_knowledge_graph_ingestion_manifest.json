@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "fresh-knowledge-graph-ingestion-v1",
+  "graphSchemaVersion": "fresh-knowledge-graph-v1",
+  "sourceId": "wikidata-structured-knowledge-cc0",
+  "status": "awaiting-authorized-source-bytes",
+  "acquisitionPolicy": {
+    "requiresAuthorization": true,
+    "requiresContentHash": true,
+    "requiresLicenseEvidence": true,
+    "requiresPrivacySafetyQualityReview": true,
+    "requiresLegalReview": true,
+    "requiresExplicitPromotion": true
+  },
+  "input": {
+    "format": "wikidata-json-lines",
+    "path": null,
+    "sha256": null,
+    "sourceVersion": null
+  },
+  "output": {
+    "format": "fresh-knowledge-graph-json-lines",
+    "path": "artifacts/fresh-knowledge-graph/v1/normalized.jsonl"
+  },
+  "transformationVersion": "fresh-knowledge-graph-normalizer-v1",
+  "mapping": {
+    "entityId": "Wikidata Q-id",
+    "canonicalLabel": "labels.en.value, then first available label",
+    "aliases": "aliases by language",
+    "externalIds": "entity id plus supported identifiers",
+    "claims": "statement mainsnaks with references and qualifiers",
+    "references": "statement references retained as provenance metadata",
+    "temporalQualifiers": "P580/P582 where present",
+    "jurisdiction": "jurisdiction qualifiers when mapped; otherwise absent",
+    "relationships": "entity-valued statements mapped to Fresh relation vocabulary when explicitly supported"
+  },
+  "promotion": {
+    "trainingEligible": false,
+    "knowledgeGraphEligible": false,
+    "reason": "No source bytes are acquired or promoted by this manifest. Enable only after the authorization, provenance, privacy, safety, quality, deduplication and legal gates pass."
+  }
+}
