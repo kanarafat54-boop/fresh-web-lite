@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import random
+import sys
 from pathlib import Path
 
 MODEL_ID = "fresh-unified-1"
@@ -34,9 +35,14 @@ def load_dataset(path: Path) -> list[dict]:
     return rows
 
 
-def load_tokenizer(path: Path) -> tuple[dict, list[tuple[bytes, bytes, int]]]:
-    artifact = json.loads(path.read_text(encoding="utf-8"))
-    manifest = artifact.get("manifest") or {}
+def load_fresh_tokenizer(path: Path):
+    """Load and use the canonical Fresh trained-tokenizer implementation."""
+    training_dir = Path(__file__).resolve().parent
+    if str(training_dir) not in sys.path:
+        sys.path.insert(0, str(training_dir))
+    from fresh_trained_tokenizer import encode, load_tokenizer
+
+    manifest, merges = load_tokenizer(path)
     if manifest.get("modelId") != MODEL_ID:
         raise ValueError("Tokenizer is not bound to fresh-unified-1")
     if manifest.get("tokenizerId") != TOKENIZER_ID:
@@ -47,34 +53,12 @@ def load_tokenizer(path: Path) -> tuple[dict, list[tuple[bytes, bytes, int]]]:
         raise ValueError("Unsupported tokenizer training status")
     if manifest.get("productionReady") is not False:
         raise ValueError("Starter tokenizer cannot be marked production-ready")
-    merges = []
-    for merge in artifact.get("merges", []):
-        merges.append((bytes.fromhex(merge["left"]), bytes.fromhex(merge["right"]), int(merge["tokenId"])))
-    return manifest, merges
+    return manifest, encode, merges
 
 
-def encode_with_tokenizer(text: str, merges: list[tuple[bytes, bytes, int]]) -> list[int]:
-    symbols = [bytes([b]) for b in text.encode("utf-8", errors="replace")]
-    token_ids = {bytes([b]): 4 + b for b in range(256)}
-    for left, right, token_id in merges:
-        merged = left + right
-        rebuilt: list[bytes] = []
-        i = 0
-        while i < len(symbols):
-            if i + 1 < len(symbols) and symbols[i] == left and symbols[i + 1] == right:
-                rebuilt.append(merged)
-                i += 2
-            else:
-                rebuilt.append(symbols[i])
-                i += 1
-        symbols = rebuilt
-        token_ids[merged] = token_id
-    return [token_ids[symbol] for symbol in symbols]
-
-
-def make_examples(rows: list[dict], context: int, merges: list[tuple[bytes, bytes, int]]):
+def make_examples(rows: list[dict], context: int, encode, merges):
     for row in rows:
-        ids = [BOS] + encode_with_tokenizer(row["input"], merges) + [SEP] + encode_with_tokenizer(row["target"], merges) + [EOS]
+        ids = [BOS] + encode(row["input"], merges) + [SEP] + encode(row["target"], merges) + [EOS]
         ids = ids[:context]
         if len(ids) >= 2:
             yield ids[:-1], ids[1:]
@@ -105,13 +89,14 @@ def main() -> int:
     if spec["modelId"] != MODEL_ID:
         raise SystemExit("Model spec is not bound to fresh-unified-1")
     rows = load_dataset(dataset)
-    tokenizer_manifest, merges = load_tokenizer(tokenizer_path)
+    tokenizer_manifest, encode, merges = load_fresh_tokenizer(tokenizer_path)
     digest = sha256_file(dataset)
     tokenizer_digest = sha256_file(tokenizer_path)
     if tokenizer_manifest.get("datasetSha256") != digest:
         raise SystemExit("Tokenizer was not trained from this exact dataset")
     print(f"model={MODEL_ID}\nexamples={len(rows)}\ndataset_sha256={digest}")
     print(f"tokenizer={TOKENIZER_ID}\ntokenizer_sha256={tokenizer_digest}\nmerges={len(merges)}")
+    print("tokenizer_binding=canonical-fresh-trained-tokenizer")
 
     if args.dry_run or not args.train:
         print("status=planned")
@@ -131,7 +116,7 @@ def main() -> int:
         feed_forward_size=spec["feedForwardSize"],
     ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
-    examples = list(make_examples(rows, spec["contextLength"], merges))
+    examples = list(make_examples(rows, spec["contextLength"], encode, merges))
     if not examples:
         raise SystemExit("No trainable examples")
 
@@ -163,7 +148,7 @@ def main() -> int:
         "finalLoss": last_loss,
         "device": str(device),
         "pipelineSmokeTest": True,
-        "note": "Starter corpus checkpoint using the deterministic trained-subword tokenizer; not production or frontier training."
+        "note": "Starter corpus checkpoint using the canonical Fresh trained-subword tokenizer; not production or frontier training."
     }
     output.with_suffix(output.suffix + ".json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(f"status=completed\ncheckpoint={output}\ncheckpoint_sha256={checkpoint_sha}")
