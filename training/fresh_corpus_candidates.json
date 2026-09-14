@@ -32,6 +32,20 @@
       ],
       "trainingEligible": false,
       "notes": "Only individually verified qualifying works should be considered. Project Gutenberg warns that copyright status can differ outside the US and its main site restricts automated bulk access; use permitted mirrors/catalogs and verify each work before ingestion."
+    },
+    {
+      "candidateId": "wikidata-structured-knowledge-cc0",
+      "name": "Wikidata structured knowledge graph",
+      "authorityType": "international-open-knowledge-graph",
+      "license": "CC0 1.0 for structured data in the main, Property, Lexeme and EntitySchema namespaces",
+      "status": "authorization-evidence-verified",
+      "evidenceRefs": [
+        "https://www.wikidata.org/wiki/Wikidata:Copyright",
+        "https://www.wikidata.org/wiki/Wikidata:Licensing",
+        "https://www.wikidata.org/wiki/Wikidata:Data_access"
+      ],
+      "trainingEligible": false,
+      "notes": "Strong candidate for Fresh's international knowledge graph because Wikidata states that its structured data is CC0 and provides multilingual structured entities, links and references. Production training promotion remains blocked until Fresh's project-specific legal review and corpus privacy/safety/quality/deduplication checks are complete."
     }
   ]
 }
