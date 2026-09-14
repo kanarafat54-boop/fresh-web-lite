@@ -1,0 +1,51 @@
+{
+  "schema": "fresh-corpus-review-packets-v1",
+  "policy": {
+    "unknownDecisionIsBlocked": true,
+    "approvalRequiresEvidence": true,
+    "approvalRequiresLegalReview": true,
+    "candidateStatusMustRemainBlockedUntilApproval": true
+  },
+  "packets": [
+    {
+      "candidateId": "wikimedia-text-cc-by-sa-4",
+      "sourceUrl": "https://foundation.wikimedia.org/wiki/Legal:Text_of_the_Creative_Commons_Attribution-ShareAlike_4.0_International_License/en",
+      "rightsEvidenceUrls": [
+        "https://foundation.wikimedia.org/wiki/Legal:Wikimedia_Developer_App_Guidelines/en",
+        "https://foundation.wikimedia.org/wiki/Legal:Text_of_the_Creative_Commons_Attribution-ShareAlike_4.0_International_License/en"
+      ],
+      "licenseAssessment": "CC BY-SA 4.0 and/or GFDL may apply depending on the Wikimedia source; exact source license must be identified.",
+      "acquisitionAssessment": "Use an approved Wikimedia dump/mirror route; do not infer permission from a web page being publicly reachable.",
+      "trainingUseAssessment": "Model-training use requires project-specific legal review of license obligations, attribution, share-alike implications, and other rights.",
+      "commercialTrainingPermission": "review-required",
+      "derivativeModelPermission": "review-required",
+      "privacyStatus": "review-required",
+      "safetyStatus": "review-required",
+      "qualityStatus": "review-required",
+      "dedupStatus": "not-run",
+      "reviewStatus": "review-required",
+      "decision": "blocked"
+    },
+    {
+      "candidateId": "project-gutenberg-us-public-domain",
+      "sourceUrl": "https://www.gutenberg.org/policy/license",
+      "rightsEvidenceUrls": [
+        "https://www.gutenberg.org/policy/license",
+        "https://www.gutenberg.org/policy/permission",
+        "https://www.gutenberg.org/policy/terms_of_use.html",
+        "https://www.gutenberg.org/policy/robot_access.html"
+      ],
+      "licenseAssessment": "Many qualifying works are unrestricted under U.S. copyright law, but status is item-specific and can differ outside the U.S.; some works are distributed under copyright-holder permission.",
+      "acquisitionAssessment": "Do not bulk-download from the main website; use an explicitly permitted mirror/catalog/offline route and preserve item-level rights metadata.",
+      "trainingUseAssessment": "Only individually verified qualifying works should proceed; copyrighted or permission-based works require rights review and any additional terms must be preserved.",
+      "commercialTrainingPermission": "review-required",
+      "derivativeModelPermission": "review-required",
+      "privacyStatus": "review-required",
+      "safetyStatus": "review-required",
+      "qualityStatus": "review-required",
+      "dedupStatus": "not-run",
+      "reviewStatus": "review-required",
+      "decision": "blocked"
+    }
+  ]
+}
