@@ -41,6 +41,7 @@ jobs:
       - run: npm run test:fresh-corpus-authorization
       - run: npm run test:fresh-corpus-candidates
       - run: npm run test:fresh-corpus-ingestion
+      - run: npm run test:fresh-training-promotion
       - run: npm run test:fresh-tokenizer-training
       - run: npm run test:fresh-training-backend
       - run: npm run test:fresh-dataset-preparation
