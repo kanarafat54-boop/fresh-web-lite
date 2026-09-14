@@ -38,6 +38,31 @@
     "approved": "All required rights, provenance, privacy, safety, quality, deduplication and legal review evidence is present; eligible for explicit promotion.",
     "rejected": "Must not be ingested into the production training corpus."
   },
-  "intake": [],
-  "note": "No external source is being promoted by this file. The repository currently has no externally acquired production-training corpus with project-specific authorization. The internally authored synthetic corpus remains pipeline-validation data only."
+  "intake": [
+    {
+      "sourceId": "wikidata-structured-knowledge-cc0",
+      "ownerOrLicensor": "Wikidata community / Wikimedia Foundation project",
+      "sourceUrl": "https://www.wikidata.org/wiki/Wikidata:Data_access",
+      "rightsEvidence": [
+        "https://www.wikidata.org/wiki/Wikidata:Copyright",
+        "https://www.wikidata.org/wiki/Wikidata:Licensing"
+      ],
+      "licenseOrAgreement": "CC0 1.0 for structured data in the main, Property, Lexeme and EntitySchema namespaces",
+      "trainingPermission": "evidence-verified",
+      "commercialTrainingPermission": "evidence-verified-by-CC0",
+      "derivativeModelPermission": "evidence-verified-by-CC0",
+      "acquisitionRoute": "official Wikidata dump or documented supported data-access method; do not use an unbounded live scrape",
+      "jurisdiction": "international; project-specific legal review required",
+      "collectionDate": null,
+      "contentSha256": null,
+      "privacyStatus": "pending",
+      "safetyStatus": "pending",
+      "qualityStatus": "pending",
+      "dedupStatus": "pending",
+      "legalReviewStatus": "pending",
+      "promotionDecision": "blocked-pending-review",
+      "notes": "International knowledge-graph intake only. No source bytes have been acquired or promoted by this record. The graph should feed a Fresh-owned knowledge layer with entity IDs, aliases, multilingual labels, relationships, references, temporal qualifiers and provenance rather than being treated as unquestioned truth."
+    }
+  ],
+  "note": "External sources remain blocked from production training until all required evidence and reviews are complete. The internally authored synthetic corpus remains pipeline-validation data only."
 }
