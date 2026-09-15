@@ -1,32 +1,27 @@
-import { GoogleGenAI } from "@google/genai";
-
-const apiKey = process.env.GEMINI_API_KEY || "";
-const ai = new GoogleGenAI({ apiKey });
+/**
+ * Legacy compatibility boundary for code assistance.
+ *
+ * Fresh AI owns code assistance. This module intentionally contains no
+ * third-party model SDK, provider API key, or vendor-specific model name.
+ * Callers should migrate to the Fresh AI capability runtime directly.
+ */
+import { freshAI } from "@/src/core/ai/FreshAI";
 
 export async function getCodeFix(codeSnippet: string, instruction: string): Promise<string> {
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY environment variable is not set.");
+  if (!codeSnippet.trim() || !instruction.trim()) {
+    throw new Error("Code and instruction are required for Fresh AI code assistance.");
   }
 
-  const prompt = `You are a TypeScript and React assistant.
-Instruction: ${instruction}
+  const result = await freshAI.reason({
+    goal: `Modify the supplied TypeScript/React code according to this instruction: ${instruction}`,
+    context: { codeSnippet },
+    capabilities: ["code"],
+    requireVerification: true,
+  });
 
-Here is the current code:
-\`\`\`typescript
-${codeSnippet}
-\`\`\`
-
-Return ONLY the modified code block without conversational commentary.`;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-    });
-
-    return response.text ?? "";
-  } catch (error) {
-    console.error("AI Code Assistance Error:", error);
-    throw error;
+  if (result.confidence === "BLOCKED" || result.confidence === "UNKNOWN") {
+    throw new Error("Fresh AI code assistance is not executable until the code capability is available.");
   }
+
+  return result.answer ?? "";
 }
