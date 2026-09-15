@@ -39,7 +39,7 @@ const UNIVERSAL_TO_PRODUCT: Record<string, FreshAICapabilityId> = {
   automate: "automation", verify: "trust", act: "work", publish: "apps", connect: "apps",
   organize: "projects", review: "trust", compare: "data", moderate: "safety",
   teach: "knowledge", generate: "creation", edit: "creation", files: "files",
-  skills: "skills",
+  skills: "skills", tasks: "tasks", library: "library",
 };
 
 function statusFor(contract: ReturnType<typeof getFreshAICapability>, approve: boolean): FreshAICapabilityRuntimeStatus {
