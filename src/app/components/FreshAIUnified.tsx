@@ -8,6 +8,7 @@ import "./FreshAIUnified.css";
 
 type Turn = { role: "user" | "assistant"; content: string; createdAt: string };
 type Evidence = { title: string; snippet?: string };
+type Attachment = { id: string; name: string; mimeType: string; size: number; url?: string };
 type DimensionalArtifact = {
   engine: string;
   dimension: number;
@@ -44,17 +45,15 @@ const capabilities = [
 export default function FreshAIUnified() {
   const { activeRoute } = useLayout();
   const { theme, toggle } = useTheme();
-  const context = useMemo(
-    () => createFreshAIWorkspaceContext(activeRoute ?? "/"),
-    [activeRoute],
-  );
+  const context = useMemo(() => createFreshAIWorkspaceContext(activeRoute ?? "/"), [activeRoute]);
   const isAI = (activeRoute ?? "").replace(/\/$/, "").toLowerCase() === "/ai";
-
   const [open, setOpen] = useState(isAI);
   const [draft, setDraft] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [mode, setMode] = useState<(typeof modes)[number]>("Chat");
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [image, setImage] = useState<AskPayload["image"]>();
@@ -65,20 +64,14 @@ export default function FreshAIUnified() {
   const [feedback, setFeedback] = useState<Record<string, number>>({});
   const [voice, setVoice] = useState(false);
   const [constellation, setConstellation] = useState(false);
-
   const endRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const messagesRef = useRef<HTMLElement | null>(null);
   const stickRef = useRef(true);
 
-  useEffect(() => {
-    if (isAI) setOpen(true);
-  }, [isAI]);
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: loading ? "auto" : "smooth" });
-  }, [turns, loading]);
+  useEffect(() => { if (isAI) setOpen(true); }, [isAI]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: loading ? "auto" : "smooth" }); }, [turns, loading]);
 
   useEffect(() => {
     let cancelled = false;
@@ -87,30 +80,17 @@ export default function FreshAIUnified() {
         const { data } = await supabase.auth.getSession();
         const token = data.session?.access_token;
         if (!token) return;
-        const response = await fetch("/api/ai/conversations", {
-          headers: { authorization: `Bearer ${token}` },
-        });
+        const response = await fetch("/api/ai/conversations", { headers: { authorization: `Bearer ${token}` } });
         if (!response.ok) return;
-        const payload = (await response.json()) as {
-          conversation?: { id: string } | null;
-          turns?: Array<{ role: "user" | "assistant"; content: string; created_at: string }>;
-        };
+        const payload = await response.json() as { conversation?: { id: string } | null; turns?: Array<{ role: "user" | "assistant"; content: string; created_at: string }> };
         if (cancelled || !payload.conversation) return;
         setConversationId(payload.conversation.id);
-        setTurns(
-          (payload.turns ?? []).map((turn) => ({
-            role: turn.role,
-            content: turn.content,
-            createdAt: turn.created_at,
-          })),
-        );
+        setTurns((payload.turns ?? []).map((turn) => ({ role: turn.role, content: turn.content, createdAt: turn.created_at })));
       } catch {
-        // Conversation history is optional and never blocks the workspace.
+        // Conversation history is additive and never blocks the workspace.
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -131,22 +111,45 @@ export default function FreshAIUnified() {
     element.style.height = "auto";
     element.style.height = `${Math.min(element.scrollHeight, 180)}px`;
   }
-
   function onScroll() {
     const element = messagesRef.current;
     if (element) stickRef.current = element.scrollHeight - element.scrollTop - element.clientHeight < 100;
   }
 
+  async function uploadFiles(files: FileList | null) {
+    if (!files?.length || uploading) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) throw new Error("Sign in to attach files to Fresh AI.");
+      const uploaded: Attachment[] = [];
+      for (const file of Array.from(files)) {
+        const form = new FormData();
+        form.set("file", file);
+        const response = await fetch("/api/ai/upload", { method: "POST", headers: { authorization: `Bearer ${token}` }, body: form });
+        const payload = await response.json() as { asset?: Attachment; error?: string };
+        if (!response.ok || !payload.asset) throw new Error(payload.error || `Unable to attach ${file.name}`);
+        uploaded.push(payload.asset);
+      }
+      setAttachments((current) => [...current, ...uploaded]);
+      setDraft((current) => `${current}${current ? "\n" : ""}${uploaded.map((file) => `[Attached: ${file.name} · ${file.id}]`).join("\n")}`);
+      requestAnimationFrame(resizeInput);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Fresh AI could not attach the selected files.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function submit(goal: string) {
-    if (!goal || loading) return;
+    if (!goal || loading || uploading) return;
     const now = new Date().toISOString();
     const previous = turns.slice(-12);
-    setTurns((current) => [
-      ...current,
-      { role: "user", content: goal, createdAt: now },
-      { role: "assistant", content: "", createdAt: new Date().toISOString() },
-    ]);
+    setTurns((current) => [...current, { role: "user", content: goal, createdAt: now }, { role: "assistant", content: "", createdAt: new Date().toISOString() }]);
     setDraft("");
+    setAttachments([]);
     requestAnimationFrame(resizeInput);
     setLoading(true);
     setError(null);
@@ -155,44 +158,23 @@ export default function FreshAIUnified() {
     setArtifact(undefined);
     setSource(null);
     stickRef.current = true;
-
     const controller = new AbortController();
     abortRef.current = controller;
-
     try {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       const response = await fetch("/api/ai/ask", {
         method: "POST",
         signal: controller.signal,
-        headers: {
-          "content-type": "application/json",
-          ...(token ? { authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          goal,
-          route: activeRoute ?? "/",
-          mode: mode.toLowerCase(),
-          model: "fresh-unified-1",
-          voiceModel: context.activeVoiceModelId,
-          conversationId,
-          conversation: previous,
-          workspaceContext: context,
-          image: mode === "Create" ? { size: "1024x1024", quality: "auto" } : undefined,
-        }),
+        headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ goal, route: activeRoute ?? "/", mode: mode.toLowerCase(), model: "fresh-unified-1", voiceModel: context.activeVoiceModelId, conversationId, conversation: previous, workspaceContext: context, image: mode === "Create" ? { size: "1024x1024", quality: "auto" } : undefined }),
       });
-      const payload = (await response.json()) as AskPayload;
+      const payload = await response.json() as AskPayload;
       if (!response.ok) throw new Error(payload.error || `Fresh AI request failed (${response.status})`);
-
       setTurns((current) => {
         const copy = [...current];
         const last = copy[copy.length - 1];
-        if (last?.role === "assistant") {
-          copy[copy.length - 1] = {
-            ...last,
-            content: payload.answer || "Fresh AI completed the request.",
-          };
-        }
+        if (last?.role === "assistant") copy[copy.length - 1] = { ...last, content: payload.answer || "Fresh AI completed the request." };
         return copy;
       });
       setRequestId(payload.requestId ?? null);
@@ -201,7 +183,6 @@ export default function FreshAIUnified() {
       setEvidence(Array.isArray(payload.evidence) ? payload.evidence : []);
       setImage(payload.image);
       setArtifact(payload.dimensionalArtifact);
-
       if (voice && payload.answer && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
         window.speechSynthesis.speak(new SpeechSynthesisUtterance(payload.answer));
@@ -210,92 +191,41 @@ export default function FreshAIUnified() {
       if (reason instanceof DOMException && reason.name === "AbortError") return;
       const message = reason instanceof Error ? reason.message : "Fresh AI could not complete that request.";
       setError(message);
-      setTurns((current) =>
-        current[current.length - 1]?.role === "assistant" && !current[current.length - 1].content
-          ? current.slice(0, -1)
-          : current,
-      );
+      setTurns((current) => current[current.length - 1]?.role === "assistant" && !current[current.length - 1].content ? current.slice(0, -1) : current);
     } finally {
       abortRef.current = null;
       setLoading(false);
     }
   }
 
-  function ask(event?: FormEvent) {
-    event?.preventDefault();
-    void submit(draft.trim());
-  }
-
-  function stop() {
-    abortRef.current?.abort();
-    setLoading(false);
-  }
-
+  function ask(event?: FormEvent) { event?.preventDefault(); void submit(draft.trim()); }
+  function stop() { abortRef.current?.abort(); setLoading(false); }
   function keyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-      event.preventDefault();
-      void submit(draft.trim());
-    }
+    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void submit(draft.trim()); }
   }
-
-  function suggestion(text: string) {
-    setDraft(text);
-    setOpen(true);
-    requestAnimationFrame(() => inputRef.current?.focus());
-  }
-
-  function regenerate() {
-    const userTurn = [...turns].reverse().find((turn) => turn.role === "user");
-    if (userTurn && !loading) void submit(userTurn.content);
-  }
-
+  function suggestion(text: string) { setDraft(text); setOpen(true); requestAnimationFrame(() => inputRef.current?.focus()); }
+  function regenerate() { const userTurn = [...turns].reverse().find((turn) => turn.role === "user"); if (userTurn && !loading) void submit(userTurn.content); }
   async function feedbackFor(id: string, rating: number) {
     if (feedback[id]) return;
     try {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       if (!token) return;
-      const response = await fetch("/api/ai/feedback", {
-        method: "POST",
-        headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-        body: JSON.stringify({ requestId: id, rating, correct: rating >= 4 }),
-      });
+      const response = await fetch("/api/ai/feedback", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify({ requestId: id, rating, correct: rating >= 4 }) });
       if (response.ok) setFeedback((current) => ({ ...current, [id]: rating }));
     } catch {
       // Feedback never interrupts an answer.
     }
   }
-
-  function speak(text: string) {
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
-  }
+  function speak(text: string) { if (!("speechSynthesis" in window)) return; window.speechSynthesis.cancel(); window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }
 
   const capabilityPanel = constellation ? (
     <div className="fresh-ai-constellation" role="dialog" aria-label="Fresh AI capabilities">
-      <div className="fresh-ai-constellation-head">
-        <div>
-          <b>Fresh Intelligence</b>
-          <small>Choose a capability. Fresh keeps one intelligence underneath.</small>
-        </div>
-        <button type="button" onClick={() => setConstellation(false)} aria-label="Close capabilities">×</button>
-      </div>
+      <div className="fresh-ai-constellation-head"><div><b>Fresh Intelligence</b><small>Choose a capability. Fresh keeps one intelligence underneath.</small></div><button type="button" onClick={() => setConstellation(false)} aria-label="Close capabilities">×</button></div>
       <div className="fresh-ai-capability-grid">
         {capabilities.map(([icon, name, description]) => (
-          <button
-            key={name}
-            type="button"
-            onClick={() => {
-              const nextMode = name === "Research" ? "Research" : name === "Create" ? "Create" : name === "Build" ? "Build" : name === "Learn" ? "Learn" : name === "Act" ? "Act" : "Chat";
-              setMode(nextMode);
-              setConstellation(false);
-              inputRef.current?.focus();
-            }}
-          >
-            <i>{icon}</i>
-            <span><b>{name}</b><small>{description}</small></span>
-            <em>›</em>
+          <button key={name} type="button" onClick={() => { const nextMode = name === "Research" ? "Research" : name === "Create" ? "Create" : name === "Build" ? "Build" : name === "Learn" ? "Learn" : name === "Act" ? "Act" : "Chat"; setMode(nextMode); setConstellation(false); inputRef.current?.focus(); }}>
+            <i>{icon}</i><span><b>{name}</b><small>{description}</small></span><em>›</em>
           </button>
         ))}
       </div>
@@ -303,137 +233,34 @@ export default function FreshAIUnified() {
   ) : null;
 
   const messageList = turns.length === 0 ? (
-    <div className="fresh-ai-unified-welcome">
-      <div className="fresh-ai-welcome-crystal">✦</div>
-      <h2>What can Fresh help you do?</h2>
-      <p>One intelligence for conversation, knowledge, creation, work and action across Fresh Web Lite.</p>
-      <div className="fresh-ai-suggestions">
-        {["Understand something", "Research this", "Create an image", "Generate a 3D box"].map((text) => (
-          <button key={text} type="button" onClick={() => suggestion(text)}><span>◇</span>{text}</button>
-        ))}
+    <div className="fresh-ai-unified-welcome"><div className="fresh-ai-welcome-crystal">✦</div><h2>What can Fresh help you do?</h2><p>One intelligence for conversation, knowledge, creation, work and action across Fresh Web Lite.</p><div className="fresh-ai-suggestions">{["Understand something", "Research this", "Create an image", "Generate a 3D box"].map((text) => <button key={text} type="button" onClick={() => suggestion(text)}><span>◇</span>{text}</button>)}</div></div>
+  ) : turns.map((turn, index) => (
+    <article key={`${turn.createdAt}-${index}`} className={`fresh-ai-unified-message ${turn.role}`}>
+      <div className="fresh-ai-unified-avatar">{turn.role === "assistant" ? <span>✦</span> : "You"}</div>
+      <div><small>{turn.role === "assistant" ? "Fresh AI" : "You"}</small>{turn.role === "assistant" ? <FreshAIRichText text={turn.content || ""} /> : <p>{turn.content}</p>}
+        {turn.role === "assistant" && index === turns.length - 1 && turn.content ? <nav><button type="button" onClick={() => void navigator.clipboard?.writeText(turn.content)}>Copy</button><button type="button" onClick={regenerate}>Regenerate</button><button type="button" onClick={() => speak(turn.content)}>Read aloud</button>{requestId ? <><button type="button" onClick={() => void feedbackFor(requestId, 5)} disabled={Boolean(feedback[requestId])}>👍</button><button type="button" onClick={() => void feedbackFor(requestId, 1)} disabled={Boolean(feedback[requestId])}>👎</button></> : null}</nav> : null}
       </div>
+    </article>
+  ));
+
+  const evidencePanel = evidence.length > 0 ? <aside className="fresh-ai-unified-evidence"><strong>✓ Verified evidence · {evidence.length}</strong>{evidence.map((item, index) => <div key={`${item.title}-${index}`}><span>{item.title}</span>{item.snippet ? <small>{item.snippet}</small> : null}</div>)}</aside> : null;
+  const artifactPanel = artifact ? <aside className="fresh-ai-unified-evidence"><strong>◇ Fresh Native · {artifact.dimension}D · {artifact.engine}</strong>{artifact.previewDataUrl ? <img src={artifact.previewDataUrl} alt={`${artifact.dimension}D Fresh native artifact preview`} style={{ maxWidth: "100%", display: "block" }} /> : null}<small>{artifact.title} · {artifact.kind} · {artifact.mimeType}</small><pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 220, overflow: "auto" }}>{JSON.stringify(artifact.data, null, 2)}</pre></aside> : null;
+  const imagePanel = image ? <div className="fresh-ai-unified-image">{image.url || image.dataUrl ? <img src={image.url || image.dataUrl} alt="Generated by Fresh AI" /> : null}<small>{image.model} · {image.size}{image.assetId ? " · saved to Fresh media" : ""}</small></div> : null;
+  const errorPanel = error ? <div className="fresh-ai-unified-error"><b>Fresh AI couldn't complete that request.</b><span>{error}</span><button type="button" onClick={() => { const userTurn = [...turns].reverse().find((turn) => turn.role === "user"); setError(null); if (userTurn) void submit(userTurn.content); }}>Retry</button></div> : null;
+
+  const body = <div className="fresh-ai-unified-shell">
+    <header><div className="fresh-ai-unified-brand"><button className="fresh-ai-unified-orb" type="button" onClick={() => setConstellation((current) => !current)} aria-label="Open Fresh AI capabilities"><span>✦</span></button><div><strong>Fresh AI</strong><small>One intelligence. Everywhere.</small></div></div><div className="fresh-ai-unified-actions"><span>{context.featureName}</span><button type="button" onClick={toggle} aria-label="Toggle theme">{theme === "dark" ? "☀" : "☾"}</button>{!isAI ? <button type="button" onClick={() => setOpen(false)} aria-label="Close">×</button> : null}</div></header>
+    {capabilityPanel}
+    <div className="fresh-ai-unified-context"><span className="fresh-ai-context-diamond">◇</span>{context.surface}<span>·</span>{context.featureName}<span>·</span>{conversationId ? `Session ${conversationId.slice(0, 8)}` : "New session"}</div>
+    <section className="fresh-ai-unified-messages" ref={messagesRef} onScroll={onScroll}>{messageList}{loading ? <div className="fresh-ai-progress"><span className="fresh-ai-progress-diamond">◇</span><div><b>Fresh is working</b><small>Understanding · retrieving · checking · preparing</small></div></div> : null}{evidencePanel}{artifactPanel}{imagePanel}{errorPanel}<div ref={endRef} /></section>
+    <div className="fresh-ai-unified-composer"><div className="fresh-ai-composer-hint"><span className="fresh-ai-hint-diamond">◇</span><small>{mode} mode · Context aware</small></div>
+      <form onSubmit={ask}><button className="fresh-ai-add" type="button" onClick={() => setConstellation((current) => !current)} aria-label="Open capabilities">＋</button><textarea ref={inputRef} rows={1} value={draft} onChange={(event) => { setDraft(event.target.value); resizeInput(); }} onKeyDown={keyDown} placeholder="Message Fresh AI…"/><button className={`fresh-ai-voice ${voice ? "active" : ""}`} type="button" onClick={() => setVoice((current) => !current)} aria-label="Toggle voice">{voice ? "◉" : "◌"}</button><button className="fresh-ai-send" type="submit" disabled={!draft.trim() || loading || uploading} aria-label="Send">↑</button></form>
+      <div className="fresh-ai-composer-tools"><label className="fresh-ai-attach">⌕ {uploading ? "Uploading…" : "Attach"}<input type="file" multiple onChange={(event) => { void uploadFiles(event.target.files); event.currentTarget.value = ""; }} /></label><div className="fresh-ai-mode-strip">{modes.map((item) => <button key={item} className={mode === item ? "active" : ""} type="button" onClick={() => setMode(item)}>{item}</button>)}</div><span>{loading ? "Fresh is working…" : uploading ? "Securing files…" : "Enter to send · Shift+Enter for newline"}</span>{loading ? <button type="button" onClick={stop}>Stop</button> : null}</div>
+      {attachments.length > 0 ? <div className="fresh-ai-composer-attachments" aria-label="Attached files">{attachments.map((file) => <span key={file.id}>◇ {file.name}</span>)}</div> : null}
+      <small className="fresh-ai-unified-status"><span>✦</span> {source || "Fresh AI"} · Native Dimensions 1D–11D · Memory · Knowledge · Research · Governed tools</small>
     </div>
-  ) : (
-    turns.map((turn, index) => (
-      <article key={`${turn.createdAt}-${index}`} className={`fresh-ai-unified-message ${turn.role}`}>
-        <div className="fresh-ai-unified-avatar">{turn.role === "assistant" ? <span>✦</span> : "You"}</div>
-        <div>
-          <small>{turn.role === "assistant" ? "Fresh AI" : "You"}</small>
-          {turn.role === "assistant" ? <FreshAIRichText text={turn.content || ""} /> : <p>{turn.content}</p>}
-          {turn.role === "assistant" && index === turns.length - 1 && turn.content ? (
-            <nav>
-              <button type="button" onClick={() => void navigator.clipboard?.writeText(turn.content)}>Copy</button>
-              <button type="button" onClick={regenerate}>Regenerate</button>
-              <button type="button" onClick={() => speak(turn.content)}>Read aloud</button>
-              {requestId ? (
-                <>
-                  <button type="button" onClick={() => void feedbackFor(requestId, 5)} disabled={Boolean(feedback[requestId])}>👍</button>
-                  <button type="button" onClick={() => void feedbackFor(requestId, 1)} disabled={Boolean(feedback[requestId])}>👎</button>
-                </>
-              ) : null}
-            </nav>
-          ) : null}
-        </div>
-      </article>
-    ))
-  );
-
-  const evidencePanel = evidence.length > 0 ? (
-    <aside className="fresh-ai-unified-evidence">
-      <strong>✓ Verified evidence · {evidence.length}</strong>
-      {evidence.map((item, index) => (
-        <div key={`${item.title}-${index}`}>
-          <span>{item.title}</span>
-          {item.snippet ? <small>{item.snippet}</small> : null}
-        </div>
-      ))}
-    </aside>
-  ) : null;
-
-  const artifactPanel = artifact ? (
-    <aside className="fresh-ai-unified-evidence">
-      <strong>◇ Fresh Native · {artifact.dimension}D · {artifact.engine}</strong>
-      {artifact.previewDataUrl ? (
-        <img src={artifact.previewDataUrl} alt={`${artifact.dimension}D Fresh native artifact preview`} style={{ maxWidth: "100%", display: "block" }} />
-      ) : null}
-      <small>{artifact.title} · {artifact.kind} · {artifact.mimeType}</small>
-      <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 220, overflow: "auto" }}>{JSON.stringify(artifact.data, null, 2)}</pre>
-    </aside>
-  ) : null;
-
-  const imagePanel = image ? (
-    <div className="fresh-ai-unified-image">
-      {image.url || image.dataUrl ? <img src={image.url || image.dataUrl} alt="Generated by Fresh AI" /> : null}
-      <small>{image.model} · {image.size}{image.assetId ? " · saved to Fresh media" : ""}</small>
-    </div>
-  ) : null;
-
-  const errorPanel = error ? (
-    <div className="fresh-ai-unified-error">
-      <b>Fresh AI couldn't complete that request.</b>
-      <span>{error}</span>
-      <button type="button" onClick={() => { const userTurn = [...turns].reverse().find((turn) => turn.role === "user"); setError(null); if (userTurn) void submit(userTurn.content); }}>Retry</button>
-    </div>
-  ) : null;
-
-  const body = (
-    <div className="fresh-ai-unified-shell">
-      <header>
-        <div className="fresh-ai-unified-brand">
-          <button className="fresh-ai-unified-orb" type="button" onClick={() => setConstellation((current) => !current)} aria-label="Open Fresh AI capabilities">
-            <span>✦</span>
-          </button>
-          <div><strong>Fresh AI</strong><small>One intelligence. Everywhere.</small></div>
-        </div>
-        <div className="fresh-ai-unified-actions">
-          <span>{context.featureName}</span>
-          <button type="button" onClick={toggle} aria-label="Toggle theme">{theme === "dark" ? "☀" : "☾"}</button>
-          {!isAI ? <button type="button" onClick={() => setOpen(false)} aria-label="Close">×</button> : null}
-        </div>
-      </header>
-
-      {capabilityPanel}
-
-      <div className="fresh-ai-unified-context">
-        <span className="fresh-ai-context-diamond">◇</span>
-        {context.surface}<span>·</span>{context.featureName}<span>·</span>
-        {conversationId ? `Session ${conversationId.slice(0, 8)}` : "New session"}
-      </div>
-
-      <section className="fresh-ai-unified-messages" ref={messagesRef} onScroll={onScroll}>
-        {messageList}
-        {loading ? <div className="fresh-ai-progress"><span className="fresh-ai-progress-diamond">◇</span><div><b>Fresh is working</b><small>Understanding · retrieving · checking · preparing</small></div></div> : null}
-        {evidencePanel}
-        {artifactPanel}
-        {imagePanel}
-        {errorPanel}
-        <div ref={endRef} />
-      </section>
-
-      <div className="fresh-ai-unified-composer">
-        <div className="fresh-ai-composer-hint"><span className="fresh-ai-hint-diamond">◇</span><small>{mode} mode · Context aware</small></div>
-        <form onSubmit={ask}>
-          <button className="fresh-ai-add" type="button" onClick={() => setConstellation((current) => !current)} aria-label="Open capabilities">＋</button>
-          <textarea ref={inputRef} rows={1} value={draft} onChange={(event) => { setDraft(event.target.value); resizeInput(); }} onKeyDown={keyDown} placeholder="Message Fresh AI…" />
-          <button className={`fresh-ai-voice ${voice ? "active" : ""}`} type="button" onClick={() => setVoice((current) => !current)} aria-label="Toggle voice">{voice ? "◉" : "◌"}</button>
-          <button className="fresh-ai-send" type="submit" disabled={!draft.trim() || loading} aria-label="Send">↑</button>
-        </form>
-        <div className="fresh-ai-composer-tools">
-          <label className="fresh-ai-attach">⌕ Attach<input type="file" multiple onChange={(event) => { const names = Array.from(event.target.files ?? []).map((file) => file.name); if (names.length) setDraft((current) => `${current}${current ? "\n" : ""}[Attached: ${names.join(", ")}]`); }} /></label>
-          <div className="fresh-ai-mode-strip">{modes.map((item) => <button key={item} className={mode === item ? "active" : ""} type="button" onClick={() => setMode(item)}>{item}</button>)}</div>
-          <span>{loading ? "Fresh is working…" : "Enter to send · Shift+Enter for newline"}</span>
-          {loading ? <button type="button" onClick={stop}>Stop</button> : null}
-        </div>
-        <small className="fresh-ai-unified-status"><span>✦</span> {source || "Fresh AI"} · Native Dimensions 1D–11D · Memory · Knowledge · Research · Governed tools</small>
-      </div>
-    </div>
-  );
+  </div>;
 
   if (isAI) return <main className="fresh-ai-unified-page">{body}</main>;
-  return (
-    <>
-      {!open ? <button className="fresh-ai-unified-trigger" type="button" onClick={() => setOpen(true)}><span>✦</span>Fresh AI</button> : null}
-      {open ? <div className="fresh-ai-unified-overlay" role="dialog" aria-label="Fresh AI">{body}</div> : null}
-    </>
-  );
+  return <>{!open ? <button className="fresh-ai-unified-trigger" type="button" onClick={() => setOpen(true)}><span>✦</span>Fresh AI</button> : null}{open ? <div className="fresh-ai-unified-overlay" role="dialog" aria-label="Fresh AI">{body}</div> : null}</>;
 }
