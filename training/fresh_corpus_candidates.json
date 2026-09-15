@@ -38,7 +38,7 @@
       "name": "Wikidata structured knowledge graph",
       "authorityType": "international-open-knowledge-graph",
       "license": "CC0 1.0 for structured data in the main, Property, Lexeme and EntitySchema namespaces",
-      "status": "authorization-evidence-verified",
+      "status": "review-required",
       "evidenceRefs": [
         "https://www.wikidata.org/wiki/Wikidata:Copyright",
         "https://www.wikidata.org/wiki/Wikidata:Licensing",
