@@ -23,7 +23,7 @@ if (!services.includes('kind: "image" | "video" | "audio" | "file"')) throw new 
 if (!services.includes("requires an authenticated user")) throw new Error("File persistence lacks authentication boundary");
 if (!gateway.includes("resolveFreshAICapabilityRuntimeSet")) throw new Error("Gateway does not resolve capability runtime state");
 if (!gateway.includes("capabilityRuntime")) throw new Error("Gateway does not expose capability runtime state");
-if (!gateway.includes("if(r.execute===true)")) throw new Error("Gateway does not guard execution against unavailable capabilities");
+if (!gateway.includes("if(r.execute===true&&plan.length)")) throw new Error("Gateway does not guard execution against unavailable capabilities");
 if (!gateway.includes("!capability.executable")) throw new Error("Gateway does not fail closed on non-executable capabilities");
 if (!gateway.includes("Requested Fresh AI capability is not executable")) throw new Error("Gateway missing fail-closed capability error");
 if (!registry.includes('["files", "Files", ["files"], "implemented"')) throw new Error("Files capability is not marked implemented");
