@@ -285,7 +285,7 @@ export default function GlobalFreshAI() {
     }
   }
 
-  function useSuggestion(value: string) {
+  function applySuggestion(value: string) {
     setPrompt(value);
     setOpen(true);
     setFullscreen(true);
@@ -454,7 +454,7 @@ export default function GlobalFreshAI() {
             <button
               key={suggestion}
               type="button"
-              onClick={() => useSuggestion(suggestion)}
+              onClick={() => applySuggestion(suggestion)}
             >
               {suggestion}
             </button>
