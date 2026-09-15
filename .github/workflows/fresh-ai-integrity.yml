@@ -1,0 +1,44 @@
+name: Fresh AI integrity
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-fresh-ai-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Fresh AI unified contract
+        run: npm run test:fresh-ai
+      - name: Fresh AI capability contract
+        run: npm run test:fresh-ai-capabilities
+      - name: Fresh AI power fabric
+        run: npm run test:fresh-ai-power-fabric
+      - name: Fresh AI capability runtime
+        run: npm run test:fresh-ai-capability-runtime
+      - name: Fresh native dimensional contract
+        run: npm run test:fresh-native-dimensions
+      - name: Fresh neural generation contract
+        run: npm run test:fresh-neural
+      - name: Fresh unified inference contract
+        run: npm run test:fresh-unified-inference
+      - name: Fresh sovereign answer boundary
+        run: node scripts/verify-fresh-ai-sovereign-answer-boundary.mjs
+      - name: Production build
+        run: npm run build
