@@ -5,7 +5,7 @@
  * third-party model SDK, provider API key, or vendor-specific model name.
  * Callers should migrate to the Fresh AI capability runtime directly.
  */
-import { freshAI } from "@/src/core/ai/FreshAI";
+import { freshAI } from "../core/ai/FreshAI";
 
 export async function getCodeFix(codeSnippet: string, instruction: string): Promise<string> {
   if (!codeSnippet.trim() || !instruction.trim()) {
