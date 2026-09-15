@@ -73,17 +73,15 @@ export type FreshAIWorkspaceContext = {
 
 const BASE_MODELS: FreshAIModelDescriptor[] = [
   {
-    id: "fresh-auto",
-    name: "Fresh Auto",
+    id: "fresh-unified-1",
+    name: "Fresh Unified",
     family: "orchestrator",
-    capabilities: ["chat", "understand", "research", "analyze", "plan", "act"],
-    available: true,
-  },
-  {
-    id: "gemini-2.5-flash",
-    name: "Gemini 2.5 Flash",
-    family: "text",
-    capabilities: ["chat", "write", "summarize", "analyze", "code", "learn"],
+    capabilities: [
+      "chat", "understand", "research", "write", "summarize", "analyze", "plan",
+      "code", "design", "image", "video", "audio", "voice", "translate", "learn",
+      "organize", "connect", "search", "automate", "review", "verify", "act", "publish",
+      "compare", "moderate",
+    ],
     available: true,
   },
   {
@@ -137,7 +135,7 @@ export function createFreshAIWorkspaceContext(route = "/"): FreshAIWorkspaceCont
     capabilities,
     toolNamespaces: unique(rule?.toolNamespaces ?? ["workspace", "search", "memory", "fresh-ai"]),
     models,
-    activeModelId: "fresh-auto",
+    activeModelId: "fresh-unified-1",
     activeVoiceModelId: "browser-voice",
     contextVersion: "1",
   };
