@@ -10,7 +10,7 @@ export default function AISuggestionsCard() {
 
         <li>💡 Run an Ara6 workflow from Software Studio to put Fresh AI in control of the runtime.</li>
 
-        <li>💡 Connect an external model connector (OpenAI, Anthropic, Gemini) to expand intelligence routing.</li>
+        <li>💡 Use Fresh AI's native capabilities first; external systems remain optional, explicit integrations rather than Fresh AI itself.</li>
 
         <li>💡 Track a mission from the dashboard to link goals to Ara6 execution.</li>
 
