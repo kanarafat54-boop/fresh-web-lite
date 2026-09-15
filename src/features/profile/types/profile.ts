@@ -44,7 +44,7 @@ export interface SmartProfileData {
   interests: string[];
   highlights: ProfileHighlight[];
   insights: ProfileInsight[];
-  generatedBy: "fresh-intelligence" | "gemini";
+  generatedBy: "fresh-intelligence";
   generatedAt: string;
 }
 
