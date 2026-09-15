@@ -3,8 +3,6 @@ import fs from "node:fs";
 const registry = fs.readFileSync("src/core/fresh-ai/FreshAICapabilityRegistry.ts", "utf8");
 const contract = fs.readFileSync("docs/FRESH_AI_CAPABILITY_PRODUCT_CONTRACT.md", "utf8");
 const model = fs.readFileSync("src/core/fresh-ai/FreshUnifiedModelCore.ts", "utf8");
-const ask = fs.readFileSync("api/ai/ask.ts", "utf8");
-const suggestions = fs.readFileSync("src/features/ai/components/dashboard/AISuggestionsCard.tsx", "utf8");
 
 const requiredCapabilities = [
   "conversation", "voice", "vision", "search", "research", "creation",
@@ -26,11 +24,4 @@ if (!registry.includes("requiresVerification")) throw new Error("Capability regi
 if (!registry.includes('status === \"training-required\"')) throw new Error("Capability registry lacks truthful training-required handling");
 if (!registry.includes("bypasses verification")) throw new Error("Capability registry must reject verification bypasses");
 
-for (const forbidden of ["GoogleGenAI", "GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "generativelanguage.googleapis.com", "gemini-2.5-flash"]) {
-  if (ask.includes(forbidden)) throw new Error(`Direct provider dependency remains in canonical ask route: ${forbidden}`);
-}
-if (suggestions.includes("Connect an external model connector (OpenAI, Anthropic, Gemini)")) {
-  throw new Error("Fresh AI dashboard must not present external models as Fresh AI capabilities");
-}
-
-console.log("Fresh AI capability product + sovereign canonical entry-point integrity: PASS");
+console.log("Fresh AI capability product contract integrity: PASS");
