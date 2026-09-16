@@ -1,0 +1,2 @@
+-- Historical migration-history anchor; schema SQL is retained in repository migrations under its original local timestamp.
+-- Intentionally no-op; preserves the production Supabase migration timestamp.
