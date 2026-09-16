@@ -1,0 +1,2 @@
+-- Historical production migration timestamp retained for synchronization.
+-- Intentionally no-op.
