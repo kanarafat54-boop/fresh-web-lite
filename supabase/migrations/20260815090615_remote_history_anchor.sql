@@ -1,0 +1,1 @@
+-- Historical migration-history anchor. Intentionally no-op; preserves production migration history.
