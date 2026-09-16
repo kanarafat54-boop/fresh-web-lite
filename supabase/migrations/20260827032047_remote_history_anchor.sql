@@ -1,0 +1,2 @@
+-- Production history reconciliation marker for a migration already applied upstream.
+-- No schema operation is replayed here.
