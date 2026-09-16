@@ -1,0 +1,2 @@
+-- Historical production migration timestamp retained for synchronization.
+-- This anchor intentionally contains no DDL.
