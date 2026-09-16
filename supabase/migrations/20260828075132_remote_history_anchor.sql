@@ -1,0 +1,2 @@
+-- Historical production migration timestamp retained for synchronization.
+-- No schema statements are repeated.
