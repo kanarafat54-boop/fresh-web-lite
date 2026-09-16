@@ -1,0 +1,2 @@
+-- Production migration timestamp retained for history synchronization.
+-- This repository intentionally does not replay the already-applied remote DDL here.
