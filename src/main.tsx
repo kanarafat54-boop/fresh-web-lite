@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 
 import "./index.css";
 import "./design-system/design-system.css";
+import "./app/components/FreshAIArtifactPresentation.css";
 
 type BootState = "loading" | "ready" | "error";
 
