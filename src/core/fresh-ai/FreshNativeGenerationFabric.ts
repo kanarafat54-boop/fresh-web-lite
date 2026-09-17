@@ -71,4 +71,12 @@ export function assertFreshNativeGenerationFabricIntegrity(): void {
       throw new Error(`Fresh native ${dimension}D engine failed its generation contract`);
     }
   }
+  const printer = generateFreshNative({ input: "Generate a 3D printer", dimension: 3 });
+  const sphere = generateFreshNative({ input: "Generate a 3D sphere", dimension: 3 });
+  if (!printer || printer.artifact.title !== "Generated 3D printer" || printer.artifact.dimension !== 3) {
+    throw new Error("Semantic 3D printer generation regression failed");
+  }
+  if (!sphere || sphere.artifact.title !== "Generated sphere" || sphere.artifact.title === printer.artifact.title) {
+    throw new Error("Distinct semantic 3D generation regression failed");
+  }
 }
