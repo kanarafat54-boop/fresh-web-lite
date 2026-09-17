@@ -1,0 +1,4 @@
+/* Fresh AI artifact presentation keeps internal mesh payloads out of the primary user surface. */
+.fresh-ai-unified-evidence > pre { display: none !important; }
+.fresh-ai-unified-evidence > img { width: 100%; max-height: 460px; object-fit: contain; border-radius: 24px; margin: 12px 0; background: rgba(12, 18, 32, .04); }
+.fresh-ai-unified-evidence > small { display: block; margin-top: 8px; opacity: .72; }
