@@ -78,7 +78,7 @@ export function assertFreshNativeGenerationFabricIntegrity(): void {
   if (!printer || printerTitle !== "Generated 3D printer" || printer.artifact.dimension !== 3) {
     throw new Error("Semantic 3D printer generation regression failed");
   }
-  if (!sphere || sphereTitle !== "Generated sphere" || sphereTitle === printerTitle) {
+  if (!sphere || sphereTitle !== "Generated sphere") {
     throw new Error("Distinct semantic 3D generation regression failed");
   }
 }
