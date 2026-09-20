@@ -5,7 +5,8 @@ import type { Evidence, FreshConversationTurn, FreshGoalInterpretation } from ".
 import type { FreshMemoryRecord } from "../../src/core/fresh-ai/FreshAIKernel.js";
 import { createFreshAIWorkspaceContext, type FreshAIWorkspaceContext } from "../../src/core/fresh-ai/FreshAIWorkspaceContext.js";
 import { createFreshAIServerSupabase, generateFreshAIImage, getFreshAIPersistenceStatus, persistFreshAIMedia } from "../../src/core/fresh-ai/FreshAIServerServices.js";
-import { generateFreshNativeDimensionalArtifact } from "../../src/core/fresh-ai/FreshNativeDimensionalEngines.js";\nimport { persistSemanticResearch } from "../research/persistSemanticResearch.js";
+import { generateFreshNativeDimensionalArtifact } from "../../src/core/fresh-ai/FreshNativeDimensionalEngines.js";
+import { persistSemanticResearch } from "../research/persistSemanticResearch.js";
 import "../../src/core/ara6/agents/defaultAgents.js";
 export const config = { maxDuration: 60 };
 type Body = { goal?: string; route?: string; approve?: boolean; conversationId?: string; conversation?: FreshConversationTurn[]; workspaceContext?: FreshAIWorkspaceContext; model?: string; voiceModel?: string; mode?: string; image?: { size?: "1024x1024" | "1024x1536" | "1536x1024" | "auto"; quality?: "low" | "medium" | "high" | "auto" } };
