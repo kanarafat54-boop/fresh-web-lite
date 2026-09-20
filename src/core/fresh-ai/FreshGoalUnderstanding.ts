@@ -11,7 +11,7 @@ import type { FreshConversationTurn, FreshGoalInterpretation, FreshIntent } from
 const INTENTS: FreshIntent[] = ["chat", "answer", "research", "create", "code", "design", "analyze", "plan", "act", "learn", "discover"];
 const patterns: Array<[FreshIntent, RegExp[]]> = [
   ["chat", [/^(hi|hello|hey|hiya|yo)\b/i, /\bhow are you\b/i, /\bcan we chat\b/i, /\bjust chatting\b/i]],
-  ["research", [/\bresearch\b/i, /\binvestigate\b/i, /\bfact[- ]?check\b/i, /\bverify\b/i, /\bsources?\b/i, /\bevidence\b/i, /\bcitation\b/i, /\baccording to\b/i]],
+  ["research", [/\bresearch\b/i, /\binvestigate\b/i, /\bfact[- ]?check\b/i, /\bverify\b/i, /\bsources?\b/i, /\bevidence\b/i, /\bcitation\b/i, /\baccording to\b/i, /\bnews\b/i, /\btrending\b/i, /\bwhat(?:s| is) happening\b/i, /\bwhat(?:s| is) going on\b/i, /\bworld(?:wide|wide)?\b/i, /\bacross the world\b/i, /\bglobal\b/i, /\blatest\b/i, /\btoday\b/i, /\bright now\b/i]],
   ["code", [/\b(code|coding|program|programming|debug|debugging|refactor|implement|compile|typescript|javascript|python|sql|api)\b/i, /\bfix (this|the) (bug|error)\b/i]],
   ["design", [/\b(ui|ux|interface|layout|wireframe|design system)\b/i, /\bdesign\b/i]],
   ["plan", [/\b(plan|planning|roadmap|strategy|steps|workflow)\b/i, /\bhow should (i|we)\b/i]],
@@ -70,12 +70,12 @@ export function understandFreshGoal(input: string, conversation: FreshConversati
   const conversational = /^(hi|hello|hey|hiya|yo|good morning|good afternoon|good evening|let'?s chat|talk to me|what'?s up|how are you|are you there)[.!?\s]*$/i.test(raw);
   const intent = forcedIntent ?? (conversational ? "chat" : scoreIntent(text));
   const needsAction = intent === "act";
-  const needsEvidence = intent === "research" || /\b(latest|today|now|current|recent|source|sources|evidence|verify|fact[- ]?check|according to|citation|cite|proof)\b/i.test(value);
+  const needsEvidence = intent === "research" || /\b(latest|today|now|current|recent|source|sources|evidence|verify|fact[- ]?check|according to|citation|cite|proof|news|trending|happening|going on|worldwide|global|across the world|right now)\b/i.test(value);
   const outputMode: FreshGoalInterpretation["outputMode"] = intent === "chat" ? "conversation" : intent === "research" ? "research" : intent === "create" ? "creation" : intent === "code" ? "code" : intent === "plan" ? "plan" : intent === "act" ? "action" : "answer";
   const objective = conversational ? "Have a natural conversation with the user." : raw;
   let desiredOutcome = "Directly satisfy the user's request.";
   if (needsAction) desiredOutcome = "Complete the requested action safely, or explain the approval/tool boundary.";
-  else if (intent === "research") desiredOutcome = "Provide an evidence-grounded answer with uncertainty preserved.";
+  else if (intent === "research") desiredOutcome = "Retrieve current or authoritative evidence when needed, synthesize it, and preserve uncertainty and provenance.";
   else if (intent === "create") desiredOutcome = "Produce the requested artifact or draft.";
   else if (intent === "code") desiredOutcome = "Provide or implement a correct technical solution.";
   else if (intent === "plan") desiredOutcome = "Turn the goal into clear, executable steps.";
