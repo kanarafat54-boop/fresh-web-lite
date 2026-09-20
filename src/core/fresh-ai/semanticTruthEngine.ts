@@ -7,7 +7,6 @@ export class SemanticTruthEngine {
   async evaluate(evidence: Evidence[]): Promise<Evidence[]> { this.lastDecisions = this.evaluateDecisions(evidence); return evidence; }
   decide(evidence: Evidence[]): TruthDecision[] { this.lastDecisions = this.evaluateDecisions(evidence); return [...this.lastDecisions]; }
   getLastDecisions(): TruthDecision[] { return [...this.lastDecisions]; }
-  decideForFresh(evidence: Evidence[]): FreshTruthDecision[] { return this.decide(evidence).map((decision) => ({ claimId: decision.claimId, decision: decision.decision, actionable: decision.actionable, confidence: decision.calibration.confidence, reasons: decision.reasons })); }
   private evaluateDecisions(evidence: Evidence[]): TruthDecision[] {
     if (!evidence.length) return [];
     const now = new Date().toISOString();
