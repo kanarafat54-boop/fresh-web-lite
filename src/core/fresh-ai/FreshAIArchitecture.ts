@@ -13,8 +13,7 @@ export type FreshIntent = "chat" | "answer" | "research" | "create" | "code" | "
 export type FreshAgent = "wallet" | "feed" | "security" | "research" | "architecture" | "backend" | "frontend" | "testing" | "documentation" | "deployment" | "media" | "learning";
 
 export type Evidence = { id: string; source: string; claim: string; observedAt?: string; confidence: number };
-export type FreshTruthDecision = { claimId: string; decision: "ALLOW_ACTION" | "ALLOW_WITH_CAUTION" | "BLOCK_ACTION"; actionable: boolean; confidence: number; reasons: string[] };
-export type FreshClaim = { statement: string; truth: TruthState; confidence: number; evidence: Evidence[]; temporal?: { validFrom?: string; validUntil?: string }; truthDecision?: FreshTruthDecision["decision"] };
+export type FreshClaim = { statement: string; truth: TruthState; confidence: number; evidence: Evidence[]; temporal?: { validFrom?: string; validUntil?: string } };
 export type FreshSkill = { id: string; name: string; description: string; capabilities: string[]; requiredTools?: string[] };
 export type FreshPlanStep = { id: string; description: string; agent?: FreshAgent; skills: string[]; requiresApproval?: boolean };
 export type FreshExecutionResult = { stepId: string; agent?: FreshAgent; accepted: boolean; status: "executed" | "approval-required" | "unavailable" | "failed"; detail: string };
