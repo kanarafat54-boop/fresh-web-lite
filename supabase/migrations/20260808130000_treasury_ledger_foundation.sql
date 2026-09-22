@@ -284,6 +284,12 @@ where b.scope = 'user' and b.owner_id = auth.uid() and a.active;
 
 grant select on public.treasury_my_balances to authenticated;
 
+-- Compatibility view retained by the existing treasury security migration.
+create or replace view public.my_treasury_balances as
+select account_id, asset_code, asset_kind, balance_minor
+from public.treasury_account_balances
+where scope = 'user' and owner_id = auth.uid();
+
 comment on table public.treasury_accounts is 'Authoritative Fresh Treasury account registry; platform, owner and user scopes are intentionally separated.';
 comment on table public.treasury_transactions is 'Immutable transaction headers for Fresh Treasury double-entry accounting.';
 comment on table public.treasury_entries is 'Immutable double-entry monetary movements in integer minor units.';
