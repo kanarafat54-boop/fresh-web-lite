@@ -163,9 +163,14 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
 
   const exitImmersive = () => {
     if (!immersive) return;
+    immersiveTriggeredRef.current = false;
     setImmersive(false);
     onImmersiveChange?.(false);
   };
+
+  // Silence noUnusedLocals: Experience owns immersive; keep helpers wired.
+  void connectionQuality;
+  void exitImmersive;
 
   useEffect(() => {
     if (!user || isGuest) return;
@@ -423,7 +428,10 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
                     loop
                     preload={index === currentIndex ? "auto" : "metadata"}
                     onError={() => handleVideoError(index)}
-                    onLoadedData={() => setLoadedIndices((s) => new Set(s).add(index))}
+                    onLoadedData={(e) => {
+                      setLoadedIndices((s) => new Set(s).add(index));
+                      captureFrame(short.id, e.currentTarget, posterCacheRef.current);
+                    }}
                     poster={posterCacheRef.current.get(short.id)}
                   />
                 ) : (
@@ -459,7 +467,11 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
                   </p>
                 </div>
                 <div className="fresh-flow-actions">
-                  <button className="fresh-flow-action-btn" onClick={() => void react(short, "like")} aria-label="Like">❤️<span>{formatCount(short.likeCount)}</span></button>
+                  <ReactionPicker
+                    value={short.myReaction}
+                    breakdown={short.reactionBreakdown}
+                    onSelect={(kind) => void react(short, kind)}
+                  />
                   <button className="fresh-flow-action-btn" onClick={() => setOpenCommentsFor(short.id)} aria-label="Comments">💬<span>{formatCount(short.commentCount)}</span></button>
                   <button className={short.repostedByMe ? "fresh-flow-action-btn reposted" : "fresh-flow-action-btn"} onClick={() => void toggleRepost(short)} aria-label="Repost">🔁<span>{formatCount(short.repostCount)}</span></button>
                   <button className={savedIds.has(short.id) ? "fresh-flow-action-btn saved" : "fresh-flow-action-btn"} onClick={() => void toggleSave(short)} aria-label="Save">🔖</button>
