@@ -171,6 +171,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
   // Silence noUnusedLocals: Experience owns immersive; keep helpers wired.
   void connectionQuality;
   void exitImmersive;
+  void loadedIndices;
 
   useEffect(() => {
     if (!user || isGuest) return;
@@ -468,9 +469,10 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
                 </div>
                 <div className="fresh-flow-actions">
                   <ReactionPicker
-                    value={short.myReaction}
-                    breakdown={short.reactionBreakdown}
-                    onSelect={(kind) => void react(short, kind)}
+                    myReaction={short.myReaction}
+                    count={short.likeCount}
+                    variant="short"
+                    onReact={(kind) => void react(short, kind)}
                   />
                   <button className="fresh-flow-action-btn" onClick={() => setOpenCommentsFor(short.id)} aria-label="Comments">💬<span>{formatCount(short.commentCount)}</span></button>
                   <button className={short.repostedByMe ? "fresh-flow-action-btn reposted" : "fresh-flow-action-btn"} onClick={() => void toggleRepost(short)} aria-label="Repost">🔁<span>{formatCount(short.repostCount)}</span></button>
