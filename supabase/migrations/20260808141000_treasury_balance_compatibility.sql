@@ -12,3 +12,5 @@ from public.treasury_account_balances
 where scope = 'user'
   and owner_id = auth.uid();
 
+
+-- Migration-history repair completed for the legacy 20260812 marker.
