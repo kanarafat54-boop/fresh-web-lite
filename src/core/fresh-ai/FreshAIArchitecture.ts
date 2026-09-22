@@ -3,6 +3,8 @@
  *
  * Fresh AI owns the decision boundary. Providers, tools and agents are
  * replaceable capabilities underneath a governed intelligence pipeline.
+ *
+ * Fresh is more than a pure superintelligence race: see FreshBeyondSuperintelligence.
  */
 
 import type { FreshDimension, DimensionalReasoning } from "./dimensionalIntelligence.js";
@@ -69,3 +71,15 @@ export interface FreshIntelligenceEngine {
 }
 
 export function assertFreshCoreHasNoRequiredApiKeys(env: Record<string, string | undefined> = {}): void { void env; }
+
+/** Re-export product doctrine: Fresh is more than unconstrained cognitive power. */
+export {
+  FRESH_BEYOND_SUPERINTELLIGENCE,
+  describeFreshBeyondSuperintelligence,
+  assertBeyondSuperintelligenceContract,
+} from "./FreshBeyondSuperintelligence.js";
+export type {
+  FreshIntelligencePillar,
+  FreshPillarStatus,
+  FreshPillar,
+} from "./FreshBeyondSuperintelligence.js";
