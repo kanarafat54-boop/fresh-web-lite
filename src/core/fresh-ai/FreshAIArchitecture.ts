@@ -14,6 +14,7 @@ export type FreshAgent = "wallet" | "feed" | "security" | "research" | "architec
 
 export type Evidence = { id: string; source: string; claim: string; observedAt?: string; confidence: number };
 export type FreshClaim = { statement: string; truth: TruthState; confidence: number; evidence: Evidence[]; temporal?: { validFrom?: string; validUntil?: string } };
+export type FreshTruthDecision = { claimId: string; decision: "ALLOW_ACTION" | "ALLOW_WITH_CAUTION" | "BLOCK_ACTION"; actionable: boolean; confidence: number; reasons: string[] };
 export type FreshSkill = { id: string; name: string; description: string; capabilities: string[]; requiredTools?: string[] };
 export type FreshPlanStep = { id: string; description: string; agent?: FreshAgent; skills: string[]; requiresApproval?: boolean };
 export type FreshExecutionResult = { stepId: string; agent?: FreshAgent; accepted: boolean; status: "executed" | "approval-required" | "unavailable" | "failed"; detail: string };
@@ -51,6 +52,7 @@ export type FreshReasoningResult = {
   pipeline?: FreshPipelineEvent[];
   feedback?: FreshFeedback;
   asi?: ASIState;
+  truthDecisions?: FreshTruthDecision[];
 };
 
 export const FRESH_AI_NATIVE_CAPABILITIES = ["general-reasoning","deduction","induction","abduction","planning","causal-reasoning","counterfactual-reasoning","constraint-solving","knowledge-graph","evidence-analysis","provenance","temporal-truth","contradiction-detection","confidence-calibration","unknown-detection","code-generation","code-review","debugging","refactoring","architecture","database-design","api-design","testing","optimization","security","ui-ux-design","design-systems","media-understanding","video-intelligence","audio-understanding","writing","translation","mathematics","statistics","physics","chemistry","biology","simulation-planning","research","data-analysis","forecasting","risk-analysis","automation","learning","creative-synthesis","strategic-planning","transfer-learning","metacognition","scientific-discovery","social-context","environment-modeling","self-improvement","dimensional-reasoning-1d-11d"] as const;
