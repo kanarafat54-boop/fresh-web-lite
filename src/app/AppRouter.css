@@ -34,3 +34,13 @@
 .fresh-shell-frame button,.fresh-shell-frame a,.fresh-shell-frame input,.fresh-shell-frame textarea,.fresh-shell-frame select{touch-action:manipulation}
 .fresh-shell-frame button:focus-visible,.fresh-shell-frame a:focus-visible,.fresh-shell-frame input:focus-visible,.fresh-shell-frame textarea:focus-visible,.fresh-shell-frame select:focus-visible{outline:2px solid var(--fresh-accent,#4fd1b0);outline-offset:3px}
 @media(prefers-reduced-motion:reduce){.fresh-shell-frame *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* Fresh Flow owns its reference chrome; the global top bar remains available everywhere else. */
+.fresh-flow-app-shell>.fresh-universal-topbar{display:none}
+.fresh-flow-app-shell .fresh-flow-content-root{padding-top:0}
+@media(min-width:1201px){.fresh-flow-app-shell .fresh-flow-content-root{margin-right:0}}
+@media(max-width:1200px){.fresh-flow-app-shell .fresh-flow-content-root{margin-right:0}}
+@media(max-width:900px){
+  .fresh-flow-app-shell .fresh-flow-content-root{padding-top:0}
+  .fresh-flow-app-shell .app-content{padding:0 0 calc(18px + env(safe-area-inset-bottom));min-height:100dvh}
+}
