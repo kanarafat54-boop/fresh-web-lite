@@ -1,5 +1,5 @@
 import type { Evidence, FreshClaim, TruthState } from "./FreshAIArchitecture";
-import { SemanticTruthEngine } from "./semanticTruthEngine";
+import { SemanticTruthEngine } from "./semanticTruthEngine.js";
 
 export type TruthDecision = {
   state: TruthState;
