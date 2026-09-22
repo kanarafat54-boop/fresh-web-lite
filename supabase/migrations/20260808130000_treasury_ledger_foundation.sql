@@ -79,12 +79,9 @@ begin
 end;
 $$;
 
--- Balance is derived from immutable entries. For asset/expense accounts,
--- debits increase the balance. For liability/revenue/equity accounts, credits do.
--- The initial treasury migration created a narrower view; replace it explicitly
--- so PostgreSQL can change the view column set/order during preview bootstrap.
-drop view if exists public.treasury_account_balances;
-create view public.treasury_account_balances as
+-- Balance keeps the original seven-column view contract so older dependent
+-- wallet views can remain valid during a clean preview bootstrap.
+create or replace view public.treasury_account_balances as
 select
   a.id as account_id,
   a.owner_id,
@@ -92,8 +89,6 @@ select
   a.kind,
   a.asset_code,
   a.asset_kind,
-  a.display_name,
-  a.active,
   coalesce(
     sum(
       case
@@ -108,7 +103,7 @@ select
 from public.treasury_accounts a
 left join public.treasury_entries e on e.account_id = a.id
 where a.active
- group by a.id, a.owner_id, a.scope, a.kind, a.asset_code, a.asset_kind, a.display_name, a.active;
+ group by a.id, a.owner_id, a.scope, a.kind, a.asset_code, a.asset_kind;
 
 alter table public.treasury_accounts enable row level security;
 alter table public.treasury_transactions enable row level security;
@@ -282,9 +277,10 @@ grant execute on function public.treasury_transfer_internal(uuid, uuid, bigint, 
 -- Read-only wallet projection for authenticated users. RLS is enforced through
 -- the owner predicate rather than exposing the platform/owner books.
 create or replace view public.treasury_my_balances as
-select account_id, asset_code, asset_kind, display_name, balance_minor
-from public.treasury_account_balances
-where scope = 'user' and owner_id = auth.uid() and active;
+select b.account_id, b.asset_code, b.asset_kind, a.display_name, b.balance_minor
+from public.treasury_account_balances b
+join public.treasury_accounts a on a.id = b.account_id
+where b.scope = 'user' and b.owner_id = auth.uid() and a.active;
 
 grant select on public.treasury_my_balances to authenticated;
 
