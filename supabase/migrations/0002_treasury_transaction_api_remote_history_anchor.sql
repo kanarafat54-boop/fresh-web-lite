@@ -1,0 +1,5 @@
+-- Compatibility marker for the existing Supabase Preview branch history.
+-- The linked production schema already contains the treasury transaction API
+-- under migration version 20260808110808. This marker is intentionally a no-op
+-- and exists only so the preview branch's historical 0002 version remains
+-- represented in the repository migration directory.
