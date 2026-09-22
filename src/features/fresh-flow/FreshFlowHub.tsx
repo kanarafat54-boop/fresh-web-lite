@@ -39,9 +39,14 @@ export default function FreshFlowHub() {
   const { isAuthenticated, user, isGuest } = useFreshId();
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
   const isOverview = section === "fresh-flow";
+
+  useEffect(() => {
+    if (!isOverview) setShortsImmersive(false);
+  }, [isOverview]);
   const activeNav = MEDIA_NAV.find((item) => item.id === section);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
+  const [shortsImmersive, setShortsImmersive] = useState(false);
 
   // undefined = loading, null = no wallet row yet (or guest), WalletSummary = real balance.
   const [wallet, setWallet] = useState<WalletSummary | null | undefined>(undefined);
@@ -77,7 +82,7 @@ export default function FreshFlowHub() {
   );
 
   return (
-    <div className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}`} aria-label="Fresh Flow">
+    <div className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}${shortsImmersive ? " immersive-shorts" : ""}`} aria-label="Fresh Flow">
       <header className="fresh-flow-brand-header">
         <button type="button" className="fresh-flow-hamburger" onClick={toggleSidebar} aria-label="Open Fresh Web Lite navigation"><span></span><span></span><span></span></button>
         <button type="button" className="fresh-flow-brand-avatar" onClick={() => setActiveRoute("profile")} aria-label={isAuthenticated ? "Open profile" : "Open profile / sign in"}>
@@ -109,7 +114,7 @@ export default function FreshFlowHub() {
         <button type="button" className="fresh-flow-reference-more" onClick={toggleSidebar} aria-label="More Fresh Flow navigation"><span>•••</span></button>
       </header>
 
-      {isOverview ? renderMediaNavigation("top") : (
+      {isOverview && !shortsImmersive ? renderMediaNavigation("top") : isOverview ? null : (
         <div className="fresh-flow-section-bar">
           <button type="button" className="fresh-flow-back-button" onClick={() => setActiveRoute("fresh-flow")} aria-label="Back to Fresh Flow overview">
             <span aria-hidden="true">‹</span><span>Fresh Flow</span>
@@ -120,7 +125,7 @@ export default function FreshFlowHub() {
 
       <main className="fresh-flow-media-content">
         {section === "fresh-flow" ? (
-          <FreshFlowShortsExperience onOpenTopic={openTopicSearch} />
+          <FreshFlowShortsExperience onOpenTopic={openTopicSearch} onImmersiveChange={setShortsImmersive} />
         ) : section === "fresh-flow-news-posts" ? (
           <FreshFlowNewsPosts />
         ) : (
