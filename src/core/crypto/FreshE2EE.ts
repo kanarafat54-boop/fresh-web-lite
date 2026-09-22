@@ -1,9 +1,8 @@
 /**
  * Fresh AI at-rest encryption primitives (Web Crypto).
  *
- * This is intentional client-side crypto for stored memory and conversation
- * content. It does NOT make server-side inference E2EE: the live /api/ai path
- * still receives plaintext for processing until an on-device model is used.
+ * Client-side crypto for stored memory and conversation content.
+ * Live /api/ai processing still receives plaintext until on-device inference exists.
  */
 
 const textEncoder = new TextEncoder();
@@ -38,7 +37,6 @@ export type FreshSecureEnvelope = {
 export type FreshMasterKeyMaterial = {
   kid: string;
   key: CryptoKey;
-  /** Raw key bytes for optional wrap/export — never persist unwrapped. */
   raw?: ArrayBuffer;
 };
 
@@ -48,14 +46,14 @@ function getSubtle(): SubtleCrypto {
   return subtle;
 }
 
-function bytesToBase64(bytes: ArrayBuffer | Uint8Array): string {
+export function bytesToBase64(bytes: ArrayBuffer | Uint8Array): string {
   const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   let binary = "";
   for (let i = 0; i < view.length; i += 1) binary += String.fromCharCode(view[i]!);
   return btoa(binary);
 }
 
-function base64ToBytes(value: string): Uint8Array {
+export function base64ToBytes(value: string): Uint8Array {
   const binary = atob(value);
   const out = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) out[i] = binary.charCodeAt(i);
@@ -84,7 +82,6 @@ export function isFreshSecureEnvelope(value: unknown): value is FreshSecureEnvel
   );
 }
 
-/** Detect serialized envelope string (legacy plaintext otherwise). */
 export function looksLikeEncryptedPayload(content: string): boolean {
   if (!content.startsWith(FRESH_E2EE_MARKER)) return false;
   try {
@@ -118,9 +115,17 @@ export async function deriveMasterKeyFromPassphrase(
   const subtle = getSubtle();
   const salt = options?.salt ?? randomBytes(16);
   const iterations = options?.iterations ?? FRESH_PBKDF2_ITERATIONS;
-  const kid = options?.kid ?? `fresh-mk-${bytesToBase64(randomBytes(8)).replace(/[+/=]/g, "").slice(0, 12)}`;
+  const kid =
+    options?.kid ??
+    `fresh-mk-${bytesToBase64(randomBytes(8)).replace(/[+/=]/g, "").slice(0, 12)}`;
 
-  const baseKey = await subtle.importKey("raw", textEncoder.encode(passphrase), "PBKDF2", false, ["deriveKey"]);
+  const baseKey = await subtle.importKey(
+    "raw",
+    textEncoder.encode(passphrase),
+    "PBKDF2",
+    false,
+    ["deriveKey"],
+  );
   const key = await subtle.deriveKey(
     { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
     baseKey,
@@ -134,7 +139,10 @@ export async function deriveMasterKeyFromPassphrase(
 
 export async function generateMasterKey(): Promise<FreshMasterKeyMaterial> {
   const subtle = getSubtle();
-  const key = await subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+  const key = await subtle.generateKey({ name: "AES-GCM", length: 256 }, true, [
+    "encrypt",
+    "decrypt",
+  ]);
   const raw = await subtle.exportKey("raw", key);
   const kid = `fresh-mk-${bytesToBase64(randomBytes(8)).replace(/[+/=]/g, "").slice(0, 12)}`;
   return { kid, key, raw };
@@ -193,10 +201,6 @@ export async function decryptText(
   return textDecoder.decode(plain);
 }
 
-/**
- * Decrypt if envelope, otherwise return legacy plaintext unchanged.
- * Never invent content on failure — throw so callers can surface locked vault.
- */
 export async function decryptOrLegacy(
   content: string,
   material: FreshMasterKeyMaterial | null,

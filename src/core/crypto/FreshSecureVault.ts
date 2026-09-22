@@ -6,6 +6,8 @@ import {
   type FreshE2EEPurpose,
   type FreshMasterKeyMaterial,
   assertFreshE2EEContract,
+  base64ToBytes,
+  bytesToBase64,
   decryptOrLegacy,
   decryptText,
   deriveMasterKeyFromPassphrase,
@@ -22,7 +24,7 @@ export type VaultStatus = {
   mode: "locked" | "passphrase" | "ephemeral";
 };
 
-class FreshSecureVault {
+class FreshSecureVaultImpl {
   private material: FreshMasterKeyMaterial | null = null;
   private mode: VaultStatus["mode"] = "locked";
   private saltB64: string | null = null;
@@ -40,24 +42,20 @@ class FreshSecureVault {
     };
   }
 
-  /** Unlock with user passphrase (recommended for multi-device recovery). */
   async unlockWithPassphrase(passphrase: string, existingSaltB64?: string): Promise<VaultStatus> {
-    const salt = existingSaltB64
-      ? Uint8Array.from(atob(existingSaltB64), (c) => c.charCodeAt(0))
-      : undefined;
+    const salt = existingSaltB64 ? base64ToBytes(existingSaltB64) : undefined;
     const { material, salt: usedSalt, iterations } = await deriveMasterKeyFromPassphrase(passphrase, {
       salt,
       kid: this.material?.kid,
     });
     this.material = material;
     this.mode = "passphrase";
-    this.saltB64 = btoa(String.fromCharCode(...usedSalt));
+    this.saltB64 = bytesToBase64(usedSalt);
     this.iterations = iterations;
     if (typeof sessionStorage !== "undefined") sessionStorage.setItem(SESSION_FLAG, "1");
     return this.status();
   }
 
-  /** Ephemeral device key for session-only protection (lost on lock / reload). */
   async unlockEphemeral(): Promise<VaultStatus> {
     this.material = await generateMasterKey();
     this.mode = "ephemeral";
@@ -88,7 +86,10 @@ class FreshSecureVault {
     });
   }
 
-  async open(payload: string, purpose: FreshE2EEPurpose): Promise<{ text: string; encrypted: boolean }> {
+  async open(
+    payload: string,
+    purpose: FreshE2EEPurpose,
+  ): Promise<{ text: string; encrypted: boolean }> {
     return decryptOrLegacy(payload, this.material, purpose);
   }
 
@@ -102,7 +103,7 @@ class FreshSecureVault {
   }
 }
 
-/** Singleton vault for the browser session. */
-export const freshSecureVault = new FreshSecureVault();
+export type FreshSecureVault = FreshSecureVaultImpl;
 
-export type { FreshSecureVault };
+/** Singleton vault for the browser session. */
+export const freshSecureVault: FreshSecureVault = new FreshSecureVaultImpl();

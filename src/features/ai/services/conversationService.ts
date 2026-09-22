@@ -1,11 +1,11 @@
 /**
  * Client conversation helpers with optional at-rest encryption via FreshSecureVault.
  *
- * Important: messages sent to /api/ai/ask are still plaintext for server processing.
- * Encryption applies when persisting content locally or preparing vault-sealed payloads.
+ * Messages sent to /api/ai/ask remain plaintext for server processing.
+ * Encryption applies when persisting content or preparing vault-sealed payloads.
  */
-import { freshSecureVault } from "../../../core/crypto/FreshSecureVault";
-import type { FreshE2EEPurpose } from "../../../core/crypto/FreshE2EE";
+import { freshSecureVault } from "../../../core/crypto/FreshSecureVault.js";
+import type { FreshE2EEPurpose } from "../../../core/crypto/FreshE2EE.js";
 
 export interface ConversationMessage {
   id: number;
@@ -38,14 +38,10 @@ class ConversationService {
     freshSecureVault.lock();
   }
 
-  /**
-   * Seal text for at-rest storage. Returns plaintext if vault locked
-   * (caller should not claim encryption).
-   */
-  async sealForStorage(text: string, purpose: FreshE2EEPurpose = "fresh-ai-conversation"): Promise<{
-    payload: string;
-    encrypted: boolean;
-  }> {
+  async sealForStorage(
+    text: string,
+    purpose: FreshE2EEPurpose = "fresh-ai-conversation",
+  ): Promise<{ payload: string; encrypted: boolean }> {
     if (!freshSecureVault.status().unlocked) {
       return { payload: text, encrypted: false };
     }
@@ -53,11 +49,39 @@ class ConversationService {
     return { payload, encrypted: true };
   }
 
-  async openFromStorage(payload: string, purpose: FreshE2EEPurpose = "fresh-ai-conversation"): Promise<{
-    text: string;
-    encrypted: boolean;
-  }> {
+  async openFromStorage(
+    payload: string,
+    purpose: FreshE2EEPurpose = "fresh-ai-conversation",
+  ): Promise<{ text: string; encrypted: boolean }> {
     return freshSecureVault.open(payload, purpose);
+  }
+
+  /** Open a list of stored turn contents (legacy plaintext or envelopes). */
+  async openTurns(
+    turns: Array<{ role: "user" | "assistant"; content: string; createdAt: string }>,
+  ): Promise<Array<{ role: "user" | "assistant"; content: string; createdAt: string; encrypted: boolean }>> {
+    const opened = [];
+    for (const turn of turns) {
+      try {
+        const result = await freshSecureVault.open(turn.content, "fresh-ai-conversation");
+        opened.push({
+          role: turn.role,
+          content: result.text,
+          createdAt: turn.createdAt,
+          encrypted: result.encrypted,
+        });
+      } catch {
+        opened.push({
+          role: turn.role,
+          content: freshSecureVault.isEncrypted(turn.content)
+            ? "[Encrypted — unlock vault to read]"
+            : turn.content,
+          createdAt: turn.createdAt,
+          encrypted: freshSecureVault.isEncrypted(turn.content),
+        });
+      }
+    }
+    return opened;
   }
 
   send(text: string): ConversationMessage[] {
