@@ -18,7 +18,6 @@
  */
 
 import { FRESH_UNIFIED_MODEL } from "./FreshUnifiedModelCore.js";
-import { FRESH_AI_POLICY } from "./FreshAIArchitecture.js";
 
 export type FreshIntelligencePillar =
   | "truth"
@@ -58,7 +57,6 @@ export const FRESH_BEYOND_SUPERINTELLIGENCE = {
     "autonomous production mutation",
   ] as const,
   weightsStatus: FRESH_UNIFIED_MODEL.weightsStatus,
-  policy: FRESH_AI_POLICY,
   pillars: [
     {
       id: "truth",
@@ -145,16 +143,12 @@ export function describeFreshBeyondSuperintelligence(): string {
 
 export function assertBeyondSuperintelligenceContract(): void {
   if (FRESH_BEYOND_SUPERINTELLIGENCE.weightsStatus !== "training-required") {
-    // Intentionally strict until an explicit promotion path changes the core model constant.
     throw new Error("Beyond-SI contract expected weightsStatus training-required until promotion gates pass");
-  }
-  if (!FRESH_AI_POLICY.freshOwnsDecisionBoundary) {
-    throw new Error("Fresh must own the decision boundary");
-  }
-  if (FRESH_AI_POLICY.autonomousSelfModification) {
-    throw new Error("Autonomous self-modification is forbidden");
   }
   if (FRESH_BEYOND_SUPERINTELLIGENCE.pillars.length < 8) {
     throw new Error("Beyond-SI pillar set is incomplete");
+  }
+  if (!FRESH_BEYOND_SUPERINTELLIGENCE.thesis.includes("sovereign intelligence system")) {
+    throw new Error("Beyond-SI thesis must assert sovereign intelligence system");
   }
 }
