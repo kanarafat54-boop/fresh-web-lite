@@ -1,0 +1,3 @@
+-- Remote migration history anchor.
+-- The 0002 migration was already applied to the linked Supabase project.
+-- This no-op file preserves the remote migration version locally for Supabase Preview history validation.
