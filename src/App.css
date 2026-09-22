@@ -30,19 +30,6 @@ body { background: var(--bg); color: var(--text); margin: 0; font-family: var(--
 .fresh-flow-kicker { font-size: .68rem; letter-spacing: .16em; font-weight: 800; color: var(--accent-2); }
 .fresh-flow-header h1 { margin: 5px 0 6px; font-family: var(--font-display); font-size: 1.45rem; letter-spacing: -.04em; }
 .fresh-flow-header p { margin: 0; color: var(--text-dim); line-height: 1.5; font-size: .82rem; }
-.fresh-flow-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 12px; scrollbar-width: none; scroll-snap-type: x proximity; }
-.fresh-flow-tabs::-webkit-scrollbar { display: none; }
-.fresh-flow-tab { flex: 0 0 auto; min-width: 82px; scroll-snap-align: start; border: 1px solid var(--border); background: var(--surface); color: var(--text-dim); border-radius: 16px; padding: 10px 9px 9px; display: grid; gap: 5px; justify-items: center; font: 600 .68rem var(--font-body); transition: transform .18s ease, border-color .18s ease, background .18s ease; }
-.fresh-flow-tab:active { transform: scale(.96); }
-.fresh-flow-tab.active { color: var(--text); border-color: rgba(168,85,247,.7); background: linear-gradient(180deg, rgba(108,92,231,.24), rgba(31,31,31,.92)); }
-.fresh-flow-tab-icon { font-size: 1.05rem; line-height: 1; }
-.fresh-flow-notice { margin: 2px 2px 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; color: var(--text-dim); background: var(--surface); font-size: .76rem; line-height: 1.4; }
-.fresh-flow-divider { display: flex; align-items: center; gap: 9px; padding: 12px 4px 10px; }
-.fresh-flow-divider span { font: 800 .68rem var(--font-display); letter-spacing: .1em; white-space: nowrap; }
-.fresh-flow-divider i { height: 1px; flex: 1; background: var(--border); }
-.fresh-flow-divider small { color: var(--text-dim); font-size: .62rem; white-space: nowrap; }
-.fresh-short-flow-shell { border-radius: 20px; overflow: hidden; border: 1px solid var(--border); background: #000; min-height: 480px; }
-.fresh-short-flow-shell .shorts-container { border-radius: 0; }
 .home-discovery-note { margin: 14px 2px 0; padding: 12px; display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
 .home-discovery-note strong { font-size: .78rem; }
 .home-discovery-note p { margin: 4px 0 0; color: var(--text-dim); font-size: .7rem; line-height: 1.45; }
