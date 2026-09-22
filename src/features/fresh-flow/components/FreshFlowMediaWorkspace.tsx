@@ -3,7 +3,6 @@ import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { CommentPanel } from "../../comments/components/CommentPanel";
 import { ReactionPicker } from "../../reactions/components/ReactionPicker";
-import type { UniversalReactionKind } from "../../../core/interactions/FreshReactionModel";
 import "./FreshFlowMediaWorkspace.css";
 
 type MediaWorkspaceProps = {
@@ -136,7 +135,7 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
 
   useEffect(() => { void loadMedia(); }, [kind, user?.id, isGuest]);
 
-  async function react(post: MediaPost, reaction: UniversalReactionKind) {
+  async function react(post: MediaPost, reaction: string) {
     if (!user || isGuest) return;
     if (post.myReaction === reaction) {
       await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
