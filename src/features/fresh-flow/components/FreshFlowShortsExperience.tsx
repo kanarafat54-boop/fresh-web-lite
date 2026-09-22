@@ -5,7 +5,7 @@ import FreshFlowShortsStream from "./FreshFlowShortsStream";
 import { recordFreshShortsTelemetry } from "../core/shortsTelemetry";
 import "./FreshFlowShortsExperience.css";
 
-type Props = { onOpenTopic?: (tag: string) => void };
+type Props = { onOpenTopic?: (tag: string) => void; onImmersiveChange?: (immersive: boolean) => void };
 
 function getConnectionType(): string | undefined {
   const connection = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection;
@@ -19,7 +19,7 @@ function getConnectionType(): string | undefined {
  * React's listener is installed. Five continuous seconds then opens the
  * Short as a full-page surface with a persistent back control.
  */
-export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
+export default function FreshFlowShortsExperience({ onOpenTopic, onImmersiveChange }: Props) {
   const { setActiveRoute } = useLayout();
   const { isGuest } = useFreshId();
   const [immersive, setImmersive] = useState(false);
@@ -53,6 +53,7 @@ export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
         }
         triggeredIdsRef.current.add(shortId);
         setImmersive(true);
+        onImmersiveChange?.(true);
         recordFreshShortsTelemetry({ event: "immersive_enter", shortId, connection: getConnectionType(), online: navigator.onLine });
         timerRef.current = null;
       }, 5000);
@@ -160,6 +161,7 @@ export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
 
   const exitImmersive = () => {
     setImmersive(false);
+    onImmersiveChange?.(false);
     setStreamKey((key) => key + 1);
   };
 
