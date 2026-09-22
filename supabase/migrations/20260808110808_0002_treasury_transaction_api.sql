@@ -1,4 +1,0 @@
--- Historical migration-history anchor.
--- This version is already applied on the production Supabase project.
--- The repository's current schema migrations are retained under their original local timestamps.
--- This file intentionally performs no SQL; it preserves the production migration timestamp for CI/branch history reconciliation.
