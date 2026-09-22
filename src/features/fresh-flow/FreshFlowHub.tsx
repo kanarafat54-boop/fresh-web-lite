@@ -20,10 +20,10 @@ type FreshFlowSection =
 
 const MEDIA_NAV = [
   { id: "fresh-flow", label: "Home", icon: "⌂" },
-  { id: "fresh-flow-long-videos", label: "Long Videos", icon: "▷" },
-  { id: "fresh-flow-news-posts", label: "News / Posts", icon: "▤" },
-  { id: "fresh-flow-ar-vr", label: "AR / VR", icon: "◇" },
-  { id: "fresh-flow-podcasts", label: "Podcasts", icon: "♩" },
+  { id: "fresh-flow-long-videos", label: "Long Videos", icon: "▶" },
+  { id: "fresh-flow-news-posts", label: "News / Posts", icon: "☰" },
+  { id: "fresh-flow-ar-vr", label: "AR / VR", icon: "⬡" },
+  { id: "fresh-flow-podcasts", label: "Podcasts", icon: "🎙" },
   { id: "fresh-flow-more", label: "Others", icon: "▦" },
 ] as const;
 
