@@ -73,6 +73,7 @@ def main() -> int:
     parser.add_argument("--train", action="store_true")
     parser.add_argument("--steps", type=int, default=10)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--spec", default=None, help="Optional model spec JSON (defaults to model_spec.json)")
     args = parser.parse_args()
 
     try:
@@ -84,7 +85,7 @@ def main() -> int:
     dataset = Path(args.dataset)
     tokenizer_path = Path(args.tokenizer)
     output = Path(args.output)
-    spec_path = Path(__file__).with_name("model_spec.json")
+    spec_path = Path(args.spec) if args.spec else Path(__file__).with_name("model_spec.json")
     spec = json.loads(spec_path.read_text(encoding="utf-8"))
     if spec["modelId"] != MODEL_ID:
         raise SystemExit("Model spec is not bound to fresh-unified-1")

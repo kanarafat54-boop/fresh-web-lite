@@ -48,6 +48,9 @@ export const FRESH_UNIFIED_MODEL = {
   modalities: ["text", "vision", "image", "3d", "video", "audio", "code", "simulation", "action"] as const,
   architectureStatus: "training-ready-sovereign-runtime",
   weightsStatus: "training-required",
+  /** First real optimizer evidence exists; production promotion still blocked. See training/STARTER_RUN1.md */
+  starterTrainingRunId: "fresh-unified-1-starter-run1",
+  starterCheckpointSha256: "86358db24d537a46d0097820ec485be5ce2453ae4e8b45904c856fb7976f7dcd",
   checkpointEnv: "FRESH_UNIFIED_CHECKPOINT_ID",
 } as const;
 
