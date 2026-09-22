@@ -1,7 +1,7 @@
 -- Keep the repository migration history aligned with the production hardening
 -- applied to the Fresh Web Lite Supabase project.
 
-do $
+do $view$
 declare
   view_name text;
 begin
@@ -16,8 +16,7 @@ begin
     end if;
   end loop;
 end;
-$;
-
+$view$;
 -- Client roles must never be able to call privileged ledger mutation or
 -- administrative helper functions directly.
 do $$
