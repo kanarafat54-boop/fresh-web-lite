@@ -37,7 +37,7 @@ for (const [source, needle, message] of required) {
   if (!source.includes(needle)) throw new Error(message + " Missing: " + needle);
 }
 
-if (researchPersistence.includes("from "../../src/core/semantic/supabaseSemanticPersistence"") && !researchPersistence.includes("from "../../src/core/semantic/supabaseSemanticPersistence.js"")) {
+if (researchPersistence.includes("from \"../../src/core/semantic/supabaseSemanticPersistence\"") && !researchPersistence.includes("from \"../../src/core/semantic/supabaseSemanticPersistence.js\"")) {
   throw new Error("Server persistence import should use the ESM .js contract used by the API layer.");
 }
 
