@@ -1,0 +1,14 @@
+{
+  "schema": "fresh-unified-checkpoint-v1",
+  "modelId": "fresh-unified-1",
+  "tokenizerId": "fresh-unified-tokenizer-v1",
+  "executionStatus": "completed",
+  "datasetSha256": "05a6764acb855f59044eac453792a1f9f13e989175bfadd49fc3324381370121",
+  "tokenizerSha256": "8b9483e8cdb9a65afc243f2fba6467b76b64851eed97069d38aa3ca769dfb48b",
+  "checkpointSha256": "86358db24d537a46d0097820ec485be5ce2453ae4e8b45904c856fb7976f7dcd",
+  "steps": 40,
+  "finalLoss": 107.75459289550781,
+  "device": "cpu",
+  "pipelineSmokeTest": true,
+  "note": "Starter corpus checkpoint using the canonical Fresh trained-subword tokenizer; not production or frontier training."
+}

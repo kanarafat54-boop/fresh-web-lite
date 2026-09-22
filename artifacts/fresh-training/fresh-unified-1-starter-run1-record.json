@@ -1,0 +1,37 @@
+{
+  "schema": "fresh-unified-training-run-record-v1",
+  "runId": "fresh-unified-1-starter-run1",
+  "modelId": "fresh-unified-1",
+  "executionStatus": "completed",
+  "pipelineSmokeTest": true,
+  "productionReady": false,
+  "weightsStatus": "training-required",
+  "starterCheckpoint": {
+    "path": "artifacts/fresh-training/checkpoints/fresh-unified-1-starter-run1.pt",
+    "sha256": "86358db24d537a46d0097820ec485be5ce2453ae4e8b45904c856fb7976f7dcd",
+    "steps": 40,
+    "finalLoss": 107.75459289550781,
+    "device": "cpu",
+    "architecture": "reduced-capacity-smoke (h128/l2/ff256/ctx256)"
+  },
+  "dataset": {
+    "path": "data/fresh-training/synthetic-starter-v1.jsonl",
+    "sha256": "05a6764acb855f59044eac453792a1f9f13e989175bfadd49fc3324381370121",
+    "exampleCount": 46
+  },
+  "tokenizer": {
+    "path": "artifacts/fresh-training/fresh-unified-tokenizer-v1.json",
+    "sha256": "8b9483e8cdb9a65afc243f2fba6467b76b64851eed97069d38aa3ca769dfb48b",
+    "status": "starter-trained"
+  },
+  "gates": {
+    "datasetIntegrity": "passed",
+    "tokenizerTraining": "passed",
+    "optimizerRun": "passed",
+    "evaluation": "not-run",
+    "safety": "not-run",
+    "productionPromotion": "blocked"
+  },
+  "createdAt": "2026-09-22T10:10:43.293270+00:00",
+  "note": "First real optimizer run completed on CPU with reduced capacity. Not a production frontier checkpoint. weightsStatus remains training-required until full-capacity authorized corpus training + evaluation."
+}
