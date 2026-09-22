@@ -1,4 +1,4 @@
-import type { Evidence, FreshClaim, TruthState } from "./FreshAIArchitecture";
+import type { Evidence, FreshClaim, FreshTruthDecision, TruthState } from "./FreshAIArchitecture";
 import { SemanticTruthEngine } from "./semanticTruthEngine";
 
 export type TruthDecision = {
@@ -18,6 +18,8 @@ export type TruthDecision = {
  */
 export class FreshTruthDecisionOrchestrator {
   private readonly semanticTruth = new SemanticTruthEngine();
+
+  decide(evidence: Evidence[]): ReturnType<SemanticTruthEngine["decide"]> { return this.semanticTruth.decide(evidence); }
 
   evaluate(evidence: Evidence[]): TruthDecision {
     if (!evidence.length) {
