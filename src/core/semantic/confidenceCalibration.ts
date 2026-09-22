@@ -30,7 +30,7 @@ export function calibrateClaimConfidence(
   const clusters = clusterEvidence(observations);
   const graph = buildProvenanceGraph(provenanceNodes, provenanceEdges);
   const sourceIds = relevant.map((item) => item.sourceId).filter((id): id is string => Boolean(id));
-  const independentSources = graph.nodes.length ? provenanceAdjustedIndependence(graph, sourceIds) : clusters.length;
+  const independentSources = graph.nodes.length ? provenanceAdjustedIndependence(graph, sourceIds) : new Set(sourceIds).size || clusters.length;
   const relationPenalty = relatedClaims.reduce((penalty, other) => {
     if (other.id === claim.id) return penalty;
     const left = { id: claim.id, subjectEntityId: claim.subjectEntityId ?? "", predicate: claim.predicate, object: String(claim.object), statement: `${claim.predicate} ${String(claim.object)}`, normalizedStatement: claim.normalizedText, observedAt: claim.lastObservedAt, validFrom: claim.validFrom, validTo: claim.validTo, confidence: claim.confidence };
