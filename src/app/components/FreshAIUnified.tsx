@@ -301,7 +301,7 @@ export default function FreshAIUnified() {
   ) : null;
 
   const messageList = turns.length === 0 ? (
-    <div className="fresh-ai-unified-welcome"><div className="fresh-ai-welcome-crystal">✦</div><h2>What can Fresh help you do?</h2><p>One intelligence for conversation, knowledge, creation, work and action across Fresh Web Lite.</p><div className="fresh-ai-suggestions">{["Understand something", "Research this", "Create an image", "Generate a 3D object"].map((text) => <button key={text} type="button" onClick={() => suggestion(text)}><span>◇</span>{text}</button>)}</div></div>
+    <div className="fresh-ai-unified-welcome"><div className="fresh-ai-welcome-crystal">✦</div><h2>What can Fresh help you do?</h2><p>One intelligence for conversation, knowledge, creation, work and action across Fresh Web Lite.</p><div className="fresh-ai-suggestions">{["Understand something", "Research this", "Create an image", "Generate a 3D object", "Native Dimensions 1D–11D"].map((text) => <button key={text} type="button" onClick={() => suggestion(text)}><span>◇</span>{text}</button>)}</div></div>
   ) : turns.map((turn, index) => (
     <article key={`${turn.createdAt}-${index}`} className={`fresh-ai-unified-message ${turn.role}`}>
       <div className="fresh-ai-unified-avatar">{turn.role === "assistant" ? <span>✦</span> : "You"}</div>
