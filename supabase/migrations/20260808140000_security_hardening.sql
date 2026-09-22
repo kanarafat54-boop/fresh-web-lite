@@ -1,36 +1,72 @@
 -- Keep the repository migration history aligned with the production hardening
 -- applied to the Fresh Web Lite Supabase project.
 
-alter view public.treasury_account_balances set (security_invoker = true);
-alter view public.my_treasury_balances set (security_invoker = true);
-alter view public.short_reaction_breakdown set (security_invoker = true);
-alter view public.short_recent_activity set (security_invoker = true);
+do $
+declare
+  view_name text;
+begin
+  foreach view_name in array array[
+    'public.treasury_account_balances',
+    'public.my_treasury_balances',
+    'public.short_reaction_breakdown',
+    'public.short_recent_activity'
+  ] loop
+    if to_regclass(view_name) is not null then
+      execute format('alter view %s set (security_invoker = true)', view_name);
+    end if;
+  end loop;
+end;
+$;
 
 -- Client roles must never be able to call privileged ledger mutation or
 -- administrative helper functions directly.
-revoke execute on function public.assert_ledger_transaction_balanced(uuid) from public, anon, authenticated;
-revoke execute on function public.create_treasury_transaction(text, text, jsonb, jsonb) from public, anon, authenticated;
-revoke execute on function public.send_tip(uuid, uuid, integer, text) from public, anon, authenticated;
-revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
-revoke execute on function public.increment_short_views(uuid) from public, anon, authenticated;
-revoke execute on function public.update_note_vote_counts() from public, anon, authenticated;
-revoke execute on function public.update_post_comment_count() from public, anon, authenticated;
-revoke execute on function public.update_post_like_count() from public, anon, authenticated;
-revoke execute on function public.update_short_comment_count() from public, anon, authenticated;
-revoke execute on function public.update_short_like_count() from public, anon, authenticated;
-revoke execute on function public.update_short_repost_count() from public, anon, authenticated;
-revoke execute on function public.reject_ledger_mutation() from public, anon, authenticated;
+do $$
+declare
+  function_signature text;
+begin
+  foreach function_signature in array array[
+    'public.assert_ledger_transaction_balanced(uuid)',
+    'public.create_treasury_transaction(text, text, jsonb, jsonb)',
+    'public.send_tip(uuid, uuid, integer, text)',
+    'public.rls_auto_enable()',
+    'public.increment_short_views(uuid)',
+    'public.update_note_vote_counts()',
+    'public.update_post_comment_count()',
+    'public.update_post_like_count()',
+    'public.update_short_comment_count()',
+    'public.update_short_like_count()',
+    'public.update_short_repost_count()',
+    'public.reject_ledger_mutation()'
+  ] loop
+    if to_regprocedure(function_signature) is not null then
+      execute 'revoke execute on function ' || function_signature || ' from public, anon, authenticated';
+    end if;
+  end loop;
+end;
+$$;
 
 -- Pin mutable function resolution to the trusted schema.
-alter function public.update_post_like_count() set search_path = public;
-alter function public.update_short_repost_count() set search_path = public;
-alter function public.update_short_like_count() set search_path = public;
-alter function public.update_note_vote_counts() set search_path = public;
-alter function public.update_post_comment_count() set search_path = public;
-alter function public.update_short_comment_count() set search_path = public;
-alter function public.increment_short_views(uuid) set search_path = public;
-alter function public.send_tip(uuid, uuid, integer, text) set search_path = public;
-alter function public.reject_ledger_mutation() set search_path = public;
+do $$
+declare
+  function_signature text;
+begin
+  foreach function_signature in array array[
+    'public.update_post_like_count()',
+    'public.update_short_repost_count()',
+    'public.update_short_like_count()',
+    'public.update_note_vote_counts()',
+    'public.update_post_comment_count()',
+    'public.update_short_comment_count()',
+    'public.increment_short_views(uuid)',
+    'public.send_tip(uuid, uuid, integer, text)',
+    'public.reject_ledger_mutation()'
+  ] loop
+    if to_regprocedure(function_signature) is not null then
+      execute 'alter function ' || function_signature || ' set search_path = public';
+    end if;
+  end loop;
+end;
+$$;
 
 -- Ledger base tables remain RLS-protected without client policies: all
 -- mutation access is intentionally routed through controlled server functions.
