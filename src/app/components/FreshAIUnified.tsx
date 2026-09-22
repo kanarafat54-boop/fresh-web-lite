@@ -3,6 +3,8 @@ import { useLayout } from "../contexts/useLayout";
 import { useTheme } from "../providers/ThemeProvider";
 import { supabase } from "../../lib/supabase";
 import { createFreshAIWorkspaceContext } from "../../core/fresh-ai/FreshAIWorkspaceContext";
+import { conversationService } from "../../features/ai/services/conversationService";
+import { freshSecureVault } from "../../core/crypto/FreshSecureVault";
 import FreshAIRichText from "./FreshAIRichText";
 import "./FreshAIUnified.css";
 import "./FreshAIArtifactPresentation.css";
@@ -88,7 +90,10 @@ export default function FreshAIUnified() {
         const payload = await response.json() as { conversation?: { id: string } | null; turns?: Array<{ role: "user" | "assistant"; content: string; created_at: string }> };
         if (cancelled || !payload.conversation) return;
         setConversationId(payload.conversation.id);
-        setTurns((payload.turns ?? []).map((turn) => ({ role: turn.role, content: turn.content, createdAt: turn.created_at })));
+        const rawTurns = (payload.turns ?? []).map((turn) => ({ role: turn.role, content: turn.content, createdAt: turn.created_at }));
+        const opened = await conversationService.openTurns(rawTurns);
+        if (cancelled) return;
+        setTurns(opened.map((turn) => ({ role: turn.role, content: turn.content, createdAt: turn.createdAt })));
       } catch {}
     })();
     return () => { cancelled = true; };
@@ -261,7 +266,7 @@ export default function FreshAIUnified() {
       <form onSubmit={ask}><button className="fresh-ai-add" type="button" onClick={() => setConstellation((current) => !current)} aria-label="Open capabilities">＋</button><textarea ref={inputRef} rows={1} value={draft} onChange={(event) => { setDraft(event.target.value); resizeInput(); }} onKeyDown={keyDown} placeholder="Message Fresh AI…" /><button className={`fresh-ai-voice ${voice ? "active" : ""}`} type="button" onClick={() => setVoice((current) => !current)} aria-label="Toggle voice">{voice ? "◉" : "◌"}</button><button className="fresh-ai-send" type="submit" disabled={!draft.trim() || loading || uploading} aria-label="Send">↑</button></form>
       <div className="fresh-ai-composer-tools"><label className="fresh-ai-attach">⌕ {uploading ? "Uploading…" : "Attach"}<input type="file" multiple onChange={(event) => { void uploadFiles(event.target.files); event.currentTarget.value = ""; }} /></label><div className="fresh-ai-mode-strip">{modes.map((item) => <button key={item} className={mode === item ? "active" : ""} type="button" onClick={() => setMode(item)}>{item}</button>)}</div><span>{loading ? "Fresh is working…" : uploading ? "Securing files…" : "Enter to send · Shift+Enter for newline"}</span>{loading ? <button type="button" onClick={stop}>Stop</button> : null}</div>
       {attachments.length > 0 ? <div className="fresh-ai-composer-attachments" aria-label="Attached files">{attachments.map((file) => <span key={file.id}>◇ {file.name}</span>)}</div> : null}
-      <small className="fresh-ai-unified-status"><span>✦</span> {source || "Fresh AI"} · Native Dimensions 1D–11D · Memory · Knowledge · Research · Governed tools</small>
+      <small className="fresh-ai-unified-status"><span>✦</span> {source || "Fresh AI"} · Vault {freshSecureVault.status().unlocked ? "unlocked (at-rest seal available)" : "locked"} · Memory · Research · Governed tools</small>
     </div>
   </div>;
 
