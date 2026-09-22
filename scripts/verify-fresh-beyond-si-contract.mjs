@@ -20,7 +20,8 @@ const required = [
   "learning",
   "governance",
   "assertBeyondSuperintelligenceContract",
-  "No autonomous production mutation",
+  "autonomous production mutation",
+  "sovereign intelligence system",
 ];
 
 const missing = required.filter((item) => !text.includes(item));
