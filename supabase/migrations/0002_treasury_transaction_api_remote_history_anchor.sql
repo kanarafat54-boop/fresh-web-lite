@@ -1,0 +1,4 @@
+-- Compatibility marker for the persistent Supabase Preview branch history.
+-- This branch contains migration version 0002 from an earlier history anchor.
+-- The linked production project uses version 20260808110808 for the same
+-- treasury transaction history. This file is intentionally a no-op.
