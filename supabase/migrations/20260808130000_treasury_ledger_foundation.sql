@@ -81,7 +81,10 @@ $$;
 
 -- Balance is derived from immutable entries. For asset/expense accounts,
 -- debits increase the balance. For liability/revenue/equity accounts, credits do.
-create or replace view public.treasury_account_balances as
+-- The initial treasury migration created a narrower view; replace it explicitly
+-- so PostgreSQL can change the view column set/order during preview bootstrap.
+drop view if exists public.treasury_account_balances;
+create view public.treasury_account_balances as
 select
   a.id as account_id,
   a.owner_id,
