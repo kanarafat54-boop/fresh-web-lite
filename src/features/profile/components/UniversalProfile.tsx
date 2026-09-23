@@ -50,6 +50,9 @@ export default function UniversalProfile() {
   const [editing, setEditing] = useState(false);
   const [professional, setProfessional] = useState(emptyProfessional);
   const [passkeys, setPasskeys] = useState<Array<{ id?: string; name?: string }>>([]);
+  const [mfaFactors, setMfaFactors] = useState<Array<{ id: string; friendly_name?: string; status?: string }>>([]);
+  const [mfaSetup, setMfaSetup] = useState<{ id: string; qr: string; secret: string; code: string } | null>(null);
+  const [mfaBusy, setMfaBusy] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -185,6 +188,54 @@ export default function UniversalProfile() {
     try { setPasskeys(await listPasskeys()); } catch { setPasskeys([]); }
   }
 
+  async function refreshMfa() {
+    const { data, error: factorError } = await supabase.auth.mfa.listFactors();
+    if (factorError) { setError(factorError.message); return; }
+    setMfaFactors([...(data?.totp ?? []), ...(data?.phone ?? [])] as Array<{ id: string; friendly_name?: string; status?: string }>);
+  }
+
+  async function startMfaSetup() {
+    setMfaBusy(true); setError(null); setMessage(null);
+    try {
+      const { data, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: "Fresh ID Authenticator" });
+      if (enrollError || !data) throw enrollError ?? new Error("Could not start two-factor setup.");
+      setMfaSetup({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret, code: "" });
+    } catch (reason: unknown) { setError(reason instanceof Error ? reason.message : "Could not start two-factor setup."); }
+    finally { setMfaBusy(false); }
+  }
+
+  async function verifyMfaSetup() {
+    if (!mfaSetup || mfaSetup.code.trim().length < 6) return;
+    setMfaBusy(true); setError(null);
+    try {
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: mfaSetup.id });
+      if (challengeError || !challenge) throw challengeError ?? new Error("Could not create MFA challenge.");
+      const { error: verifyError } = await supabase.auth.mfa.verify({ factorId: mfaSetup.id, challengeId: challenge.id, code: mfaSetup.code.trim() });
+      if (verifyError) throw verifyError;
+      await supabase.from("users").update({ security: { ...(user.security ?? {}), twoFactorEnabled: true } }).eq("id", user.id);
+      setMfaSetup(null); setMessage("Two-factor authentication is now enabled on Fresh ID."); await refreshMfa();
+    } catch (reason: unknown) { setError(reason instanceof Error ? reason.message : "Two-factor verification failed."); }
+    finally { setMfaBusy(false); }
+  }
+
+  async function removeMfa(factorId: string) {
+    setMfaBusy(true); setError(null);
+    try {
+      const { error: unenrollError } = await supabase.auth.mfa.unenroll({ factorId });
+      if (unenrollError) throw unenrollError;
+      await supabase.from("users").update({ security: { ...(user.security ?? {}), twoFactorEnabled: false } }).eq("id", user.id);
+      setMessage("Two-factor authentication factor removed."); await refreshMfa();
+    } catch (reason: unknown) { setError(reason instanceof Error ? reason.message : "Could not remove MFA factor."); }
+    finally { setMfaBusy(false); }
+  }
+
+  async function exportAccountData() {
+    if (!profile) return;
+    const payload = { exportedAt: new Date().toISOString(), profile, analytics, connectedIdentities: connected, activity: profile.activity, subscription: user.subscription, security: { twoFactorEnabled: user.security.twoFactorEnabled, passkeyCount: passkeys.length } };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `fresh-id-${profile.username}-export.json`; link.click(); URL.revokeObjectURL(url); setMessage("Fresh ID account export created.");
+  }
+
   if (!user) return <div className="universal-profile empty-profile"><h2>Fresh ID</h2><p>Sign in to open your real universal profile.</p></div>;
   if (loading) return <div className="universal-profile empty-profile"><p>Loading your Fresh ID profile…</p></div>;
   if (!profile) return <div className="universal-profile empty-profile"><p>{error || "Profile unavailable."}</p></div>;
@@ -267,7 +318,7 @@ export default function UniversalProfile() {
 
       {tab === "Insights" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">REAL CONTENT ANALYTICS</span><h2>Professional dashboard</h2></div><button onClick={() => window.dispatchEvent(new CustomEvent("fresh-route", { detail: "creator" }))}>Creator Studio</button></div><div className="analytics-big-grid"><div><strong>{analytics?.post_count ?? profile.postCount}</strong><span>Posts</span></div><div><strong>{analytics?.short_count ?? profile.shortCount}</strong><span>Shorts</span></div><div><strong>{analytics?.short_views ?? 0}</strong><span>Short views</span></div><div><strong>{analytics?.short_likes ?? analytics?.post_likes ?? 0}</strong><span>Likes</span></div><div><strong>{analytics?.short_reposts ?? 0}</strong><span>Reposts</span></div><div><strong>{analytics?.gifts_received_count ?? 0}</strong><span>Gifts received</span></div><div><strong>{analytics?.follower_count ?? profile.followerCount}</strong><span>Followers</span></div><div><strong>{analytics?.following_count ?? profile.followingCount}</strong><span>Following</span></div></div><p className="muted">Metrics are read from Fresh content and account data. Missing event-level metrics remain zero rather than being invented.</p></section>}
 
-      {tab === "Account" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">ULTIMATE ACCOUNT CENTER</span><h2>Security, access and account controls</h2></div><span>{user.subscription.tier.toUpperCase()}</span></div><div className="account-grid"><div><span>Subscription</span><strong>{user.subscription.tier}</strong><small>{user.subscription.renewsAt ? `Renews ${new Date(user.subscription.renewsAt).toLocaleDateString()}` : "No renewal date stored"}</small></div><div><span>Verification</span><strong>{user.identity.verificationLevel ?? "none"}</strong><small>{user.verified ? "Account verified" : "Verification available when enabled"}</small></div><div><span>Two-factor</span><strong>{user.security.twoFactorEnabled ? "Enabled" : "Not enabled"}</strong><small>Stored account security state</small></div><div><span>Linked accounts</span><strong>{user.linkedAccounts.length}</strong><small>Cross-platform identity links</small></div><div><span>Presence</span><strong>{user.presence}</strong><small>Current Fresh ID state</small></div><div><span>Account age</span><strong>{Math.max(1, Math.floor((Date.now()-Date.parse(user.createdAt))/86400000))} days</strong><small>Based on account creation date</small></div></div><div className="account-actions"><button onClick={() => void openPasskeys()}>Manage passkeys</button><button onClick={() => void registerPasskey()}>＋ Add this device passkey</button><button onClick={() => setActiveRoute("settings")}>Open settings</button></div>{passkeys.length > 0 && <div className="passkey-list">{passkeys.map((key) => <div key={key.id}><span>🔐 {key.name || "Fresh ID passkey"}</span>{key.id && <button onClick={() => void removePasskey(key.id!)}>Remove</button>}</div>)}</div>}<p className="muted">Fresh ID keeps account controls separate from public profile presentation. Destructive account operations remain behind explicit authorization.</p></section>}
+      {tab === "Account" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">ULTIMATE ACCOUNT CENTER</span><h2>Security, access and account controls</h2></div><span>{user.subscription.tier.toUpperCase()}</span></div><div className="account-grid"><div><span>Subscription</span><strong>{user.subscription.tier}</strong><small>{user.subscription.renewsAt ? `Renews ${new Date(user.subscription.renewsAt).toLocaleDateString()}` : "No renewal date stored"}</small></div><div><span>Verification</span><strong>{user.identity.verificationLevel ?? "none"}</strong><small>{user.verified ? "Account verified" : "Verification available when enabled"}</small></div><div><span>Two-factor</span><strong>{user.security.twoFactorEnabled ? "Enabled" : "Not enabled"}</strong><small>Stored account security state</small></div><div><span>Linked accounts</span><strong>{user.linkedAccounts.length}</strong><small>Cross-platform identity links</small></div><div><span>Presence</span><strong>{user.presence}</strong><small>Current Fresh ID state</small></div><div><span>Account age</span><strong>{Math.max(1, Math.floor((Date.now()-Date.parse(user.createdAt))/86400000))} days</strong><small>Based on account creation date</small></div></div><div className="account-actions"><button onClick={() => void openPasskeys()}>Manage passkeys</button><button onClick={() => void registerPasskey()}>＋ Add this device passkey</button><button onClick={() => void refreshMfa()}>Manage 2FA</button><button onClick={() => void exportAccountData()}>↓ Export my data</button><button onClick={() => setActiveRoute("settings")}>Open settings</button></div>{mfaSetup && <div className="mfa-setup"><strong>Set up authenticator app</strong><p>Scan the QR code with your authenticator app, then enter the 6-digit code.</p><img src={`data:image/svg+xml;utf8,${encodeURIComponent(mfaSetup.qr)}`} alt="Fresh ID authenticator QR code" /><code>{mfaSetup.secret}</code><input inputMode="numeric" maxLength={6} value={mfaSetup.code} onChange={(e) => setMfaSetup((current) => current ? { ...current, code: e.target.value.replace(/\\D/g, "") } : current)} placeholder="123456" /><div><button disabled={mfaBusy} onClick={() => void verifyMfaSetup()}>Verify & enable</button><button disabled={mfaBusy} onClick={() => setMfaSetup(null)}>Cancel</button></div></div>}{mfaFactors.length > 0 && <div className="passkey-list"><strong>Two-factor factors</strong>{mfaFactors.map((factor) => <div key={factor.id}><span>🛡️ {factor.friendly_name || "Authenticator"} · {factor.status || "active"}</span><button disabled={mfaBusy} onClick={() => void removeMfa(factor.id)}>Remove</button></div>)}</div>}{passkeys.length > 0 && <div className="passkey-list">{passkeys.map((key) => <div key={key.id}><span>🔐 {key.name || "Fresh ID passkey"}</span>{key.id && <button onClick={() => void removePasskey(key.id!)}>Remove</button>}</div>)}</div>}<p className="muted">Fresh ID keeps account controls separate from public profile presentation. Destructive account operations remain behind explicit authorization.</p></section>}
     </main>
   );
 }
