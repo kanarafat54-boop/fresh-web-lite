@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "./CreatorStudioDashboard.css";
 import { supabase } from "../../lib/supabase";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
-import { buildCreatorSuggestions, type CreatorSuggestion } from "./creatorSuggestions";
+import { buildCreatorSuggestions } from "./creatorSuggestions";
 
 type Draft = { id: string; kind: "post" | "short"; content: string; media_url: string | null; status: string; created_at: string };
 type MediaItem = { id: string; kind: "post" | "short"; title: string; text: string; mediaUrl: string | null; createdAt: string };
@@ -29,7 +29,7 @@ export default function CreatorStudioDashboard() {
   const [publishing, setPublishing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [suggestions, setSuggestions] = useState<CreatorSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<ReturnType<typeof buildCreatorSuggestions>>([]);
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -63,7 +63,7 @@ export default function CreatorStudioDashboard() {
     }));
   }, [analytics, drafts, items, user]);
 
-  function applySuggestion(action: CreatorSuggestion["action"]) {
+  function applySuggestion(action: ReturnType<typeof buildCreatorSuggestions>[number]["action"]) {
     if (action === "post") { setMode("post"); editorRef.current?.focus(); }
     else if (action === "short") { setMode("short"); editorRef.current?.focus(); }
     else if (action === "drafts") { document.getElementById("creator-drafts")?.scrollIntoView({ behavior: "smooth", block: "center" }); }
@@ -147,6 +147,8 @@ export default function CreatorStudioDashboard() {
 
         <section className="creator-panel" id="creator-drafts"><div className="creator-section-heading"><div><span className="workspace-eyebrow">WORKSPACE</span><h2>Drafts</h2></div><span>{drafts.length}</span></div>{loading ? <p>Loading…</p> : drafts.length ? drafts.map((draft) => <article className="draft-row" key={draft.id}><div><strong>{draft.kind === "short" ? "Short" : "Post"} draft</strong><p>{draft.content || "Media-only draft"}</p><small>{new Date(draft.created_at).toLocaleString()}</small></div><div><button onClick={() => restoreDraft(draft)}>Edit</button><button onClick={() => void deleteDraft(draft.id)}>Delete</button></div></article>) : <p className="creator-muted">No drafts yet.</p>}</section>
       </div>
+
+      <section className="creator-panel creator-ai-suggestions"><div className="creator-section-heading"><div><span className="workspace-eyebrow">FRESH AI</span><h2>Suggested next actions</h2></div><span>REAL DATA</span></div>{suggestions.length ? <div className="creator-suggestion-list">{suggestions.map((suggestion) => <article key={suggestion.id} className="creator-suggestion"><div><strong>{suggestion.title}</strong><p>{suggestion.reason}</p></div><button type="button" onClick={() => applySuggestion(suggestion.action)}>{suggestion.action === "drafts" ? "Review" : suggestion.action === "refresh" ? "Refresh" : "Start"}</button></article>)}</div> : <p className="creator-muted">Fresh AI has no additional action to suggest from the current stored creator data.</p>}<p className="creator-note">Suggestions use stored Fresh Creator metrics and workspace state. They do not invent performance data.</p></section>
 
       <section className="creator-panel"><div className="creator-section-heading"><div><span className="workspace-eyebrow">LIBRARY</span><h2>Published content</h2></div><span>{items.length} loaded</span></div>{items.length ? <div className="creator-library">{items.slice(0, 30).map((item) => <article key={`${item.kind}-${item.id}`}><div className="creator-library-media">{item.mediaUrl ? (item.kind === "short" || /\.(mp4|webm|mov)(\?.*)?$/i.test(item.mediaUrl) ? <video src={item.mediaUrl} muted /> : <img src={item.mediaUrl} alt="" />) : <span>{item.kind === "short" ? "▶" : "✎"}</span>}</div><div><span className="creator-kind">{item.kind}</span><strong>{item.text || "Media publication"}</strong><small>{new Date(item.createdAt).toLocaleString()}</small></div></article>)}</div> : <p className="creator-muted">Publish your first piece and it will appear here from live Fresh data.</p>}</section>
     </section>
