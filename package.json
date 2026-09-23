@@ -36,7 +36,8 @@
     "preview": "vite preview",
     "start": "vite preview --host 0.0.0.0 --port $PORT",
     "test:truemode-chain": "node scripts/verify-truemode-research-persistence.mjs",
-    "test:fresh-ai-profile-creator-actions": "node scripts/verify-fresh-ai-profile-creator-actions.mjs"
+    "test:fresh-ai-profile-creator-actions": "node scripts/verify-fresh-ai-profile-creator-actions.mjs",
+    "test:fresh-ecosystem-architecture": "node scripts/verify-fresh-ecosystem-architecture.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
