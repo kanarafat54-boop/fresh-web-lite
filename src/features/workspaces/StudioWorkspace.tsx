@@ -23,7 +23,7 @@ export default function StudioWorkspace() {
                 <h3>{eco.name}</h3>
                 <p>{eco.description}</p>
                 <div className="workspace-meta">
-                  <span className="workspace-pill">{eco.category}</span>
+                  <span className="workspace-pill">{eco.space}</span>
                 </div>
               </div>
             ))}
