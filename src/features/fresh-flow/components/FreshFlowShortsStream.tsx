@@ -25,7 +25,7 @@ import "./FreshFlow.css";
 
 type SubTab = "for-you" | "trending" | "following" | "fresh-picks";
 type FilterMode = "all" | "social" | "learn" | "relax";
-type AdvancedAction = "quote" | "remix" | "duet" | "collaborate";
+type AdvancedAction = "quote" | "remix" | "duet" | "collaborate" | "edit" | "captions" | "effects";
 
 const SUB_TABS: Array<{ id: SubTab; label: string; icon: string }> = [
   { id: "for-you", label: "For You", icon: "★" },
@@ -43,9 +43,12 @@ const FILTERS: Array<{ id: FilterMode; label: string }> = [
 
 const ADVANCED_ACTIONS: Array<{ id: AdvancedAction; label: string; icon: string; description: string }> = [
   { id: "quote", label: "Quote", icon: "❝", description: "Create a quoted response to this Short." },
-  { id: "remix", label: "Remix", icon: "✦", description: "Start a remix using this Short as the source." },
-  { id: "duet", label: "Duet", icon: "◫", description: "Start a side-by-side duet with this Short." },
+  { id: "remix", label: "Remix", icon: "✦", description: "Open Creator Studio to remix this Short." },
+  { id: "duet", label: "Duet", icon: "◫", description: "Open Creator Studio for a side-by-side duet." },
   { id: "collaborate", label: "Collaborate", icon: "♧", description: "Invite this creator into a collaboration." },
+  { id: "edit", label: "Edit tools", icon: "✂", description: "Rotate, speed, text overlay and True Mode editor tools." },
+  { id: "captions", label: "Captions", icon: "CC", description: "Auto-captions and caption safe-area tools." },
+  { id: "effects", label: "Effects", icon: "✦", description: "Filters, transitions and AI-assisted effects." },
 ];
 
 const GIFT_PRESETS: Array<{ label: string; amountMinor: string }> = [
@@ -80,7 +83,12 @@ function captureFrame(shortId: string, video: HTMLVideoElement, cache: Map<strin
   }
 }
 
-type FreshFlowShortsStreamProps = { onImmersiveChange?: (immersive: boolean) => void; onOpenTopic?: (tag: string) => void };
+type FreshFlowShortsStreamProps = {
+  onImmersiveChange?: (immersive: boolean) => void;
+  onOpenTopic?: (tag: string) => void;
+  immersive?: boolean;
+  onOpenCreate?: (intent?: { action?: string; sourceShortId?: string; sourceVideoUrl?: string }) => void;
+};
 
 const FRESH_FLOW_POSITION_KEY = "fresh-flow-shorts-position";
 
@@ -105,7 +113,7 @@ function renderCaptionWithTags(caption: string, onTagTap?: (tag: string) => void
   });
 }
 
-export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }: FreshFlowShortsStreamProps = {}) {
+export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic, immersive: immersiveProp, onOpenCreate }: FreshFlowShortsStreamProps = {}) {
   const { user, isGuest } = useFreshId();
   const [subTab, setSubTab] = useState<SubTab>(() => readSavedPosition().subTab ?? "for-you");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -131,7 +139,8 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
   const loadMoreInFlightRef = useRef(false);
   const pageRef = useRef(0);
   const [hasMore, setHasMore] = useState(true);
-  const [immersive, setImmersive] = useState(false);
+  const [immersiveLocal, setImmersive] = useState(false);
+  const immersive = immersiveProp ?? immersiveLocal;
   const immersiveTriggeredRef = useRef(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [connectionQuality, setConnectionQuality] = useState<ConnectionQuality>(() => getConnectionQuality());
@@ -159,7 +168,6 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
   }, []);
 
   // Immersive mode is driven by FreshFlowShortsExperience (5s continuous watch).
-  // Do not auto-enter on mount so landing matches the reference shell.
 
   const exitImmersive = () => {
     if (!immersive) return;
@@ -168,7 +176,6 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
     onImmersiveChange?.(false);
   };
 
-  // Silence noUnusedLocals: Experience owns immersive; keep helpers wired.
   void connectionQuality;
   void exitImmersive;
   void loadedIndices;
@@ -352,6 +359,36 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
   };
 
   const advancedAction = async (short: Short, action: AdvancedAction) => {
+    const openStudioActions: AdvancedAction[] = ["remix", "duet", "quote", "edit", "captions", "effects", "collaborate"];
+    if (openStudioActions.includes(action)) {
+      try {
+        sessionStorage.setItem(
+          "fresh-flow-create-intent",
+          JSON.stringify({
+            action,
+            sourceShortId: short.id,
+            sourceAuthorId: short.authorId,
+            sourceVideoUrl: short.videoUrl,
+            sourceCaption: short.caption,
+            requestedAt: new Date().toISOString(),
+          })
+        );
+      } catch {
+        // ignore storage failures
+      }
+      onOpenCreate?.({ action, sourceShortId: short.id, sourceVideoUrl: short.videoUrl });
+      setAdvancedTargetId(null);
+      if (user && !isGuest && (action === "remix" || action === "duet" || action === "quote" || action === "collaborate")) {
+        try {
+          await interactWithShort(user.id, short.id, action, {
+            payload: { sourceShortId: short.id, sourceAuthorId: short.authorId, sourceVideoUrl: short.videoUrl, requestedAt: new Date().toISOString() },
+          });
+        } catch {
+          // non-blocking: still open studio
+        }
+      }
+      return;
+    }
     if (!user || isGuest) return;
     setActionSending(true);
     setActionError(null);
@@ -423,6 +460,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
                   <video
                     ref={(el) => { if (el) videoRefs.current.set(index, el); else videoRefs.current.delete(index); }}
                     className="fresh-flow-video"
+                    data-short-id={short.id}
                     src={short.videoUrl}
                     playsInline
                     muted={muted}
@@ -468,17 +506,12 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
                   </p>
                 </div>
                 <div className="fresh-flow-actions">
-                  <ReactionPicker
-                    myReaction={short.myReaction}
-                    count={short.likeCount}
-                    variant="short"
-                    onReact={(kind) => void react(short, kind)}
-                  />
+                  <ReactionPicker myReaction={short.myReaction} count={short.likeCount} variant="short" onReact={(kind) => void react(short, kind)} />
                   <button className="fresh-flow-action-btn" onClick={() => setOpenCommentsFor(short.id)} aria-label="Comments">💬<span>{formatCount(short.commentCount)}</span></button>
                   <button className={short.repostedByMe ? "fresh-flow-action-btn reposted" : "fresh-flow-action-btn"} onClick={() => void toggleRepost(short)} aria-label="Repost">🔁<span>{formatCount(short.repostCount)}</span></button>
                   <button className={savedIds.has(short.id) ? "fresh-flow-action-btn saved" : "fresh-flow-action-btn"} onClick={() => void toggleSave(short)} aria-label="Save">🔖</button>
                   <button className="fresh-flow-action-btn" onClick={() => void share(short)} aria-label="Share">↗</button>
-                  <button className="fresh-flow-action-btn gift" onClick={() => setGiftTargetId(short.id)} aria-label="Gift">🎁{giftTotal ? <span>{giftTotal.count}</span> : null}</button>
+                  <button className="fresh-flow-action-btn gift" onClick={() => setGiftTargetId(short.id)} aria-label="Send gift">🎁{giftTotal ? <span>{giftTotal.count}</span> : null}</button>
                   <button className="fresh-flow-action-btn" onClick={() => setMuted((m) => !m)} aria-label={muted ? "Unmute" : "Mute"}>{muted ? "🔇" : "🔊"}</button>
                 </div>
                 {giftTargetId === short.id && (
@@ -513,7 +546,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
           })}
         </div>
       )}
-      {shorts.length > 0 && (
+      {shorts.length > 0 && !immersive && (
         <section className="fresh-flow-picks" aria-label="Fresh Picks for You">
           <div className="fresh-flow-picks-header">
             <h2>✦ Fresh Picks for You</h2>
@@ -521,13 +554,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
           </div>
           <div className="fresh-flow-picks-rail">
             {["AI Live", "Travel", "Podcast", "VR", "Hub"].map((label, i) => (
-              <button
-                key={label}
-                type="button"
-                className={`fresh-flow-pick-card tone-${["ai", "travel", "pod", "vr", "hub"][i]}`}
-                onClick={() => onOpenTopic?.(label)}
-                aria-label={`Discover ${label} in Fresh Flow`}
-              >
+              <button key={label} type="button" className={`fresh-flow-pick-card tone-${["ai", "travel", "pod", "vr", "hub"][i]}`} onClick={() => onOpenTopic?.(label)} aria-label={`Discover ${label} in Fresh Flow`}>
                 {i === 0 && <span className="fresh-flow-pick-live">LIVE</span>}
                 <strong>{label}</strong>
                 <small>Discover</small>
