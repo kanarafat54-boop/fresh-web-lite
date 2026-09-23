@@ -3,10 +3,15 @@
 **Document slot:** 34 (Documentation Work Tree)  
 **Status:** LOCKED  
 **Last locked:** 2026-09-23  
-**Canonical locations:** Google Drive (slot 34 + Roadmap Matrix sheet) + this file in `kanarafat54-boop/fresh-web-lite`  
-**Sources merged:** Universal Platform Doctrine, FRESH ECOSYSTEMS, Documentation Work Tree (36 slots), Project mission, Workflow rules, Google Sheet “Fresh Web Lite”, live code (Fresh Flow, Fresh AI, wallet, Supabase, Vercel)
+**Last expanded:** 2026-09-23 (sections 8–25 architecture & governance)  
+**Canonical locations:** Google Drive (slot 34 + Roadmap Matrix sheet) + this file + `docs/FRESH_WEB_LITE_PLATFORM_ARCHITECTURE_GOVERNANCE.md` in `kanarafat54-boop/fresh-web-lite`  
+**Sources merged:** Universal Platform Doctrine, FRESH ECOSYSTEMS, Documentation Work Tree (36 slots), Project mission, Workflow rules, Google Sheet “Fresh Web Lite”, live code (Fresh Flow, Fresh AI, wallet, Supabase, Vercel), Platform Architecture & Governance additions
 
 **Rule:** No ecosystem and no major feature family left behind. Drive and GitHub copies must match in substance.
+
+**Architecture & governance (sections 8–25):** see companion document  
+→ [`docs/FRESH_WEB_LITE_PLATFORM_ARCHITECTURE_GOVERNANCE.md`](./FRESH_WEB_LITE_PLATFORM_ARCHITECTURE_GOVERNANCE.md)  
+(Platform layers, Canonical Data Model, Fresh ID, TRUEMODE, AI Governance, APIs/Events, Persistence, Security, DR, Observability, Production Gates G0–G11, Portability, Versioning, Definition of Done, Implementation Truth, Change Control, Governance Principle, Completion Test)
 
 ---
 
@@ -238,20 +243,46 @@ Intelligence connecting everything → Fresh AI → Ara6 → Memory → Agents
 
 Google Sheet “Fresh Web Lite — Roadmap Matrix (LOCKED)” tracks Category, Module, Purpose, Phase, Priority, Status, Roadmap_Ref for every row in section 1. Operational status (Live / In progress / Planned) lives there; **scope of truth** is this document + matching Drive copy.
 
-Sheet phases 1–14 from the original “Fresh Web Lite” sheet map into P0–P4; continuous rows stay continuous. Crypto, Premium, Adults-Only, Design, Legal, Ops, Creator Economy, and Fresh Flow are explicit so nothing is orphaned.
-
 ---
 
 ## 7. Sync policy (Drive ↔ GitHub)
 
 | Location | Path / name |
 |----------|-------------|
-| Google Drive Doc | `34. Fresh Web Lite — Final Master Roadmap (LOCKED)` |
+| Google Drive Doc | `34. Fresh Web Lite — Final Master Roadmap (LOCKED)` — **full sections 0–25** |
 | Google Drive Sheet | `Fresh Web Lite — Roadmap Matrix (LOCKED)` |
-| GitHub | `docs/FRESH_WEB_LITE_FINAL_MASTER_ROADMAP.md` |
+| GitHub Master | `docs/FRESH_WEB_LITE_FINAL_MASTER_ROADMAP.md` (sections 0–7 + pointer) |
+| GitHub Architecture | `docs/FRESH_WEB_LITE_PLATFORM_ARCHITECTURE_GOVERNANCE.md` (sections 8–25) |
 
 Any change requires updating **both** Drive and GitHub in the same working session so nothing is missed.
 
 ---
 
-*Locked: 2026-09-23. Build it true. Build it useful. Build it universal. Build it for humanity.*
+## Sections 8–25 (summary)
+
+Full text lives in [`FRESH_WEB_LITE_PLATFORM_ARCHITECTURE_GOVERNANCE.md`](./FRESH_WEB_LITE_PLATFORM_ARCHITECTURE_GOVERNANCE.md) and in the Drive LOCKED master (complete single file).
+
+| § | Title |
+|---|--------|
+| 8 | Platform Architecture (layers + no competing systems rule) |
+| 9 | Canonical Data Model |
+| 10 | Fresh ID & Identity Architecture |
+| 11 | TRUEMODE / Truth Decision Architecture |
+| 12 | AI Governance & Agent Permission Architecture |
+| 13 | API & Event Architecture |
+| 14 | Persistence & Data Ownership Rules |
+| 15 | Security Architecture |
+| 16 | Reliability, DR & Business Continuity |
+| 17 | Observability & Auditability |
+| 18 | Testing & Production Gates (G0–G11) |
+| 19 | Data Portability & Interoperability |
+| 20 | Versioning & Migration Policy |
+| 21 | Definition of Done |
+| 22 | Current Implementation Truth (LIVE / IN PROGRESS / PLANNED / BLOCKED / DEPRECATED) |
+| 23 | Master Change-Control Rule |
+| 24 | Final Platform Governance Principle |
+| 25 | Final Master Completion Test |
+
+---
+
+*Locked: 2026-09-23. Expanded: sections 8–25. Build it true. Build it useful. Build it universal. Build it for humanity.*
