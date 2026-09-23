@@ -1,1 +1,7 @@
-PLACEHOLDER3
+.creator-studio-dashboard{max-width:1180px;margin:0 auto;padding:24px 18px 60px;color:var(--text-color,#111827);display:grid;gap:16px}
+/* restored base + Fresh Flow handoff styles */
+.creator-intent-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;padding:12px 14px;border-radius:14px;border:1px solid rgba(129,92,255,.35);background:linear-gradient(135deg,rgba(111,48,255,.18),rgba(17,167,231,.08))}
+.creator-edit-tools{margin-bottom:14px;padding:12px;border-radius:16px;border:1px solid rgba(255,255,255,.1);background:rgba(8,10,18,.55)}
+.creator-edit-tools-rail{display:flex;flex-wrap:wrap;gap:8px}
+.creator-tool-chip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:6px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:inherit;font:inherit;font-size:.78rem;font-weight:650;cursor:pointer}
+.creator-tool-chip.active{border-color:rgba(129,92,255,.75);background:linear-gradient(135deg,rgba(111,48,255,.45),rgba(17,167,231,.28))}
