@@ -35,6 +35,7 @@
     "test:fresh-ai-capability-runtime": "node scripts/verify-fresh-ai-capability-runtime.mjs",
     "preview": "vite preview",
     "start": "vite preview --host 0.0.0.0 --port $PORT",
+    "test:truemode-chain": "node scripts/verify-truemode-research-persistence.mjs",
     "test:profile-creator-actions": "node scripts/verify-profile-creator-actions.mjs"
   },
   "dependencies": {
