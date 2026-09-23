@@ -1,0 +1,59 @@
+#,Category,Module,Purpose,Phase,Priority,Status,Owner,Repo_Ref,Roadmap_Ref,Notes
+1,Ecosystem,Core Foundation,"Identity, auth, profiles, search, nav, notifications, settings, privacy, sync",P0-P1,Critical,IN PROGRESS,,,A1,Platform layer
+2,Ecosystem,Fresh Intelligence,"AI, Ara6, twin, memory, agents, knowledge, trust, opportunity",P0-P2,Critical,IN PROGRESS,,,A2,Continuous
+3,Ecosystem,Fresh Flow / Digital Life,"Shorts, long, posts, live, creator feeds, discovery",P0-P1,Critical,IN PROGRESS,,FreshFlow*,A3,Immersive Shorts path
+4,Ecosystem,Communication,"Messaging, voice, video, groups, channels",P1-P2,High,PLANNED,,,A4,
+5,Ecosystem,Creation,"Studio, AI create, publish, collab",P0-P2,High,IN PROGRESS,,Creator Studio,A5,CreateIntent
+6,Ecosystem,Learning & Growth,"Academy, tutors, courses, skills",P2-P3,High,PLANNED,,,A6,
+7,Ecosystem,Discovery,"Universal search, ranking, recommendations",P1-P2,High,PLANNED,,,A7,
+8,Ecosystem,Work,"Jobs, projects, teams, AE workspace",P2-P3,High,PLANNED,,,A8,
+9,Ecosystem,Trade & Marketplace,"Shops, products, services, bookings",P3,High,PLANNED,,,A9,
+10,Ecosystem,Financial,"Payments, transfers, wallet, invoicing",P0-P3,Critical,IN PROGRESS,,wallet,A10,Chrome live
+11,Ecosystem,Fresh Crypto,"Assets, transfers, Web3 economics",P3-P4,High,PLANNED,,,A11,
+12,Ecosystem,Digital Life Services,"Travel, food, local, maps",P4,Medium,PLANNED,,,A12,
+13,Ecosystem,Community,"Groups, forums, reputation",P1-P2,High,PLANNED,,,A13,
+14,Ecosystem,Business,"CRM, marketing, analytics, agents",P3-P4,High,PLANNED,,,A14,
+15,Ecosystem,Fresh Software / Ara6,"Apps, APIs, extensions, adaptive UI",P2-P4,Critical,PLANNED,,,A15,
+16,Ecosystem,Autonomous Engineering,Propose→test→owner approval→merge→deploy,P2-P4,Critical,PLANNED,,,A16,Approval-gated
+17,Ecosystem,Creator Economy,"Gifts, tips, memberships, earnings",P0-P2,High,IN PROGRESS,,,A17,Gifts path
+18,Ecosystem,Premium,"Premium AI, advanced tools",P3-P4,Medium,PLANNED,,,A18,
+19,Ecosystem,Adults-Only Creator,"Age-gated, compliance",P4,Medium,PLANNED,,,A19,
+20,Ecosystem,Entertainment,"Gaming, streaming, events",P3-P4,Medium,PLANNED,,,A20,
+21,Ecosystem,Opportunity,"Careers, funding, partnerships",P3,High,PLANNED,,,A21,
+22,Cross-cutting,Security & Trust,"Encryption, RLS, fraud, moderation",Every,Critical,IN PROGRESS,,,A22,Continuous
+23,Cross-cutting,Design System,"UI language, a11y, responsive",P0+,Critical,IN PROGRESS,,,A23,
+24,Cross-cutting,Engineering / CI / Infra,"Standards, Actions, Vercel, Supabase",Continuous,Critical,IN PROGRESS,,,A24,Must stay green
+25,Cross-cutting,Business Revenue + Marketing,"Monetization, growth",P2-P4,High,PLANNED,,,A25,
+26,Cross-cutting,Owner Intelligence,"Founder KPIs, health, revenue",Continuous,Critical,PLANNED,,,A26,
+27,Cross-cutting,Legal & Ops,"ToS, privacy, support, incidents",P1+,Critical,PLANNED,,,A27,
+28,Cross-cutting,Innovation Backlog,Future ideas triage,Continuous,Medium,PLANNED,,,A28,
+29,Architecture,Platform layers,Experience→…→Infrastructure,P0,Critical,PLANNED,,docs/,B8,
+30,Architecture,Canonical Data Model,Shared entities + ownership,P0,Critical,PLANNED,,,B9,
+31,Architecture,Fresh ID,One identity foundation,P0,Critical,IN PROGRESS,,,B10,
+32,Architecture,TRUEMODE,Truth decision boundary,P1,Critical,IN PROGRESS,,,B11,
+33,Architecture,AI Governance,Agent permissions + AE workflow,P0,Critical,IN PROGRESS,,,B12,
+34,Architecture,API & Events,Versioned contracts,P1,Critical,PLANNED,,,B13,
+35,Architecture,Persistence rules,Source-of-truth map,P0,Critical,PLANNED,,,B14,
+36,Architecture,Security architecture,Platform security + privacy,Every,Critical,IN PROGRESS,,,B15,
+37,Architecture,DR & Reliability,RPO/RTO rollback,P2,Critical,PLANNED,,,B16,
+38,Architecture,Observability,"Logs, metrics, traces, audit",P1,Critical,PLANNED,,,B17,
+39,Architecture,Production Gates G0-G11,Mandatory release path,Every,Critical,IN PROGRESS,,,B18,
+40,Architecture,Definition of Done,Feature complete checklist,Every,Critical,LIVE VERIFIED,,,B21,Documented
+41,Control,Control Plane,Platform coordination layer,P1,Critical,PLANNED,,,C26,
+42,Control,Source-of-Truth Registry,Canonical domain owners,P1,Critical,PLANNED,,,C27,
+43,Control,Authorization & Policy Engine,Shared authz primitive,P1,Critical,PLANNED,,,C28,
+44,Control,Trust Graph,Claim→evidence→decision,P1,Critical,PLANNED,,,C29,
+45,Control,AI Safety Boundary,Execution lifecycle,P0,Critical,IN PROGRESS,,,C30,
+46,Control,Event & State,Events + state machines,P1,High,PLANNED,,,C31,
+47,Control,Idempotency & Consistency,Retry-safe critical ops,P0,Critical,PLANNED,,,C32,
+48,Control,Threat Modeling,Proactive abuse resistance,Every,Critical,PLANNED,,,C33,
+49,Control,Data Lifecycle,CREATE→DELETE/EXPORT,P1,Critical,PLANNED,,,C34,
+50,Control,Release & Feature Flags,Controlled rollout + kill switch,P1,Critical,PLANNED,,,C35,
+51,Control,Provider Governance,Dependencies + fallbacks,P2,High,PLANNED,,,C36,
+52,Control,Capacity & Cost,Performance + cost governance,P2,High,PLANNED,,,C37,
+53,Control,18 Platform Invariants,Non-negotiable rules,Every,Critical,LIVE VERIFIED,,,C38,Locked
+54,Control,Implementation Ledger,Evidence-based status,Every,Critical,IN PROGRESS,,,C39,
+55,Control,Architecture Acceptance Test,Completion checklist,P4,Critical,PLANNED,,,C40,
+56,Infra,Supabase,"Canonical DB, auth, storage",P0,Critical,IN PROGRESS,,supabase/,Infra,
+57,Infra,Vercel,Production hosting,P0,Critical,IN PROGRESS,,,Infra,Must READY
+58,Infra,GitHub Actions,CI gates,P0,Critical,IN PROGRESS,,.github/,Infra,Must green
