@@ -98,6 +98,7 @@ export default function UniversalProfile() {
   const connected = profile?.connections.filter((item) => item.connected) ?? [];
   const enabledEcosystems = crossPlatform?.ecosystems.filter((item) => item.enabled) ?? [];
   const aiSuggestions = useMemo(() => {
+    if (!profile) return [];
     const next: Array<{ id: string; title: string; reason: string; action: "creator" | "edit" | "insights" | "connections" }> = [];
     if (!profile.bio || !profile.occupation) next.push({ id: "complete-profile", title: "Complete your professional identity", reason: "Fresh ID has profile fields that are still empty.", action: "edit" });
     if (!profile.activity.length) next.push({ id: "create-first", title: "Publish your first Fresh activity", reason: "Fresh Intelligence has no activity to curate yet.", action: "creator" });
