@@ -290,7 +290,7 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
     try {
       if (previous === type) await removeShortInteraction(user.id, short.id, "react");
       else await interactWithShort(user.id, short.id, "react", { reaction: type as UniversalReactionKind });
-      setShorts((current) => current.map((s) => s.id !== short.id ? s : previous === type ? { ...s, myReaction: null, likeCount: Math.max(0, s.likeCount - 1) } : previous === null ? { ...s, myReaction: type, likeCount: s.likeCount + 1 } : { ...s, myReaction: type }));
+      setShorts((current) => current.map((s) => s.id !== short.id ? s : previous === type ? { ...s, myReaction: null, likeCount: Math.max(0, s.likeCount - 1) } : previous == null ? { ...s, myReaction: type, likeCount: s.likeCount + 1 } : { ...s, myReaction: type }));
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : "Unable to react.");
     }
@@ -521,11 +521,17 @@ export default function FreshFlowShortsStream({ onImmersiveChange, onOpenTopic }
           </div>
           <div className="fresh-flow-picks-rail">
             {["AI Live", "Travel", "Podcast", "VR", "Hub"].map((label, i) => (
-              <div key={label} className={`fresh-flow-pick-card tone-${["ai", "travel", "pod", "vr", "hub"][i]}`}>
+              <button
+                key={label}
+                type="button"
+                className={`fresh-flow-pick-card tone-${["ai", "travel", "pod", "vr", "hub"][i]}`}
+                onClick={() => onOpenTopic?.(label)}
+                aria-label={`Discover ${label} in Fresh Flow`}
+              >
                 {i === 0 && <span className="fresh-flow-pick-live">LIVE</span>}
                 <strong>{label}</strong>
                 <small>Discover</small>
-              </div>
+              </button>
             ))}
           </div>
         </section>
