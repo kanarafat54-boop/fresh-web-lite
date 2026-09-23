@@ -121,7 +121,7 @@ export default function FreshFlowHub() {
           </button>
           <span className="fresh-flow-section-title"><span aria-hidden="true">{activeNav?.icon}</span>{activeNav?.label}</span>
         </div>
-      )}
+      ) : null}
 
       <main className="fresh-flow-media-content">
         {section === "fresh-flow" ? (
