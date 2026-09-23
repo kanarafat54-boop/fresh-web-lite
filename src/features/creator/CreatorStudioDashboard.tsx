@@ -134,6 +134,11 @@ export default function CreatorStudioDashboard() {
 
       <div className="creator-kpis">{kpis.map(([label, value]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}</div>
 
+      {suggestions.length > 0 && <section className="creator-panel creator-suggestions" aria-label="Fresh AI creator suggestions">
+        <div className="creator-section-heading"><div><span className="workspace-eyebrow">FRESH AI</span><h2>Suggested next actions</h2></div><span>{suggestions.length}</span></div>
+        <div className="creator-suggestion-grid">{suggestions.map((suggestion) => <article className="creator-suggestion-card" key={suggestion.id}><div><strong>{suggestion.title}</strong><p>{suggestion.reason}</p></div><button type="button" onClick={() => applySuggestion(suggestion.action)}>{suggestion.action === "refresh" ? "Review" : suggestion.action === "drafts" ? "Open drafts" : suggestion.action === "short" ? "Create Short" : "Create Post"}</button></article>)}</div>
+      </section>}
+
       <div className="creator-studio-grid">
         <section className="creator-editor">
           <div className="creator-section-heading"><div><span className="workspace-eyebrow">PUBLISHING</span><h2>Create media</h2></div><div className="creator-mode-switch"><button className={mode === "post" ? "active" : ""} onClick={() => setMode("post")}>Post</button><button className={mode === "short" ? "active" : ""} onClick={() => setMode("short")}>Short</button></div></div>
