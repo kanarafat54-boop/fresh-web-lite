@@ -139,11 +139,35 @@ export function getMajorEcosystem(id: string): MajorEcosystem | undefined {
 }
 
 export function getEcosystemSurface(id: string): EcosystemSurface | undefined {
-  return FRESH_ECOSYSTEM_SURFACES.find((surface) => surface.id === id);
+  const explicit = FRESH_ECOSYSTEM_SURFACES.find((surface) => surface.id === id);
+  if (explicit) return explicit;
+
+  const major = getMajorEcosystem(id);
+  if (!major) return undefined;
+
+  return {
+    id: major.id,
+    name: major.name,
+    majorEcosystemId: major.id,
+    kind: "ecosystem",
+    description: major.description,
+  };
 }
 
 export function getSurfacesForEcosystem(id: string): EcosystemSurface[] {
-  return FRESH_ECOSYSTEM_SURFACES.filter((surface) => surface.majorEcosystemId === id);
+  const explicit = FRESH_ECOSYSTEM_SURFACES.filter((surface) => surface.majorEcosystemId === id);
+  if (explicit.length > 0) return explicit;
+
+  const major = getMajorEcosystem(id);
+  if (!major) return [];
+
+  return [{
+    id: major.id,
+    name: major.name,
+    majorEcosystemId: major.id,
+    kind: "ecosystem",
+    description: major.description,
+  }];
 }
 
 export function getEcosystemCatalog(): MajorEcosystem[] {
