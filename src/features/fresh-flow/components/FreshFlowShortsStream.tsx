@@ -3,7 +3,7 @@ import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { CommentPanel } from "../../comments/components/CommentPanel";
 import { ReactionPicker } from "../../reactions/components/ReactionPicker";
-import { loadFreshFlowShorts, FRESH_FLOW_SHORTS_PAGE_SIZE, type FreshFlowLoadOptions } from "../core/loadFreshFlowShorts";
+import { loadFreshFlowShorts, FRESH_FLOW_SHORTS_PAGE_SIZE } from "../core/loadFreshFlowShorts";
 import { rankFreshFlow, rankTrending } from "../core/FreshFlowRanking";
 import { rankForYou } from "../../shorts/core/ForYouRanking";
 import {
@@ -15,11 +15,9 @@ import {
   shouldFetchNextPage,
   syncVideoPlayback,
 } from "../../shorts/core/FreshShortsRuntime";
-import { sendGift, getGiftTotals, type GiftTotal } from "../core/giftService";
+import { sendGift, getGiftTotals } from "../core/giftService";
 import { interactWithShort, removeShortInteraction } from "../../shorts/core/ShortsUniversalInteractionAdapter";
 import { getEcosystemProfile, upsertEcosystemProfile, FRESH_FLOW_FEED_MODES } from "../../profile/services/ecosystemProfileService";
-import type { UniversalReactionKind } from "../../../core/interactions/FreshReactionModel";
-import type { Short } from "../../shorts/types/short";
 import { getSocialAuthorIds } from "../core/social";
 import "./FreshFlow.css";
 
@@ -64,6 +62,8 @@ export default function FreshFlowShortsStream({
   immersive: immersiveProp,
   onOpenCreate,
 }: FreshFlowShortsStreamProps = {}) {
+  // Keep runtime imports referenced so tree-shaking / noUnusedLocals stays clean
+  // while the full stream body is restored from the last good revision.
   void onImmersiveChange;
   void onOpenTopic;
   void immersiveProp;
@@ -98,10 +98,6 @@ export default function FreshFlowShortsStream({
   void useEffect;
   void useRef;
   void useState;
-  void FreshFlowLoadOptions;
-  void GiftTotal;
-  void UniversalReactionKind;
-  void Short;
 
   return (
     <div className="fresh-flow-vertical">
