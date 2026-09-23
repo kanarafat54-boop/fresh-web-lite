@@ -239,7 +239,40 @@ export default function FreshFlowShortsExperience({ onOpenTopic, onImmersiveChan
 
   return (
     <div className={immersive ? "fresh-flow-short-experience immersive" : "fresh-flow-short-experience"}>
-      <FreshFlowShortsStream key={streamKey} onOpenTopic={onOpenTopic} />
+      <FreshFlowShortsStream
+        key={streamKey}
+        onOpenTopic={onOpenTopic}
+        immersive={immersive}
+        onImmersiveChange={onImmersiveChange}
+        onOpenCreate={(intent) => {
+          try {
+            if (intent) sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify(intent));
+          } catch {
+            /* ignore */
+          }
+          if (isGuest) setActiveRoute("auth-signin");
+          else setActiveRoute("creator");
+        }}
+      />
+      {!immersive && (
+        <button
+          type="button"
+          className="fresh-flow-create-fab"
+          onClick={() => {
+            try {
+              sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: "create", requestedAt: new Date().toISOString() }));
+            } catch {
+              /* ignore */
+            }
+            if (isGuest) setActiveRoute("auth-signin");
+            else setActiveRoute("creator");
+          }}
+          aria-label="Create a Fresh Short"
+        >
+          <span aria-hidden="true">＋</span>
+          <span>Create</span>
+        </button>
+      )}
       {giftShortcutVisible && (
         <button type="button" className="fresh-flow-quick-gift" onClick={openGift} aria-label="Send gift">
           <span aria-hidden="true">🎁</span>
