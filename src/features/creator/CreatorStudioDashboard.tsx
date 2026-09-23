@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "./CreatorStudioDashboard.css";
 import { supabase } from "../../lib/supabase";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
+import { buildCreatorSuggestions, type CreatorSuggestion } from "./creatorSuggestions";
 
 type Draft = { id: string; kind: "post" | "short"; content: string; media_url: string | null; status: string; created_at: string };
 type MediaItem = { id: string; kind: "post" | "short"; title: string; text: string; mediaUrl: string | null; createdAt: string };
@@ -28,6 +29,8 @@ export default function CreatorStudioDashboard() {
   const [publishing, setPublishing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<CreatorSuggestion[]>([]);
+  const editorRef = useRef<HTMLTextAreaElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   async function load() {
@@ -49,6 +52,23 @@ export default function CreatorStudioDashboard() {
   }
 
   useEffect(() => { void load(); }, [user]);
+
+  useEffect(() => {
+    setSuggestions(buildCreatorSuggestions({
+      postCount: analytics.post_count ?? items.filter((i) => i.kind === "post").length,
+      shortCount: analytics.short_count ?? items.filter((i) => i.kind === "short").length,
+      shortViews: analytics.short_views ?? 0,
+      followers: analytics.follower_count ?? user?.stats.followerCount ?? 0,
+      drafts,
+    }));
+  }, [analytics, drafts, items, user]);
+
+  function applySuggestion(action: CreatorSuggestion["action"]) {
+    if (action === "post") { setMode("post"); editorRef.current?.focus(); }
+    else if (action === "short") { setMode("short"); editorRef.current?.focus(); }
+    else if (action === "drafts") { document.getElementById("creator-drafts")?.scrollIntoView({ behavior: "smooth", block: "center" }); }
+    else void load();
+  }
 
   async function saveDraft() {
     if (!user || (!content.trim() && !media)) return;
@@ -117,7 +137,7 @@ export default function CreatorStudioDashboard() {
       <div className="creator-studio-grid">
         <section className="creator-editor">
           <div className="creator-section-heading"><div><span className="workspace-eyebrow">PUBLISHING</span><h2>Create media</h2></div><div className="creator-mode-switch"><button className={mode === "post" ? "active" : ""} onClick={() => setMode("post")}>Post</button><button className={mode === "short" ? "active" : ""} onClick={() => setMode("short")}>Short</button></div></div>
-          <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder={mode === "post" ? "Write a post, announcement, idea or story…" : "Write a Short caption…"} />
+          <textarea ref={editorRef} value={content} onChange={(e) => setContent(e.target.value)} placeholder={mode === "post" ? "Write a post, announcement, idea or story…" : "Write a Short caption…"} />
           {media && <div className="creator-media-preview">{media.kind === "video" ? <video src={media.url} controls /> : <img src={media.url} alt="Selected media" />}<button onClick={() => setMedia(null)}>Remove media</button></div>}
           <input ref={fileRef} type="file" hidden accept={mode === "short" ? "video/mp4,video/webm,video/quicktime" : "image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"} onChange={async (e) => { const file=e.target.files?.[0]; e.currentTarget.value=""; if(!file||!user)return; try { setError(null); setMedia(await uploadMedia(user.id,file)); setMessage("Media uploaded to Fresh storage."); } catch(reason:unknown){ setError(reason instanceof Error ? reason.message : "Media upload failed."); } }} />
           <div className="creator-editor-actions"><button onClick={() => fileRef.current?.click()}>＋ Add media</button><button onClick={() => void saveDraft()} disabled={!content.trim() && !media}>Save draft</button><button className="publish" onClick={() => void publishNow()} disabled={publishing || (!content.trim() && !media)}>{publishing ? "Publishing…" : "Publish now"}</button></div>
@@ -125,7 +145,7 @@ export default function CreatorStudioDashboard() {
           <p className="creator-note">Publishing writes directly to the real Fresh posts/shorts and storage tables. No demo cards or fake metrics are used.</p>
         </section>
 
-        <section className="creator-panel"><div className="creator-section-heading"><div><span className="workspace-eyebrow">WORKSPACE</span><h2>Drafts</h2></div><span>{drafts.length}</span></div>{loading ? <p>Loading…</p> : drafts.length ? drafts.map((draft) => <article className="draft-row" key={draft.id}><div><strong>{draft.kind === "short" ? "Short" : "Post"} draft</strong><p>{draft.content || "Media-only draft"}</p><small>{new Date(draft.created_at).toLocaleString()}</small></div><div><button onClick={() => restoreDraft(draft)}>Edit</button><button onClick={() => void deleteDraft(draft.id)}>Delete</button></div></article>) : <p className="creator-muted">No drafts yet.</p>}</section>
+        <section className="creator-panel" id="creator-drafts"><div className="creator-section-heading"><div><span className="workspace-eyebrow">WORKSPACE</span><h2>Drafts</h2></div><span>{drafts.length}</span></div>{loading ? <p>Loading…</p> : drafts.length ? drafts.map((draft) => <article className="draft-row" key={draft.id}><div><strong>{draft.kind === "short" ? "Short" : "Post"} draft</strong><p>{draft.content || "Media-only draft"}</p><small>{new Date(draft.created_at).toLocaleString()}</small></div><div><button onClick={() => restoreDraft(draft)}>Edit</button><button onClick={() => void deleteDraft(draft.id)}>Delete</button></div></article>) : <p className="creator-muted">No drafts yet.</p>}</section>
       </div>
 
       <section className="creator-panel"><div className="creator-section-heading"><div><span className="workspace-eyebrow">LIBRARY</span><h2>Published content</h2></div><span>{items.length} loaded</span></div>{items.length ? <div className="creator-library">{items.slice(0, 30).map((item) => <article key={`${item.kind}-${item.id}`}><div className="creator-library-media">{item.mediaUrl ? (item.kind === "short" || /\.(mp4|webm|mov)(\?.*)?$/i.test(item.mediaUrl) ? <video src={item.mediaUrl} muted /> : <img src={item.mediaUrl} alt="" />) : <span>{item.kind === "short" ? "▶" : "✎"}</span>}</div><div><span className="creator-kind">{item.kind}</span><strong>{item.text || "Media publication"}</strong><small>{new Date(item.createdAt).toLocaleString()}</small></div></article>)}</div> : <p className="creator-muted">Publish your first piece and it will appear here from live Fresh data.</p>}</section>
