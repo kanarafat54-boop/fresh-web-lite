@@ -244,3 +244,60 @@
   .fresh-flow-brand-copy small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .fresh-flow-overview .fresh-flow-stream{height:58vh;min-height:400px}
 }
+
+/* Responsive interaction polish: every discovery card is a real control. */
+.fresh-flow-pick-card {
+  appearance: none;
+  border: 1px solid rgba(255,255,255,.1);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.fresh-flow-pick-card:hover,
+.fresh-flow-pick-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(129,92,255,.62);
+  box-shadow: 0 10px 28px rgba(0,0,0,.28);
+  outline: none;
+}
+.fresh-flow-pick-card:active { transform: translateY(0); }
+.fresh-flow-picks-rail { scroll-snap-type: x proximity; }
+.fresh-flow-pick-card { scroll-snap-align: start; }
+
+@media (min-width: 1200px) {
+  .fresh-flow-brand-header,
+  .fresh-flow-reference-header,
+  .fresh-flow-media-nav,
+  .fresh-flow-subtabs,
+  .fresh-flow-filter-panel,
+  .fresh-flow-picks {
+    padding-left: clamp(18px, 3vw, 48px);
+    padding-right: clamp(18px, 3vw, 48px);
+  }
+  .fresh-flow-stream { padding-left: clamp(18px, 3vw, 48px); padding-right: clamp(18px, 3vw, 48px); }
+  .fresh-flow-item { max-width: 1500px; margin-inline: auto; }
+  .fresh-flow-media-nav { gap: 12px; }
+  .fresh-flow-media-button { min-height: 70px; }
+}
+
+@media (max-width: 760px) {
+  .fresh-flow-reference-header { gap: 6px; }
+  .fresh-flow-search { min-height: 44px; padding-inline: 13px; }
+  .fresh-flow-search-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fresh-flow-media-nav { gap: 6px; }
+  .fresh-flow-media-button { min-height: 56px; padding-inline: 2px; border-radius: 14px; font-size: 11px; }
+  .fresh-flow-media-icon { font-size: 22px; }
+  .fresh-flow-action-btn { min-width: 46px; min-height: 46px; }
+  .fresh-flow-overlay { left: 12px; right: 76px; bottom: 18px; }
+  .fresh-flow-actions { right: 8px; bottom: 18px; }
+  .fresh-flow-topic-chips { max-width: calc(100vw - 92px); }
+}
+
+@media (max-width: 380px) {
+  .fresh-flow-media-button { min-height: 52px; font-size: 10px; }
+  .fresh-flow-media-icon { font-size: 20px; }
+  .fresh-flow-action-btn { min-width: 44px; min-height: 44px; }
+  .fresh-flow-overlay { right: 70px; }
+}
