@@ -135,7 +135,7 @@ export default function CreatorStudioDashboard() {
       <div className="creator-kpis">{kpis.map(([label, value]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}</div>
 
       <div className="creator-studio-grid">
-        <section className="creator-editor" ref={undefined}>
+        <section className="creator-editor">
           <div className="creator-section-heading"><div><span className="workspace-eyebrow">PUBLISHING</span><h2>Create media</h2></div><div className="creator-mode-switch"><button className={mode === "post" ? "active" : ""} onClick={() => setMode("post")}>Post</button><button className={mode === "short" ? "active" : ""} onClick={() => setMode("short")}>Short</button></div></div>
           <textarea ref={editorRef} value={content} onChange={(e) => setContent(e.target.value)} placeholder={mode === "post" ? "Write a post, announcement, idea or story…" : "Write a Short caption…"} />
           {media && <div className="creator-media-preview">{media.kind === "video" ? <video src={media.url} controls /> : <img src={media.url} alt="Selected media" />}<button onClick={() => setMedia(null)}>Remove media</button></div>}
