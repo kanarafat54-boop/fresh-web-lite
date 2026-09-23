@@ -40,13 +40,13 @@ export default function FreshFlowHub() {
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
   const isOverview = section === "fresh-flow";
 
-  useEffect(() => {
-    if (!isOverview) setShortsImmersive(false);
-  }, [isOverview]);
   const activeNav = MEDIA_NAV.find((item) => item.id === section);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
   const [shortsImmersive, setShortsImmersive] = useState(false);
+  useEffect(() => {
+    if (!isOverview) setShortsImmersive(false);
+  }, [isOverview]);
 
   // undefined = loading, null = no wallet row yet (or guest), WalletSummary = real balance.
   const [wallet, setWallet] = useState<WalletSummary | null | undefined>(undefined);
