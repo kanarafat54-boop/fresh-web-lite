@@ -17,6 +17,9 @@ import type { ProfileVisibility, SmartProfileData, UniversalProfile } from "../t
 const tabs = ["Overview", "Activity", "Identity", "Professional", "Connections", "Insights", "Account"] as const;
 type Tab = typeof tabs[number];
 
+type ProfessionalItem = { id: string; title: string; description: string; url: string | null; image_url: string | null; position: number };
+type ProfileLinkItem = { id: string; label: string; url: string; position: number };
+
 type AnalyticsRow = {
   short_count?: number | null;
   short_views?: number | null;
@@ -40,6 +43,10 @@ export default function UniversalProfile() {
   const [crossPlatform, setCrossPlatform] = useState<CrossPlatformIdentity | null>(null);
   const [suggestions, setSuggestions] = useState<ProfileConnectionSuggestion[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsRow | null>(null);
+  const [projects, setProjects] = useState<ProfessionalItem[]>([]);
+  const [portfolio, setPortfolio] = useState<ProfessionalItem[]>([]);
+  const [profileLinks, setProfileLinks] = useState<ProfileLinkItem[]>([]);
+  const [professionalDraft, setProfessionalDraft] = useState({ kind: "project" as "project" | "portfolio" | "link", title: "", description: "", url: "", imageUrl: "" });
   const [tab, setTab] = useState<Tab>("Overview");
   const [loading, setLoading] = useState(true);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
@@ -60,15 +67,21 @@ export default function UniversalProfile() {
     if (!user) { setLoading(false); return; }
     setLoading(true); setError(null);
     try {
-      const [loaded, identity, analyticsResult] = await Promise.all([
+      const [loaded, identity, analyticsResult, projectsResult, portfolioResult, linksResult] = await Promise.all([
         loadRealUniversalProfile(user),
         loadCrossPlatformIdentity(user),
         supabase.from("user_content_analytics").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("profile_projects").select("id,title,description,url,image_url,position").eq("user_id", user.id).order("position", { ascending: true }),
+        supabase.from("profile_portfolio_items").select("id,title,description,url,image_url,position").eq("user_id", user.id).order("position", { ascending: true }),
+        supabase.from("profile_links").select("id,label,url,position").eq("user_id", user.id).order("position", { ascending: true }),
       ]);
       setProfile(loaded);
       setCrossPlatform(identity);
       setSmart(curateSmartProfile(loaded));
       setAnalytics((analyticsResult.data ?? null) as AnalyticsRow | null);
+      setProjects((projectsResult.data ?? []) as ProfessionalItem[]);
+      setPortfolio((portfolioResult.data ?? []) as ProfessionalItem[]);
+      setProfileLinks((linksResult.data ?? []) as ProfileLinkItem[]);
       setProfessional({
         occupation: loaded.occupation,
         company: loaded.company,
@@ -130,6 +143,32 @@ export default function UniversalProfile() {
       setMessage(result.isVideo ? "Profile video cover updated." : "Profile cover updated.");
     } catch (reason: unknown) { setError(reason instanceof Error ? reason.message : "Could not upload cover."); }
     finally { setSavingMedia(false); }
+  }
+
+  async function saveProfessionalItem() {
+    if (!user || !professionalDraft.title.trim()) return;
+    const isLink = professionalDraft.kind === "link";
+    const table = isLink ? "profile_links" : professionalDraft.kind === "project" ? "profile_projects" : "profile_portfolio_items";
+    const payload = isLink
+      ? { user_id: user.id, label: professionalDraft.title.trim(), url: professionalDraft.url.trim(), position: profileLinks.length }
+      : { user_id: user.id, title: professionalDraft.title.trim(), description: professionalDraft.description.trim(), url: professionalDraft.url.trim() || null, image_url: professionalDraft.imageUrl.trim() || null, position: (professionalDraft.kind === "project" ? projects : portfolio).length };
+    const { data, error: saveError } = await supabase.from(table).insert(payload).select(isLink ? "id,label,url,position" : "id,title,description,url,image_url,position").single();
+    if (saveError || !data) { setError(saveError?.message ?? "Could not save professional item."); return; }
+    if (isLink) setProfileLinks((items) => [...items, data as ProfileLinkItem]);
+    else if (professionalDraft.kind === "project") setProjects((items) => [...items, data as ProfessionalItem]);
+    else setPortfolio((items) => [...items, data as ProfessionalItem]);
+    setProfessionalDraft({ kind: professionalDraft.kind, title: "", description: "", url: "", imageUrl: "" });
+    setMessage(`${isLink ? "Professional link" : professionalDraft.kind === "project" ? "Project" : "Portfolio item"} added.`);
+  }
+
+  async function deleteProfessionalItem(kind: "project" | "portfolio" | "link", id: string) {
+    if (!user) return;
+    const table = kind === "link" ? "profile_links" : kind === "project" ? "profile_projects" : "profile_portfolio_items";
+    const { error: deleteError } = await supabase.from(table).delete().eq("id", id).eq("user_id", user.id);
+    if (deleteError) { setError(deleteError.message); return; }
+    if (kind === "link") setProfileLinks((items) => items.filter((item) => item.id !== id));
+    else if (kind === "project") setProjects((items) => items.filter((item) => item.id !== id));
+    else setPortfolio((items) => items.filter((item) => item.id !== id));
   }
 
   async function saveProfessionalProfile() {
@@ -316,7 +355,7 @@ export default function UniversalProfile() {
 
       {tab === "Identity" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">FRESH ID</span><h2>Identity & privacy</h2></div></div><div className="identity-details"><p><b>Fresh ID:</b> {profile.freshId}</p><p><b>Email:</b> {profile.email}</p><p><b>Joined:</b> {new Date(profile.joinedAt).toLocaleDateString()}</p><p><b>Location:</b> {profile.location || "Not provided"}</p><p><b>Website:</b> {profile.website || "Not provided"}</p><p><b>Skills:</b> {profile.skills.length ? profile.skills.join(", ") : "Not provided"}</p><p><b>Language:</b> {profile.languages.length ? profile.languages.join(", ") : "Not provided"}</p><p><b>Verification:</b> {user.identity.verificationLevel ?? "none"}</p></div><div className="privacy-controls">{(["public", "connections", "private"] as const).map((key) => <button key={key} disabled={savingPrivacy} className={profile.visibility[key] ? "privacy-on" : "privacy-off"} onClick={() => void updateVisibility(key)}>{key}: {profile.visibility[key] ? "visible" : "hidden"}</button>)}</div></section>}
 
-      {tab === "Professional" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">PROFESSIONAL IDENTITY</span><h2>Career, portfolio and public credibility</h2></div><button onClick={() => setEditing(true)}>Edit</button></div><div className="professional-grid"><div><span>Role</span><strong>{profile.occupation || "Add your profession"}</strong></div><div><span>Organization</span><strong>{profile.company || "Add your organization"}</strong></div><div><span>Location</span><strong>{profile.location || "Add location"}</strong></div><div><span>Website</span><strong>{profile.website || "Add website"}</strong></div><div><span>Skills</span><strong>{profile.skills.length ? profile.skills.join(" · ") : "Add skills"}</strong></div><div><span>Reputation</span><strong>{profile.reputationScore}</strong></div></div><div className="professional-actions"><button onClick={() => window.dispatchEvent(new CustomEvent("fresh-route", { detail: "creator" }))}>Open Creator Studio</button><button onClick={() => setTab("Insights")}>View professional analytics</button><button onClick={() => void shareProfile()}>Share professional profile</button></div></section>}
+      {tab === "Professional" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">PROFESSIONAL IDENTITY</span><h2>Career, portfolio and public credibility</h2></div><button onClick={() => setEditing(true)}>Edit</button></div><div className="professional-grid"><div><span>Role</span><strong>{profile.occupation || "Add your profession"}</strong></div><div><span>Organization</span><strong>{profile.company || "Add your organization"}</strong></div><div><span>Location</span><strong>{profile.location || "Add location"}</strong></div><div><span>Website</span><strong>{profile.website || "Add website"}</strong></div><div><span>Skills</span><strong>{profile.skills.length ? profile.skills.join(" · ") : "Add skills"}</strong></div><div><span>Reputation</span><strong>{profile.reputationScore}</strong></div></div><div className="professional-portfolio"><div className="card-heading"><h3>Projects</h3><span>{projects.length}</span></div>{projects.map((item) => <article key={item.id}><div>{item.image_url && <img src={item.image_url} alt="" />}<div><strong>{item.title}</strong><p>{item.description}</p>{item.url && <a href={item.url} target="_blank" rel="noreferrer">Open project ↗</a>}</div></div><button onClick={() => void deleteProfessionalItem("project", item.id)}>Delete</button></article>)}<div className="card-heading"><h3>Portfolio</h3><span>{portfolio.length}</span></div>{portfolio.map((item) => <article key={item.id}><div>{item.image_url && <img src={item.image_url} alt="" />}<div><strong>{item.title}</strong><p>{item.description}</p>{item.url && <a href={item.url} target="_blank" rel="noreferrer">Open work ↗</a>}</div></div><button onClick={() => void deleteProfessionalItem("portfolio", item.id)}>Delete</button></article>)}<div className="card-heading"><h3>Professional links</h3><span>{profileLinks.length}</span></div>{profileLinks.map((item) => <article key={item.id}><a href={item.url} target="_blank" rel="noreferrer"><strong>{item.label}</strong> ↗</a><button onClick={() => void deleteProfessionalItem("link", item.id)}>Delete</button></article>)}</div><div className="professional-add"><select value={professionalDraft.kind} onChange={(e) => setProfessionalDraft((d) => ({ ...d, kind: e.target.value as "project" | "portfolio" | "link" }))}><option value="project">Project</option><option value="portfolio">Portfolio item</option><option value="link">Professional link</option></select><input value={professionalDraft.title} onChange={(e) => setProfessionalDraft((d) => ({ ...d, title: e.target.value }))} placeholder={professionalDraft.kind === "link" ? "Link label" : "Title"} /><input value={professionalDraft.url} onChange={(e) => setProfessionalDraft((d) => ({ ...d, url: e.target.value }))} placeholder="https://…" />{professionalDraft.kind !== "link" && <><input value={professionalDraft.description} onChange={(e) => setProfessionalDraft((d) => ({ ...d, description: e.target.value }))} placeholder="Description" /><input value={professionalDraft.imageUrl} onChange={(e) => setProfessionalDraft((d) => ({ ...d, imageUrl: e.target.value }))} placeholder="Image URL (optional)" /></>}<button disabled={!professionalDraft.title.trim()} onClick={() => void saveProfessionalItem()}>＋ Add</button></div><div className="professional-actions"><button onClick={() => window.dispatchEvent(new CustomEvent("fresh-route", { detail: "creator" }))}>Open Creator Studio</button><button onClick={() => setTab("Insights")}>View professional analytics</button><button onClick={() => void shareProfile()}>Share professional profile</button></div></section>}
 
       {tab === "Connections" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">FRESH INTELLIGENCE</span><h2>People & identities</h2></div><span>{suggestions.length} suggestions</span></div>{loadingSuggestions ? <p className="muted">Finding relevant Fresh connections…</p> : suggestions.length ? <div className="suggestion-grid">{suggestions.map((item) => <article className="suggestion-card" key={item.id}><div className="suggestion-avatar" style={item.avatar ? { backgroundImage: `url(${item.avatar})` } : undefined}>{!item.avatar && item.displayName.slice(0, 1).toUpperCase()}</div><div className="suggestion-body"><strong>{item.displayName}</strong><span>@{item.username}</span><p>{item.reason}</p>{item.signals.length > 1 && <small>{item.signals.slice(0, 3).join(" · ")}</small>}</div><span className="suggestion-score">{item.score}%</span></article>)}</div> : <p className="muted">No strong connection match is available from current Fresh data.</p>}<div className="card-heading ecosystem-heading"><h2>Cross-platform identities</h2><span>{connected.length} connected</span></div>{connected.length ? connected.map((item) => <div className="connection-row" key={`${item.provider}-${item.handle}`}><span className="connection-icon">{item.provider.slice(0, 1).toUpperCase()}</span><div><strong>{item.provider}</strong><p>{item.handle || "Linked account"}</p></div><span>Connected</span></div>) : <p className="muted">No external identity is connected to this Fresh ID yet.</p>}</section>}
 
