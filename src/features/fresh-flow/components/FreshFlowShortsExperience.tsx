@@ -200,11 +200,14 @@ export default function FreshFlowShortsExperience({ onOpenTopic, onImmersiveChan
     const observer = new MutationObserver(scan);
     observer.observe(document.querySelector(".fresh-flow-stream") ?? document.body, { childList: true, subtree: true });
 
+    const watchedVideoIds = watchedVideoIdsRef.current;
+    const visibility = visibilityRef.current;
+
     return () => {
       clearTimer();
       observer.disconnect();
       visibilityObserver.disconnect();
-      watchedVideoIdsRef.current.forEach((_id, video) => {
+      watchedVideoIds.forEach((_id, video) => {
         video.removeEventListener("playing", onPlaying);
         video.removeEventListener("loadeddata", onLoadedData);
         video.removeEventListener("waiting", onWaiting);
@@ -212,8 +215,8 @@ export default function FreshFlowShortsExperience({ onOpenTopic, onImmersiveChan
         video.removeEventListener("pause", onPause);
         video.removeEventListener("ended", onEnded);
       });
-      watchedVideoIdsRef.current.clear();
-      visibilityRef.current.clear();
+      watchedVideoIds.clear();
+      visibility.clear();
       watchingVideoRef.current = null;
     };
   }, [streamKey, onImmersiveChange]);
