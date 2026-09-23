@@ -173,3 +173,18 @@ export function getSurfacesForEcosystem(id: string): EcosystemSurface[] {
 export function getEcosystemCatalog(): MajorEcosystem[] {
   return [...FRESH_MAJOR_ECOSYSTEMS];
 }
+
+
+/** Stable count/gap checks used by platform integrity tooling. */
+export const FRESH_MAJOR_ECOSYSTEM_COUNT = FRESH_MAJOR_ECOSYSTEMS.length;
+export const FRESH_ECOSYSTEM_SURFACE_COUNT = FRESH_ECOSYSTEM_SURFACES.length;
+
+export function getEcosystemCoverage() {
+  const coveredMajorIds = new Set(FRESH_ECOSYSTEM_SURFACES.map((surface) => surface.majorEcosystemId));
+  return FRESH_MAJOR_ECOSYSTEMS.map((ecosystem) => ({
+    ...ecosystem,
+    hasSurface: coveredMajorIds.has(ecosystem.id),
+  }));
+}
+
+export const FRESH_ECOSYSTEM_COVERAGE = getEcosystemCoverage();
