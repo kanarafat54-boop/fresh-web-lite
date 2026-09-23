@@ -133,7 +133,7 @@ export default function FreshFlowHub() {
         )}
       </main>
 
-      {isOverview && renderMediaNavigation("bottom")}
+      {(shortsImmersive || !isOverview) && renderMediaNavigation("bottom")}
 
       {searchOpen && (
         <FreshFlowSearchSurface
