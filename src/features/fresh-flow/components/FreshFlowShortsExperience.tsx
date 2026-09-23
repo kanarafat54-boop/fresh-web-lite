@@ -7,6 +7,8 @@ import "./FreshFlowShortsExperience.css";
 
 type Props = { onOpenTopic?: (tag: string) => void; onImmersiveChange?: (immersive: boolean) => void };
 
+type CreateIntent = { action?: string; sourceShortId?: string; sourceVideoUrl?: string };
+
 function getConnectionType(): string | undefined {
   const connection = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection;
   return connection?.effectiveType;
@@ -244,7 +246,7 @@ export default function FreshFlowShortsExperience({ onOpenTopic, onImmersiveChan
         onOpenTopic={onOpenTopic}
         immersive={immersive}
         onImmersiveChange={onImmersiveChange}
-        onOpenCreate={(intent) => {
+        onOpenCreate={(intent?: CreateIntent) => {
           try {
             if (intent) sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify(intent));
           } catch {
