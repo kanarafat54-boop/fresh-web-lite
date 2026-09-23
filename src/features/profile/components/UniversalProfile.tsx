@@ -17,6 +17,9 @@ import type { ProfileVisibility, SmartProfileData, UniversalProfile } from "../t
 const tabs = ["Overview", "Activity", "Identity", "Professional", "Connections", "Insights", "Account"] as const;
 type Tab = typeof tabs[number];
 
+type ProfessionalItem = { id: string; title: string; description: string; url: string | null; image_url: string | null; position: number };
+type ProfileLinkItem = { id: string; label: string; url: string; position: number };
+
 type AnalyticsRow = {
   short_count?: number | null;
   short_views?: number | null;
@@ -40,6 +43,10 @@ export default function UniversalProfile() {
   const [crossPlatform, setCrossPlatform] = useState<CrossPlatformIdentity | null>(null);
   const [suggestions, setSuggestions] = useState<ProfileConnectionSuggestion[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsRow | null>(null);
+  const [projects, setProjects] = useState<ProfessionalItem[]>([]);
+  const [portfolio, setPortfolio] = useState<ProfessionalItem[]>([]);
+  const [profileLinks, setProfileLinks] = useState<ProfileLinkItem[]>([]);
+  const [professionalDraft, setProfessionalDraft] = useState({ kind: "project" as "project" | "portfolio" | "link", title: "", description: "", url: "", imageUrl: "" });
   const [tab, setTab] = useState<Tab>("Overview");
   const [loading, setLoading] = useState(true);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
@@ -60,15 +67,21 @@ export default function UniversalProfile() {
     if (!user) { setLoading(false); return; }
     setLoading(true); setError(null);
     try {
-      const [loaded, identity, analyticsResult] = await Promise.all([
+      const [loaded, identity, analyticsResult, projectsResult, portfolioResult, linksResult] = await Promise.all([
         loadRealUniversalProfile(user),
         loadCrossPlatformIdentity(user),
         supabase.from("user_content_analytics").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("profile_projects").select("id,title,description,url,image_url,position").eq("user_id", user.id).order("position", { ascending: true }),
+        supabase.from("profile_portfolio_items").select("id,title,description,url,image_url,position").eq("user_id", user.id).order("position", { ascending: true }),
+        supabase.from("profile_links").select("id,label,url,position").eq("user_id", user.id).order("position", { ascending: true }),
       ]);
       setProfile(loaded);
       setCrossPlatform(identity);
       setSmart(curateSmartProfile(loaded));
       setAnalytics((analyticsResult.data ?? null) as AnalyticsRow | null);
+      setProjects((projectsResult.data ?? []) as ProfessionalItem[]);
+      setPortfolio((portfolioResult.data ?? []) as ProfessionalItem[]);
+      setProfileLinks((linksResult.data ?? []) as ProfileLinkItem[]);
       setProfessional({
         occupation: loaded.occupation,
         company: loaded.company,
@@ -97,24 +110,6 @@ export default function UniversalProfile() {
   const organizedGroups = useMemo(() => profile ? groupProfileActivity(profile) : [], [profile]);
   const connected = profile?.connections.filter((item) => item.connected) ?? [];
   const enabledEcosystems = crossPlatform?.ecosystems.filter((item) => item.enabled) ?? [];
-  const aiSuggestions = useMemo(() => {
-    if (!profile) return [];
-    const next: Array<{ id: string; title: string; reason: string; action: "creator" | "edit" | "insights" | "connections" }> = [];
-    if (!profile.bio || !profile.occupation) next.push({ id: "complete-profile", title: "Complete your professional identity", reason: "Fresh ID has profile fields that are still empty.", action: "edit" });
-    if (!profile.activity.length) next.push({ id: "create-first", title: "Publish your first Fresh activity", reason: "Fresh Intelligence has no activity to curate yet.", action: "creator" });
-    if (profile.activity.length && (analytics?.short_count ?? profile.shortCount) === 0) next.push({ id: "make-short", title: "Create a Short from your existing profile", reason: "You have stored profile activity but no recorded Shorts.", action: "creator" });
-    if (!suggestions.length) next.push({ id: "grow-network", title: "Explore Fresh connections", reason: "No strong connection match is currently available from stored signals.", action: "connections" });
-    if ((analytics?.post_count ?? profile.postCount) + (analytics?.short_count ?? profile.shortCount) > 0) next.push({ id: "review-insights", title: "Review your content performance", reason: "Fresh ID has published-content signals available for review.", action: "insights" });
-    return next.slice(0, 4);
-  }, [analytics, profile, suggestions.length]);
-
-  function applyAiSuggestion(action: "creator" | "edit" | "insights" | "connections") {
-    if (action === "creator") setActiveRoute("creator");
-    else if (action === "edit") setEditing(true);
-    else if (action === "insights" || action === "connections") setTab(action === "insights" ? "Insights" : "Connections");
-  }
-
-
 
   async function updateVisibility(key: keyof ProfileVisibility) {
     if (!user || !profile) return;
@@ -148,6 +143,56 @@ export default function UniversalProfile() {
       setMessage(result.isVideo ? "Profile video cover updated." : "Profile cover updated.");
     } catch (reason: unknown) { setError(reason instanceof Error ? reason.message : "Could not upload cover."); }
     finally { setSavingMedia(false); }
+  }
+
+  async function saveProfessionalItem() {
+    if (!user || !professionalDraft.title.trim()) return;
+    if (professionalDraft.kind === "link") {
+      const { data, error: saveError } = await supabase.from("profile_links").insert({
+        user_id: user.id,
+        label: professionalDraft.title.trim(),
+        url: professionalDraft.url.trim(),
+        position: profileLinks.length,
+      }).select("id,label,url,position").single();
+      if (saveError || !data) { setError(saveError?.message ?? "Could not save professional link."); return; }
+      setProfileLinks((items) => [...items, data as ProfileLinkItem]);
+      setMessage("Professional link added.");
+    } else if (professionalDraft.kind === "project") {
+      const { data, error: saveError } = await supabase.from("profile_projects").insert({
+        user_id: user.id,
+        title: professionalDraft.title.trim(),
+        description: professionalDraft.description.trim(),
+        url: professionalDraft.url.trim() || null,
+        image_url: professionalDraft.imageUrl.trim() || null,
+        position: projects.length,
+      }).select("id,title,description,url,image_url,position").single();
+      if (saveError || !data) { setError(saveError?.message ?? "Could not save project."); return; }
+      setProjects((items) => [...items, data as ProfessionalItem]);
+      setMessage("Project added.");
+    } else {
+      const { data, error: saveError } = await supabase.from("profile_portfolio_items").insert({
+        user_id: user.id,
+        title: professionalDraft.title.trim(),
+        description: professionalDraft.description.trim(),
+        url: professionalDraft.url.trim() || null,
+        image_url: professionalDraft.imageUrl.trim() || null,
+        position: portfolio.length,
+      }).select("id,title,description,url,image_url,position").single();
+      if (saveError || !data) { setError(saveError?.message ?? "Could not save portfolio item."); return; }
+      setPortfolio((items) => [...items, data as ProfessionalItem]);
+      setMessage("Portfolio item added.");
+    }
+    setProfessionalDraft({ kind: professionalDraft.kind, title: "", description: "", url: "", imageUrl: "" });
+  }
+
+  async function deleteProfessionalItem(kind: "project" | "portfolio" | "link", id: string) {
+    if (!user) return;
+    const table = kind === "link" ? "profile_links" : kind === "project" ? "profile_projects" : "profile_portfolio_items";
+    const { error: deleteError } = await supabase.from(table).delete().eq("id", id).eq("user_id", user.id);
+    if (deleteError) { setError(deleteError.message); return; }
+    if (kind === "link") setProfileLinks((items) => items.filter((item) => item.id !== id));
+    else if (kind === "project") setProjects((items) => items.filter((item) => item.id !== id));
+    else setPortfolio((items) => items.filter((item) => item.id !== id));
   }
 
   async function saveProfessionalProfile() {
@@ -323,7 +368,6 @@ export default function UniversalProfile() {
 
       {tab === "Overview" && <div className="profile-grid">
         <section className="profile-card smart-card smart-ai-card"><div className="card-heading"><div><span className="eyebrow">FRESH INTELLIGENCE</span><h2>Smart profile</h2></div><span className="live-dot">LIVE DATA</span></div><p>{smart?.summary}</p>{smart?.interests.length ? <div className="smart-tags">{smart.interests.map((interest) => <span key={interest}>{interest}</span>)}</div> : <p className="muted">Add interests or publish content and Fresh Intelligence will organize signals here.</p>}<div className="smart-metrics"><div><strong>{smart?.highlights.length ?? 0}</strong><span>Highlights</span></div><div><strong>{connected.length}</strong><span>Connected identities</span></div><div><strong>{enabledEcosystems.length}</strong><span>Fresh ecosystems</span></div></div></section>
-        <section className="profile-card profile-ai-suggestions"><div className="card-heading"><div><span className="eyebrow">FRESH AI</span><h2>Suggested next actions</h2></div><span className="live-dot">REAL DATA</span></div>{aiSuggestions.length ? <div className="profile-ai-suggestion-list">{aiSuggestions.map((item) => <article key={item.id} className="profile-ai-suggestion"><div><strong>{item.title}</strong><p>{item.reason}</p></div><button type="button" onClick={() => applyAiSuggestion(item.action)}>{item.action === "edit" ? "Complete" : item.action === "connections" ? "Explore" : item.action === "insights" ? "Review" : "Create"}</button></article>)}</div> : <p className="muted">Fresh AI has no additional next action from the current stored profile signals.</p>}<p className="muted profile-ai-footnote">Suggestions are derived from Fresh ID profile, activity and analytics data. They do not invent achievements or performance.</p></section>
         <section className="profile-card"><div className="card-heading"><h2>AI-curated highlights</h2><button onClick={() => setTab("Activity")}>View all</button></div>{smart?.highlights.length ? smart.highlights.slice(0, 3).map((item) => <article className="activity-row" key={`${item.kind}-${item.id}`}><span className="activity-kind">{item.kind}</span><div><strong>{item.title}</strong><p>{item.text || "Media content"}</p></div><span className="highlight-score">{item.score}</span></article>) : <p className="muted">No real activity is available to curate yet.</p>}</section>
         <section className="profile-card"><div className="card-heading"><h2>Reputation & trust</h2><span className="profile-score">{profile.reputationScore}</span></div><p>Fresh ID reputation is shown from persisted account data. Fresh Intelligence does not invent credibility.</p><div className="smart-tags"><span>{profile.verified ? "Verified identity" : "Identity not verified"}</span><span>{profile.connections.length} linked identities</span></div></section>
         <section className="profile-card"><div className="card-heading"><h2>Privacy layers</h2><button disabled={savingPrivacy} onClick={() => setTab("Identity")}>Manage</button></div><p>Visibility is controlled by the Fresh identity rather than a visual-only switch.</p><div className="privacy-summary"><span>Public {profile.visibility.public ? "On" : "Off"}</span><span>Connections {profile.visibility.connections ? "On" : "Off"}</span><span>Private {profile.visibility.private ? "On" : "Off"}</span></div></section>
@@ -335,13 +379,13 @@ export default function UniversalProfile() {
 
       {tab === "Identity" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">FRESH ID</span><h2>Identity & privacy</h2></div></div><div className="identity-details"><p><b>Fresh ID:</b> {profile.freshId}</p><p><b>Email:</b> {profile.email}</p><p><b>Joined:</b> {new Date(profile.joinedAt).toLocaleDateString()}</p><p><b>Location:</b> {profile.location || "Not provided"}</p><p><b>Website:</b> {profile.website || "Not provided"}</p><p><b>Skills:</b> {profile.skills.length ? profile.skills.join(", ") : "Not provided"}</p><p><b>Language:</b> {profile.languages.length ? profile.languages.join(", ") : "Not provided"}</p><p><b>Verification:</b> {user.identity.verificationLevel ?? "none"}</p></div><div className="privacy-controls">{(["public", "connections", "private"] as const).map((key) => <button key={key} disabled={savingPrivacy} className={profile.visibility[key] ? "privacy-on" : "privacy-off"} onClick={() => void updateVisibility(key)}>{key}: {profile.visibility[key] ? "visible" : "hidden"}</button>)}</div></section>}
 
-      {tab === "Professional" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">PROFESSIONAL IDENTITY</span><h2>Career, portfolio and public credibility</h2></div><button onClick={() => setEditing(true)}>Edit</button></div><div className="professional-grid"><div><span>Role</span><strong>{profile.occupation || "Add your profession"}</strong></div><div><span>Organization</span><strong>{profile.company || "Add your organization"}</strong></div><div><span>Location</span><strong>{profile.location || "Add location"}</strong></div><div><span>Website</span><strong>{profile.website || "Add website"}</strong></div><div><span>Skills</span><strong>{profile.skills.length ? profile.skills.join(" · ") : "Add skills"}</strong></div><div><span>Reputation</span><strong>{profile.reputationScore}</strong></div></div><div className="professional-actions"><button onClick={() => window.dispatchEvent(new CustomEvent("fresh-route", { detail: "creator" }))}>Open Creator Studio</button><button onClick={() => setTab("Insights")}>View professional analytics</button><button onClick={() => void shareProfile()}>Share professional profile</button></div></section>}
+      {tab === "Professional" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">PROFESSIONAL IDENTITY</span><h2>Career, portfolio and public credibility</h2></div><button onClick={() => setEditing(true)}>Edit</button></div><div className="professional-grid"><div><span>Role</span><strong>{profile.occupation || "Add your profession"}</strong></div><div><span>Organization</span><strong>{profile.company || "Add your organization"}</strong></div><div><span>Location</span><strong>{profile.location || "Add location"}</strong></div><div><span>Website</span><strong>{profile.website || "Add website"}</strong></div><div><span>Skills</span><strong>{profile.skills.length ? profile.skills.join(" · ") : "Add skills"}</strong></div><div><span>Reputation</span><strong>{profile.reputationScore}</strong></div></div><div className="professional-portfolio"><div className="card-heading"><h3>Projects</h3><span>{projects.length}</span></div>{projects.map((item) => <article key={item.id}><div>{item.image_url && <img src={item.image_url} alt="" />}<div><strong>{item.title}</strong><p>{item.description}</p>{item.url && <a href={item.url} target="_blank" rel="noreferrer">Open project ↗</a>}</div></div><button onClick={() => void deleteProfessionalItem("project", item.id)}>Delete</button></article>)}<div className="card-heading"><h3>Portfolio</h3><span>{portfolio.length}</span></div>{portfolio.map((item) => <article key={item.id}><div>{item.image_url && <img src={item.image_url} alt="" />}<div><strong>{item.title}</strong><p>{item.description}</p>{item.url && <a href={item.url} target="_blank" rel="noreferrer">Open work ↗</a>}</div></div><button onClick={() => void deleteProfessionalItem("portfolio", item.id)}>Delete</button></article>)}<div className="card-heading"><h3>Professional links</h3><span>{profileLinks.length}</span></div>{profileLinks.map((item) => <article key={item.id}><a href={item.url} target="_blank" rel="noreferrer"><strong>{item.label}</strong> ↗</a><button onClick={() => void deleteProfessionalItem("link", item.id)}>Delete</button></article>)}</div><div className="professional-add"><select value={professionalDraft.kind} onChange={(e) => setProfessionalDraft((d) => ({ ...d, kind: e.target.value as "project" | "portfolio" | "link" }))}><option value="project">Project</option><option value="portfolio">Portfolio item</option><option value="link">Professional link</option></select><input value={professionalDraft.title} onChange={(e) => setProfessionalDraft((d) => ({ ...d, title: e.target.value }))} placeholder={professionalDraft.kind === "link" ? "Link label" : "Title"} /><input value={professionalDraft.url} onChange={(e) => setProfessionalDraft((d) => ({ ...d, url: e.target.value }))} placeholder="https://…" />{professionalDraft.kind !== "link" && <><input value={professionalDraft.description} onChange={(e) => setProfessionalDraft((d) => ({ ...d, description: e.target.value }))} placeholder="Description" /><input value={professionalDraft.imageUrl} onChange={(e) => setProfessionalDraft((d) => ({ ...d, imageUrl: e.target.value }))} placeholder="Image URL (optional)" /></>}<button disabled={!professionalDraft.title.trim()} onClick={() => void saveProfessionalItem()}>＋ Add</button></div><div className="professional-actions"><button onClick={() => window.dispatchEvent(new CustomEvent("fresh-route", { detail: "creator" }))}>Open Creator Studio</button><button onClick={() => setTab("Insights")}>View professional analytics</button><button onClick={() => void shareProfile()}>Share professional profile</button></div></section>}
 
       {tab === "Connections" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">FRESH INTELLIGENCE</span><h2>People & identities</h2></div><span>{suggestions.length} suggestions</span></div>{loadingSuggestions ? <p className="muted">Finding relevant Fresh connections…</p> : suggestions.length ? <div className="suggestion-grid">{suggestions.map((item) => <article className="suggestion-card" key={item.id}><div className="suggestion-avatar" style={item.avatar ? { backgroundImage: `url(${item.avatar})` } : undefined}>{!item.avatar && item.displayName.slice(0, 1).toUpperCase()}</div><div className="suggestion-body"><strong>{item.displayName}</strong><span>@{item.username}</span><p>{item.reason}</p>{item.signals.length > 1 && <small>{item.signals.slice(0, 3).join(" · ")}</small>}</div><span className="suggestion-score">{item.score}%</span></article>)}</div> : <p className="muted">No strong connection match is available from current Fresh data.</p>}<div className="card-heading ecosystem-heading"><h2>Cross-platform identities</h2><span>{connected.length} connected</span></div>{connected.length ? connected.map((item) => <div className="connection-row" key={`${item.provider}-${item.handle}`}><span className="connection-icon">{item.provider.slice(0, 1).toUpperCase()}</span><div><strong>{item.provider}</strong><p>{item.handle || "Linked account"}</p></div><span>Connected</span></div>) : <p className="muted">No external identity is connected to this Fresh ID yet.</p>}</section>}
 
       {tab === "Insights" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">REAL CONTENT ANALYTICS</span><h2>Professional dashboard</h2></div><button onClick={() => window.dispatchEvent(new CustomEvent("fresh-route", { detail: "creator" }))}>Creator Studio</button></div><div className="analytics-big-grid"><div><strong>{analytics?.post_count ?? profile.postCount}</strong><span>Posts</span></div><div><strong>{analytics?.short_count ?? profile.shortCount}</strong><span>Shorts</span></div><div><strong>{analytics?.short_views ?? 0}</strong><span>Short views</span></div><div><strong>{analytics?.short_likes ?? analytics?.post_likes ?? 0}</strong><span>Likes</span></div><div><strong>{analytics?.short_reposts ?? 0}</strong><span>Reposts</span></div><div><strong>{analytics?.gifts_received_count ?? 0}</strong><span>Gifts received</span></div><div><strong>{analytics?.follower_count ?? profile.followerCount}</strong><span>Followers</span></div><div><strong>{analytics?.following_count ?? profile.followingCount}</strong><span>Following</span></div></div><p className="muted">Metrics are read from Fresh content and account data. Missing event-level metrics remain zero rather than being invented.</p></section>}
 
-      {tab === "Account" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">ULTIMATE ACCOUNT CENTER</span><h2>Security, access and account controls</h2></div><span>{user.subscription.tier.toUpperCase()}</span></div><div className="account-grid"><div><span>Subscription</span><strong>{user.subscription.tier}</strong><small>{user.subscription.renewsAt ? `Renews ${new Date(user.subscription.renewsAt).toLocaleDateString()}` : "No renewal date stored"}</small></div><div><span>Verification</span><strong>{user.identity.verificationLevel ?? "none"}</strong><small>{user.verified ? "Account verified" : "Verification available when enabled"}</small></div><div><span>Two-factor</span><strong>{user.security.twoFactorEnabled ? "Enabled" : "Not enabled"}</strong><small>Stored account security state</small></div><div><span>Linked accounts</span><strong>{user.linkedAccounts.length}</strong><small>Cross-platform identity links</small></div><div><span>Presence</span><strong>{user.presence}</strong><small>Current Fresh ID state</small></div><div><span>Account age</span><strong>{Math.max(1, Math.floor((Date.now()-Date.parse(user.createdAt))/86400000))} days</strong><small>Based on account creation date</small></div></div><div className="account-actions"><button onClick={() => void openPasskeys()}>Manage passkeys</button><button onClick={() => void registerPasskey()}>＋ Add this device passkey</button><button onClick={() => void refreshMfa()}>Manage 2FA</button><button onClick={() => void startMfaSetup()}>＋ Set up TOTP 2FA</button><button onClick={() => void exportAccountData()}>↓ Export my data</button><button onClick={() => setActiveRoute("settings")}>Open settings</button></div>{mfaSetup && <div className="mfa-setup"><strong>Set up authenticator app</strong><p>Scan the QR code with your authenticator app, then enter the 6-digit code.</p><img src={`data:image/svg+xml;utf8,${encodeURIComponent(mfaSetup.qr)}`} alt="Fresh ID authenticator QR code" /><code>{mfaSetup.secret}</code><input inputMode="numeric" maxLength={6} value={mfaSetup.code} onChange={(e) => setMfaSetup((current) => current ? { ...current, code: e.target.value.replace(/\D/g, "") } : current)} placeholder="123456" /><div><button disabled={mfaBusy} onClick={() => void verifyMfaSetup()}>Verify & enable</button><button disabled={mfaBusy} onClick={() => setMfaSetup(null)}>Cancel</button></div></div>}{mfaFactors.length > 0 && <div className="passkey-list"><strong>Two-factor factors</strong>{mfaFactors.map((factor) => <div key={factor.id}><span>🛡️ {factor.friendly_name || "Authenticator"} · {factor.status || "active"}</span><button disabled={mfaBusy} onClick={() => void removeMfa(factor.id)}>Remove</button></div>)}</div>}{passkeys.length > 0 && <div className="passkey-list">{passkeys.map((key) => <div key={key.id}><span>🔐 {key.name || "Fresh ID passkey"}</span>{key.id && <button onClick={() => void removePasskey(key.id!)}>Remove</button>}</div>)}</div>}<p className="muted">Fresh ID keeps account controls separate from public profile presentation. Destructive account operations remain behind explicit authorization.</p></section>}
+      {tab === "Account" && <section className="profile-card full-card"><div className="card-heading"><div><span className="eyebrow">ULTIMATE ACCOUNT CENTER</span><h2>Security, access and account controls</h2></div><span>{user.subscription.tier.toUpperCase()}</span></div><div className="account-grid"><div><span>Subscription</span><strong>{user.subscription.tier}</strong><small>{user.subscription.renewsAt ? `Renews ${new Date(user.subscription.renewsAt).toLocaleDateString()}` : "No renewal date stored"}</small></div><div><span>Verification</span><strong>{user.identity.verificationLevel ?? "none"}</strong><small>{user.verified ? "Account verified" : "Verification available when enabled"}</small></div><div><span>Two-factor</span><strong>{user.security.twoFactorEnabled ? "Enabled" : "Not enabled"}</strong><small>Stored account security state</small></div><div><span>Linked accounts</span><strong>{user.linkedAccounts.length}</strong><small>Cross-platform identity links</small></div><div><span>Presence</span><strong>{user.presence}</strong><small>Current Fresh ID state</small></div><div><span>Account age</span><strong>{Math.max(1, Math.floor((Date.now()-Date.parse(user.createdAt))/86400000))} days</strong><small>Based on account creation date</small></div></div><div className="account-actions"><button onClick={() => void openPasskeys()}>Manage passkeys</button><button onClick={() => void registerPasskey()}>＋ Add this device passkey</button><button onClick={() => void refreshMfa()}>Manage 2FA</button><button onClick={() => void startMfaSetup()}>＋ Set up TOTP 2FA</button><button onClick={() => void exportAccountData()}>↓ Export my data</button><button onClick={() => setActiveRoute("settings")}>Open settings</button></div>{mfaSetup && <div className="mfa-setup"><strong>Set up authenticator app</strong><p>Scan the QR code with your authenticator app, then enter the 6-digit code.</p><img src={`data:image/svg+xml;utf8,${encodeURIComponent(mfaSetup.qr)}`} alt="Fresh ID authenticator QR code" /><code>{mfaSetup.secret}</code><input inputMode="numeric" maxLength={6} value={mfaSetup.code} onChange={(e) => setMfaSetup((current) => current ? { ...current, code: e.target.value.replace(/\\D/g, "") } : current)} placeholder="123456" /><div><button disabled={mfaBusy} onClick={() => void verifyMfaSetup()}>Verify & enable</button><button disabled={mfaBusy} onClick={() => setMfaSetup(null)}>Cancel</button></div></div>}{mfaFactors.length > 0 && <div className="passkey-list"><strong>Two-factor factors</strong>{mfaFactors.map((factor) => <div key={factor.id}><span>🛡️ {factor.friendly_name || "Authenticator"} · {factor.status || "active"}</span><button disabled={mfaBusy} onClick={() => void removeMfa(factor.id)}>Remove</button></div>)}</div>}{passkeys.length > 0 && <div className="passkey-list">{passkeys.map((key) => <div key={key.id}><span>🔐 {key.name || "Fresh ID passkey"}</span>{key.id && <button onClick={() => void removePasskey(key.id!)}>Remove</button>}</div>)}</div>}<p className="muted">Fresh ID keeps account controls separate from public profile presentation. Destructive account operations remain behind explicit authorization.</p></section>}
     </main>
   );
 }
