@@ -147,18 +147,42 @@ export default function UniversalProfile() {
 
   async function saveProfessionalItem() {
     if (!user || !professionalDraft.title.trim()) return;
-    const isLink = professionalDraft.kind === "link";
-    const table = isLink ? "profile_links" : professionalDraft.kind === "project" ? "profile_projects" : "profile_portfolio_items";
-    const payload = isLink
-      ? { user_id: user.id, label: professionalDraft.title.trim(), url: professionalDraft.url.trim(), position: profileLinks.length }
-      : { user_id: user.id, title: professionalDraft.title.trim(), description: professionalDraft.description.trim(), url: professionalDraft.url.trim() || null, image_url: professionalDraft.imageUrl.trim() || null, position: (professionalDraft.kind === "project" ? projects : portfolio).length };
-    const { data, error: saveError } = await supabase.from(table).insert(payload).select(isLink ? "id,label,url,position" : "id,title,description,url,image_url,position").single();
-    if (saveError || !data) { setError(saveError?.message ?? "Could not save professional item."); return; }
-    if (isLink) setProfileLinks((items) => [...items, data as ProfileLinkItem]);
-    else if (professionalDraft.kind === "project") setProjects((items) => [...items, data as ProfessionalItem]);
-    else setPortfolio((items) => [...items, data as ProfessionalItem]);
+    if (professionalDraft.kind === "link") {
+      const { data, error: saveError } = await supabase.from("profile_links").insert({
+        user_id: user.id,
+        label: professionalDraft.title.trim(),
+        url: professionalDraft.url.trim(),
+        position: profileLinks.length,
+      }).select("id,label,url,position").single();
+      if (saveError || !data) { setError(saveError?.message ?? "Could not save professional link."); return; }
+      setProfileLinks((items) => [...items, data as ProfileLinkItem]);
+      setMessage("Professional link added.");
+    } else if (professionalDraft.kind === "project") {
+      const { data, error: saveError } = await supabase.from("profile_projects").insert({
+        user_id: user.id,
+        title: professionalDraft.title.trim(),
+        description: professionalDraft.description.trim(),
+        url: professionalDraft.url.trim() || null,
+        image_url: professionalDraft.imageUrl.trim() || null,
+        position: projects.length,
+      }).select("id,title,description,url,image_url,position").single();
+      if (saveError || !data) { setError(saveError?.message ?? "Could not save project."); return; }
+      setProjects((items) => [...items, data as ProfessionalItem]);
+      setMessage("Project added.");
+    } else {
+      const { data, error: saveError } = await supabase.from("profile_portfolio_items").insert({
+        user_id: user.id,
+        title: professionalDraft.title.trim(),
+        description: professionalDraft.description.trim(),
+        url: professionalDraft.url.trim() || null,
+        image_url: professionalDraft.imageUrl.trim() || null,
+        position: portfolio.length,
+      }).select("id,title,description,url,image_url,position").single();
+      if (saveError || !data) { setError(saveError?.message ?? "Could not save portfolio item."); return; }
+      setPortfolio((items) => [...items, data as ProfessionalItem]);
+      setMessage("Portfolio item added.");
+    }
     setProfessionalDraft({ kind: professionalDraft.kind, title: "", description: "", url: "", imageUrl: "" });
-    setMessage(`${isLink ? "Professional link" : professionalDraft.kind === "project" ? "Project" : "Portfolio item"} added.`);
   }
 
   async function deleteProfessionalItem(kind: "project" | "portfolio" | "link", id: string) {
