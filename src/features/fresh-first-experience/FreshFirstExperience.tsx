@@ -31,6 +31,21 @@ const intentSpaces: Record<string, FreshSpace> = {
   custom: "ai",
 };
 
+/** Default landing after first experience: Fresh Flow (media discovery home). */
+const DEFAULT_LANDING_ROUTE = "fresh-flow";
+
+const intentRoutes: Record<string, string> = {
+  create: "creator",
+  money: "wallet",
+  learn: "learning",
+  connect: "communication",
+  business: "work",
+  build: "software",
+  find: "fresh-flow",
+  explore: "fresh-flow",
+  custom: "ai",
+};
+
 export default function FreshFirstExperience() {
   const { ready } = useFreshCore();
   const { user, loading } = useFreshId();
@@ -38,10 +53,11 @@ export default function FreshFirstExperience() {
   const [intent, setIntent] = useState<Intent | null>(null);
   const [input, setInput] = useState("");
 
-  const greeting = useMemo(() => user?.fullName ? `Welcome, ${user.fullName}.` : "Welcome to Fresh.", [user]);
+  const greeting = useMemo(() => (user?.fullName ? `Welcome, ${user.fullName}.` : "Welcome to Fresh."), [user]);
   if (!ready || loading) return null;
 
-  function beginWith(nextIntent: Intent, route: string = "feed") {
+  function beginWith(nextIntent: Intent, route?: string) {
+    const target = route ?? intentRoutes[nextIntent.id] ?? DEFAULT_LANDING_ROUTE;
     contextService.update({
       activeSpace: intentSpaces[nextIntent.id] ?? "ai",
       goals: [nextIntent.prompt],
@@ -49,26 +65,29 @@ export default function FreshFirstExperience() {
     localStorage.setItem("fresh.firstExperience.intent", nextIntent.id);
     localStorage.setItem("fresh.firstExperience.prompt", nextIntent.prompt);
     localStorage.setItem("fresh.firstExperience.completed", "true");
-    setActiveRoute(route);
+    setActiveRoute(target);
   }
 
   function continueToFresh() {
     if (intent) beginWith(intent);
     else {
       localStorage.setItem("fresh.firstExperience.completed", "true");
-      setActiveRoute("feed");
+      setActiveRoute(DEFAULT_LANDING_ROUTE);
     }
   }
 
   function startWithAI() {
     const prompt = input.trim();
     if (!prompt) return;
-    beginWith({
-      id: "custom",
-      title: "Your goal",
-      description: "Fresh will use this as the starting context for your next step.",
-      prompt,
-    }, "ai");
+    beginWith(
+      {
+        id: "custom",
+        title: "Your goal",
+        description: "Fresh will use this as the starting context for your next step.",
+        prompt,
+      },
+      "ai",
+    );
   }
 
   return (
@@ -77,18 +96,60 @@ export default function FreshFirstExperience() {
         <span className="fresh-first__eyebrow">Fresh Intelligence</span>
         <h1>{greeting}</h1>
         <p className="fresh-first__headline">One account. One intelligent world.</p>
-        <p className="fresh-first__intro">Tell Fresh what you want to accomplish. Fresh can connect the right tools, knowledge, people, and workspace instead of making you learn where everything lives.</p>
+        <p className="fresh-first__intro">
+          Tell Fresh what you want to accomplish. Fresh can connect the right tools, knowledge, people, and workspace instead of making you learn where everything lives.
+        </p>
         <div className="fresh-first__composer">
-          <textarea value={input} onChange={(event) => setInput(event.target.value)} placeholder="Tell Fresh what you want to accomplish…" rows={3} aria-label="Tell Fresh what you want to accomplish" />
-          <button type="button" disabled={!input.trim()} onClick={startWithAI}>Start with Fresh AI</button>
+          <textarea
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            placeholder="Tell Fresh what you want to accomplish…"
+            rows={3}
+            aria-label="Tell Fresh what you want to accomplish"
+          />
+          <button type="button" disabled={!input.trim()} onClick={startWithAI}>
+            Start with Fresh AI
+          </button>
         </div>
-        <button type="button" className="fresh-first__enter" onClick={continueToFresh}>Enter Fresh</button>
+        <button type="button" className="fresh-first__enter" onClick={continueToFresh}>
+          Enter Fresh
+        </button>
       </div>
       <div className="fresh-first__section">
-        <div className="fresh-first__section-heading"><div><span className="fresh-first__eyebrow">Start anywhere</span><h2>What are you here to do?</h2></div><span className="fresh-first__privacy">You stay in control of what Fresh remembers.</span></div>
-        <div className="fresh-first__grid">{intents.map((item) => <button type="button" className="fresh-first__intent" key={item.id} onClick={() => setIntent(item)}><strong>{item.title}</strong><span>{item.description}</span></button>)}</div>
+        <div className="fresh-first__section-heading">
+          <div>
+            <span className="fresh-first__eyebrow">Start anywhere</span>
+            <h2>What are you here to do?</h2>
+          </div>
+          <span className="fresh-first__privacy">You stay in control of what Fresh remembers.</span>
+        </div>
+        <div className="fresh-first__grid">
+          {intents.map((item) => (
+            <button type="button" className="fresh-first__intent" key={item.id} onClick={() => setIntent(item)}>
+              <strong>{item.title}</strong>
+              <span>{item.description}</span>
+            </button>
+          ))}
+        </div>
       </div>
-      {intent && <div className="fresh-first__next" role="status"><div><span className="fresh-first__eyebrow">Fresh understood</span><h2>{intent.title}</h2><p>{intent.description}</p><code>{intent.prompt}</code></div><div className="fresh-first__actions"><button type="button" onClick={() => setIntent(null)}>Change direction</button><button type="button" onClick={continueToFresh}>Continue</button></div></div>}
+      {intent && (
+        <div className="fresh-first__next" role="status">
+          <div>
+            <span className="fresh-first__eyebrow">Fresh understood</span>
+            <h2>{intent.title}</h2>
+            <p>{intent.description}</p>
+            <code>{intent.prompt}</code>
+          </div>
+          <div className="fresh-first__actions">
+            <button type="button" onClick={() => setIntent(null)}>
+              Change direction
+            </button>
+            <button type="button" onClick={continueToFresh}>
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
