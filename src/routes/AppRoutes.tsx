@@ -15,7 +15,7 @@ export default function AppRoutes() {
         <header>
           <p className="fresh-home-kicker">Fresh Web Lite</p>
           <h1 id="fresh-home-title">What do you want to do?</h1>
-          <p>Six simple directions into a much larger connected system.</p>
+          <p>Six simple directions into one connected platform architecture.</p>
         </header>
 
         <nav className="fresh-home-directions" aria-label="Fresh directions">
@@ -37,12 +37,12 @@ export default function AppRoutes() {
         {activeDirection && (
           <section className="fresh-home-discovery" aria-label={`${activeDirection} discovery`}>
             <h2>{freshHomeDirections.find((direction) => direction.id === activeDirection)?.label}</h2>
-            <p>Explore what this direction connects to.</p>
+            <p>Explore connected ecosystems without exposing the underlying implementation.</p>
             <div className="fresh-home-ecosystems">
               {ecosystems.map((entry) => (
                 <article key={entry.id} className="fresh-home-ecosystem">
-                  <h3>{entry.canonicalService}</h3>
-                  <span>{entry.status}</span>
+                  <h3>{entry.name}</h3>
+                  <span>{entry.kind === "platform-surface" ? "Platform" : entry.kind === "capability" ? "Capability" : "Ecosystem"}</span>
                 </article>
               ))}
             </div>
