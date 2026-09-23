@@ -114,7 +114,7 @@ export default function FreshFlowHub() {
         <button type="button" className="fresh-flow-reference-more" onClick={toggleSidebar} aria-label="More Fresh Flow navigation"><span>•••</span></button>
       </header>
 
-      {isOverview && !shortsImmersive ? renderMediaNavigation("top") : isOverview ? null : (
+      {isOverview && !shortsImmersive ? renderMediaNavigation("top") : !isOverview ? (
         <div className="fresh-flow-section-bar">
           <button type="button" className="fresh-flow-back-button" onClick={() => setActiveRoute("fresh-flow")} aria-label="Back to Fresh Flow overview">
             <span aria-hidden="true">‹</span><span>Fresh Flow</span>
@@ -133,7 +133,7 @@ export default function FreshFlowHub() {
         )}
       </main>
 
-      {isOverview && renderMediaNavigation("bottom")}
+      {(shortsImmersive || !isOverview) && renderMediaNavigation("bottom")}
 
       {searchOpen && (
         <FreshFlowSearchSurface
