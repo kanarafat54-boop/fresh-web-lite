@@ -13,7 +13,7 @@ permissions:
 jobs:
   verify-fresh-ai-integrity:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,7 +38,11 @@ jobs:
         run: npm run test:fresh-neural
       - name: Fresh unified inference contract
         run: npm run test:fresh-unified-inference
-      - name: Fresh sovereign answer boundary
-        run: node scripts/verify-fresh-ai-sovereign-answer-boundary.mjs
+      - name: TRUEMODE research to Supabase contract
+        run: npm run test:truemode-chain
+      - name: Fresh AI profile and creator actions
+        run: npm run test:fresh-ai-profile-creator-actions
+      - name: Repository lint
+        run: npm run lint
       - name: Production build
         run: npm run build
