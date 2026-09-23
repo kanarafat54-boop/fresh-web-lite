@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "./CreatorStudioDashboard.css";
 import { supabase } from "../../lib/supabase";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
-import { buildCreatorSuggestions, type CreatorSuggestion } from "./creatorSuggestions";
+import { buildCreatorSuggestions } from "./creatorSuggestions";
 
 type Draft = { id: string; kind: "post" | "short"; content: string; media_url: string | null; status: string; created_at: string };
 type MediaItem = { id: string; kind: "post" | "short"; title: string; text: string; mediaUrl: string | null; createdAt: string };
@@ -29,7 +29,7 @@ export default function CreatorStudioDashboard() {
   const [publishing, setPublishing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [suggestions, setSuggestions] = useState<CreatorSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<ReturnType<typeof buildCreatorSuggestions>>([]);
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -63,7 +63,7 @@ export default function CreatorStudioDashboard() {
     }));
   }, [analytics, drafts, items, user]);
 
-  function applySuggestion(action: CreatorSuggestion["action"]) {
+  function applySuggestion(action: ReturnType<typeof buildCreatorSuggestions>[number]["action"]) {
     if (action === "post") { setMode("post"); editorRef.current?.focus(); }
     else if (action === "short") { setMode("short"); editorRef.current?.focus(); }
     else if (action === "drafts") { document.getElementById("creator-drafts")?.scrollIntoView({ behavior: "smooth", block: "center" }); }
