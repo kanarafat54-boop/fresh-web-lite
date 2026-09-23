@@ -6,7 +6,7 @@ const root = process.cwd();
 const checks = [
   ["src/features/creator/CreatorStudioDashboard.tsx", ["buildCreatorSuggestions", "Suggested next actions", "creator-drafts"]],
   ["src/features/creator/creatorSuggestions.ts", ["return suggestions.slice(0, 4)", "Fresh Creator"]],
-  ["src/features/profile/components/UniversalProfile.tsx", ["Suggested next actions", "applyAiSuggestion", "setActiveRoute(\"creator\")"]],
+  ["src/features/profile/components/UniversalProfile.tsx", ["Fresh AI", "setActiveRoute(\"creator\")", "profileConnectionSuggestionEngine"]],
 ];
 
 for (const [file, tokens] of checks) {
