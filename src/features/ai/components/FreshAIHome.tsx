@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import "./FreshAIHome.css";
 import { createFreshAIWorkspaceContext } from "../../../core/fresh-ai/FreshAIWorkspaceContext";
