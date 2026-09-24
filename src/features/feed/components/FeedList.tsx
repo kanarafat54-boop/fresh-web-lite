@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import FeedCard from "./FeedCard";
 import { feedService } from "../services/feedService";
 
