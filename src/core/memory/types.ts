@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export type MemoryType =
  | "goal"
@@ -21,7 +22,7 @@ export interface FreshMemory {
  description:string;
 
 
- metadata?:Record<string, any>;
+ metadata?:Record<string, unknown>;
 
 
  createdAt:string;
