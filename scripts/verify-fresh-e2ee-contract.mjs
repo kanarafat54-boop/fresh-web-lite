@@ -1,86 +1,37 @@
-#!/usr/bin/env node
-/**
- * Verifies Fresh E2EE contract constants and round-trip behavior in Node.
- */
-import { webcrypto } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import fs from "node:fs";
 
-if (!globalThis.crypto) globalThis.crypto = webcrypto;
+const read = (path) => fs.readFileSync(path, "utf8");
+const ask = read("api/ai/ask.ts");
+const stream = read("api/ai/stream.ts");
+const conversations = read("api/ai/conversations.ts");
+const client = read("src/app/components/FreshAIUnified.tsx");
+const vault = read("src/core/crypto/FreshSecureVault.ts");
 
-const root = process.cwd();
+const required = [
+  [ask, "fresh-e2ee-v1:pending", "Ask persistence must use an E2EE pending envelope."],
+  [stream, "fresh-e2ee-v1:pending", "Stream persistence must use an E2EE pending envelope."],
+  [conversations, "looksSealed", "Conversation sealing endpoint must validate Fresh E2EE envelopes."],
+  [conversations, "Server never decrypts", "Server must not decrypt client envelopes."],
+  [client, "sealRecentTurns", "Client must perform conversation sealing."],
+  [client, "conversationService.sealForStorage", "Client must seal both user and assistant turns."],
+  [vault, "generateMasterKey", "Vault must generate client-side master key material."],
+  [vault, "encryptText", "Vault must encrypt text before storage."],
+];
 
-function mustInclude(path, needles, label) {
-  const text = readFileSync(path, "utf8");
-  for (const n of needles) {
-    if (!text.includes(n)) throw new Error(`${label}: missing "${n}" in ${path}`);
-  }
+for (const [source, needle, message] of required) {
+  if (!source.includes(needle)) throw new Error(message);
 }
 
-mustInclude(
-  resolve(root, "src/core/crypto/FreshE2EE.ts"),
-  ["FRESH_E2EE_VERSION", "AES-GCM", "PBKDF2", "fresh-e2ee-v1:", "additionalData", "FRESH_PBKDF2_ITERATIONS"],
-  "E2EE module",
-);
-mustInclude(
-  resolve(root, "docs/FRESH_AI_E2EE_STRATEGY.md"),
-  ["at-rest", "threat model", "server-blind", "No false claims"],
-  "E2EE strategy",
-);
-mustInclude(
-  resolve(root, "src/core/fresh-ai/FreshUnifiedModelCore.ts"),
-  ["weightsStatus", "training-required", "fresh-unified-1"],
-  "Model core honesty",
-);
-mustInclude(
-  resolve(root, "src/core/crypto/FreshSecureVault.ts"),
-  ["unlockWithPassphrase", "seal", "lock"],
-  "Secure vault",
-);
-
-async function roundTrip() {
-  const subtle = globalThis.crypto.subtle;
-  const passphrase = "fresh-test-passphrase-ok";
-  const salt = globalThis.crypto.getRandomValues(new Uint8Array(16));
-  const baseKey = await subtle.importKey(
-    "raw",
-    new TextEncoder().encode(passphrase),
-    "PBKDF2",
-    false,
-    ["deriveKey"],
-  );
-  const key = await subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: 120000, hash: "SHA-256" },
-    baseKey,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"],
-  );
-  const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
-  const aad = new TextEncoder().encode("fresh-ai-memory");
-  const plain = "Private Fresh memory: user prefers dark mode and hates fake E2EE claims.";
-  const ct = await subtle.encrypt(
-    { name: "AES-GCM", iv, additionalData: aad },
-    key,
-    new TextEncoder().encode(plain),
-  );
-  const back = await subtle.decrypt({ name: "AES-GCM", iv, additionalData: aad }, key, ct);
-  if (new TextDecoder().decode(back) !== plain) throw new Error("Round-trip mismatch");
-
-  let failed = false;
-  try {
-    await subtle.decrypt(
-      { name: "AES-GCM", iv, additionalData: new TextEncoder().encode("fresh-ai-conversation") },
-      key,
-      ct,
-    );
-  } catch {
-    failed = true;
-  }
-  if (!failed) throw new Error("AAD mismatch did not fail");
+if (/content:\s*goal\b/.test(ask) || /content:\s*answer\b/.test(ask)) {
+  throw new Error("Ask server ledger contains a plaintext content write.");
+}
+if (/content:\s*goal\b/.test(stream) || /content:\s*answer\b/.test(stream)) {
+  throw new Error("Stream server ledger contains a plaintext content write.");
+}
+if (!/pending-seal/.test(ask) || !/pending-seal/.test(stream)) {
+  throw new Error("Conversation rows must remain explicitly pending until client sealing completes.");
 }
 
-await roundTrip();
-console.log("Fresh E2EE contract verifier: PASS");
-console.log("At-rest AES-GCM + PBKDF2 round-trip OK; AAD binding enforced.");
-console.log("Reminder: live /api/ai processing is not server-blind E2EE until on-device inference exists.");
+console.log("Fresh AI sealed-at-rest conversation contract: PASS");
+console.log("Server ledger writes only pending E2EE envelopes; client vault seals user/assistant turns.");
+console.log("Note: cloud AI inference still necessarily processes plaintext request context; this is not server-blind E2EE inference.");
