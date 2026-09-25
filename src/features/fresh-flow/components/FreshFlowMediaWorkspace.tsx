@@ -188,9 +188,9 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
         </div>
       )}
 
-      <div className="fresh-flow-media-feed">
+      <div className={`fresh-flow-media-feed ${kind === "long-videos" ? "fresh-flow-media-feed-long-videos" : ""}`}>
         {posts.map((post) => (
-          <article key={post.id} className="fresh-flow-media-card">
+          <article key={post.id} className={`fresh-flow-media-card ${kind === "long-videos" ? "fresh-flow-media-card-long-video" : ""}`}>
             {post.videoUrl ? (
               <video src={post.videoUrl} controls playsInline preload="metadata" className="fresh-flow-media-player" aria-label={title} />
             ) : post.imageUrl ? (
