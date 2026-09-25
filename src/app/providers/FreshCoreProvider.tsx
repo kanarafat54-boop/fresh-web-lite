@@ -1,13 +1,13 @@
 import { useContext, useEffect, useState, type ReactNode } from "react";
-import { contextService } from "../../core/fresh-core";
+import { contextService, type FreshContext } from "../../core/fresh-core";
 import { FreshCoreContext } from "./FreshCoreContext";
 
 export function FreshCoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
-  const [context, setContext] = useState(() => contextService.get());
+  const [context, setContext] = useState<FreshContext | null>(() => contextService.get());
 
   useEffect(() => {
-    const nextContext = {
+    const nextContext: FreshContext = {
       userId: "guest",
       activeSpace: "ai",
       goals: [],
