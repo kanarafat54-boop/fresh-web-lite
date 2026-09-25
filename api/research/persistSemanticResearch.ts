@@ -5,6 +5,7 @@ import { arbitrateClaimSet } from "../../src/core/semantic/beliefArbitration.js"
 import { compareClaims, type Claim } from "../../src/core/semantic/claimIntelligence.js";
 import { decideTruthBatch, type TruthDecision } from "../../src/core/semantic/truthDecisionOrchestrator.js";
 import type { SemanticClaim, SemanticEvidence } from "../../src/core/semantic/types.js";
+import type { ProvenanceNode } from "../../src/core/semantic/sourceProvenance.js";
 import type { ResearchResult } from "../../src/core/research/contracts.js";
 
 type PersistenceSummary = { entities: number; sources: number; claims: number; evidence: number; claimEvidence: number; relations: number; arbitrations: number; truthDecisions: number; actionableTruthDecisions: number; dryRun: boolean };
@@ -59,7 +60,7 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
     claim.status = assessment.counterEvidenceIds.length && assessment.supportingEvidenceIds.length ? "contested" : assessment.supportingEvidenceIds.length ? "supported" : "uncertain";
   }
 
-  const truthDecisions: TruthDecision[] = decideTruthBatch(claims, evidence, [], [], researchedAt);
+  // Keep provenance IDs identical to persisted source IDs so calibration can\n  // resolve evidence -> source -> provenance without inventing lineage.\n  const provenanceNodes: ProvenanceNode[] = sources.map((source) => ({\n    id: source.id,\n    provider: source.provider,\n    url: source.url,\n    title: source.name,\n    kind: "unknown",\n    observedAt: researchedAt,\n  }));\n  const truthDecisions: TruthDecision[] = decideTruthBatch(claims, evidence, provenanceNodes, [], researchedAt);
   logStage(runId, "research.truth.decided", {
     count: truthDecisions.length,
     actionable: truthDecisions.filter((decision) => decision.actionable).length,
