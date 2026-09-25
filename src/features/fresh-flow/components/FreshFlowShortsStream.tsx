@@ -264,7 +264,7 @@ export default function FreshFlowShortsStream({
     }
   }
 
-  async function handleGift(short: Short, amountMinor: number) {
+  async function handleGift(short: Short, amountMinor: string) {
     if (!user || isGuest || short.authorId === user.id) return;
     try {
       await sendGift(short.id, short.authorId, amountMinor);
@@ -390,10 +390,10 @@ export default function FreshFlowShortsStream({
                   </button>
                   <button
                     type="button"
-                    onClick={() => void handleGift(short, 100)}
+                    onClick={() => void handleGift(short, "100")}
                     aria-label="Send gift"
                   >
-                    🎁 {giftTotals.get(short.id)?.total ?? 0}
+                    🎁 {giftTotals.get(short.id)?.count ?? 0}
                   </button>
                   <button type="button" onClick={() => setAdvancedOpen((v) => !v)} aria-label="More">
                     ⋯
