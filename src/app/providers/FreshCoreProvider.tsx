@@ -4,9 +4,10 @@ import { FreshCoreContext } from "./FreshCoreContext";
 
 export function FreshCoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
+  const [context, setContext] = useState(() => contextService.get());
 
   useEffect(() => {
-    contextService.initialize({
+    const nextContext = {
       userId: "guest",
       activeSpace: "ai",
       goals: [],
@@ -18,8 +19,10 @@ export function FreshCoreProvider({ children }: { children: ReactNode }) {
         type: "web",
       },
       timestamp: new Date().toISOString(),
-    });
+    };
 
+    contextService.initialize(nextContext);
+    setContext(nextContext);
     setReady(true);
   }, []);
 
@@ -27,7 +30,7 @@ export function FreshCoreProvider({ children }: { children: ReactNode }) {
     <FreshCoreContext.Provider
       value={{
         ready,
-        context: contextService.get(),
+        context,
       }}
     >
       {children}
