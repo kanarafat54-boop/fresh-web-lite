@@ -42,6 +42,10 @@ jobs:
         run: npm run test:truemode-chain
       - name: Fresh AI profile and creator actions
         run: npm run test:fresh-ai-profile-creator-actions
+      - name: Fresh E2EE sealed-at-rest contract
+        run: npm run test:fresh-e2ee
+      - name: Production routing contract
+        run: npm run test:production-routing
       - name: Repository lint
         run: npm run lint
       - name: Production build
