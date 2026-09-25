@@ -26,6 +26,8 @@ const required = [
   [persistence, "fresh_intelligence_truth_decisions", "Supabase adapter must persist truth decisions."],
   [persistence, "SUPABASE_SERVICE_ROLE_KEY", "Supabase persistence must remain server-only."],
   [researchPersistence, "decideTruthBatch", "Research persistence must cross the truth decision boundary."],
+  [researchPersistence, "const provenanceNodes: ProvenanceNode[]", "Research persistence must build provenance nodes from persisted sources."],
+  [researchPersistence, "decideTruthBatch(claims, evidence, provenanceNodes, [], researchedAt)", "Truth decisions must consume the research provenance graph inputs."],
   [researchPersistence, "createSupabaseSemanticPersistence", "Research persistence must use the Supabase adapter."],
   [researchPersistence, "dryRun", "Research persistence must support a safe dry-run path."],
   [researchRoute, "persistSemanticResearch", "Research API must invoke semantic persistence."],
