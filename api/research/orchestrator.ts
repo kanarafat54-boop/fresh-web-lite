@@ -1,4 +1,5 @@
 import type { ResearchClaim } from "../../src/core/research/contracts.js";
+import { compareClaims, type Claim } from "../../src/core/semantic/claimIntelligence.js";
 
 export type ResearchEvidence = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string };
 export type ResearchPass = { answer: string; sources: ResearchEvidence[] };
@@ -17,13 +18,19 @@ const uniqueByUrl = (sources: ResearchEvidence[]): ResearchEvidence[] => {
 };
 
 function detectContradictions(passes: ResearchPass[]): boolean {
-  const answers = passes.map((pass) => normalize(pass.answer)).filter(Boolean);
-  if (answers.length < 2) return false;
-  const tokenSets = answers.map((answer) => new Set(answer.split(" ").filter((token) => token.length > 3)));
-  for (let i = 0; i < tokenSets.length; i += 1) for (let j = i + 1; j < tokenSets.length; j += 1) {
-    const intersection = [...tokenSets[i]].filter((token) => tokenSets[j].has(token)).length;
-    const union = new Set([...tokenSets[i], ...tokenSets[j]]).size;
-    if (union > 20 && intersection / union < 0.12) return true;
+  const claims: Claim[] = passes.filter((pass) => pass.answer.trim()).map((pass, index) => ({
+    id: `research-pass-${index + 1}`,
+    statement: pass.answer.trim(),
+    normalizedStatement: normalize(pass.answer),
+    subjectEntityId: "research",
+    predicate: "research.answer",
+    object: pass.answer.trim(),
+    observedAt: new Date().toISOString(),
+    confidence: pass.sources.length >= 3 ? 0.7 : 0.5,
+  }));
+  for (let i = 0; i < claims.length; i += 1) for (let j = i + 1; j < claims.length; j += 1) {
+    const comparison = compareClaims(claims[i], claims[j]);
+    if (comparison.relation === "contradictory" && comparison.confidence >= 0.6) return true;
   }
   return false;
 }
@@ -45,7 +52,7 @@ export function synthesizeResearch(passes: ResearchPass[]): ResearchSynthesis {
   const sources = uniqueByUrl(usable.flatMap((pass) => pass.sources));
   const domains = new Set(sources.map((source) => domainOf(source.url)).filter((domain) => domain !== "unknown"));
   const passCount = usable.length;
-  const independentPasses = usable.length;
+  const independentPasses = new Set(usable.flatMap((pass) => pass.sources.map((source) => `${domainOf(source.url)}|${source.provider}`))).size;
   const sourceDiversity = domains.size >= 6 ? "high" : domains.size >= 3 ? "medium" : "low";
   const contradictionsDetected = detectContradictions(usable);
   const confidence = !contradictionsDetected && sources.length >= 8 && domains.size >= 5 && passCount >= 2 ? "high" : sources.length >= 3 ? "medium" : "low";
