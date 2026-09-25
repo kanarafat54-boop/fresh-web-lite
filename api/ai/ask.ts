@@ -73,6 +73,95 @@ async function conversationLedger(userId: string | null, conversationId: string 
   return id;
 }
 
+export async function POST(req: Request): Promise<Response> {
+  const requestId = crypto.randomUUID();
+  try {
+    const b = await req.json() as Body;
+    const goal = typeof b.goal === "string" ? b.goal.trim() : "";
+    const route = typeof b.route === "string" ? b.route.trim().slice(0, 120) : "/";
+    const workspaceContext = b.workspaceContext && typeof b.workspaceContext === "object" ? b.workspaceContext : createFreshAIWorkspaceContext(route);
+    const model = typeof b.model === "string" ? b.model : "fresh-auto";
+    if (!goal) return json({ error: "A goal is required" }, 400);
+    if (goal.length > 4000) return json({ error: "Keep the request under 4,000 characters" }, 400);
+
+    const nativeArtifact = generateFreshNativeDimensionalArtifact(goal);
+    if (nativeArtifact) {
+      return json({
+        requestId,
+        answer: `Fresh AI generated this using its native ${nativeArtifact.dimension}D engine. No external AI model API was required.`,
+        intent: "create",
+        status: "completed",
+        model: "fresh-native-dimensional",
+        provider: "fresh-native",
+        native: true,
+        dimensionalArtifact: nativeArtifact,
+        workspace: workspaceContext,
+      });
+    }
+
+    const user = await auth(req);
+    const uid = user?.id ?? null;
+    const stored = await loadConversation(uid, b.conversationId);
+    const clientTurns = Array.isArray(b.conversation)
+      ? b.conversation.filter((x) => x && typeof x.content === "string" && (x.role === "user" || x.role === "assistant")).slice(-12)
+      : [];
+    const conversation = [...stored.turns, ...clientTurns].slice(-12);
+
+    const gw = createFreshAIIntelligenceGateway({
+      skills: createCoreFreshSkillRegistry(),
+      memory: memory(uid),
+      interpret: (x, context) => interpret(x, context),
+      retrieve: async (x, i) => i.needsEvidence || i.intent === "research" ? research(x) : [],
+      answer: (x, i, e, r, m, context) => answer(x, i, e, r, m as FreshMemoryRecord[], context, workspaceContext, model),
+    });
+    const r: FreshAIResponse = await gw.handle({
+      requestId,
+      input: goal,
+      route,
+      userId: uid,
+      conversation,
+      context: { workspace: workspaceContext, model, voiceModel: b.voiceModel ?? null },
+      approve: Boolean(b.approve),
+      execute: true,
+    });
+
+    let generatedImage: { dataUrl?: string; b64?: string; model: string; size: string } | null = null;
+    if (requestsImage(goal, r.interpretation, b.mode)) {
+      try {
+        const image = await generateFreshAIImage(goal, { size: b.image?.size, quality: b.image?.quality });
+        generatedImage = { dataUrl: `data:image/${image.outputFormat};base64,${image.b64Json}`, b64: image.b64Json, model: image.model, size: image.size };
+        r.result.answer = r.result.answer || "Fresh AI generated the image requested.";
+      } catch (error) {
+        return json({ requestId, error: error instanceof Error ? error.message : "Image generation failed", status: "failed", intent: r.interpretation.intent }, 503);
+      }
+    }
+
+    const evidence = (r.result.claims ?? []).flatMap((x: any) => Array.isArray(x.evidence) ? x.evidence : []) as Evidence[];
+    const conversationId = await conversationLedger(uid, b.conversationId, route, workspaceContext, model, goal, requestId, evidence, r.result.answer || "");
+    let image: { dataUrl?: string; url?: string; assetId?: string; model: string; size: string } | null = null;
+    if (generatedImage) {
+      if (uid && generatedImage.b64 && conversationId) {
+        try {
+          const asset = await persistFreshAIMedia({
+            userId: uid,
+            requestId,
+            conversationId,
+            kind: "image",
+            b64: generatedImage.b64,
+            mimeType: "image/png",
+            modelId: generatedImage.model,
+            prompt: goal,
+            metadata: { size: generatedImage.size },
+          });
+          image = { url: asset.signedUrl, assetId: asset.id, model: generatedImage.model, size: generatedImage.size };
+        } catch {
+          image = { dataUrl: generatedImage.dataUrl, model: generatedImage.model, size: generatedImage.size };
+        }
+      } else {
+        image = { dataUrl: generatedImage.dataUrl, model: generatedImage.model, size: generatedImage.size };
+      }
+    }
+
  const persistence = await persistPipeline(requestId, uid, r.pipeline), e = evidence.map(x => ({ title: x.source, snippet: x.claim })), verification = { uniqueSources: e.length, uniqueDomains: new Set(evidence.map(x => x.source || "unknown")).size, sourceDiversity: e.length >= 6 ? "high" : e.length >= 3 ? "medium" : "low", confidence: e.length >= 3 ? "medium" : "low", contradictionsDetected: (r.result.claims ?? []).some((x: any) => x.truth === "CONTRADICTED") }, governance = { autonomousSelfModification: false, improvementProposalsRequireApproval: true, highImpactActionsRequireApproval: true, reversibleImprovementsOnly: true };
  return json({ requestId, conversationId, answer: r.result.answer, confidence: verification.confidence, source: e.length ? "Fresh AI / verified evidence" : "Fresh AI", evidence: e, pipeline: r.pipeline, governance, verification, persistence, image, proof: { mode: "gateway", evidenceCount: e.length, provenance: "Fresh AI Intelligence Gateway → Kernel → Truth/Reasoning → Verification", model }, intent: r.interpretation.intent, status: r.status, error: r.error, workspace: workspaceContext ?? null, model });
  } catch (error) { return json({ requestId, error: error instanceof Error ? error.message : "Fresh AI request failed" }, 500); } }
