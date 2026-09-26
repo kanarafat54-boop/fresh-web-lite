@@ -9,6 +9,7 @@ const runtime = read("src/features/shorts/core/FreshShortsRuntime.ts");
 const css = read("src/features/fresh-flow/components/FreshFlow.css");
 const experience = read("src/features/fresh-flow/components/FreshFlowShortsExperience.tsx");
 const hub = read("src/features/fresh-flow/FreshFlowHub.tsx");
+const architecture = read("src/features/fresh-flow/core/freshFlowArchitecture.ts");
 
 assert.match(runtime, /scroll|play/i, "runtime must contain playback orchestration");
 assert.match(runtime, /FRESH_SHORTS_PREFETCH_RADIUS\s*=\s*2/);
@@ -27,7 +28,9 @@ assert.match(experience, /immersive_enter/);
 assert.match(experience, /playback_error/);
 assert.match(experience, /buffer_start/);
 
-assert.match(hub, /Home.*Long Videos.*News \/ Posts.*AR \/ VR.*Podcasts.*Others/s);
+// The six-world architecture is defined in the architecture contract, not duplicated
+// as presentation text inside the Hub. Validate the canonical source instead.
+assert.match(architecture, /Fresh Short.*Long Videos.*News \/ Posts.*VR \/ AR.*Podcasts.*Others/s);
 assert.match(hub, /FreshFlowShortsExperience/);
 assert.doesNotMatch(hub, /ShortsModule/);
 
