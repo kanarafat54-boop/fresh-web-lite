@@ -102,7 +102,7 @@ export default function FreshFlowHub() {
     setSearchOpen(true);
   };
 
-  const showChrome = !shortsImmersive;
+  const showChrome = !shortsImmersive;\n  const showMediaDirectorate = isOverview ? shortsImmersive : true;\n\n  const renderMediaDirectorate = () => (\n    <nav className="fresh-flow-media-nav-bottom" aria-label="Fresh Flow media worlds">\n      {FRESH_FLOW_MEDIA_WORLDS.map((mediaWorld) => (\n        <button key={mediaWorld.id} type="button" className={mediaWorld.routeId === section ? "fresh-flow-media-button active" : "fresh-flow-media-button"} onClick={() => setActiveRoute(mediaWorld.routeId)} aria-current={mediaWorld.routeId === section ? "page" : undefined}>\n          <span aria-hidden="true">{mediaWorld.icon}</span><span>{mediaWorld.shortLabel}</span>\n        </button>\n      ))}\n    </nav>\n  );
 
   return (
     <div
@@ -211,8 +211,8 @@ export default function FreshFlowHub() {
         </div>
       )}
 
-      {showChrome && !isOverview && world.discovery.length > 0 && (
-        <nav className="fresh-flow-discovery-rail" aria-label={`${world.label} discovery`}>
+      {((showChrome && !isOverview) || (isOverview && shortsImmersive)) && world.discovery.length > 0 && (
+        <nav className={shortsImmersive ? "fresh-flow-discovery-rail fresh-flow-discovery-rail-immersive" : "fresh-flow-discovery-rail"} aria-label={`${world.label} discovery`}>
           {world.discovery.map((mode) => (
             <button
               key={mode.id}
