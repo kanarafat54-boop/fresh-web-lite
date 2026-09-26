@@ -26,7 +26,7 @@ create policy treasury_entries_select_own
     exists (
       select 1
       from public.treasury_accounts a
-      where a.id = account_id
+      where a.id = treasury_entries.account_id
         and a.scope = 'user'
         and a.owner_id = auth.uid()
     )
@@ -42,7 +42,7 @@ create policy treasury_transactions_select_own
       select 1
       from public.treasury_entries e
       join public.treasury_accounts a on a.id = e.account_id
-      where e.transaction_id = id
+      where e.transaction_id = treasury_transactions.id
         and a.scope = 'user'
         and a.owner_id = auth.uid()
     )
