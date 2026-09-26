@@ -19,12 +19,12 @@ type FreshFlowSection =
   | "fresh-flow-more";
 
 const MEDIA_NAV = [
-  { id: "fresh-flow", label: "Home", icon: "⌂" },
-  { id: "fresh-flow-long-videos", label: "Long Videos", icon: "▶" },
-  { id: "fresh-flow-news-posts", label: "News / Posts", icon: "☰" },
-  { id: "fresh-flow-ar-vr", label: "AR / VR", icon: "⬡" },
-  { id: "fresh-flow-podcasts", label: "Podcasts", icon: "🎙" },
-  { id: "fresh-flow-more", label: "Others", icon: "▦" },
+  { id: "fresh-flow", label: "Home", icon: "⌂", tone: "home" },
+  { id: "fresh-flow-long-videos", label: "Long Videos", icon: "▶", tone: "video" },
+  { id: "fresh-flow-news-posts", label: "News / Posts", icon: "☰", tone: "news" },
+  { id: "fresh-flow-ar-vr", label: "AR / VR", icon: "⬡", tone: "ar" },
+  { id: "fresh-flow-podcasts", label: "Podcasts", icon: "🎙", tone: "pod" },
+  { id: "fresh-flow-more", label: "Others", icon: "▦", tone: "more" },
 ] as const;
 
 const SECTION_COPY = {
@@ -73,7 +73,7 @@ export default function FreshFlowHub() {
   const renderMediaNavigation = (position: "top" | "bottom") => (
     <nav className={`fresh-flow-media-nav fresh-flow-media-nav-${position}`} aria-label="Fresh Flow media navigation">
       {MEDIA_NAV.map((item) => (
-        <button key={item.id} type="button" className={`fresh-flow-media-button ${section === item.id ? "active" : ""}`} onClick={() => setActiveRoute(item.id)} aria-current={section === item.id ? "page" : undefined}>
+        <button key={item.id} type="button" className={`fresh-flow-media-button tone-${item.tone}${section === item.id ? " active" : ""}`} onClick={() => setActiveRoute(item.id)} aria-current={section === item.id ? "page" : undefined}>
           <span className="fresh-flow-media-icon" aria-hidden="true">{item.icon}</span>
           <span>{item.label}</span>
         </button>
@@ -133,7 +133,7 @@ export default function FreshFlowHub() {
         )}
       </main>
 
-      {(shortsImmersive || !isOverview) && renderMediaNavigation("bottom")}
+      {renderMediaNavigation("bottom")}
 
       {searchOpen && (
         <FreshFlowSearchSurface
