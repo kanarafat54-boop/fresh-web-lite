@@ -1,5 +1,6 @@
 import { supabase } from "../../lib/supabase";
 import type { PaymentMethodDef } from "./paymentRails";
+import { RAILS_SANDBOX_MODE } from "./paymentRails";
 
 export type RailRequestRow = {
   id: string;
@@ -20,9 +21,17 @@ export class RailRequestError extends Error {
   }
 }
 
+export type CreateRailResult = {
+  requestId: string;
+  ledgerTransactionId?: string;
+  status: string;
+  sandbox: boolean;
+};
+
 /**
- * Creates a pending deposit or withdrawal intent.
- * Does not move ledger funds — settlement adapters credit/debit only after confirmation.
+ * Creates a deposit/withdrawal intent and, in sandbox mode, immediately
+ * settles it on the double-entry ledger so balances update.
+ * Real processor adapters will replace auto-settle once merchant keys exist.
  */
 export async function createRailRequest(params: {
   method: PaymentMethodDef;
@@ -30,9 +39,44 @@ export async function createRailRequest(params: {
   amountMinor: string;
   currencyCode: string;
   metadata?: Record<string, unknown>;
-}): Promise<string> {
+}): Promise<CreateRailResult> {
   if (!/^\d+$/.test(params.amountMinor) || BigInt(params.amountMinor) <= 0n) {
     throw new RailRequestError("Amount must be a positive integer in minor units");
+  }
+
+  const meta = {
+    ...(params.metadata ?? {}),
+    sandbox: RAILS_SANDBOX_MODE,
+    rail_status: params.method.status,
+  };
+
+  if (RAILS_SANDBOX_MODE) {
+    const { data, error } = await supabase.rpc("treasury_create_and_sandbox_settle_rail_request", {
+      p_direction: params.direction,
+      p_method_id: params.method.id,
+      p_family: params.method.family,
+      p_amount_minor: params.amountMinor,
+      p_currency_code: params.currencyCode,
+      p_instrument_id: null,
+      p_metadata: meta,
+    });
+
+    if (error) throw new RailRequestError(error.message);
+    if (!data) throw new RailRequestError("Rail request was not created");
+
+    const row = data as {
+      request_id: string;
+      ledger_transaction_id: string;
+      status: string;
+      sandbox: boolean;
+    };
+
+    return {
+      requestId: row.request_id,
+      ledgerTransactionId: row.ledger_transaction_id,
+      status: row.status ?? "settled",
+      sandbox: true,
+    };
   }
 
   const { data, error } = await supabase.rpc("treasury_create_rail_request", {
@@ -42,12 +86,12 @@ export async function createRailRequest(params: {
     p_amount_minor: params.amountMinor,
     p_currency_code: params.currencyCode,
     p_instrument_id: null,
-    p_metadata: params.metadata ?? {},
+    p_metadata: meta,
   });
 
   if (error) throw new RailRequestError(error.message);
   if (!data) throw new RailRequestError("Rail request was not created");
-  return data as string;
+  return { requestId: data as string, status: "pending", sandbox: false };
 }
 
 export async function listMyRailRequests(limit = 20): Promise<RailRequestRow[]> {
