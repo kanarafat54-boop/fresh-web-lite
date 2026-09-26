@@ -10,6 +10,11 @@ export const FRESH_FLOW_FEED_MODES: EcosystemProfileMode[] = [
   "fresh-picks",
 ];
 
+function asFeedModes(value: unknown): EcosystemProfileMode[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is EcosystemProfileMode => typeof item === "string") as EcosystemProfileMode[];
+}
+
 /** DB key is auth user uuid; pass user.id not the FRESH- display string. */
 export async function getEcosystemProfile(
   userId: string,
@@ -33,7 +38,7 @@ export async function getEcosystemProfile(
     description: data.description,
     enabled: data.enabled,
     level: data.level,
-    feedModes: data.feed_modes as EcosystemProfileMode[],
+    feedModes: asFeedModes(data.feed_modes),
     metadata: data.metadata ?? {},
   };
 }
@@ -70,7 +75,7 @@ export async function upsertEcosystemProfile(
     description: data.description,
     enabled: data.enabled,
     level: data.level,
-    feedModes: data.feed_modes as EcosystemProfileMode[],
+    feedModes: asFeedModes(data.feed_modes),
     metadata: data.metadata ?? {},
   };
 }
@@ -86,7 +91,7 @@ export async function listMyEcosystemProfiles(userId: string): Promise<Ecosystem
       description: String(row.description ?? ""),
       enabled: Boolean(row.enabled),
       level: Number(row.level ?? 0),
-      feedModes: Array.isArray(row.feed_modes) ? (row.feed_modes as string[]) : [],
+      feedModes: asFeedModes(row.feed_modes),
       metadata: (row.metadata as Record<string, unknown>) ?? {},
     }));
   }
@@ -105,7 +110,7 @@ export async function listMyEcosystemProfiles(userId: string): Promise<Ecosystem
     description: data.description,
     enabled: data.enabled,
     level: data.level,
-    feedModes: (data.feed_modes as EcosystemProfileMode[]) ?? [],
+    feedModes: asFeedModes(data.feed_modes),
     metadata: data.metadata ?? {},
   }));
 }
