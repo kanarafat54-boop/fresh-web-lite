@@ -116,7 +116,9 @@ export const PAYMENT_RAIL_FAMILIES: PaymentRailFamilyMeta[] = [
 
 /**
  * Canonical catalog of payment and withdrawal methods.
- * status reflects whether a live settlement adapter is wired in this environment.
+ * status "connected" = sandbox settlement live (ledger moves via
+ * treasury_create_and_sandbox_settle_rail_request). Real M-Pesa/card/bank
+ * processor APIs still need merchant credentials for true external money.
  */
 export const PAYMENT_METHODS: PaymentMethodDef[] = [
   // —— Mobile money ——
@@ -129,7 +131,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["KES", "TZS"],
     regions: ["KE", "TZ", "EA"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["phone"],
     icon: "📱",
   },
@@ -142,7 +144,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["KES", "UGX", "TZS", "ZMW", "NGN"],
     regions: ["KE", "UG", "TZ", "ZM", "NG", "AF"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["phone"],
     icon: "📱",
   },
@@ -155,7 +157,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["UGX", "GHS", "RWF", "ZMW", "XOF"],
     regions: ["UG", "GH", "RW", "ZM", "CI", "AF"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["phone"],
     icon: "📱",
   },
@@ -168,7 +170,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["TZS"],
     regions: ["TZ"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["phone"],
     icon: "📱",
   },
@@ -181,7 +183,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["XOF", "XAF", "MAD"],
     regions: ["SN", "CI", "CM", "MA", "AF"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["phone"],
     icon: "📱",
   },
@@ -194,7 +196,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["XOF"],
     regions: ["SN", "CI", "AF"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["phone"],
     icon: "📱",
   },
@@ -209,7 +211,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["KES", "UGX", "TZS", "NGN", "ZAR", "USD", "EUR", "GBP"],
     regions: ["GLOBAL"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["account_number", "bank_code"],
     icon: "🏦",
   },
@@ -222,7 +224,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["EUR"],
     regions: ["EU", "EEA"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["iban"],
     icon: "🏦",
   },
@@ -235,7 +237,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["USD", "EUR", "GBP", "KES"],
     regions: ["GLOBAL"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["iban", "swift", "account_number"],
     icon: "🌍",
   },
@@ -250,7 +252,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["USD", "EUR", "GBP", "KES", "NGN", "ZAR"],
     regions: ["GLOBAL"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["card_token"],
     icon: "💳",
   },
@@ -265,7 +267,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["USD", "EUR", "GBP"],
     regions: ["GLOBAL"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["wallet_email"],
     icon: "🅿️",
   },
@@ -278,7 +280,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "deposit",
     currencies: ["USD", "EUR", "GBP"],
     regions: ["US", "EU", "GB"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["card_token"],
     icon: "",
   },
@@ -291,7 +293,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "deposit",
     currencies: ["USD", "EUR", "GBP"],
     regions: ["GLOBAL"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["card_token"],
     icon: "G",
   },
@@ -306,7 +308,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["USDT"],
     regions: ["GLOBAL"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["crypto_address", "network"],
     icon: "₮",
   },
@@ -319,7 +321,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["USDC"],
     regions: ["GLOBAL"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["crypto_address", "network"],
     icon: "◎",
   },
@@ -332,7 +334,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["BTC"],
     regions: ["GLOBAL"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["crypto_address", "network"],
     icon: "₿",
   },
@@ -345,7 +347,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["ETH"],
     regions: ["GLOBAL"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["crypto_address", "network"],
     icon: "Ξ",
   },
@@ -360,7 +362,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["INR"],
     regions: ["IN"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["account_number"],
     icon: "⚡",
   },
@@ -373,7 +375,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["BRL"],
     regions: ["BR"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["account_number"],
     icon: "⚡",
   },
@@ -386,7 +388,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["GBP"],
     regions: ["GB"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["account_number", "bank_code"],
     icon: "⚡",
   },
@@ -401,7 +403,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["KES", "UGX", "TZS", "NGN", "GHS"],
     regions: ["AF"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["agent_code", "national_id", "phone"],
     icon: "🏪",
   },
@@ -416,7 +418,7 @@ export const PAYMENT_METHODS: PaymentMethodDef[] = [
     direction: "both",
     currencies: ["KES", "UGX", "NGN", "GHS"],
     regions: ["AF"],
-    status: "pending_integration",
+    status: "connected",
     requiredFields: ["phone", "bank_code"],
     icon: "#️⃣",
   },
@@ -439,7 +441,7 @@ export function getPaymentMethod(id: string): PaymentMethodDef | undefined {
 export function statusLabel(status: RailConnectionStatus): string {
   switch (status) {
     case "connected":
-      return "Connected";
+      return "Sandbox live";
     case "pending_integration":
       return "Rail pending";
     case "region_restricted":
@@ -448,3 +450,6 @@ export function statusLabel(status: RailConnectionStatus): string {
       return "Unavailable";
   }
 }
+
+/** True when methods settle via treasury sandbox RPCs (no external processor keys). */
+export const RAILS_SANDBOX_MODE = true;
