@@ -9,11 +9,18 @@ import { ShareSheet } from "../../share/components/ShareSheet";
 import { PostMenu } from "../../moderation/components/PostMenu";
 import { useProfileNav } from "../../profile/context/ProfileNavContext";
 import type { Post } from "../types/post";
+import { applyDiscoveryFilter, type DiscoverablePost } from "../../fresh-flow/core/applyDiscoveryFilter";
+import { getSocialAuthorIds } from "../../fresh-flow/core/social";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
-export function FeedModule() {
+type FeedModuleProps = {
+  /** Layer B discovery from Fresh Flow News/Posts (optional; standalone feed ignores). */
+  discoveryId?: string;
+};
+
+export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
   const { user, isGuest } = useFreshId();
   const { openProfile } = useProfileNav();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -28,7 +35,9 @@ export function FeedModule() {
   const [shareTarget, setShareTarget] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { void loadPosts(); }, []);
+  useEffect(() => {
+    void loadPosts();
+  }, [discoveryId, user?.id, isGuest]);
 
   async function loadPosts() {
     setLoading(true);
@@ -38,7 +47,7 @@ export function FeedModule() {
       .from("posts")
       .select("id, author_id, content, image_url, video_url, like_count, comment_count, created_at")
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(80);
 
     if (postsError) {
       setError(`Couldn't load the feed: ${postsError.message}`);
@@ -46,7 +55,31 @@ export function FeedModule() {
       return;
     }
 
-    const authorIds = [...new Set((postsData ?? []).map((p: any) => p.author_id).filter(Boolean))];
+    const base: DiscoverablePost[] = (postsData ?? []).map((p: any) => ({
+      id: p.id,
+      authorId: p.author_id,
+      content: p.content ?? "",
+      videoUrl: p.video_url ?? null,
+      imageUrl: p.image_url ?? null,
+      likeCount: p.like_count ?? 0,
+      commentCount: p.comment_count ?? 0,
+      createdAt: p.created_at,
+    }));
+
+    let followingIds: Set<string> | undefined;
+    if (discoveryId === "following" && user && !isGuest) {
+      try {
+        followingIds = new Set(await getSocialAuthorIds(user.id));
+      } catch {
+        followingIds = new Set();
+      }
+    }
+
+    const filtered = discoveryId
+      ? applyDiscoveryFilter(base, discoveryId, { followingAuthorIds: followingIds })
+      : base;
+
+    const authorIds = [...new Set(filtered.map((p) => p.authorId).filter(Boolean))];
     let profileMap = new Map<string, { full_name: string; username: string }>();
 
     if (authorIds.length > 0) {
@@ -78,20 +111,20 @@ export function FeedModule() {
       savedPostIds = new Set((savedData ?? []).map((s: any) => s.post_id));
     }
 
-    const mapped: Post[] = (postsData ?? []).map((p: any) => {
-      const profile = profileMap.get(p.author_id);
+    const mapped: Post[] = filtered.map((p) => {
+      const profile = profileMap.get(p.authorId);
       return {
         id: p.id,
-        authorId: p.author_id,
+        authorId: p.authorId,
         authorName: profile?.full_name ?? "Unknown",
         authorUsername: profile?.username ?? "unknown",
         content: p.content ?? "",
-        imageUrl: p.image_url ?? null,
-        videoUrl: p.video_url ?? null,
-        likeCount: p.like_count ?? 0,
-        commentCount: p.comment_count ?? 0,
+        imageUrl: p.imageUrl ?? null,
+        videoUrl: p.videoUrl ?? null,
+        likeCount: p.likeCount ?? 0,
+        commentCount: p.commentCount ?? 0,
         myReaction: reactionMap.get(p.id) ?? null,
-        createdAt: p.created_at,
+        createdAt: p.createdAt,
       };
     });
 
@@ -192,9 +225,11 @@ export function FeedModule() {
     return `${Math.floor(hours / 24)}d ago`;
   }
 
+  const title = discoveryId ? `Feed · ${discoveryId.replace(/-/g, " ")}` : "Feed";
+
   return (
-    <div className="module">
-      <h2>Feed</h2>
+    <div className="module" data-discovery={discoveryId || undefined}>
+      <h2>{title}</h2>
       {isGuest && <p className="empty-state">Register a real account to post and react to content.</p>}
       {!isGuest && user && (
         <div className="post-composer">
@@ -217,7 +252,11 @@ export function FeedModule() {
 
       {error && <p className="auth-error">{error}</p>}
       {loading && <p className="empty-state">Loading feed...</p>}
-      {!loading && posts.length === 0 && <p className="empty-state">No posts yet. Be the first.</p>}
+      {!loading && posts.length === 0 && (
+        <p className="empty-state">
+          {discoveryId ? `No posts for “${discoveryId.replace(/-/g, " ")}” yet.` : "No posts yet. Be the first."}
+        </p>
+      )}
 
       <ul className="notes-list">
         {posts.map((p) => (
