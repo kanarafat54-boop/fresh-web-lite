@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFreshCore } from "../../app/providers/FreshCoreProvider";
 import { contextService } from "../../core/context/contextService";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
@@ -52,26 +52,71 @@ export default function FreshFirstExperience() {
   const { setActiveRoute } = useLayout();
   const [intent, setIntent] = useState<Intent | null>(null);
   const [input, setInput] = useState("");
+  /** Never block the surface forever if auth/core is slow. */
+  const [forceShow, setForceShow] = useState(false);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setForceShow(true), 2500);
+    return () => window.clearTimeout(t);
+  }, []);
 
   const greeting = useMemo(() => (user?.fullName ? `Welcome, ${user.fullName}.` : "Welcome to Fresh."), [user]);
-  if (!ready || loading) return null;
+  const blocked = (!ready || loading) && !forceShow;
+
+  if (blocked) {
+    return (
+      <section className="fresh-first" aria-label="Fresh first experience" aria-busy="true">
+        <div className="fresh-first__hero">
+          <span className="fresh-first__eyebrow">Fresh Intelligence</span>
+          <h1>Welcome to Fresh.</h1>
+          <p className="fresh-first__intro">Preparing your workspace…</p>
+          <button
+            type="button"
+            className="fresh-first__enter"
+            onClick={() => {
+              try {
+                localStorage.setItem("fresh.firstExperience.completed", "true");
+              } catch {
+                /* ignore */
+              }
+              setActiveRoute(DEFAULT_LANDING_ROUTE);
+            }}
+          >
+            Enter Fresh now
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   function beginWith(nextIntent: Intent, route?: string) {
     const target = route ?? intentRoutes[nextIntent.id] ?? DEFAULT_LANDING_ROUTE;
-    contextService.update({
-      activeSpace: intentSpaces[nextIntent.id] ?? "ai",
-      goals: [nextIntent.prompt],
-    });
-    localStorage.setItem("fresh.firstExperience.intent", nextIntent.id);
-    localStorage.setItem("fresh.firstExperience.prompt", nextIntent.prompt);
-    localStorage.setItem("fresh.firstExperience.completed", "true");
+    try {
+      contextService.update({
+        activeSpace: intentSpaces[nextIntent.id] ?? "ai",
+        goals: [nextIntent.prompt],
+      });
+    } catch {
+      /* context is best-effort */
+    }
+    try {
+      localStorage.setItem("fresh.firstExperience.intent", nextIntent.id);
+      localStorage.setItem("fresh.firstExperience.prompt", nextIntent.prompt);
+      localStorage.setItem("fresh.firstExperience.completed", "true");
+    } catch {
+      /* ignore */
+    }
     setActiveRoute(target);
   }
 
   function continueToFresh() {
     if (intent) beginWith(intent);
     else {
-      localStorage.setItem("fresh.firstExperience.completed", "true");
+      try {
+        localStorage.setItem("fresh.firstExperience.completed", "true");
+      } catch {
+        /* ignore */
+      }
       setActiveRoute(DEFAULT_LANDING_ROUTE);
     }
   }
