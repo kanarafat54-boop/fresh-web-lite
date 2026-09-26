@@ -19,10 +19,15 @@ import type { UniversalReactionKind } from "../../../core/interactions/FreshReac
 import type { Short } from "../../shorts/types/short";
 import { getSocialAuthorIds } from "../core/social";
 import { useFreshFlowFeedRefresh } from "../core/useFreshFlowFeedRefresh";
+import {
+  SHORT_DISCOVERY_TABS,
+  shortDiscoveryToCategory,
+  type ShortDiscoveryId,
+} from "../core/shortDiscovery";
 import "./FreshFlow.css";
 
-type SubTab = "for-you" | "trending" | "following" | "fresh-picks";
-type FilterMode = "all" | "social" | "learn" | "relax";
+type SubTab = ShortDiscoveryId;
+type FilterMode = "all" | "social";
 type AdvancedAction = "quote" | "remix" | "duet" | "collaborate" | "edit" | "captions" | "effects";
 
 type FreshFlowShortsStreamProps = {
@@ -32,18 +37,12 @@ type FreshFlowShortsStreamProps = {
   onOpenCreate?: (intent?: { action?: string; sourceShortId?: string; sourceVideoUrl?: string }) => void;
 };
 
-const SUB_TABS: Array<{ id: SubTab; label: string; icon: string }> = [
-  { id: "for-you", label: "For You", icon: "★" },
-  { id: "trending", label: "Trending", icon: "↗" },
-  { id: "following", label: "Following", icon: "👤" },
-  { id: "fresh-picks", label: "Fresh Picks", icon: "✦" },
-];
+/** Layer B from architecture: For You · Following · Trending · Learn · Relax · More */
+const SUB_TABS = SHORT_DISCOVERY_TABS;
 
 const FILTERS: Array<{ id: FilterMode; label: string }> = [
   { id: "all", label: "All" },
   { id: "social", label: "Social" },
-  { id: "learn", label: "Learn" },
-  { id: "relax", label: "Relax" },
 ];
 
 const ADVANCED_ACTIONS: Array<{ id: AdvancedAction; label: string; icon: string; description: string }> = [
@@ -58,11 +57,23 @@ const ADVANCED_ACTIONS: Array<{ id: AdvancedAction; label: string; icon: string;
 
 const FRESH_FLOW_POSITION_KEY = "fresh-flow-position";
 
+function normalizeSubTab(raw: unknown): SubTab {
+  if (raw === "fresh-picks") return "more";
+  const ids = new Set(SHORT_DISCOVERY_TABS.map((t) => t.id));
+  if (typeof raw === "string" && ids.has(raw as SubTab)) return raw as SubTab;
+  return "for-you";
+}
+
 function readSavedPosition(): { subTab?: SubTab; filterMode?: FilterMode; currentIndex?: number } {
   try {
     const raw = sessionStorage.getItem(FRESH_FLOW_POSITION_KEY);
     if (!raw) return {};
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return {
+      subTab: normalizeSubTab(parsed.subTab),
+      filterMode: parsed.filterMode === "social" ? "social" : "all",
+      currentIndex: typeof parsed.currentIndex === "number" ? parsed.currentIndex : undefined,
+    };
   } catch {
     return {};
   }
@@ -98,7 +109,8 @@ export default function FreshFlowShortsStream({
     pageRef.current = 0;
     try {
       const options: FreshFlowLoadOptions = { limit: FRESH_FLOW_SHORTS_PAGE_SIZE, offset: 0 };
-      if (mode === "learn" || mode === "relax") options.category = mode;
+      const category = shortDiscoveryToCategory(tab);
+      if (category) options.category = category;
       const result = await loadFreshFlowShorts(user?.id ?? null, isGuest, options);
       let candidates = result.shorts;
       if (tab === "following") candidates = candidates.filter((s) => s.isFollowingAuthor);
@@ -112,7 +124,7 @@ export default function FreshFlowShortsStream({
       const ranked =
         tab === "trending"
           ? rankTrending(candidates)
-          : tab === "for-you"
+          : tab === "for-you" || tab === "more"
             ? rankForYou(candidates, viewedRef.current)
             : rankFreshFlow(candidates);
       setShorts(ranked);
@@ -140,7 +152,8 @@ export default function FreshFlowShortsStream({
         limit: FRESH_FLOW_SHORTS_PAGE_SIZE,
         offset: nextPage * FRESH_FLOW_SHORTS_PAGE_SIZE,
       };
-      if (filterMode === "learn" || filterMode === "relax") options.category = filterMode;
+      const category = shortDiscoveryToCategory(subTab);
+      if (category) options.category = category;
       const result = await loadFreshFlowShorts(user?.id ?? null, isGuest, options);
       let candidates = result.shorts;
       if (subTab === "following") candidates = candidates.filter((s) => s.isFollowingAuthor);
@@ -154,7 +167,7 @@ export default function FreshFlowShortsStream({
       const ranked =
         subTab === "trending"
           ? rankTrending(candidates)
-          : subTab === "for-you"
+          : subTab === "for-you" || subTab === "more"
             ? rankForYou(candidates, viewedRef.current)
             : rankFreshFlow(candidates);
       setShorts((current) => {
@@ -319,8 +332,8 @@ export default function FreshFlowShortsStream({
   }
 
   return (
-    <div className="fresh-flow-stream">
-      <header className="fresh-flow-tabs" role="tablist" aria-label="Fresh Flow modes">
+    <div className="fresh-flow-stream" data-discovery={subTab}>
+      <header className="fresh-flow-tabs" role="tablist" aria-label="Fresh Short discovery">
         {SUB_TABS.map((tab) => (
           <button
             key={tab.id}
@@ -356,7 +369,13 @@ export default function FreshFlowShortsStream({
       <div className="fresh-flow-viewport" ref={containerRef}>
         {shorts.length === 0 ? (
           <div className="fresh-flow-empty">
-            <p>No Shorts yet. Be the first to publish from Creator Studio.</p>
+            <p>
+              {subTab === "following"
+                ? "No Shorts from people you follow yet."
+                : subTab === "learn" || subTab === "relax"
+                  ? `No ${subTab} Shorts yet.`
+                  : "No Shorts yet. Be the first to publish from Creator Studio."}
+            </p>
           </div>
         ) : (
           shorts.map((short, index) => (
@@ -423,11 +442,11 @@ export default function FreshFlowShortsStream({
         )}
       </div>
 
-      {(subTab === "for-you" || subTab === "fresh-picks") && (
+      {(subTab === "for-you" || subTab === "more") && (
         <section className="fresh-flow-picks" aria-label="Fresh Picks for You">
           <div className="fresh-flow-picks-header">
             <h2>✦ Fresh Picks for You</h2>
-            <button type="button" className="fresh-flow-picks-see-all" onClick={() => setSubTab("fresh-picks")}>
+            <button type="button" className="fresh-flow-picks-see-all" onClick={() => setSubTab("more")}>
               See all
             </button>
           </div>
