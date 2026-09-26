@@ -210,7 +210,6 @@ export default function FreshFlowHub() {
         </div>
       )}
 
-      {/* Layer B for non-Short worlds; Short owns discovery inside ShortsStream. */}
       {showChrome && !isOverview && world.discovery.length > 0 && (
         <nav className="fresh-flow-discovery-rail" aria-label={`${world.label} discovery`}>
           {world.discovery.map((mode) => (
@@ -230,11 +229,12 @@ export default function FreshFlowHub() {
         {section === "fresh-flow" ? (
           <FreshFlowShortsExperience onOpenTopic={openTopicSearch} onImmersiveChange={setShortsImmersive} />
         ) : section === "fresh-flow-news-posts" ? (
-          <FreshFlowNewsPosts />
+          <FreshFlowNewsPosts discoveryId={discoveryId} />
         ) : (
           <FreshFlowMediaWorkspace
             {...SECTION_COPY[section as keyof typeof SECTION_COPY]}
             title={SECTION_COPY[section as keyof typeof SECTION_COPY].name}
+            discoveryId={discoveryId}
           />
         )}
       </main>
