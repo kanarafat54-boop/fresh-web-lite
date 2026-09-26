@@ -38,8 +38,8 @@ export async function loadRealUniversalProfile(user: FreshUser): Promise<Univers
   return {
     id: user.id,
     freshId: `FRESH-${user.id.slice(0, 8).toUpperCase()}`,
-    username: user.username,
-    displayName: user.fullName,
+    username: (user.username || "").trim(),
+    displayName: (user.fullName || user.username || "Fresh user").trim(),
     email: user.email,
     avatar: text(details.avatar_url) || text(user.avatar) || text(identity.avatar_url),
     coverPhoto: text(details.cover_url) || text(user.bannerImage) || text(identity.cover_url),
