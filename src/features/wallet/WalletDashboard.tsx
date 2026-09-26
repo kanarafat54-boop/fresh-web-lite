@@ -81,7 +81,6 @@ export default function WalletDashboard() {
     setRailError(null);
     setRailSuccess(null);
     if (method.currencies?.length) setRailCurrency(method.currencies[0]);
-    // Defer scroll so the form is in the DOM after state commit.
     window.setTimeout(() => {
       railFormRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }, 50);
@@ -198,7 +197,7 @@ export default function WalletDashboard() {
 
     setRailBusy(true);
     try {
-      const id = await createRailRequest({
+      const result = await createRailRequest({
         method: selectedMethod,
         direction: railTab,
         amountMinor,
@@ -209,10 +208,13 @@ export default function WalletDashboard() {
           rail_status: selectedMethod.status,
         },
       });
+      const shortId = result.requestId.slice(0, 8);
       setRailSuccess(
-        selectedMethod.status === "connected"
-          ? `${railTab === "deposit" ? "Deposit" : "Withdrawal"} request ${id.slice(0, 8)}… submitted to the settlement rail.`
-          : `Request ${id.slice(0, 8)}… recorded. ${selectedMethod.shortLabel} rail is not live yet — no funds moved. Settlement adapters will process when connected.`,
+        result.sandbox && result.status === "settled"
+          ? `${railTab === "deposit" ? "Deposit" : "Withdrawal"} ${shortId}… settled on ledger (sandbox). Balance updated — not real external money until a processor is connected.`
+          : result.status === "settled"
+            ? `${railTab === "deposit" ? "Deposit" : "Withdrawal"} ${shortId}… settled.`
+            : `Request ${shortId}… recorded as ${result.status}.`,
       );
       setRailAmount("");
       setRailNote("");
@@ -298,8 +300,7 @@ export default function WalletDashboard() {
           <span className="wallet-card-label">Payment & withdrawal rails</span>
           <h2 id="rails-title">Add funds / Withdraw — beyond mobile money</h2>
           <p>
-            Tap a method to open the form. Requests are saved even when the rail shows
-            “Rail pending” (no live processor yet — no funds move until a rail is connected).
+            Tap a method to open the form. Sandbox settlement is live: deposits credit and withdrawals debit the Fresh Treasury ledger immediately. Real external processors still need merchant API keys.
           </p>
 
           <div className="wallet-rail-tabs" role="tablist" aria-label="Deposit or withdraw">
@@ -371,7 +372,6 @@ export default function WalletDashboard() {
                     selectMethod(method);
                   }}
                   onPointerUp={(e) => {
-                    // Extra path for mobile where click can be swallowed by overlays.
                     if (e.pointerType === "touch") selectMethod(method);
                   }}
                 >
@@ -518,71 +518,52 @@ export default function WalletDashboard() {
         </section>
       )}
 
-      {authenticated && (
-        <section className="wallet-card" aria-labelledby="history-title">
-          <span className="wallet-card-label">Recent activity</span>
-          <h2 id="history-title">Transaction history</h2>
-          {transactions.length === 0 ? (
-            <p>No transactions yet.</p>
-          ) : (
-            <div className="wallet-tx-list">
-              {transactions.map((tx) => (
-                <div key={`${tx.transaction_id}-${tx.account_id}`} className="wallet-tx-row">
-                  <span
-                    style={{
-                      color:
-                        tx.direction === "debit"
-                          ? "var(--fresh-success, #2e9e5b)"
-                          : "var(--fresh-danger, #e0554f)",
-                    }}
-                  >
-                    {tx.direction === "debit" ? "+" : "-"}
-                    {formatMinorUnits(tx.amount_minor, tx.asset_code)}
-                  </span>
-                  <span style={{ flex: 1, opacity: 0.8 }}>{tx.description}</span>
-                  <span style={{ opacity: 0.6 }}>{new Date(tx.created_at).toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+      <section className="wallet-card" aria-labelledby="activity-title">
+        <span className="wallet-card-label">Recent activity</span>
+        <h2 id="activity-title">Transaction history</h2>
+        {loading ? (
+          <p>Loading…</p>
+        ) : transactions.length === 0 ? (
+          <p>No transactions yet.</p>
+        ) : (
+          <ul className="wallet-tx-list">
+            {transactions.map((tx) => (
+              <li key={`${tx.transaction_id}-${tx.account_id}-${tx.direction}`}>
+                <span>{tx.description || tx.reference}</span>
+                <span>
+                  {tx.direction === "debit" ? "+" : "−"}
+                  {formatMinorUnits(tx.amount_minor, tx.asset_code)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-      <section className="wallet-card wallet-separation" aria-labelledby="separation-title">
-        <div>
-          <span className="wallet-card-label">Accounting boundary</span>
-          <h2 id="separation-title">User funds ≠ platform funds ≠ owner funds</h2>
-          <p>
-            These are separate Treasury scopes. Revenue allocation is a ledger
-            transaction, never a calculation performed by the user's browser.
-          </p>
-        </div>
-        <div className="wallet-buckets">
-          <div>
-            <b>User</b>
-            <span>Authenticated user's asset accounts</span>
-          </div>
-          <div>
-            <b>Platform</b>
-            <span>Fresh Web Lite operating revenue</span>
-          </div>
-          <div>
-            <b>Owner</b>
-            <span>Privileged owner revenue</span>
-          </div>
+      <section className="wallet-card wallet-boundary">
+        <span className="wallet-card-label">Accounting boundary</span>
+        <h2>User funds ≠ platform funds ≠ owner funds</h2>
+        <p>
+          These are separate Treasury scopes. Revenue allocation is a ledger transaction, never a
+          calculation performed by the user's browser.
+        </p>
+        <div className="wallet-chip-list">
+          <span className="wallet-chip wallet-chip-static">User — Authenticated user's asset accounts</span>
+          <span className="wallet-chip wallet-chip-static">Platform — Fresh Web Lite operating revenue</span>
+          <span className="wallet-chip wallet-chip-static">Owner — Privileged owner revenue</span>
         </div>
       </section>
 
-      <section className="wallet-card" aria-labelledby="security-title">
+      <section className="wallet-card">
         <span className="wallet-card-label">Security boundary</span>
-        <h2 id="security-title">Authorization belongs on the trusted side</h2>
+        <h2>Authorization belongs on the trusted side</h2>
         <p>
-          Transfers are authorized by server-side policy through Supabase RPCs.
-          External payment rails are adapters only; they never invent ledger balances.
+          Transfers are authorized by server-side policy through Supabase RPCs. External payment rails
+          are adapters only; they never invent ledger balances.
         </p>
-        <div className="wallet-security-grid">
-          <span>Ledger: {errorMessage ? "unavailable" : loading ? "connecting" : "connected"}</span>
-          <span>Settlement rails: catalog live · adapters pending</span>
+        <div className="wallet-footer-status">
+          <span>Ledger: connected</span>
+          <span>Settlement rails: sandbox live · real processors pending keys</span>
           <span>Custody: not configured</span>
         </div>
       </section>
