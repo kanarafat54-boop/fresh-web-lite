@@ -12,7 +12,6 @@ type MediaWorkspaceProps = {
   title: string;
   description: string;
   icon: string;
-  /** Layer B discovery mode from architecture / hub rail. */
   discoveryId?: string;
 };
 
@@ -45,6 +44,7 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [commentsFor, setCommentsFor] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   async function loadMedia() {
     setLoading(true);
@@ -111,22 +111,23 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
       for (const row of savedRows ?? []) saved.add(row.post_id);
     }
 
-    setPosts(
-      filtered.map((row) => {
-        const profile = profileMap.get(row.authorId);
-        return {
-          ...row,
-          authorName: profile?.full_name ?? "Unknown creator",
-          authorUsername: profile?.username ?? "creator",
-          myReaction: reactionMap.get(row.id) ?? null,
-        };
-      }),
-    );
+    const mapped = filtered.map((row) => {
+      const profile = profileMap.get(row.authorId);
+      return {
+        ...row,
+        authorName: profile?.full_name ?? "Unknown creator",
+        authorUsername: profile?.username ?? "creator",
+        myReaction: reactionMap.get(row.id) ?? null,
+      };
+    });
+    setPosts(mapped);
     setSavedIds(saved);
+    if (mapped.length && !activeId) setActiveId(mapped[0].id);
     setLoading(false);
   }
 
   useEffect(() => {
+    setActiveId(null);
     void loadMedia();
   }, [kind, discoveryId, user?.id, isGuest]);
 
@@ -160,9 +161,49 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
   }
 
   const discoveryLabel = discoveryId && discoveryId !== "discover" ? discoveryId.replace(/-/g, " ") : null;
+  const hero = posts[0] ?? null;
+  const rest = posts.slice(1);
+  const continueWatching = posts.slice(0, 8);
+
+  function MediaActions({ post }: { post: MediaPost }) {
+    return (
+      <div className="fresh-flow-media-actions">
+        <ReactionPicker
+          myReaction={post.myReaction}
+          count={post.likeCount}
+          disabled={isGuest}
+          variant="short"
+          onReact={(value) => void react(post, value)}
+        />
+        <button type="button" onClick={() => setCommentsFor(post.id)}>
+          💬 <span>{post.commentCount}</span>
+        </button>
+        <button type="button" className={savedIds.has(post.id) ? "active" : ""} onClick={() => void toggleSave(post)} disabled={isGuest}>
+          🔖
+        </button>
+        <button type="button" onClick={() => void share(post)}>
+          ↗
+        </button>
+      </div>
+    );
+  }
+
+  function PosterMedia({ post, className = "" }: { post: MediaPost; className?: string }) {
+    if (post.videoUrl) {
+      return <video src={post.videoUrl} controls playsInline preload="metadata" className={`fresh-flow-media-player ${className}`} aria-label={title} />;
+    }
+    if (post.imageUrl) {
+      return <img src={post.imageUrl} alt="" className={`fresh-flow-media-image ${className}`} />;
+    }
+    return <div className={`fresh-flow-media-poster-fallback ${className}`} aria-hidden />;
+  }
 
   return (
-    <section className={`fresh-flow-media-workspace fresh-flow-media-workspace-${kind}`} aria-label={`${title} media experience`}>
+    <section
+      className={`fresh-flow-media-workspace fresh-flow-media-workspace-${kind}`}
+      aria-label={`${title} media experience`}
+      data-discovery={discoveryId || undefined}
+    >
       <header className="fresh-flow-media-workspace-hero">
         <span className="fresh-flow-media-workspace-icon" aria-hidden="true">
           {icon}
@@ -195,45 +236,178 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
         </div>
       )}
 
-      <div className={`fresh-flow-media-feed ${kind === "long-videos" ? "fresh-flow-media-feed-long-videos" : ""}`}>
-        {posts.map((post) => (
-          <article key={post.id} className={`fresh-flow-media-card ${kind === "long-videos" ? "fresh-flow-media-card-long-video" : ""}`}>
-            {post.videoUrl ? (
-              <video src={post.videoUrl} controls playsInline preload="metadata" className="fresh-flow-media-player" aria-label={title} />
-            ) : post.imageUrl ? (
-              <img src={post.imageUrl} alt="" className="fresh-flow-media-image" />
-            ) : null}
-            <div className="fresh-flow-media-card-body">
-              <div className="fresh-flow-media-author">
-                <span className="fresh-flow-author-avatar">{(post.authorName || "?").slice(0, 1).toUpperCase()}</span>
-                <div>
-                  <strong>@{post.authorUsername}</strong>
-                  <small>{timeAgo(post.createdAt)}</small>
-                </div>
-              </div>
-              {post.content && <p>{post.content}</p>}
-              <div className="fresh-flow-media-actions">
-                <ReactionPicker
-                  myReaction={post.myReaction}
-                  count={post.likeCount}
-                  disabled={isGuest}
-                  variant="short"
-                  onReact={(value) => void react(post, value)}
-                />
-                <button type="button" onClick={() => setCommentsFor(post.id)}>
-                  💬 <span>{post.commentCount}</span>
+      {kind === "long-videos" && hero && !loading && (
+        <>
+          <article className="fresh-flow-cinematic-hero">
+            <div className="fresh-flow-cinematic-hero-media">
+              <PosterMedia post={hero} />
+              <div className="fresh-flow-cinematic-hero-scrim" />
+            </div>
+            <div className="fresh-flow-cinematic-hero-body">
+              <span className="fresh-flow-cinematic-kicker">@{hero.authorUsername} · {timeAgo(hero.createdAt)}</span>
+              <h3>{hero.content?.slice(0, 80) || "Featured Long Video"}</h3>
+              <div className="fresh-flow-cinematic-cta">
+                <button type="button" className="fresh-flow-cta-play" onClick={() => setActiveId(hero.id)}>
+                  ▶ Play
                 </button>
-                <button type="button" className={savedIds.has(post.id) ? "active" : ""} onClick={() => void toggleSave(post)} disabled={isGuest}>
-                  🔖
+                <button type="button" className="fresh-flow-cta-icon" onClick={() => void toggleSave(hero)} disabled={isGuest} aria-label="Save">
+                  {savedIds.has(hero.id) ? "✓" : "+"}
                 </button>
-                <button type="button" onClick={() => void share(post)}>
+                <button type="button" className="fresh-flow-cta-icon" onClick={() => void share(hero)} aria-label="Share">
                   ↗
                 </button>
               </div>
+              <MediaActions post={hero} />
             </div>
           </article>
-        ))}
-      </div>
+
+          {continueWatching.length > 1 && (
+            <section className="fresh-flow-continue-row" aria-label="Continue watching">
+              <div className="fresh-flow-row-header">
+                <h4>Continue Watching</h4>
+              </div>
+              <div className="fresh-flow-continue-rail">
+                {continueWatching.map((post) => (
+                  <button
+                    key={post.id}
+                    type="button"
+                    className={`fresh-flow-continue-card ${activeId === post.id ? "active" : ""}`}
+                    onClick={() => setActiveId(post.id)}
+                  >
+                    {post.imageUrl || post.videoUrl ? (
+                      post.imageUrl ? (
+                        <img src={post.imageUrl} alt="" />
+                      ) : (
+                        <video src={post.videoUrl!} muted preload="metadata" />
+                      )
+                    ) : (
+                      <span className="fresh-flow-continue-placeholder">▶</span>
+                    )}
+                    <span>{post.content?.slice(0, 40) || `@${post.authorUsername}`}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <div className="fresh-flow-media-feed fresh-flow-media-feed-long-videos">
+            {rest.map((post) => (
+              <article key={post.id} className="fresh-flow-media-card fresh-flow-media-card-long-video">
+                <PosterMedia post={post} />
+                <div className="fresh-flow-media-card-body">
+                  <div className="fresh-flow-media-author">
+                    <span className="fresh-flow-author-avatar">{(post.authorName || "?").slice(0, 1).toUpperCase()}</span>
+                    <div>
+                      <strong>@{post.authorUsername}</strong>
+                      <small>{timeAgo(post.createdAt)}</small>
+                    </div>
+                  </div>
+                  {post.content && <p>{post.content}</p>}
+                  <MediaActions post={post} />
+                </div>
+              </article>
+            ))}
+          </div>
+        </>
+      )}
+
+      {kind === "podcasts" && !loading && posts.length > 0 && (
+        <div className="fresh-flow-podcast-layout">
+          {hero && (
+            <article className="fresh-flow-podcast-featured">
+              <div className="fresh-flow-podcast-art">
+                <PosterMedia post={hero} />
+              </div>
+              <div className="fresh-flow-podcast-featured-body">
+                <span className="fresh-flow-podcast-host">@{hero.authorUsername}</span>
+                <h3>{hero.content?.slice(0, 90) || "Featured episode"}</h3>
+                <button type="button" className="fresh-flow-podcast-play-all" onClick={() => setActiveId(hero.id)}>
+                  ▶ Play episode
+                </button>
+                <MediaActions post={hero} />
+              </div>
+            </article>
+          )}
+          <ul className="fresh-flow-podcast-list">
+            {posts.map((post, i) => (
+              <li key={post.id} className={activeId === post.id ? "active" : ""}>
+                <button type="button" className="fresh-flow-podcast-row" onClick={() => setActiveId(post.id)}>
+                  <span className="fresh-flow-podcast-ep-num">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="fresh-flow-podcast-row-art">
+                    <PosterMedia post={post} />
+                  </span>
+                  <span className="fresh-flow-podcast-row-copy">
+                    <strong>{post.content?.slice(0, 60) || "Episode"}</strong>
+                    <small>@{post.authorUsername} · {timeAgo(post.createdAt)}</small>
+                  </span>
+                  <span className="fresh-flow-podcast-row-play" aria-hidden>
+                    ▶
+                  </span>
+                </button>
+                <div className="fresh-flow-podcast-row-actions">
+                  <MediaActions post={post} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {kind === "ar-vr" && !loading && posts.length > 0 && (
+        <div className="fresh-flow-vr-layout">
+          <div className="fresh-flow-vr-enter-banner">
+            <h3>Welcome to Virtual Reality</h3>
+            <p>Choose an experience — UI recedes once you enter.</p>
+            <div className="fresh-flow-vr-enter-actions">
+              <span>Start AR</span>
+              <span>Object Library</span>
+              <span>Learn AR/VR</span>
+            </div>
+          </div>
+          <div className="fresh-flow-media-feed fresh-flow-media-feed-vr">
+            {posts.map((post) => (
+              <article key={post.id} className="fresh-flow-media-card fresh-flow-media-card-vr">
+                <PosterMedia post={post} />
+                <div className="fresh-flow-media-card-body">
+                  <div className="fresh-flow-media-author">
+                    <span className="fresh-flow-author-avatar">{(post.authorName || "?").slice(0, 1).toUpperCase()}</span>
+                    <div>
+                      <strong>@{post.authorUsername}</strong>
+                      <small>{timeAgo(post.createdAt)}</small>
+                    </div>
+                  </div>
+                  {post.content && <p>{post.content}</p>}
+                  <button type="button" className="fresh-flow-vr-enter-btn" onClick={() => setActiveId(post.id)}>
+                    Enter experience
+                  </button>
+                  <MediaActions post={post} />
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {kind === "others" && !loading && posts.length > 0 && (
+        <div className="fresh-flow-media-feed fresh-flow-media-feed-others">
+          {posts.map((post) => (
+            <article key={post.id} className="fresh-flow-media-card fresh-flow-media-card-others">
+              <PosterMedia post={post} />
+              <div className="fresh-flow-media-card-body">
+                <div className="fresh-flow-media-author">
+                  <span className="fresh-flow-author-avatar">{(post.authorName || "?").slice(0, 1).toUpperCase()}</span>
+                  <div>
+                    <strong>@{post.authorUsername}</strong>
+                    <small>{timeAgo(post.createdAt)}</small>
+                  </div>
+                </div>
+                {post.content && <p>{post.content}</p>}
+                <MediaActions post={post} />
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
 
       {commentsFor && (
         <CommentPanel
