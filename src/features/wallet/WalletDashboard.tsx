@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import {
   treasuryClient,
@@ -68,12 +68,24 @@ export default function WalletDashboard() {
   const [railBusy, setRailBusy] = useState(false);
   const [railError, setRailError] = useState<string | null>(null);
   const [railSuccess, setRailSuccess] = useState<string | null>(null);
+  const railFormRef = useRef<HTMLDivElement | null>(null);
 
   const filteredMethods = useMemo(() => {
     let list = methodsForDirection(railTab);
     if (familyFilter !== "all") list = list.filter((m) => m.family === familyFilter);
     return list;
   }, [railTab, familyFilter]);
+
+  function selectMethod(method: PaymentMethodDef) {
+    setSelectedMethod(method);
+    setRailError(null);
+    setRailSuccess(null);
+    if (method.currencies?.length) setRailCurrency(method.currencies[0]);
+    // Defer scroll so the form is in the DOM after state commit.
+    window.setTimeout(() => {
+      railFormRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 50);
+  }
 
   async function refreshTreasury() {
     const [nextBalances, nextTransactions, nextRails] = await Promise.all([
@@ -127,12 +139,6 @@ export default function WalletDashboard() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    if (selectedMethod?.currencies?.length) {
-      setRailCurrency(selectedMethod.currencies[0]);
-    }
-  }, [selectedMethod]);
 
   async function sendFreshCoin() {
     setSendError(null);
@@ -239,7 +245,7 @@ export default function WalletDashboard() {
         <section className="wallet-card" aria-live="polite">
           <span className="wallet-card-label">Authentication required</span>
           <h2>Sign in to access your Treasury</h2>
-          <p>Your balances are never loaded for an unauthenticated browser session.</p>
+          <p>Sign in to use Add funds, Withdraw, and payment methods. Methods only work while authenticated.</p>
         </section>
       )}
 
@@ -278,10 +284,12 @@ export default function WalletDashboard() {
           <span className="wallet-card-label">Asset families</span>
           <div className="wallet-chip-list">
             {supportedAssetFamilies.map((asset) => (
-              <span className="wallet-chip" key={asset}>{asset}</span>
+              <span className="wallet-chip wallet-chip-static" key={asset}>
+                {asset}
+              </span>
             ))}
           </div>
-          <p>External assets appear only after a trusted settlement or custody rail records them.</p>
+          <p>Labels only — use Add funds / Withdraw below to pick a real payment rail.</p>
         </article>
       </div>
 
@@ -290,8 +298,8 @@ export default function WalletDashboard() {
           <span className="wallet-card-label">Payment & withdrawal rails</span>
           <h2 id="rails-title">Add funds / Withdraw — beyond mobile money</h2>
           <p>
-            Choose a settlement method. Requests are recorded in Treasury; the ledger is
-            credited or debited only after a connected rail confirms settlement.
+            Tap a method to open the form. Requests are saved even when the rail shows
+            “Rail pending” (no live processor yet — no funds move until a rail is connected).
           </p>
 
           <div className="wallet-rail-tabs" role="tablist" aria-label="Deposit or withdraw">
@@ -346,33 +354,49 @@ export default function WalletDashboard() {
             ))}
           </div>
 
-          <div className="wallet-method-grid">
-            {filteredMethods.map((method) => (
-              <button
-                key={method.id}
-                type="button"
-                className={`wallet-method-card${selectedMethod?.id === method.id ? " selected" : ""}`}
-                onClick={() => {
-                  setSelectedMethod(method);
-                  setRailError(null);
-                  setRailSuccess(null);
-                }}
-              >
-                <span className="wallet-method-icon" aria-hidden>
-                  {method.icon}
-                </span>
-                <strong>{method.shortLabel}</strong>
-                <small>{method.label}</small>
-                <span className={`wallet-method-status status-${method.status}`}>
-                  {statusLabel(method.status)}
-                </span>
-              </button>
-            ))}
+          <div className="wallet-method-grid" role="listbox" aria-label="Payment methods">
+            {filteredMethods.map((method) => {
+              const isSelected = selectedMethod?.id === method.id;
+              return (
+                <button
+                  key={method.id}
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  data-method-id={method.id}
+                  className={`wallet-method-card${isSelected ? " selected" : ""}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selectMethod(method);
+                  }}
+                  onPointerUp={(e) => {
+                    // Extra path for mobile where click can be swallowed by overlays.
+                    if (e.pointerType === "touch") selectMethod(method);
+                  }}
+                >
+                  <span className="wallet-method-icon" aria-hidden>
+                    {method.icon}
+                  </span>
+                  <strong>{method.shortLabel}</strong>
+                  <small>{method.label}</small>
+                  <span className={`wallet-method-status status-${method.status}`}>
+                    {isSelected ? "Selected" : statusLabel(method.status)}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
+          {!selectedMethod && (
+            <p className="wallet-rail-hint">Select a method above to continue.</p>
+          )}
+
           {selectedMethod && (
-            <div className="wallet-rail-form">
-              <p className="wallet-method-desc">{selectedMethod.description}</p>
+            <div className="wallet-rail-form" ref={railFormRef} id="wallet-rail-form">
+              <p className="wallet-method-desc">
+                <strong>{selectedMethod.label}</strong> — {selectedMethod.description}
+              </p>
               <div className="wallet-rail-fields">
                 <input
                   type="text"
@@ -381,6 +405,7 @@ export default function WalletDashboard() {
                   value={railAmount}
                   onChange={(e) => setRailAmount(e.target.value)}
                   disabled={railBusy}
+                  autoFocus
                 />
                 <select
                   value={railCurrency}
@@ -436,10 +461,10 @@ export default function WalletDashboard() {
                     <span>
                       {r.direction} · {r.method_id}
                     </span>
-                    <span>
-                      {formatMinorUnits(r.amount_minor, r.currency_code)}
-                    </span>
-                    <span className={`wallet-method-status status-${r.status === "settled" ? "connected" : "pending_integration"}`}>
+                    <span>{formatMinorUnits(r.amount_minor, r.currency_code)}</span>
+                    <span
+                      className={`wallet-method-status status-${r.status === "settled" ? "connected" : "pending_integration"}`}
+                    >
                       {r.status}
                     </span>
                   </li>
