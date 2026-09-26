@@ -3,6 +3,8 @@ import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { CommentPanel } from "../../comments/components/CommentPanel";
 import { ReactionPicker } from "../../reactions/components/ReactionPicker";
+import { applyDiscoveryFilter, matchesMediaKind, type DiscoverablePost } from "../core/applyDiscoveryFilter";
+import { getSocialAuthorIds } from "../core/social";
 import "./FreshFlowMediaWorkspace.css";
 
 type MediaWorkspaceProps = {
@@ -10,20 +12,14 @@ type MediaWorkspaceProps = {
   title: string;
   description: string;
   icon: string;
+  /** Layer B discovery mode from architecture / hub rail. */
+  discoveryId?: string;
 };
 
-type MediaPost = {
-  id: string;
-  authorId: string;
+type MediaPost = DiscoverablePost & {
   authorName: string;
   authorUsername: string;
-  content: string;
-  videoUrl: string | null;
-  imageUrl: string | null;
-  likeCount: number;
-  commentCount: number;
   myReaction: string | null;
-  createdAt: string;
 };
 
 const FILTER_LABELS: Record<MediaWorkspaceProps["kind"], string> = {
@@ -32,14 +28,6 @@ const FILTER_LABELS: Record<MediaWorkspaceProps["kind"], string> = {
   podcasts: "podcast",
   others: "media",
 };
-
-function matchesKind(post: MediaPost, kind: MediaWorkspaceProps["kind"]) {
-  const text = post.content.toLowerCase();
-  if (kind === "long-videos") return Boolean(post.videoUrl);
-  if (kind === "podcasts") return /#podcast\b|#podcasts\b|podcast/.test(text);
-  if (kind === "ar-vr") return /#ar\b|#vr\b|ar\/vr|augmented reality|virtual reality/.test(text);
-  return Boolean(post.videoUrl || post.imageUrl);
-}
 
 function timeAgo(iso: string) {
   const mins = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
@@ -50,7 +38,7 @@ function timeAgo(iso: string) {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-export default function FreshFlowMediaWorkspace({ kind, title, description, icon }: MediaWorkspaceProps) {
+export default function FreshFlowMediaWorkspace({ kind, title, description, icon, discoveryId }: MediaWorkspaceProps) {
   const { user, isGuest } = useFreshId();
   const [posts, setPosts] = useState<MediaPost[]>([]);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
@@ -65,7 +53,7 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
       .from("posts")
       .select("id, author_id, content, image_url, video_url, like_count, comment_count, created_at")
       .order("created_at", { ascending: false })
-      .limit(80);
+      .limit(120);
 
     if (postsError) {
       setError(`Couldn't load ${title}: ${postsError.message}`);
@@ -73,21 +61,31 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
       return;
     }
 
-    const rows = (data ?? []).filter((row: any) => matchesKind({
-      id: row.id,
-      authorId: row.author_id,
-      authorName: "Unknown",
-      authorUsername: "unknown",
-      content: row.content ?? "",
-      videoUrl: row.video_url ?? null,
-      imageUrl: row.image_url ?? null,
-      likeCount: row.like_count ?? 0,
-      commentCount: row.comment_count ?? 0,
-      myReaction: null,
-      createdAt: row.created_at,
-    }, kind));
+    const baseRows: DiscoverablePost[] = (data ?? [])
+      .map((row: any) => ({
+        id: row.id,
+        authorId: row.author_id,
+        content: row.content ?? "",
+        videoUrl: row.video_url ?? null,
+        imageUrl: row.image_url ?? null,
+        likeCount: row.like_count ?? 0,
+        commentCount: row.comment_count ?? 0,
+        createdAt: row.created_at,
+      }))
+      .filter((row) => matchesMediaKind(row, kind));
 
-    const authorIds = [...new Set(rows.map((row: any) => row.author_id).filter(Boolean))];
+    let followingIds: Set<string> | undefined;
+    if (discoveryId === "following" && user && !isGuest) {
+      try {
+        followingIds = new Set(await getSocialAuthorIds(user.id));
+      } catch {
+        followingIds = new Set();
+      }
+    }
+
+    const filtered = applyDiscoveryFilter(baseRows, discoveryId, { followingAuthorIds: followingIds });
+
+    const authorIds = [...new Set(filtered.map((row) => row.authorId).filter(Boolean))];
     const profileMap = new Map<string, { full_name: string; username: string }>();
     if (authorIds.length) {
       const { data: profiles, error: profileError } = await supabase
@@ -113,27 +111,24 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
       for (const row of savedRows ?? []) saved.add(row.post_id);
     }
 
-    setPosts(rows.map((row: any) => {
-      const profile = profileMap.get(row.author_id);
-      return {
-        id: row.id,
-        authorId: row.author_id,
-        authorName: profile?.full_name ?? "Unknown creator",
-        authorUsername: profile?.username ?? "creator",
-        content: row.content ?? "",
-        videoUrl: row.video_url ?? null,
-        imageUrl: row.image_url ?? null,
-        likeCount: row.like_count ?? 0,
-        commentCount: row.comment_count ?? 0,
-        myReaction: reactionMap.get(row.id) ?? null,
-        createdAt: row.created_at,
-      };
-    }));
+    setPosts(
+      filtered.map((row) => {
+        const profile = profileMap.get(row.authorId);
+        return {
+          ...row,
+          authorName: profile?.full_name ?? "Unknown creator",
+          authorUsername: profile?.username ?? "creator",
+          myReaction: reactionMap.get(row.id) ?? null,
+        };
+      }),
+    );
     setSavedIds(saved);
     setLoading(false);
   }
 
-  useEffect(() => { void loadMedia(); }, [kind, user?.id, isGuest]);
+  useEffect(() => {
+    void loadMedia();
+  }, [kind, discoveryId, user?.id, isGuest]);
 
   async function react(post: MediaPost, reaction: string) {
     if (!user || isGuest) return;
@@ -159,15 +154,24 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
     try {
       if (navigator.share) await navigator.share({ title: post.content || title, text: post.content || title, url });
       else await navigator.clipboard.writeText(url);
-    } catch { /* user cancelled */ }
+    } catch {
+      /* user cancelled */
+    }
   }
+
+  const discoveryLabel = discoveryId && discoveryId !== "discover" ? discoveryId.replace(/-/g, " ") : null;
 
   return (
     <section className={`fresh-flow-media-workspace fresh-flow-media-workspace-${kind}`} aria-label={`${title} media experience`}>
       <header className="fresh-flow-media-workspace-hero">
-        <span className="fresh-flow-media-workspace-icon" aria-hidden="true">{icon}</span>
+        <span className="fresh-flow-media-workspace-icon" aria-hidden="true">
+          {icon}
+        </span>
         <div>
-          <span className="fresh-flow-media-workspace-eyebrow">Fresh Flow · {FILTER_LABELS[kind]}</span>
+          <span className="fresh-flow-media-workspace-eyebrow">
+            Fresh Flow · {FILTER_LABELS[kind]}
+            {discoveryLabel ? ` · ${discoveryLabel}` : ""}
+          </span>
           <h2>{title}</h2>
           <p>{description}</p>
         </div>
@@ -176,15 +180,18 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
       <div className="fresh-flow-media-live-state">
         <span className="fresh-flow-live-dot" />
         <strong>Connected to Fresh data</strong>
-        <small>{posts.length} available item{posts.length === 1 ? "" : "s"}</small>
+        <small>
+          {posts.length} item{posts.length === 1 ? "" : "s"}
+          {discoveryLabel ? ` · ${discoveryLabel}` : ""}
+        </small>
       </div>
 
       {loading && <div className="fresh-flow-media-status">Loading real Fresh content…</div>}
       {error && <div className="fresh-flow-media-status error">{error}</div>}
       {!loading && !error && posts.length === 0 && (
         <div className="fresh-flow-media-status">
-          <strong>No {FILTER_LABELS[kind]} content is published yet.</strong>
-          <span>Fresh Flow is connected to the real posts/media store; it will appear here as soon as matching content exists.</span>
+          <strong>No {FILTER_LABELS[kind]} content{discoveryLabel ? ` for “${discoveryLabel}”` : ""} yet.</strong>
+          <span>Fresh Flow is connected to the real posts store; matching items appear here when published.</span>
         </div>
       )}
 
@@ -199,21 +206,45 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
             <div className="fresh-flow-media-card-body">
               <div className="fresh-flow-media-author">
                 <span className="fresh-flow-author-avatar">{(post.authorName || "?").slice(0, 1).toUpperCase()}</span>
-                <div><strong>@{post.authorUsername}</strong><small>{timeAgo(post.createdAt)}</small></div>
+                <div>
+                  <strong>@{post.authorUsername}</strong>
+                  <small>{timeAgo(post.createdAt)}</small>
+                </div>
               </div>
               {post.content && <p>{post.content}</p>}
               <div className="fresh-flow-media-actions">
-                <ReactionPicker myReaction={post.myReaction} count={post.likeCount} disabled={isGuest} variant="short" onReact={(value) => void react(post, value)} />
-                <button type="button" onClick={() => setCommentsFor(post.id)}>💬 <span>{post.commentCount}</span></button>
-                <button type="button" className={savedIds.has(post.id) ? "active" : ""} onClick={() => void toggleSave(post)} disabled={isGuest}>🔖</button>
-                <button type="button" onClick={() => void share(post)}>↗</button>
+                <ReactionPicker
+                  myReaction={post.myReaction}
+                  count={post.likeCount}
+                  disabled={isGuest}
+                  variant="short"
+                  onReact={(value) => void react(post, value)}
+                />
+                <button type="button" onClick={() => setCommentsFor(post.id)}>
+                  💬 <span>{post.commentCount}</span>
+                </button>
+                <button type="button" className={savedIds.has(post.id) ? "active" : ""} onClick={() => void toggleSave(post)} disabled={isGuest}>
+                  🔖
+                </button>
+                <button type="button" onClick={() => void share(post)}>
+                  ↗
+                </button>
               </div>
             </div>
           </article>
         ))}
       </div>
 
-      {commentsFor && <CommentPanel targetType="post" targetId={commentsFor} onClose={() => { setCommentsFor(null); void loadMedia(); }} />}
+      {commentsFor && (
+        <CommentPanel
+          targetType="post"
+          targetId={commentsFor}
+          onClose={() => {
+            setCommentsFor(null);
+            void loadMedia();
+          }}
+        />
+      )}
     </section>
   );
 }
