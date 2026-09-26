@@ -103,7 +103,25 @@ export default function FreshFlowHub() {
     setSearchOpen(true);
   };
 
-  const showChrome = !shortsImmersive;\n  const showMediaDirectorate = isOverview ? shortsImmersive : true;\n\n  const renderMediaDirectorate = () => (\n    <nav className="fresh-flow-media-nav-bottom" aria-label="Fresh Flow media worlds">\n      {FRESH_FLOW_MEDIA_WORLDS.map((mediaWorld) => (\n        <button key={mediaWorld.id} type="button" className={mediaWorld.routeId === section ? "fresh-flow-media-button active" : "fresh-flow-media-button"} onClick={() => setActiveRoute(mediaWorld.routeId)} aria-current={mediaWorld.routeId === section ? "page" : undefined}>\n          <span aria-hidden="true">{mediaWorld.icon}</span><span>{mediaWorld.shortLabel}</span>\n        </button>\n      ))}\n    </nav>\n  );
+  const showChrome = !shortsImmersive;
+  const showMediaDirectorate = isOverview ? shortsImmersive : true;
+
+  const renderMediaDirectorate = () => (
+    <nav className="fresh-flow-media-nav-bottom" aria-label="Fresh Flow media worlds">
+      {FRESH_FLOW_MEDIA_WORLDS.map((mediaWorld) => (
+        <button
+          key={mediaWorld.id}
+          type="button"
+          className={mediaWorld.routeId === section ? "fresh-flow-media-button active" : "fresh-flow-media-button"}
+          onClick={() => setActiveRoute(mediaWorld.routeId)}
+          aria-current={mediaWorld.routeId === section ? "page" : undefined}
+        >
+          <span aria-hidden="true">{mediaWorld.icon}</span>
+          <span>{mediaWorld.shortLabel}</span>
+        </button>
+      ))}
+    </nav>
+  );
 
   return (
     <div
