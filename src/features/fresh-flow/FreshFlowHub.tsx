@@ -259,6 +259,8 @@ export default function FreshFlowHub() {
         )}
       </main>
 
+      {showMediaDirectorate && renderMediaDirectorate()}
+
       <FreshFlowSwitch
         open={flowSwitchOpen}
         activeRouteId={section}
