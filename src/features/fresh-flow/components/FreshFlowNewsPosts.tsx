@@ -7,8 +7,7 @@ type Props = {
 
 /**
  * Fresh Flow's News / Posts surface.
- * Reuses FeedModule; discoveryId is exposed so the feed can branch without
- * breaking proven posts/reactions/comments/saves behavior.
+ * FeedModule applies discovery filters (news / posts / following / trending / …).
  */
 export default function FreshFlowNewsPosts({ discoveryId = "news" }: Props) {
   return (
@@ -17,11 +16,7 @@ export default function FreshFlowNewsPosts({ discoveryId = "news" }: Props) {
       aria-label="Fresh Flow News and Posts"
       data-discovery={discoveryId}
     >
-      <div className="fresh-flow-news-discovery-hint" aria-live="polite">
-        <span>Discovery</span>
-        <strong>{discoveryId.replace(/-/g, " ")}</strong>
-      </div>
-      <FeedModule />
+      <FeedModule discoveryId={discoveryId} />
     </section>
   );
 }
