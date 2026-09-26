@@ -1,47 +1,45 @@
-export type FreshFlowMediaSection =
-  | "fresh-flow"
-  | "fresh-flow-long-videos"
-  | "fresh-flow-news-posts"
-  | "fresh-flow-ar-vr"
-  | "fresh-flow-podcasts"
-  | "fresh-flow-more";
-
 /**
- * Fresh Flow is the single parent for every media directorate.
- * Keep this model UI-agnostic so new media experiences cannot accidentally
- * become separate top-level ecosystems.
+ * Fresh Flow media model — thin compatibility layer over the operating architecture.
+ * Prefer importing from freshFlowArchitecture for new code.
  */
-export const FRESH_FLOW_MEDIA_NAV = [
-  { id: "fresh-flow", label: "Home", icon: "⌂" },
-  { id: "fresh-flow-long-videos", label: "Long Videos", icon: "▷" },
-  { id: "fresh-flow-news-posts", label: "News / Posts", icon: "▤" },
-  { id: "fresh-flow-ar-vr", label: "AR / VR", icon: "◇" },
-  { id: "fresh-flow-podcasts", label: "Podcasts", icon: "♩" },
-  { id: "fresh-flow-more", label: "Others", icon: "▦" },
-] as const;
+export type { FreshFlowRouteId as FreshFlowMediaSection } from "./freshFlowArchitecture";
+export {
+  FRESH_FLOW_MEDIA_WORLDS,
+  worldByRouteId,
+  worldById,
+} from "./freshFlowArchitecture";
+
+import { FRESH_FLOW_MEDIA_WORLDS } from "./freshFlowArchitecture";
+
+/** @deprecated Prefer FRESH_FLOW_MEDIA_WORLDS from freshFlowArchitecture */
+export const FRESH_FLOW_MEDIA_NAV = FRESH_FLOW_MEDIA_WORLDS.map((w) => ({
+  id: w.routeId,
+  label: w.id === "short" ? "Home" : w.label,
+  icon: w.icon,
+}));
 
 export const FRESH_FLOW_MEDIA_COPY = {
   "fresh-flow-long-videos": {
     name: "Long Videos",
-    description: "Long-form video watching, documentaries and series within Fresh Flow.",
-    icon: "▷",
+    description: "Cinematic long-form watching within Fresh Flow.",
+    icon: "▶",
     kind: "long-videos" as const,
   },
   "fresh-flow-ar-vr": {
-    name: "AR / VR",
-    description: "Immersive AR and VR experiences connected to Fresh Flow.",
-    icon: "◇",
+    name: "VR / AR",
+    description: "Enter environments — UI recedes once the experience begins.",
+    icon: "⬡",
     kind: "ar-vr" as const,
   },
   "fresh-flow-podcasts": {
     name: "Podcasts",
-    description: "Podcast shows, conversations and listening experiences within Fresh Flow.",
-    icon: "♩",
+    description: "Audio-first shows and episodes within Fresh Flow.",
+    icon: "🎙",
     kind: "podcasts" as const,
   },
   "fresh-flow-more": {
     name: "Others",
-    description: "Additional Fresh Flow media and connected experiences.",
+    description: "Emerging media layer for future formats.",
     icon: "▦",
     kind: "others" as const,
   },
