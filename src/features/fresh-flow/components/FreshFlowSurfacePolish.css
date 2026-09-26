@@ -1,0 +1,77 @@
+/* Fresh Flow surface polish — discovery settle, news, section bar */
+
+/* Layer B discovery: fade in after content settles (Short) */
+.fresh-flow-tabs{
+  transition:opacity .45s ease, transform .45s ease, max-height .45s ease;
+}
+.fresh-flow-stream[data-discovery-settled="false"] .fresh-flow-tabs,
+.fresh-flow-stream[data-discovery-settled="false"] .fresh-flow-filters,
+.fresh-flow-stream[data-discovery-settled="false"] .fresh-flow-picks{
+  opacity:0;
+  pointer-events:none;
+  max-height:0;
+  overflow:hidden;
+  transform:translateY(-8px);
+  padding-top:0;
+  padding-bottom:0;
+  margin:0;
+}
+.fresh-flow-stream[data-discovery-settled="true"] .fresh-flow-tabs{
+  opacity:1;
+  transform:none;
+}
+
+.fresh-flow-hub.immersive-shorts .fresh-flow-item{
+  border-radius:0;
+  border:0;
+  box-shadow:none;
+}
+.fresh-flow-actions{
+  gap:12px;
+}
+.fresh-flow-action-btn,
+.fresh-flow-stream .fresh-flow-actions button{
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  background:rgba(8,10,16,.55);
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
+}
+.fresh-flow-badge-short{
+  position:absolute;z-index:3;top:max(14px,env(safe-area-inset-top));left:14px;
+  padding:5px 10px;border-radius:8px;font-size:.65rem;font-weight:800;letter-spacing:.06em;
+  background:rgba(0,0,0,.45);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);
+}
+
+.fresh-flow-news-posts{
+  min-height:100%;
+  background:radial-gradient(circle at 10% 0%,rgba(59,130,246,.1),transparent 40%),#05060a;
+  padding:8px 0 24px;
+}
+.fresh-flow-news-posts .module{
+  max-width:720px;margin:0 auto;padding:0 12px;
+}
+.fresh-flow-news-posts h2{
+  font-size:1.15rem;margin:8px 0 12px;
+}
+
+.fresh-flow-discovery-rail{
+  animation:fresh-flow-rail-in .4s ease both;
+}
+@keyframes fresh-flow-rail-in{
+  from{opacity:0;transform:translateY(-6px)}
+  to{opacity:1;transform:none}
+}
+
+.fresh-flow-section-bar{
+  display:flex;align-items:center;gap:10px;padding:8px 12px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.fresh-flow-back-button{
+  display:inline-flex;align-items:center;gap:4px;min-height:36px;padding:6px 12px;
+  border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);
+  color:#fff;font:inherit;font-size:.8rem;cursor:pointer;
+}
+.fresh-flow-section-title{
+  flex:1;display:inline-flex;align-items:center;gap:8px;font-weight:750;font-size:.95rem;
+}
