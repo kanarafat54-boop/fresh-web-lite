@@ -210,7 +210,8 @@ export default function FreshFlowHub() {
         </div>
       )}
 
-      {showChrome && world.discovery.length > 0 && (
+      {/* Layer B for non-Short worlds; Short owns discovery inside ShortsStream. */}
+      {showChrome && !isOverview && world.discovery.length > 0 && (
         <nav className="fresh-flow-discovery-rail" aria-label={`${world.label} discovery`}>
           {world.discovery.map((mode) => (
             <button
