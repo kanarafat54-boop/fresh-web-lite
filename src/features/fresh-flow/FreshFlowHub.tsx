@@ -3,6 +3,7 @@ import { useLayout } from "../../app/contexts/useLayout";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
 import { getWalletSummary, formatWalletBalance, type WalletSummary } from "./core/walletService";
 import {
+  FRESH_FLOW_MEDIA_WORLDS,
   worldByRouteId,
   type FreshFlowRouteId,
 } from "./core/freshFlowArchitecture";
