@@ -15,6 +15,7 @@ import "./components/FreshFlow.css";
 import "./components/FreshFlowReferenceShell.css";
 import "./components/FreshFlowReferenceHeader.css";
 import "./components/FreshFlowSwitch.css";
+import "./components/FreshFlowSurfacePolish.css";
 
 type FreshFlowSection = FreshFlowRouteId;
 
