@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { CommentPanel } from "../../comments/components/CommentPanel";
 import { ReactionPicker } from "../../reactions/components/ReactionPicker";
@@ -9,15 +8,13 @@ import { rankForYou } from "../../shorts/core/ForYouRanking";
 import {
   FRESH_SHORTS_PREFETCH_RADIUS,
   getActiveIndex,
-  getMediaWindow,
   releaseDistantMedia,
   retryVideo,
   shouldFetchNextPage,
   syncVideoPlayback,
 } from "../../shorts/core/FreshShortsRuntime";
 import { sendGift, getGiftTotals, type GiftTotal } from "../core/giftService";
-import { interactWithShort, removeShortInteraction } from "../../shorts/core/ShortsUniversalInteractionAdapter";
-import { getEcosystemProfile, upsertEcosystemProfile, FRESH_FLOW_FEED_MODES } from "../../profile/services/ecosystemProfileService";
+import { interactWithShort } from "../../shorts/core/ShortsUniversalInteractionAdapter";
 import type { UniversalReactionKind } from "../../../core/interactions/FreshReactionModel";
 import type { Short } from "../../shorts/types/short";
 import { getSocialAuthorIds } from "../core/social";
@@ -83,7 +80,6 @@ export default function FreshFlowShortsStream({
   const [filterMode, setFilterMode] = useState<FilterMode>(() => readSavedPosition().filterMode ?? "all");
   const restoreIndexRef = useRef<number | null>(readSavedPosition().currentIndex ?? null);
   const [shorts, setShorts] = useState<Short[]>([]);
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [giftTotals, setGiftTotals] = useState<Map<string, GiftTotal>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +116,6 @@ export default function FreshFlowShortsStream({
             ? rankForYou(candidates, viewedRef.current)
             : rankFreshFlow(candidates);
       setShorts(ranked);
-      setSavedIds(result.savedIds);
       setHasMore(result.shorts.length >= FRESH_FLOW_SHORTS_PAGE_SIZE);
       if (user && !isGuest) {
         try {
@@ -217,7 +212,7 @@ export default function FreshFlowShortsStream({
     const container = containerRef.current;
     if (!container) return;
     const onScroll = () => {
-      if (shouldFetchNextPage(container, currentIndex, shorts.length) && hasMore) {
+      if (shouldFetchNextPage(currentIndex, shorts.length, hasMore)) {
         void loadMore();
       }
     };
@@ -226,8 +221,13 @@ export default function FreshFlowShortsStream({
   }, [currentIndex, shorts.length, hasMore, subTab, filterMode]);
 
   useEffect(() => {
-    const videos = containerRef.current?.querySelectorAll<HTMLVideoElement>("video[data-short-id]") ?? [];
-    syncVideoPlayback(videos, currentIndex, FRESH_SHORTS_PREFETCH_RADIUS);
+    const nodes = containerRef.current?.querySelectorAll<HTMLVideoElement>("video[data-short-id]") ?? [];
+    const videos = new Map<number, HTMLVideoElement>();
+    nodes.forEach((video) => {
+      const index = Number(video.closest<HTMLElement>(".fresh-flow-item")?.dataset.index);
+      if (Number.isFinite(index)) videos.set(index, video);
+    });
+    syncVideoPlayback(videos, currentIndex, true);
     releaseDistantMedia(videos, currentIndex, FRESH_SHORTS_PREFETCH_RADIUS + 2);
   }, [currentIndex, shorts]);
 
@@ -244,7 +244,7 @@ export default function FreshFlowShortsStream({
   async function handleReaction(shortId: string, kind: UniversalReactionKind) {
     if (!user || isGuest) return;
     try {
-      await interactWithShort(shortId, kind, user.id);
+      await interactWithShort(user.id, shortId, "react", { reaction: kind });
       setShorts((prev) =>
         prev.map((s) =>
           s.id === shortId
@@ -373,7 +373,7 @@ export default function FreshFlowShortsStream({
                 muted={index !== currentIndex}
                 loop
                 preload={Math.abs(index - currentIndex) <= FRESH_SHORTS_PREFETCH_RADIUS ? "auto" : "none"}
-                onError={(e) => retryVideo(e.currentTarget)}
+                onError={(e) => retryVideo(e.currentTarget, 0)}
               />
               <div className="fresh-flow-overlay">
                 <div className="fresh-flow-meta">
@@ -382,8 +382,10 @@ export default function FreshFlowShortsStream({
                 </div>
                 <div className="fresh-flow-actions">
                   <ReactionPicker
-                    onSelect={(kind) => void handleReaction(short.id, kind)}
-                    counts={short.reactionBreakdown}
+                    myReaction={short.myReaction ?? null}
+                    count={Object.values(short.reactionBreakdown).reduce((total, value) => total + value, 0)}
+                    variant="short"
+                    onReact={(kind) => void handleReaction(short.id, kind as UniversalReactionKind)}
                   />
                   <button type="button" onClick={() => setOpenCommentsFor(short.id)} aria-label="Comments">
                     💬 {short.commentCount}
