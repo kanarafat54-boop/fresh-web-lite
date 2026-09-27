@@ -10,6 +10,7 @@ const persistence = read("src/core/semantic/supabaseSemanticPersistence.ts");
 const researchPersistence = read("api/research/persistSemanticResearch.ts");
 const researchRoute = read("api/research/search.ts");
 const truthMigration = read("supabase/migrations/20260906100752_fresh_intelligence_truth_decisions.sql");
+const aiGateway = read("src/core/fresh-ai/FreshAIIntelligenceGateway.ts");
 
 const required = [
   [orchestrator, "calibrateClaimConfidence", "Truth orchestrator must consume calibrated confidence."],
@@ -33,11 +34,17 @@ const required = [
   [researchRoute, "persistSemanticResearch", "Research API must invoke semantic persistence."],
   [researchRoute, "PERSISTENCE_DRY_RUN", "Research API must expose a deployment-safe persistence switch."],
   [truthMigration, "fresh_intelligence_truth_decisions", "Supabase migration must define the truth-decision ledger."],
+  [aiGateway, "blockedTruth=truthDecisions.filter", "Fresh AI execution must consume the canonical TRUEMODE decisions."],
+  [aiGateway, "TRUEMODE blocked execution", "Fresh AI must fail closed when TRUEMODE blocks an evidence claim."],
 ];
 
 for (const [source, needle, message] of required) {
   if (!source.includes(needle)) throw new Error(message + " Missing: " + needle);
 }
+
+const truthDecisionIndex = aiGateway.indexOf("const blockedTruth=truthDecisions.filter");
+const executionIndex = aiGateway.indexOf("this.kernel.execute", truthDecisionIndex);
+if (truthDecisionIndex < 0 || executionIndex < 0 || truthDecisionIndex > executionIndex) throw new Error("TRUEMODE execution gate must run before any plan execution.");
 
 if (researchPersistence.includes("from \"../../src/core/semantic/supabaseSemanticPersistence\"") && !researchPersistence.includes("from \"../../src/core/semantic/supabaseSemanticPersistence.js\"")) {
   throw new Error("Server persistence import should use the ESM .js contract used by the API layer.");
