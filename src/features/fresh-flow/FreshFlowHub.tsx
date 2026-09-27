@@ -3,7 +3,6 @@ import { useLayout } from "../../app/contexts/useLayout";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
 import { getWalletSummary, formatWalletBalance, type WalletSummary } from "./core/walletService";
 import {
-  FRESH_FLOW_MEDIA_WORLDS,
   worldByRouteId,
   type FreshFlowRouteId,
 } from "./core/freshFlowArchitecture";
@@ -104,24 +103,6 @@ export default function FreshFlowHub() {
   };
 
   const showChrome = !shortsImmersive;
-  const showMediaDirectorate = isOverview ? shortsImmersive : true;
-
-  const renderMediaDirectorate = () => (
-    <nav className="fresh-flow-media-nav-bottom" aria-label="Fresh Flow media worlds">
-      {FRESH_FLOW_MEDIA_WORLDS.map((mediaWorld) => (
-        <button
-          key={mediaWorld.id}
-          type="button"
-          className={mediaWorld.routeId === section ? "fresh-flow-media-button active" : "fresh-flow-media-button"}
-          onClick={() => setActiveRoute(mediaWorld.routeId)}
-          aria-current={mediaWorld.routeId === section ? "page" : undefined}
-        >
-          <span aria-hidden="true">{mediaWorld.icon}</span>
-          <span>{mediaWorld.shortLabel}</span>
-        </button>
-      ))}
-    </nav>
-  );
 
   return (
     <div
@@ -258,8 +239,6 @@ export default function FreshFlowHub() {
           />
         )}
       </main>
-
-      {showMediaDirectorate && renderMediaDirectorate()}
 
       <FreshFlowSwitch
         open={flowSwitchOpen}
