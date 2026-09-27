@@ -16,6 +16,14 @@ class AgentRuntime {
     const agent = this.get(agentId);
     if (!agent) return { accepted: false, error: `Agent '${agentId}' is not registered.` };
 
+    const freshAi = task.metadata?.freshAi === true;
+    if (freshAi) {
+      const decisions = Array.isArray(task.metadata?.truthDecisions) ? task.metadata.truthDecisions as Array<{ claimId:string; decision:string; actionable:boolean }> : [];
+      if (!decisions.length) return { accepted: false, error: "TRUEMODE decision evidence is required before ARA6 tool execution." };
+      if (decisions.some((decision) => decision.decision === "BLOCK_ACTION" || decision.actionable !== true)) {
+        return { accepted: false, error: `TRUEMODE blocked ARA6 tool execution for ${decisions.filter((decision) => decision.decision === "BLOCK_ACTION" || decision.actionable !== true).map((decision) => decision.claimId).join(", ")}.` };
+      }
+    }
     const toolId = task.toolId ?? this.resolveTool(agent, task.action);
     if (!toolId) return { accepted: false, error: `No executable tool is mapped to agent '${agentId}'.` };
 
