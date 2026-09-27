@@ -33,7 +33,6 @@
 .fresh-flow-hub.immersive-shorts .fresh-flow-brand-header,
 .fresh-flow-hub.immersive-shorts .fresh-flow-reference-header,
 .fresh-flow-hub.immersive-shorts .fresh-flow-media-nav-top { display: none !important; }
-.fresh-flow-hub.immersive-shorts .fresh-flow-media-nav-bottom { position: fixed; left: 0; right: 0; bottom: 0; z-index: 280; background: rgba(5,6,10,.92); backdrop-filter: blur(16px); }
 .fresh-flow-hub.immersive-shorts .fresh-flow-item { border-radius: 0; border: 0; box-shadow: none; }
 .fresh-flow-media-nav { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 8px; padding: 8px 12px; }
 .fresh-flow-media-button { display:flex; flex-direction:column; align-items:center; gap:4px; min-height:62px; padding:7px 4px; border:1px solid rgba(255,255,255,.1); border-radius:16px; background:rgba(255,255,255,.045); color:rgba(255,255,255,.85); font:inherit; font-size:12px; cursor:pointer; }
@@ -79,10 +78,3 @@
 .fresh-flow-advanced { position:absolute; z-index:12; right:16px; bottom:90px; width:min(330px,calc(100% - 32px)); padding:12px; border:1px solid rgba(255,255,255,.14); border-radius:22px; background:rgba(8,10,17,.88); color:#fff; display:flex; flex-direction:column; gap:6px; }
 
 
-/* Contextual media directorate: six worlds, compact and exposed only when useful. */
-.fresh-flow-media-nav-bottom{position:fixed;left:0;right:0;bottom:0;z-index:280;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;padding:6px max(8px,env(safe-area-inset-left)) max(6px,env(safe-area-inset-bottom));background:rgba(5,6,10,.9);border-top:1px solid rgba(255,255,255,.09);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
-.fresh-flow-media-nav-bottom .fresh-flow-media-button{min-height:50px;padding:5px 2px;border:0;border-radius:12px;background:transparent;color:rgba(255,255,255,.68);font-size:.68rem}
-.fresh-flow-media-nav-bottom .fresh-flow-media-button span:first-child{font-size:1rem;line-height:1}
-.fresh-flow-media-nav-bottom .fresh-flow-media-button.active{background:rgba(129,92,255,.2);color:#fff}
-.fresh-flow-discovery-rail-immersive{position:fixed;top:max(10px,env(safe-area-inset-top));left:56px;right:10px;z-index:270;padding:5px 0;background:linear-gradient(90deg,rgba(0,0,0,.18),transparent)}
-.fresh-flow-discovery-rail-immersive button{text-shadow:0 1px 8px rgba(0,0,0,.8)}
