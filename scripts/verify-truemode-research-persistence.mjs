@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import assert from "node:assert/strict";
 
 const read = (path) => fs.readFileSync(path, "utf8");
 
