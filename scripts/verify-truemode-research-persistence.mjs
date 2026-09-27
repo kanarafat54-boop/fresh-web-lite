@@ -11,6 +11,7 @@ const researchPersistence = read("api/research/persistSemanticResearch.ts");
 const researchRoute = read("api/research/search.ts");
 const truthMigration = read("supabase/migrations/20260906100752_fresh_intelligence_truth_decisions.sql");
 const aiGateway = read("src/core/fresh-ai/FreshAIIntelligenceGateway.ts");
+const aiKernel = read("src/core/fresh-ai/FreshAIKernel.ts");
 
 const required = [
   [orchestrator, "calibrateClaimConfidence", "Truth orchestrator must consume calibrated confidence."],
@@ -36,11 +37,16 @@ const required = [
   [truthMigration, "fresh_intelligence_truth_decisions", "Supabase migration must define the truth-decision ledger."],
   [aiGateway, "blockedTruth=truthDecisions.filter", "Fresh AI execution must consume the canonical TRUEMODE decisions."],
   [aiGateway, "TRUEMODE blocked execution", "Fresh AI must fail closed when TRUEMODE blocks an evidence claim."],
+  [aiKernel, "truthDecisions", "The execution kernel must require TRUEMODE decisions."],
+  [aiKernel, "TRUEMODE decision evidence is required before execution", "The execution kernel must fail closed without TRUEMODE evidence."],
 ];
 
 for (const [source, needle, message] of required) {
   if (!source.includes(needle)) throw new Error(message + " Missing: " + needle);
 }
+
+const kernelTruthGate = aiKernel.indexOf("TRUEMODE decision evidence is required before execution");
+if (kernelTruthGate < 0 || aiKernel.indexOf("executeFreshPlanThroughAra6", kernelTruthGate) < kernelTruthGate) throw new Error("Execution kernel must enforce TRUEMODE before ARA6 execution.");
 
 const truthDecisionIndex = aiGateway.indexOf("const blockedTruth=truthDecisions.filter");
 const executionIndex = aiGateway.indexOf("this.kernel.execute", truthDecisionIndex);
