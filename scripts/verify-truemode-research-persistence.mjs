@@ -58,3 +58,7 @@ if (researchPersistence.includes("from \"../../src/core/semantic/supabaseSemanti
 
 console.log("TRUEMODE research → truth decision → Supabase contract: PASS");
 console.log("Claims, evidence, independence, provenance, confidence calibration, temporal truth, decision boundary, and persistence wiring are present.");
+
+const agentRuntimeSource = readFileSync(resolve("src/core/ara6/agents/agentRuntime.ts"), "utf8");
+assert(agentRuntimeSource.includes("TRUEMODE decision evidence is required before ARA6 tool execution"), "ARA6 runtime must fail closed without TRUEMODE evidence");
+assert(agentRuntimeSource.includes('decision.decision === "BLOCK_ACTION"'), "ARA6 runtime must reject blocked TRUEMODE decisions");
