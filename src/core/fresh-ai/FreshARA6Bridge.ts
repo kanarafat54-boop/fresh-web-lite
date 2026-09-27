@@ -15,6 +15,7 @@ type FreshARA6Context = {
   requestId?: string;
   origin?: string;
   userId?: string | null;
+  truthDecisions?: Array<{ claimId:string; decision:"ALLOW_ACTION"|"ALLOW_WITH_CAUTION"|"BLOCK_ACTION"; actionable:boolean; confidence:number; reasons:string[] }>;
 };
 
 const AGENT_ALIASES: Record<string, string> = {
@@ -52,6 +53,7 @@ export async function executeFreshPlanThroughAra6(
         origin: context.origin,
         userId: context.userId,
         freshAi: true,
+        truthDecisions: context.truthDecisions,
       },
     };
     const execution = await agentRuntime.execute(agentId, task);
