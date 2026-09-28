@@ -3,36 +3,89 @@ import type { FreshUser } from "../../fresh-id/types/user";
 import type { ProfileActivity, ProfileConnection, ProfileVisibility, UniversalProfile } from "../types/profile";
 
 type Identity = Record<string, unknown>;
-type ProfileDetails = { bio?: unknown; avatar_url?: unknown; cover_url?: unknown; location?: unknown; website_url?: unknown; occupation?: unknown; company?: unknown; pronouns?: unknown };
-const text = (value: unknown) => typeof value === "string" ? value : "";
-const identityOf = (user: FreshUser): Identity => user.identity && typeof user.identity === "object" ? user.identity as Identity : {};
+type ProfileDetails = {
+  bio?: unknown;
+  avatar_url?: unknown;
+  cover_url?: unknown;
+  location?: unknown;
+  website_url?: unknown;
+  occupation?: unknown;
+  company?: unknown;
+  pronouns?: unknown;
+};
+
+const text = (value: unknown) => (typeof value === "string" ? value : "");
+const identityOf = (user: FreshUser): Identity =>
+  user.identity && typeof user.identity === "object" ? (user.identity as Identity) : {};
+
+function stringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map(String).map((s) => s.trim()).filter(Boolean);
+}
 
 function visibilityOf(identity: Identity): ProfileVisibility {
   const value = identity.profile_visibility;
   if (!value || typeof value !== "object") return { public: true, connections: true, private: true };
   const v = value as Record<string, unknown>;
-  return { public: v.public !== false, connections: v.connections !== false, private: v.private !== false };
+  return {
+    public: v.public !== false,
+    connections: v.connections !== false,
+    private: v.private !== false,
+  };
 }
 
 function connectionsOf(user: FreshUser): ProfileConnection[] {
-  return (user.linkedAccounts ?? []).map((account) => ({ provider: text(account.provider) || "connected account", handle: text(account.providerId), connected: true }));
+  return (user.linkedAccounts ?? []).map((account) => ({
+    provider: text(account.provider) || "connected account",
+    handle: text(account.providerId),
+    connected: true,
+  }));
 }
 
 export async function loadRealUniversalProfile(user: FreshUser): Promise<UniversalProfile> {
   const identity = identityOf(user);
-  const detailsResult = await supabase.from("profile_details").select("bio, avatar_url, cover_url, location, website_url, occupation, company, pronouns").eq("user_id", user.id).maybeSingle();
+  const detailsResult = await supabase
+    .from("profile_details")
+    .select("bio, avatar_url, cover_url, location, website_url, occupation, company, pronouns")
+    .eq("user_id", user.id)
+    .maybeSingle();
   const details: ProfileDetails = detailsResult.data ?? {};
 
   const [posts, shorts, followers, following] = await Promise.all([
-    supabase.from("posts").select("id, content, image_url, video_url, created_at", { count: "exact" }).eq("author_id", user.id).order("created_at", { ascending: false }).limit(50),
-    supabase.from("shorts").select("id, video_url, like_count, created_at", { count: "exact" }).eq("author_id", user.id).order("created_at", { ascending: false }).limit(50),
+    supabase
+      .from("posts")
+      .select("id, content, image_url, video_url, created_at", { count: "exact" })
+      .eq("author_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("shorts")
+      .select("id, video_url, like_count, created_at", { count: "exact" })
+      .eq("author_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50),
     supabase.from("follows").select("id", { count: "exact", head: true }).eq("followed_id", user.id),
     supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", user.id),
   ]);
 
   const activity: ProfileActivity[] = [
-    ...(posts.data ?? []).map((item) => ({ id: String(item.id), kind: "post" as const, title: "Post", text: text(item.content), mediaUrl: text(item.video_url) || text(item.image_url) || null, createdAt: String(item.created_at) })),
-    ...(shorts.data ?? []).map((item) => ({ id: String(item.id), kind: "short" as const, title: "Short video", text: "", mediaUrl: text(item.video_url) || null, createdAt: String(item.created_at), engagement: Number(item.like_count ?? 0) })),
+    ...(posts.data ?? []).map((item) => ({
+      id: String(item.id),
+      kind: "post" as const,
+      title: "Post",
+      text: text(item.content),
+      mediaUrl: text(item.video_url) || text(item.image_url) || null,
+      createdAt: String(item.created_at),
+    })),
+    ...(shorts.data ?? []).map((item) => ({
+      id: String(item.id),
+      kind: "short" as const,
+      title: "Short video",
+      text: "",
+      mediaUrl: text(item.video_url) || null,
+      createdAt: String(item.created_at),
+      engagement: Number(item.like_count ?? 0),
+    })),
   ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return {
@@ -48,9 +101,12 @@ export async function loadRealUniversalProfile(user: FreshUser): Promise<Univers
     website: text(details.website_url) || text(user.websiteUrl) || text(identity.website_url),
     verified: user.verified,
     joinedAt: user.createdAt,
-    languages: Array.isArray(identity.languages) ? identity.languages.map(String) : [],
-    interests: Array.isArray(identity.interests) ? identity.interests.map(String) : [],
-    skills: Array.isArray(identity.skills) ? identity.skills.map(String) : [],
+    languages: stringList(identity.languages),
+    interests: stringList(identity.interests),
+    skills: stringList(identity.skills),
+    education: text(identity.education),
+    workInterests: stringList(identity.work_interests),
+    achievements: stringList(identity.achievements),
     occupation: text(details.occupation) || text(identity.occupation),
     company: text(details.company) || text(identity.company),
     pronouns: text(details.pronouns) || text(identity.pronouns),
@@ -65,8 +121,15 @@ export async function loadRealUniversalProfile(user: FreshUser): Promise<Univers
   };
 }
 
-export async function saveRealProfileVisibility(userId: string, currentIdentity: unknown, visibility: ProfileVisibility) {
-  const identity = currentIdentity && typeof currentIdentity === "object" ? currentIdentity as Identity : {};
-  const { error } = await supabase.from("users").update({ identity: { ...identity, profile_visibility: visibility } }).eq("id", userId);
+export async function saveRealProfileVisibility(
+  userId: string,
+  currentIdentity: unknown,
+  visibility: ProfileVisibility,
+) {
+  const identity = currentIdentity && typeof currentIdentity === "object" ? (currentIdentity as Identity) : {};
+  const { error } = await supabase
+    .from("users")
+    .update({ identity: { ...identity, profile_visibility: visibility } })
+    .eq("id", userId);
   if (error) throw error;
 }

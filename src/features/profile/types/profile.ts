@@ -40,6 +40,7 @@ export interface ProfileHighlight {
 }
 
 export interface SmartProfileData {
+  /** Public-facing summary — never exposes internal systems or private fields. */
   summary: string;
   interests: string[];
   highlights: ProfileHighlight[];
@@ -64,6 +65,12 @@ export interface UniversalProfile {
   languages: string[];
   interests: string[];
   skills: string[];
+  /** Education / learning background (user-authored). */
+  education: string;
+  /** Professional focus areas (user-authored). */
+  workInterests: string[];
+  /** Optional public achievements the user chooses to show. */
+  achievements: string[];
   occupation: string;
   company: string;
   pronouns: string;
