@@ -18,10 +18,13 @@ export type MediaJobEvent =
   | { kind: "job.completed"; jobId: string; assetId: string };
 
 export class MediaPipelineOrchestrator {
-  constructor(
-    private readonly events: EventFabric,
-    private readonly worker: MediaComputeWorker,
-  ) {}
+  private readonly events: EventFabric;
+  private readonly worker: MediaComputeWorker;
+
+  constructor(events: EventFabric, worker: MediaComputeWorker) {
+    this.events = events;
+    this.worker = worker;
+  }
 
   async run(job: MediaComputeJob): Promise<MediaComputeJob> {
     let current: MediaComputeJob = { ...job, status: "running" };
