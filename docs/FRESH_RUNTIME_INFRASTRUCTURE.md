@@ -35,3 +35,4 @@ Browser runtime: media preview, IndexedDB playback state, WASM smoke execution a
 Not deployed: distributed media workers, Kafka, Redis Pub/Sub, GPU inference, production HLS packager, WebRTC media backend, managed vector runtime.
 
 Do not call the media platform fully distributed until a real worker accepts a media job, executes it, persists state and returns an observable output.
+\n\n## Verification snapshot\n\n- GitHub Actions final build gate: PASS on commit `e1cfd244...`.\n- Runtime capability contract: PASS.\n- TypeScript/Vite build: PASS.\n- ESLint: PASS.\n- Supabase project health: ACTIVE_HEALTHY.\n- Railway production worker: FAILED / not healthy.\n- Vercel final production deployment: not yet re-confirmed after the green GitHub build.\n
