@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getComputeCapabilities, planCompute } from "../../core/platform/freshComputeFabric";
-import { addEdit, createRenderDocument, createRenderJob, type RenderDocument, type RenderJob } from "../../core/platform/mediaRenderGraph";
+import { addEdit, createRenderDocument, createRenderJob, type MediaEdit, type RenderDocument, type RenderJob } from "../../core/platform/mediaRenderGraph";
 import { DEFAULT_RECOMMENDATION_WEIGHTS, normalizeWeights, rerankCandidates } from "../../core/platform/recommendationEngine";
 import { DEFAULT_MEDIA_PIPELINE, createMediaPipelineJob, type MediaPipelineJob } from "../../core/platform/mediaPipeline";
 import { fundEscrow, releaseEscrow, verifyMilestone } from "../../core/platform/escrowLedger";
@@ -125,10 +125,10 @@ export default function StudioWorkspace() {
     }
     setExporting(true);
     try {
-      const trim = document.edits.find((edit) => edit.type === "trim");
-      const crop = [...document.edits].reverse().find((edit) => edit.type === "crop");
-      const grade = [...document.edits].reverse().find((edit) => edit.type === "grade");
-      const text = [...document.edits].reverse().find((edit) => edit.type === "text");
+      const trim = document.edits.find((edit): edit is Extract<MediaEdit, { type: "trim" }> => edit.type === "trim");
+      const crop = [...document.edits].reverse().find((edit): edit is Extract<MediaEdit, { type: "crop" }> => edit.type === "crop");
+      const grade = [...document.edits].reverse().find((edit): edit is Extract<MediaEdit, { type: "grade" }> => edit.type === "grade");
+      const text = [...document.edits].reverse().find((edit): edit is Extract<MediaEdit, { type: "text" }> => edit.type === "text");
       const blob = await exportVideoFrameStream(video, {
         aspect: crop?.aspect ?? "9:16",
         startSeconds: trim?.start,
