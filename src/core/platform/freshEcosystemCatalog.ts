@@ -132,6 +132,18 @@ export const FRESH_ECOSYSTEM_SURFACES: EcosystemSurface[] = [
   { id: "analytics", name: "Analytics", majorEcosystemId: "analytics-center", kind: "ecosystem", description: "Analytics infrastructure." },
   { id: "accessibility", name: "Accessibility", majorEcosystemId: "governance", kind: "platform-surface", description: "Accessibility capabilities." },
   { id: "memory", name: "Memory", majorEcosystemId: "memory-center", kind: "platform-surface", description: "User-controlled memory." },
+  { id: "design-studio", name: "Design Studio", majorEcosystemId: "design-studio", kind: "ecosystem", route: "/design-studio", description: "Design creation workspace." },
+  { id: "cloud-files", name: "Cloud & Files", majorEcosystemId: "cloud-files", kind: "ecosystem", route: "/files", description: "Cloud files and documents." },
+  { id: "calendar-events", name: "Calendar & Events", majorEcosystemId: "calendar-events", kind: "ecosystem", route: "/calendar", description: "Calendar and events." },
+  { id: "investment-center", name: "Investment Center", majorEcosystemId: "investment-center", kind: "ecosystem", route: "/investments", description: "Investment workspace." },
+  { id: "shopping", name: "Shopping", majorEcosystemId: "shopping", kind: "ecosystem", route: "/shopping", description: "Shopping workspace." },
+  { id: "delivery-logistics", name: "Delivery & Logistics", majorEcosystemId: "delivery-logistics", kind: "ecosystem", route: "/logistics", description: "Delivery and logistics." },
+  { id: "jobs-careers", name: "Jobs & Careers", majorEcosystemId: "jobs-careers", kind: "ecosystem", route: "/jobs", description: "Jobs and careers." },
+  { id: "music", name: "Music", majorEcosystemId: "music", kind: "ecosystem", route: "/music", description: "Music experience." },
+  { id: "gaming", name: "Gaming", majorEcosystemId: "gaming", kind: "ecosystem", route: "/gaming", description: "Gaming experience." },
+  { id: "travel", name: "Travel", majorEcosystemId: "travel", kind: "ecosystem", route: "/travel", description: "Travel experience." },
+  { id: "food", name: "Food", majorEcosystemId: "food", kind: "ecosystem", route: "/food", description: "Food experience." },
+  { id: "health", name: "Health", majorEcosystemId: "health", kind: "ecosystem", route: "/health", description: "Health information and services." },
 ];
 
 export function getMajorEcosystem(id: string): MajorEcosystem | undefined {
