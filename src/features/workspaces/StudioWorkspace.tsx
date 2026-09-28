@@ -34,6 +34,8 @@ export default function StudioWorkspace() {
   const [browserSupport] = useState(() => getBrowserExportSupport());
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [message, setMessage] = useState("Import media to begin a real device-side Studio project.");
+  const [trimStart, setTrimStart] = useState(0);
+  const [trimEnd, setTrimEnd] = useState(30);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [escrow, setEscrow] = useState(() => fundEscrow({ payerId: "brand-demo", payeeId: "creator-demo", amountMinor: 50000, currency: "UGX", milestone: "Deliver final vertical campaign asset" }));
 
@@ -222,7 +224,7 @@ export default function StudioWorkspace() {
 
       <article className="studio-panel"><div className="studio-panel-heading"><span>02</span><h2>Web NLE render graph</h2></div>
         <p className="studio-muted">Non-destructive edits stay as a portable document until you queue rendering.</p>
-        <div className="studio-actions"><button onClick={() => add({ type:"crop", aspect:"9:16", focus:"active-speaker" })}>+ Smart 9:16 crop</button><button onClick={() => add({ type:"grade", preset:"Fresh Clean", intensity:.65 })}>+ Color grade</button><button onClick={() => add({ type:"dub", language:"en", voice:"localized" })}>+ AI dub lane</button></div>
+        <div className="studio-actions"><label>Trim start <input type="number" min="0" step=".1" value={trimStart} onChange={e => setTrimStart(Number(e.target.value))}/></label><label>Trim end <input type="number" min=".1" step=".1" value={trimEnd} onChange={e => setTrimEnd(Number(e.target.value))}/></label><button onClick={() => add({ type:"trim", start:Math.max(0, trimStart), end:Math.max(trimStart + .05, trimEnd) })}>+ Apply trim</button><button onClick={() => add({ type:"crop", aspect:"9:16", focus:"active-speaker" })}>+ Smart 9:16 crop</button><button onClick={() => add({ type:"grade", preset:"Fresh Clean", intensity:.65 })}>+ Color grade</button><button onClick={() => add({ type:"dub", language:"en", voice:"localized" })}>+ AI dub lane</button></div>
         <div className="studio-stat-row"><strong>{document.edits.length}</strong><span>edits</span><strong>{document.output.width}×{document.output.height}</strong><span>target</span></div>
         <pre className="studio-code">{JSON.stringify(document, null, 2)}</pre>
       </article>
