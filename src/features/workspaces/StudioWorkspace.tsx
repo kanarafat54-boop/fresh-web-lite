@@ -5,6 +5,9 @@ import { DEFAULT_RECOMMENDATION_WEIGHTS, normalizeWeights, rerankCandidates } fr
 import { DEFAULT_MEDIA_PIPELINE, createMediaPipelineJob, type MediaPipelineJob } from "../../core/platform/mediaPipeline";
 import { fundEscrow, releaseEscrow, verifyMilestone } from "../../core/platform/escrowLedger";
 import { createMediaProject, listMediaProjects, saveMediaProject, updateMediaProject, type FreshMediaProject } from "../../core/platform/mediaProjectStore";
+import { exportVideoFrameStream, getBrowserExportSupport } from "../../core/platform/browserMediaExport";
+import { loadPlaybackState, savePlaybackState } from "../../core/platform/playbackStateStore";
+import { runWasmSmokeTest } from "../../core/platform/wasmRuntime";
 import { useLayout } from "../../app/contexts/useLayout";
 import "./WorkspacePage.css";
 import "./StudioWorkspace.css";
@@ -25,6 +28,11 @@ export default function StudioWorkspace() {
   const [renderJob, setRenderJob] = useState<RenderJob | null>(null);
   const [pipelineJob, setPipelineJob] = useState<MediaPipelineJob | null>(null);
   const [sourcePreview, setSourcePreview] = useState<string | null>(null);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [exporting, setExporting] = useState(false);
+  const [exportUrl, setExportUrl] = useState<string | null>(null);
+  const [browserSupport] = useState(() => getBrowserExportSupport());
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const [message, setMessage] = useState("Import media to begin a real device-side Studio project.");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [escrow, setEscrow] = useState(() => fundEscrow({ payerId: "brand-demo", payeeId: "creator-demo", amountMinor: 50000, currency: "UGX", milestone: "Deliver final vertical campaign asset" }));
@@ -75,6 +83,56 @@ export default function StudioWorkspace() {
     setProject(nextProject);
     setProjects(listMediaProjects());
     setMessage("Imported " + file.name + ". Edits remain non-destructive until render.");
+  };
+
+  const savePlayback = async () => {
+    const video = videoRef.current;
+    if (!video || !project) return;
+    await savePlaybackState({
+      contentId: project.id,
+      positionSeconds: video.currentTime,
+      durationSeconds: video.duration || undefined,
+      playbackRate: video.playbackRate,
+      updatedAt: Date.now(),
+    });
+    setMessage("Playback position saved locally.");
+  };
+
+  const restorePlayback = async () => {
+    const video = videoRef.current;
+    if (!video || !project) return;
+    const state = await loadPlaybackState(project.id);
+    if (state) {
+      video.currentTime = Math.min(state.positionSeconds, video.duration || state.positionSeconds);
+      video.playbackRate = state.playbackRate;
+      setPlaybackRate(state.playbackRate);
+      setMessage("Playback position restored from this device.");
+    }
+  };
+
+  const runLocalWasm = async () => {
+    const result = await runWasmSmokeTest();
+    setMessage("Client WebAssembly runtime is executing locally. Smoke-test result: " + result);
+  };
+
+  const exportVertical = async () => {
+    const video = videoRef.current;
+    if (!video || !browserSupport.mediaRecorder || !browserSupport.canvasCapture) {
+      setMessage("Browser video export is not supported on this device.");
+      return;
+    }
+    setExporting(true);
+    try {
+      const blob = await exportVideoFrameStream(video, { aspect: "9:16", fps: 30 });
+      if (exportUrl) URL.revokeObjectURL(exportUrl);
+      const url = URL.createObjectURL(blob);
+      setExportUrl(url);
+      setMessage("Real 9:16 browser export completed. The result is ready locally.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Browser export failed.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const queueRender = () => {
@@ -136,7 +194,29 @@ export default function StudioWorkspace() {
 
     <section className="studio-grid">
       <article className="studio-panel studio-preview-panel"><div className="studio-panel-heading"><span>01</span><h2>Local media preview</h2></div>
-        {sourcePreview ? <video className="studio-preview" src={sourcePreview} controls playsInline /> : <div className="studio-preview-empty">Import a video to preview it privately on this device.</div>}
+        {sourcePreview ? <video
+          ref={videoRef}
+          className="studio-preview"
+          src={sourcePreview}
+          controls
+          playsInline
+          onLoadedMetadata={restorePlayback}
+          onPause={savePlayback}
+          onRateChange={(event) => setPlaybackRate(event.currentTarget.playbackRate)}
+        /> : <div className="studio-preview-empty">Import a video to preview it privately on this device.</div>}
+        {sourcePreview && <div className="studio-actions studio-player-controls">
+          <button onClick={() => { const next = Math.max(.25, playbackRate - .05); if (videoRef.current) videoRef.current.playbackRate = next; setPlaybackRate(next); }}>− 0.05×</button>
+          <strong>{playbackRate.toFixed(2)}×</strong>
+          <button onClick={() => { const next = Math.min(3, playbackRate + .05); if (videoRef.current) videoRef.current.playbackRate = next; setPlaybackRate(next); }}>+ 0.05×</button>
+          <button onClick={savePlayback}>Save position</button>
+          <button onClick={restorePlayback}>Restore position</button>
+        </div>}
+        {sourcePreview && <div className="studio-actions">
+          <button onClick={runLocalWasm}>Run local WASM</button>
+          <button onClick={exportVertical} disabled={exporting}>{exporting ? "Exporting…" : "Export real 9:16 video"}</button>
+          {exportUrl && <a className="studio-download" href={exportUrl} download="fresh-web-lite-9x16.webm">Open exported video</a>}
+        </div>
+        <p className="studio-muted">Browser export: {browserSupport.mediaRecorder && browserSupport.canvasCapture ? "available" : "fallback required"} · WASM: available</p>
         <p className="studio-muted">Object URLs stay local to this browser session. Studio does not expose source files to the public feed.</p>
       </article>
 
