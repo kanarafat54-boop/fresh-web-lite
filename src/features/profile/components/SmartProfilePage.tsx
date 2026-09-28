@@ -50,7 +50,7 @@ export default function SmartProfilePage() {
   const { setActiveRoute } = useLayout();
   const [profile, setProfile] = useState<UniversalProfile | null>(null);
   const [smart, setSmart] = useState<SmartProfileData | null>(null);
-  const [crossPlatform, setCrossPlatform] = useState<CrossPlatformIdentity | null>(null);
+  const [, setCrossPlatform] = useState<CrossPlatformIdentity | null>(null);
   const [suggestions, setSuggestions] = useState<ProfileConnectionSuggestion[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsRow | null>(null);
   const [projects, setProjects] = useState<ProfessionalItem[]>([]);
@@ -91,21 +91,9 @@ export default function SmartProfilePage() {
         loadRealUniversalProfile(user),
         loadCrossPlatformIdentity(user),
         supabase.from("user_content_analytics").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase
-          .from("profile_projects")
-          .select("id,title,description,url,image_url,position")
-          .eq("user_id", user.id)
-          .order("position", { ascending: true }),
-        supabase
-          .from("profile_portfolio_items")
-          .select("id,title,description,url,image_url,position")
-          .eq("user_id", user.id)
-          .order("position", { ascending: true }),
-        supabase
-          .from("profile_links")
-          .select("id,label,url,position")
-          .eq("user_id", user.id)
-          .order("position", { ascending: true }),
+        supabase.from("profile_projects").select("id,title,description,url,image_url,position").eq("user_id", user.id).order("position", { ascending: true }),
+        supabase.from("profile_portfolio_items").select("id,title,description,url,image_url,position").eq("user_id", user.id).order("position", { ascending: true }),
+        supabase.from("profile_links").select("id,label,url,position").eq("user_id", user.id).order("position", { ascending: true }),
       ]);
       setProfile(loaded);
       setCrossPlatform(identity);
@@ -208,12 +196,7 @@ export default function SmartProfilePage() {
     if (professionalDraft.kind === "link") {
       const { data, error: saveError } = await supabase
         .from("profile_links")
-        .insert({
-          user_id: user.id,
-          label: professionalDraft.title.trim(),
-          url: professionalDraft.url.trim(),
-          position: profileLinks.length,
-        })
+        .insert({ user_id: user.id, label: professionalDraft.title.trim(), url: professionalDraft.url.trim(), position: profileLinks.length })
         .select("id,label,url,position")
         .single();
       if (saveError || !data) {
@@ -266,8 +249,7 @@ export default function SmartProfilePage() {
 
   async function deleteProfessionalItem(kind: "project" | "portfolio" | "link", id: string) {
     if (!user) return;
-    const table =
-      kind === "link" ? "profile_links" : kind === "project" ? "profile_projects" : "profile_portfolio_items";
+    const table = kind === "link" ? "profile_links" : kind === "project" ? "profile_projects" : "profile_portfolio_items";
     const { error: deleteError } = await supabase.from(table).delete().eq("id", id).eq("user_id", user.id);
     if (deleteError) {
       setError(deleteError.message);
@@ -298,10 +280,7 @@ export default function SmartProfilePage() {
             pronouns: professional.pronouns.trim(),
             education: professional.education.trim(),
             interests: profile.interests,
-            work_interests: professional.workInterests
-              .split(",")
-              .map((s) => s.trim())
-              .filter(Boolean),
+            work_interests: professional.workInterests.split(",").map((s) => s.trim()).filter(Boolean),
             skills: profile.skills,
             achievements: profile.achievements,
           },
@@ -346,7 +325,7 @@ export default function SmartProfilePage() {
       else await navigator.clipboard.writeText(url);
       setMessage("Profile link copied/shared.");
     } catch {
-      /* user cancelled share */
+      /* cancelled */
     }
   }
 
@@ -364,11 +343,7 @@ export default function SmartProfilePage() {
       setError(factorError.message);
       return;
     }
-    setMfaFactors([...(data?.totp ?? []), ...(data?.phone ?? [])] as Array<{
-      id: string;
-      friendly_name?: string;
-      status?: string;
-    }>);
+    setMfaFactors([...(data?.totp ?? []), ...(data?.phone ?? [])] as Array<{ id: string; friendly_name?: string; status?: string }>);
   }
 
   async function startMfaSetup() {
@@ -376,10 +351,7 @@ export default function SmartProfilePage() {
     setError(null);
     setMessage(null);
     try {
-      const { data, error: enrollError } = await supabase.auth.mfa.enroll({
-        factorType: "totp",
-        friendlyName: "Fresh ID Authenticator",
-      });
+      const { data, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: "Fresh ID Authenticator" });
       if (enrollError || !data) throw enrollError ?? new Error("Could not start two-factor setup.");
       setMfaSetup({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret, code: "" });
     } catch (reason: unknown) {
@@ -395,20 +367,11 @@ export default function SmartProfilePage() {
     setMfaBusy(true);
     setError(null);
     try {
-      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
-        factorId: mfaSetup.id,
-      });
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: mfaSetup.id });
       if (challengeError || !challenge) throw challengeError ?? new Error("Could not create MFA challenge.");
-      const { error: verifyError } = await supabase.auth.mfa.verify({
-        factorId: mfaSetup.id,
-        challengeId: challenge.id,
-        code: mfaSetup.code.trim(),
-      });
+      const { error: verifyError } = await supabase.auth.mfa.verify({ factorId: mfaSetup.id, challengeId: challenge.id, code: mfaSetup.code.trim() });
       if (verifyError) throw verifyError;
-      await supabase
-        .from("users")
-        .update({ security: { ...(currentUser.security ?? {}), twoFactorEnabled: true } })
-        .eq("id", currentUser.id);
+      await supabase.from("users").update({ security: { ...(currentUser.security ?? {}), twoFactorEnabled: true } }).eq("id", currentUser.id);
       setMfaSetup(null);
       setMessage("Two-factor authentication is now enabled on Fresh ID.");
       await refreshMfa();
@@ -427,10 +390,7 @@ export default function SmartProfilePage() {
     try {
       const { error: unenrollError } = await supabase.auth.mfa.unenroll({ factorId });
       if (unenrollError) throw unenrollError;
-      await supabase
-        .from("users")
-        .update({ security: { ...(currentUser.security ?? {}), twoFactorEnabled: false } })
-        .eq("id", currentUser.id);
+      await supabase.from("users").update({ security: { ...(currentUser.security ?? {}), twoFactorEnabled: false } }).eq("id", currentUser.id);
       setMessage("Two-factor authentication factor removed.");
       await refreshMfa();
     } catch (reason: unknown) {
@@ -450,10 +410,7 @@ export default function SmartProfilePage() {
       connectedIdentities: connected,
       activity: profile.activity,
       subscription: currentUser.subscription,
-      security: {
-        twoFactorEnabled: currentUser.security.twoFactorEnabled,
-        passkeyCount: passkeys.length,
-      },
+      security: { twoFactorEnabled: currentUser.security.twoFactorEnabled, passkeyCount: passkeys.length },
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -500,20 +457,9 @@ export default function SmartProfilePage() {
 
       <section className="profile-hero">
         {profile.coverPhoto && isVideoUrl(profile.coverPhoto) ? (
-          <video
-            className="profile-cover profile-cover-video"
-            src={profile.coverPhoto}
-            autoPlay
-            muted
-            loop
-            playsInline
-            aria-label="Profile cover video"
-          />
+          <video className="profile-cover profile-cover-video" src={profile.coverPhoto} autoPlay muted loop playsInline aria-label="Profile cover video" />
         ) : (
-          <div
-            className="profile-cover"
-            style={profile.coverPhoto ? { backgroundImage: `url(${profile.coverPhoto})` } : undefined}
-          />
+          <div className="profile-cover" style={profile.coverPhoto ? { backgroundImage: `url(${profile.coverPhoto})` } : undefined} />
         )}
         <div className="profile-cover-actions">
           <input
@@ -533,10 +479,7 @@ export default function SmartProfilePage() {
         </div>
         <div className="profile-identity-row">
           <div className="profile-avatar-wrap">
-            <div
-              className="profile-avatar"
-              style={profile.avatar ? { backgroundImage: `url(${profile.avatar})` } : undefined}
-            >
+            <div className="profile-avatar" style={profile.avatar ? { backgroundImage: `url(${profile.avatar})` } : undefined}>
               {!profile.avatar && initials}
             </div>
             <input
@@ -550,13 +493,7 @@ export default function SmartProfilePage() {
                 if (file) void handleAvatarUpload(file);
               }}
             />
-            <button
-              className="profile-avatar-add"
-              type="button"
-              aria-label="Change profile picture"
-              disabled={savingMedia}
-              onClick={() => avatarInputRef.current?.click()}
-            >
+            <button className="profile-avatar-add" type="button" aria-label="Change profile picture" disabled={savingMedia} onClick={() => avatarInputRef.current?.click()}>
               ＋
             </button>
           </div>
@@ -700,9 +637,6 @@ export default function SmartProfilePage() {
             <p>
               <b>Skills:</b> {profile.skills.length ? profile.skills.join(", ") : "Not provided"}
             </p>
-            <p>
-              <b>Language:</b> {profile.languages.length ? profile.languages.join(", ") : "Not provided"}
-            </p>
           </div>
           <div className="privacy-controls">
             {(["public", "connections", "private"] as const).map((key) => (
@@ -726,80 +660,12 @@ export default function SmartProfilePage() {
               <span className="eyebrow">PROFESSIONAL</span>
               <h2>Career, portfolio and links</h2>
             </div>
-            <button type="button" onClick={() => setEditing(true)}>
-              Edit
-            </button>
-          </div>
-          <div className="professional-portfolio">
-            <div className="card-heading">
-              <h3>Projects</h3>
-              <span>{projects.length}</span>
-            </div>
-            {projects.map((item) => (
-              <article key={item.id}>
-                <div>
-                  {item.image_url && <img src={item.image_url} alt="" />}
-                  <div>
-                    <strong>{item.title}</strong>
-                    <p>{item.description}</p>
-                    {item.url && (
-                      <a href={item.url} target="_blank" rel="noreferrer">
-                        Open project ↗
-                      </a>
-                    )}
-                  </div>
-                </div>
-                <button type="button" onClick={() => void deleteProfessionalItem("project", item.id)}>
-                  Delete
-                </button>
-              </article>
-            ))}
-            <div className="card-heading">
-              <h3>Portfolio</h3>
-              <span>{portfolio.length}</span>
-            </div>
-            {portfolio.map((item) => (
-              <article key={item.id}>
-                <div>
-                  {item.image_url && <img src={item.image_url} alt="" />}
-                  <div>
-                    <strong>{item.title}</strong>
-                    <p>{item.description}</p>
-                    {item.url && (
-                      <a href={item.url} target="_blank" rel="noreferrer">
-                        Open work ↗
-                      </a>
-                    )}
-                  </div>
-                </div>
-                <button type="button" onClick={() => void deleteProfessionalItem("portfolio", item.id)}>
-                  Delete
-                </button>
-              </article>
-            ))}
-            <div className="card-heading">
-              <h3>Links</h3>
-              <span>{profileLinks.length}</span>
-            </div>
-            {profileLinks.map((item) => (
-              <article key={item.id}>
-                <a href={item.url} target="_blank" rel="noreferrer">
-                  <strong>{item.label}</strong> ↗
-                </a>
-                <button type="button" onClick={() => void deleteProfessionalItem("link", item.id)}>
-                  Delete
-                </button>
-              </article>
-            ))}
           </div>
           <div className="professional-add">
             <select
               value={professionalDraft.kind}
               onChange={(e) =>
-                setProfessionalDraft((d) => ({
-                  ...d,
-                  kind: e.target.value as "project" | "portfolio" | "link",
-                }))
+                setProfessionalDraft((d) => ({ ...d, kind: e.target.value as "project" | "portfolio" | "link" }))
               }
             >
               <option value="project">Project</option>
@@ -816,27 +682,43 @@ export default function SmartProfilePage() {
               onChange={(e) => setProfessionalDraft((d) => ({ ...d, url: e.target.value }))}
               placeholder="https://…"
             />
-            {professionalDraft.kind !== "link" && (
-              <>
-                <input
-                  value={professionalDraft.description}
-                  onChange={(e) => setProfessionalDraft((d) => ({ ...d, description: e.target.value }))}
-                  placeholder="Description"
-                />
-                <input
-                  value={professionalDraft.imageUrl}
-                  onChange={(e) => setProfessionalDraft((d) => ({ ...d, imageUrl: e.target.value }))}
-                  placeholder="Image URL (optional)"
-                />
-              </>
-            )}
-            <button
-              type="button"
-              disabled={!professionalDraft.title.trim()}
-              onClick={() => void saveProfessionalItem()}
-            >
+            <button type="button" disabled={!professionalDraft.title.trim()} onClick={() => void saveProfessionalItem()}>
               ＋ Add
             </button>
+          </div>
+          <div className="professional-portfolio">
+            {projects.map((item) => (
+              <article key={item.id}>
+                <div>
+                  <strong>{item.title}</strong>
+                  <p>{item.description}</p>
+                </div>
+                <button type="button" onClick={() => void deleteProfessionalItem("project", item.id)}>
+                  Delete
+                </button>
+              </article>
+            ))}
+            {portfolio.map((item) => (
+              <article key={item.id}>
+                <div>
+                  <strong>{item.title}</strong>
+                  <p>{item.description}</p>
+                </div>
+                <button type="button" onClick={() => void deleteProfessionalItem("portfolio", item.id)}>
+                  Delete
+                </button>
+              </article>
+            ))}
+            {profileLinks.map((item) => (
+              <article key={item.id}>
+                <a href={item.url} target="_blank" rel="noreferrer">
+                  <strong>{item.label}</strong>
+                </a>
+                <button type="button" onClick={() => void deleteProfessionalItem("link", item.id)}>
+                  Delete
+                </button>
+              </article>
+            ))}
           </div>
         </section>
       )}
@@ -848,7 +730,6 @@ export default function SmartProfilePage() {
               <span className="eyebrow">CONNECTIONS</span>
               <h2>People & identities</h2>
             </div>
-            <span>{suggestions.length} suggestions</span>
           </div>
           {loadingSuggestions ? (
             <p className="muted">Finding relevant connections…</p>
@@ -856,41 +737,16 @@ export default function SmartProfilePage() {
             <div className="suggestion-grid">
               {suggestions.map((item) => (
                 <article className="suggestion-card" key={item.id}>
-                  <div
-                    className="suggestion-avatar"
-                    style={item.avatar ? { backgroundImage: `url(${item.avatar})` } : undefined}
-                  >
-                    {!item.avatar && item.displayName.slice(0, 1).toUpperCase()}
-                  </div>
                   <div className="suggestion-body">
                     <strong>{item.displayName}</strong>
                     <span>@{item.username}</span>
                     <p>{item.reason}</p>
                   </div>
-                  <span className="suggestion-score">{item.score}%</span>
                 </article>
               ))}
             </div>
           ) : (
-            <p className="muted">No strong connection match is available from current data.</p>
-          )}
-          <div className="card-heading ecosystem-heading">
-            <h2>Linked identities</h2>
-            <span>{connected.length} connected</span>
-          </div>
-          {connected.length ? (
-            connected.map((item) => (
-              <div className="connection-row" key={`${item.provider}-${item.handle}`}>
-                <span className="connection-icon">{item.provider.slice(0, 1).toUpperCase()}</span>
-                <div>
-                  <strong>{item.provider}</strong>
-                  <p>{item.handle || "Linked account"}</p>
-                </div>
-                <span>Connected</span>
-              </div>
-            ))
-          ) : (
-            <p className="muted">No external identity is connected to this Fresh ID yet.</p>
+            <p className="muted">No strong connection match is available yet.</p>
           )}
         </section>
       )}
@@ -914,22 +770,13 @@ export default function SmartProfilePage() {
             </div>
             <div>
               <strong>{analytics?.short_views ?? 0}</strong>
-              <span>Short views</span>
-            </div>
-            <div>
-              <strong>{analytics?.short_likes ?? analytics?.post_likes ?? 0}</strong>
-              <span>Likes</span>
+              <span>Views</span>
             </div>
             <div>
               <strong>{analytics?.follower_count ?? profile.followerCount}</strong>
               <span>Followers</span>
             </div>
-            <div>
-              <strong>{analytics?.following_count ?? profile.followingCount}</strong>
-              <span>Following</span>
-            </div>
           </div>
-          <p className="muted">Metrics are read from real content data. Missing values stay zero.</p>
         </section>
       )}
 
@@ -938,7 +785,7 @@ export default function SmartProfilePage() {
           <div className="card-heading">
             <div>
               <span className="eyebrow">ACCOUNT</span>
-              <h2>Security, access and controls</h2>
+              <h2>Security & portability</h2>
             </div>
           </div>
           <div className="account-actions">
@@ -946,13 +793,13 @@ export default function SmartProfilePage() {
               Manage passkeys
             </button>
             <button type="button" onClick={() => void registerPasskey()}>
-              ＋ Add this device passkey
+              ＋ Add passkey
             </button>
             <button type="button" onClick={() => void refreshMfa()}>
               Manage 2FA
             </button>
             <button type="button" onClick={() => void startMfaSetup()}>
-              ＋ Set up TOTP 2FA
+              ＋ Set up 2FA
             </button>
             <button type="button" onClick={() => void exportAccountData()}>
               ↓ Export my data
@@ -963,67 +810,43 @@ export default function SmartProfilePage() {
           </div>
           {mfaSetup && (
             <div className="mfa-setup">
-              <strong>Set up authenticator app</strong>
-              <p>Scan the QR code, then enter the 6-digit code.</p>
-              <img
-                src={`data:image/svg+xml;utf8,${encodeURIComponent(mfaSetup.qr)}`}
-                alt="Fresh ID authenticator QR code"
-              />
+              <strong>Set up authenticator</strong>
+              <img src={`data:image/svg+xml;utf8,${encodeURIComponent(mfaSetup.qr)}`} alt="QR" />
               <code>{mfaSetup.secret}</code>
               <input
                 inputMode="numeric"
                 maxLength={6}
                 value={mfaSetup.code}
                 onChange={(e) =>
-                  setMfaSetup((current) =>
-                    current ? { ...current, code: e.target.value.replace(/\D/g, "") } : current,
-                  )
+                  setMfaSetup((current) => (current ? { ...current, code: e.target.value.replace(/\D/g, "") } : current))
                 }
                 placeholder="123456"
               />
-              <div>
-                <button type="button" disabled={mfaBusy} onClick={() => void verifyMfaSetup()}>
-                  Verify & enable
+              <button type="button" disabled={mfaBusy} onClick={() => void verifyMfaSetup()}>
+                Verify & enable
+              </button>
+            </div>
+          )}
+          {mfaFactors.map((factor) => (
+            <div key={factor.id}>
+              <span>
+                {factor.friendly_name || "Authenticator"} · {factor.status || "active"}
+              </span>
+              <button type="button" disabled={mfaBusy} onClick={() => void removeMfa(factor.id)}>
+                Remove
+              </button>
+            </div>
+          ))}
+          {passkeys.map((key) => (
+            <div key={key.id}>
+              <span>{key.name || "Passkey"}</span>
+              {key.id && (
+                <button type="button" onClick={() => void removePasskey(key.id!)}>
+                  Remove
                 </button>
-                <button type="button" disabled={mfaBusy} onClick={() => setMfaSetup(null)}>
-                  Cancel
-                </button>
-              </div>
+              )}
             </div>
-          )}
-          {mfaFactors.length > 0 && (
-            <div className="passkey-list">
-              <strong>Two-factor factors</strong>
-              {mfaFactors.map((factor) => (
-                <div key={factor.id}>
-                  <span>
-                    🛡️ {factor.friendly_name || "Authenticator"} · {factor.status || "active"}
-                  </span>
-                  <button type="button" disabled={mfaBusy} onClick={() => void removeMfa(factor.id)}>
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          {passkeys.length > 0 && (
-            <div className="passkey-list">
-              {passkeys.map((key) => (
-                <div key={key.id}>
-                  <span>🔐 {key.name || "Fresh ID passkey"}</span>
-                  {key.id && (
-                    <button type="button" onClick={() => void removePasskey(key.id!)}>
-                      Remove
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          <p className="muted">
-            Account controls stay separate from public profile. Destructive actions require explicit
-            authorization.
-          </p>
+          ))}
         </section>
       )}
     </main>
