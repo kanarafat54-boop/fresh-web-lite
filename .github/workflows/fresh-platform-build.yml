@@ -27,6 +27,8 @@ jobs:
         run: npm run test:production-routing
       - name: Fresh AI profile and creator contract
         run: npm run test:fresh-ai-profile-creator-actions
+      - name: Runtime capability contract
+        run: npm run test:fresh-runtime-capabilities
       - name: Build
         run: npm run build
       - name: Lint
