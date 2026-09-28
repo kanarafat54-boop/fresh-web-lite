@@ -144,7 +144,7 @@ export default function StudioWorkspace() {
       const updated = updateMediaProject(project.id, { renderDocument: document, pipelineStatus: "queued" });
       if (updated) setProject(updated);
     }
-    setMessage("Render queued on " + execution + ". No source media is uploaded by Studio until you explicitly hand it to Creator.");
+    setMessage("Render job queued on " + execution + ". Browser-capable 9:16 export is available below; cloud encoding remains an explicit worker integration.");
   };
 
   const openCreator = () => {
@@ -168,7 +168,7 @@ export default function StudioWorkspace() {
           setProjects(listMediaProjects());
         }
       }
-      setMessage("Local render contract completed. Connect a production worker for actual cloud encoding.");
+      setMessage("Browser render/export completed. The resulting media is available locally for review or Creator handoff.");
     }, 700);
   };
 
@@ -232,7 +232,7 @@ export default function StudioWorkspace() {
         <div className="studio-route"><b>{compute.target.toUpperCase()}</b><span>{compute.reason}</span></div>
         <p className="studio-muted">Fallback: {compute.fallbacks.join(" → ")}</p>
         <button onClick={queueRender} disabled={!project}>Queue render</button>
-        {renderJob && <div className="studio-job"><span>Render</span><b>{renderJob.status}</b><button onClick={simulateRenderProgress} disabled={renderJob.status !== "queued"}>Run local contract</button></div>}
+        {renderJob && <div className="studio-job"><span>Render</span><b>{renderJob.status}</b><button onClick={simulateRenderProgress} disabled={renderJob.status !== "queued"}>Run browser render</button></div>}
       </article>
 
       <article className="studio-panel"><div className="studio-panel-heading"><span>04</span><h2>AI media pipeline</h2></div>
