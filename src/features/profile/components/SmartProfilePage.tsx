@@ -50,7 +50,7 @@ export default function SmartProfilePage() {
   const { setActiveRoute } = useLayout();
   const [profile, setProfile] = useState<UniversalProfile | null>(null);
   const [smart, setSmart] = useState<SmartProfileData | null>(null);
-  const [, setCrossPlatform] = useState<CrossPlatformIdentity | null>(null);
+  const [crossPlatform, setCrossPlatform] = useState<CrossPlatformIdentity | null>(null);
   const [suggestions, setSuggestions] = useState<ProfileConnectionSuggestion[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsRow | null>(null);
   const [projects, setProjects] = useState<ProfessionalItem[]>([]);
@@ -86,35 +86,97 @@ export default function SmartProfilePage() {
     }
     setLoading(true);
     setError(null);
+    const timeout = window.setTimeout(() => {
+      setLoading(false);
+      setError((prev) => prev ?? "Profile is taking longer than expected. Showing what we have.");
+    }, 10000);
     try {
-      const [loaded, identity, analyticsResult, projectsResult, portfolioResult, linksResult] = await Promise.all([
-        loadRealUniversalProfile(user),
-        loadCrossPlatformIdentity(user),
-        supabase.from("user_content_analytics").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("profile_projects").select("id,title,description,url,image_url,position").eq("user_id", user.id).order("position", { ascending: true }),
-        supabase.from("profile_portfolio_items").select("id,title,description,url,image_url,position").eq("user_id", user.id).order("position", { ascending: true }),
-        supabase.from("profile_links").select("id,label,url,position").eq("user_id", user.id).order("position", { ascending: true }),
+      const safe = async <T,>(
+        label: string,
+        run: () => PromiseLike<{ data: T | null; error: { message?: string } | null }>,
+      ): Promise<T | null> => {
+        try {
+          const r = await run();
+          if (r.error) {
+            console.warn("[profile]", label, r.error.message);
+            return null;
+          }
+          return r.data;
+        } catch (e) {
+          console.warn("[profile]", label, e);
+          return null;
+        }
+      };
+
+      let loaded: UniversalProfile | null = null;
+      try {
+        loaded = await loadRealUniversalProfile(user);
+      } catch (e) {
+        console.warn("[profile] loadRealUniversalProfile", e);
+      }
+
+      const [identity, analyticsData, projectsData, portfolioData, linksData] = await Promise.all([
+        loadCrossPlatformIdentity(user).catch(() => null),
+        safe("analytics", () =>
+          supabase.from("user_content_analytics").select("*").eq("user_id", user.id).maybeSingle(),
+        ),
+        safe("projects", () =>
+          supabase
+            .from("profile_projects")
+            .select("id,title,description,url,image_url,position")
+            .eq("user_id", user.id)
+            .order("position", { ascending: true }),
+        ),
+        safe("portfolio", () =>
+          supabase
+            .from("profile_portfolio_items")
+            .select("id,title,description,url,image_url,position")
+            .eq("user_id", user.id)
+            .order("position", { ascending: true }),
+        ),
+        safe("links", () =>
+          supabase
+            .from("profile_links")
+            .select("id,label,url,position")
+            .eq("user_id", user.id)
+            .order("position", { ascending: true }),
+        ),
       ]);
-      setProfile(loaded);
-      setCrossPlatform(identity);
-      setSmart(curateSmartProfile(loaded));
-      setAnalytics((analyticsResult.data ?? null) as AnalyticsRow | null);
-      setProjects((projectsResult.data ?? []) as ProfessionalItem[]);
-      setPortfolio((portfolioResult.data ?? []) as ProfessionalItem[]);
-      setProfileLinks((linksResult.data ?? []) as ProfileLinkItem[]);
-      setProfessional({
-        occupation: loaded.occupation,
-        company: loaded.company,
-        location: loaded.location,
-        website: loaded.website,
-        bio: loaded.bio,
-        pronouns: loaded.pronouns,
-        education: loaded.education || "",
-        workInterests: (loaded.workInterests || []).join(", "),
-      });
+
+      if (loaded) {
+        const normalized: UniversalProfile = {
+          ...loaded,
+          interests: loaded.interests || [],
+          skills: loaded.skills || [],
+          workInterests: loaded.workInterests || [],
+          achievements: loaded.achievements || [],
+          connections: loaded.connections || [],
+          activity: loaded.activity || [],
+        };
+        setProfile(normalized);
+        setSmart(curateSmartProfile(normalized));
+        setProfessional({
+          occupation: normalized.occupation,
+          company: normalized.company,
+          location: normalized.location,
+          website: normalized.website,
+          bio: normalized.bio,
+          pronouns: normalized.pronouns,
+          education: normalized.education || "",
+          workInterests: (normalized.workInterests || []).join(", "),
+        });
+      } else {
+        setError("Could not load full profile data. Sign out and back in if this continues.");
+      }
+      if (identity) setCrossPlatform(identity);
+      setAnalytics((analyticsData as AnalyticsRow | null) ?? null);
+      setProjects((projectsData as ProfessionalItem[] | null) ?? []);
+      setPortfolio((portfolioData as ProfessionalItem[] | null) ?? []);
+      setProfileLinks((linksData as ProfileLinkItem[] | null) ?? []);
     } catch (reason: unknown) {
       setError(reason instanceof Error ? reason.message : "Could not load Fresh ID profile.");
     } finally {
+      window.clearTimeout(timeout);
       setLoading(false);
     }
   }
@@ -145,6 +207,7 @@ export default function SmartProfilePage() {
   );
   const organizedGroups = useMemo(() => (profile ? groupProfileActivity(profile) : []), [profile]);
   const connected = profile?.connections.filter((item) => item.connected) ?? [];
+  const enabledEcosystems = crossPlatform?.ecosystems.filter((item) => item.enabled) ?? [];
 
   async function updateVisibility(key: keyof ProfileVisibility) {
     if (!user || !profile) return;
@@ -196,7 +259,12 @@ export default function SmartProfilePage() {
     if (professionalDraft.kind === "link") {
       const { data, error: saveError } = await supabase
         .from("profile_links")
-        .insert({ user_id: user.id, label: professionalDraft.title.trim(), url: professionalDraft.url.trim(), position: profileLinks.length })
+        .insert({
+          user_id: user.id,
+          label: professionalDraft.title.trim(),
+          url: professionalDraft.url.trim(),
+          position: profileLinks.length,
+        })
         .select("id,label,url,position")
         .single();
       if (saveError || !data) {
@@ -249,7 +317,8 @@ export default function SmartProfilePage() {
 
   async function deleteProfessionalItem(kind: "project" | "portfolio" | "link", id: string) {
     if (!user) return;
-    const table = kind === "link" ? "profile_links" : kind === "project" ? "profile_projects" : "profile_portfolio_items";
+    const table =
+      kind === "link" ? "profile_links" : kind === "project" ? "profile_projects" : "profile_portfolio_items";
     const { error: deleteError } = await supabase.from(table).delete().eq("id", id).eq("user_id", user.id);
     if (deleteError) {
       setError(deleteError.message);
@@ -343,7 +412,9 @@ export default function SmartProfilePage() {
       setError(factorError.message);
       return;
     }
-    setMfaFactors([...(data?.totp ?? []), ...(data?.phone ?? [])] as Array<{ id: string; friendly_name?: string; status?: string }>);
+    setMfaFactors(
+      [...(data?.totp ?? []), ...(data?.phone ?? [])] as Array<{ id: string; friendly_name?: string; status?: string }>,
+    );
   }
 
   async function startMfaSetup() {
@@ -351,7 +422,10 @@ export default function SmartProfilePage() {
     setError(null);
     setMessage(null);
     try {
-      const { data, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: "Fresh ID Authenticator" });
+      const { data, error: enrollError } = await supabase.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: "Fresh ID Authenticator",
+      });
       if (enrollError || !data) throw enrollError ?? new Error("Could not start two-factor setup.");
       setMfaSetup({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret, code: "" });
     } catch (reason: unknown) {
@@ -367,11 +441,20 @@ export default function SmartProfilePage() {
     setMfaBusy(true);
     setError(null);
     try {
-      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: mfaSetup.id });
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: mfaSetup.id,
+      });
       if (challengeError || !challenge) throw challengeError ?? new Error("Could not create MFA challenge.");
-      const { error: verifyError } = await supabase.auth.mfa.verify({ factorId: mfaSetup.id, challengeId: challenge.id, code: mfaSetup.code.trim() });
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: mfaSetup.id,
+        challengeId: challenge.id,
+        code: mfaSetup.code.trim(),
+      });
       if (verifyError) throw verifyError;
-      await supabase.from("users").update({ security: { ...(currentUser.security ?? {}), twoFactorEnabled: true } }).eq("id", currentUser.id);
+      await supabase
+        .from("users")
+        .update({ security: { ...(currentUser.security ?? {}), twoFactorEnabled: true } })
+        .eq("id", currentUser.id);
       setMfaSetup(null);
       setMessage("Two-factor authentication is now enabled on Fresh ID.");
       await refreshMfa();
@@ -390,7 +473,10 @@ export default function SmartProfilePage() {
     try {
       const { error: unenrollError } = await supabase.auth.mfa.unenroll({ factorId });
       if (unenrollError) throw unenrollError;
-      await supabase.from("users").update({ security: { ...(currentUser.security ?? {}), twoFactorEnabled: false } }).eq("id", currentUser.id);
+      await supabase
+        .from("users")
+        .update({ security: { ...(currentUser.security ?? {}), twoFactorEnabled: false } })
+        .eq("id", currentUser.id);
       setMessage("Two-factor authentication factor removed.");
       await refreshMfa();
     } catch (reason: unknown) {
@@ -410,7 +496,10 @@ export default function SmartProfilePage() {
       connectedIdentities: connected,
       activity: profile.activity,
       subscription: currentUser.subscription,
-      security: { twoFactorEnabled: currentUser.security.twoFactorEnabled, passkeyCount: passkeys.length },
+      security: {
+        twoFactorEnabled: currentUser.security.twoFactorEnabled,
+        passkeyCount: passkeys.length,
+      },
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -433,12 +522,18 @@ export default function SmartProfilePage() {
     return (
       <div className="universal-profile empty-profile">
         <p>Loading your Fresh ID profile…</p>
+        <button type="button" onClick={() => setLoading(false)} style={{ marginTop: 12 }}>
+          Continue anyway
+        </button>
       </div>
     );
   if (!profile)
     return (
       <div className="universal-profile empty-profile">
         <p>{error || "Profile unavailable."}</p>
+        <button type="button" onClick={() => void refresh()}>
+          Retry
+        </button>
       </div>
     );
 
@@ -457,9 +552,20 @@ export default function SmartProfilePage() {
 
       <section className="profile-hero">
         {profile.coverPhoto && isVideoUrl(profile.coverPhoto) ? (
-          <video className="profile-cover profile-cover-video" src={profile.coverPhoto} autoPlay muted loop playsInline aria-label="Profile cover video" />
+          <video
+            className="profile-cover profile-cover-video"
+            src={profile.coverPhoto}
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-label="Profile cover video"
+          />
         ) : (
-          <div className="profile-cover" style={profile.coverPhoto ? { backgroundImage: `url(${profile.coverPhoto})` } : undefined} />
+          <div
+            className="profile-cover"
+            style={profile.coverPhoto ? { backgroundImage: `url(${profile.coverPhoto})` } : undefined}
+          />
         )}
         <div className="profile-cover-actions">
           <input
@@ -479,7 +585,10 @@ export default function SmartProfilePage() {
         </div>
         <div className="profile-identity-row">
           <div className="profile-avatar-wrap">
-            <div className="profile-avatar" style={profile.avatar ? { backgroundImage: `url(${profile.avatar})` } : undefined}>
+            <div
+              className="profile-avatar"
+              style={profile.avatar ? { backgroundImage: `url(${profile.avatar})` } : undefined}
+            >
               {!profile.avatar && initials}
             </div>
             <input
@@ -493,7 +602,13 @@ export default function SmartProfilePage() {
                 if (file) void handleAvatarUpload(file);
               }}
             />
-            <button className="profile-avatar-add" type="button" aria-label="Change profile picture" disabled={savingMedia} onClick={() => avatarInputRef.current?.click()}>
+            <button
+              className="profile-avatar-add"
+              type="button"
+              aria-label="Change profile picture"
+              disabled={savingMedia}
+              onClick={() => avatarInputRef.current?.click()}
+            >
               ＋
             </button>
           </div>
@@ -650,6 +765,26 @@ export default function SmartProfilePage() {
               </button>
             ))}
           </div>
+          <div className="card-heading ecosystem-heading" style={{ marginTop: 18 }}>
+            <div>
+              <span className="eyebrow">SUB-PROFILES</span>
+              <h2>Fresh ecosystems</h2>
+            </div>
+            <span>{enabledEcosystems.length} active</span>
+          </div>
+          {enabledEcosystems.length ? (
+            <div className="ecosystem-subprofile-grid">
+              {enabledEcosystems.map((item) => (
+                <div className="ecosystem-subprofile-card enabled" key={item.ecosystemId}>
+                  <strong>{item.title || item.ecosystemId}</strong>
+                  <p>{item.description || "Fresh ecosystem"}</p>
+                  <span>Active</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="muted">No enabled ecosystem profile is stored yet.</p>
+          )}
         </section>
       )}
 
@@ -665,7 +800,10 @@ export default function SmartProfilePage() {
             <select
               value={professionalDraft.kind}
               onChange={(e) =>
-                setProfessionalDraft((d) => ({ ...d, kind: e.target.value as "project" | "portfolio" | "link" }))
+                setProfessionalDraft((d) => ({
+                  ...d,
+                  kind: e.target.value as "project" | "portfolio" | "link",
+                }))
               }
             >
               <option value="project">Project</option>
@@ -682,6 +820,13 @@ export default function SmartProfilePage() {
               onChange={(e) => setProfessionalDraft((d) => ({ ...d, url: e.target.value }))}
               placeholder="https://…"
             />
+            {professionalDraft.kind !== "link" && (
+              <input
+                value={professionalDraft.description}
+                onChange={(e) => setProfessionalDraft((d) => ({ ...d, description: e.target.value }))}
+                placeholder="Description"
+              />
+            )}
             <button type="button" disabled={!professionalDraft.title.trim()} onClick={() => void saveProfessionalItem()}>
               ＋ Add
             </button>
@@ -692,6 +837,11 @@ export default function SmartProfilePage() {
                 <div>
                   <strong>{item.title}</strong>
                   <p>{item.description}</p>
+                  {item.url && (
+                    <a href={item.url} target="_blank" rel="noreferrer">
+                      Open ↗
+                    </a>
+                  )}
                 </div>
                 <button type="button" onClick={() => void deleteProfessionalItem("project", item.id)}>
                   Delete
@@ -747,6 +897,24 @@ export default function SmartProfilePage() {
             </div>
           ) : (
             <p className="muted">No strong connection match is available yet.</p>
+          )}
+          <div className="card-heading" style={{ marginTop: 16 }}>
+            <h2>Linked identities</h2>
+            <span>{connected.length}</span>
+          </div>
+          {connected.length ? (
+            connected.map((item) => (
+              <div className="connection-row" key={`${item.provider}-${item.handle}`}>
+                <span className="connection-icon">{item.provider.slice(0, 1).toUpperCase()}</span>
+                <div>
+                  <strong>{item.provider}</strong>
+                  <p>{item.handle || "Linked account"}</p>
+                </div>
+                <span>Connected</span>
+              </div>
+            ))
+          ) : (
+            <p className="muted">No external identity is connected yet.</p>
           )}
         </section>
       )}
@@ -818,7 +986,9 @@ export default function SmartProfilePage() {
                 maxLength={6}
                 value={mfaSetup.code}
                 onChange={(e) =>
-                  setMfaSetup((current) => (current ? { ...current, code: e.target.value.replace(/\D/g, "") } : current))
+                  setMfaSetup((current) =>
+                    current ? { ...current, code: e.target.value.replace(/\D/g, "") } : current,
+                  )
                 }
                 placeholder="123456"
               />
