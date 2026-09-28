@@ -48,7 +48,7 @@ const SECTION_COPY = {
 
 /**
  * Fresh Flow Hub — media operating shell.
- * Layer A (Media Director) is summoned via Flow Switch, not permanent six-button chrome.
+ * Layer A (Media Director) is organized as a compact media directorate with the Flow Switch retained for overflow.
  * Layer B (Discovery) and Layer C (Experience) stay contextual inside each world.
  */
 export default function FreshFlowHub() {
