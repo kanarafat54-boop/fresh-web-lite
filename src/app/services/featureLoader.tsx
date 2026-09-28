@@ -30,11 +30,11 @@ export default function FeatureLoader({ feature }: { feature: FeatureMeta }) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (feature.lazyLoader as () => Promise<{ default: React.ComponentType<any> }>)(),
       new Promise<{ default: React.ComponentType }>((_, reject) => {
-        window.setTimeout(() => reject(new Error(`Timed out loading ${feature.name}`)), 20000);
+        // 8s is enough for a chunk; never leave the user on a blank spinner
+        window.setTimeout(() => reject(new Error(`Timed out loading ${feature.name}`)), 8000);
       }),
     ]).catch((error) => {
       console.error("[FeatureLoader]", feature.id, error);
-      // Return a tiny recovery component instead of rejecting forever
       return {
         default: function FailedFeature() {
           return (
