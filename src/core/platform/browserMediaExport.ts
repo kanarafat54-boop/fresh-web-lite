@@ -55,7 +55,7 @@ export async function exportVideoFrameStream(
   const chunks: BlobPart[] = [];
   const data = new Promise<Blob>((resolve, reject) => {
     recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
-    recorder.onerror = () => reject(recorder.error ?? new Error("Media recording failed."));
+    recorder.onerror = () => reject(new Error("Media recording failed."));
     recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
   });
 
