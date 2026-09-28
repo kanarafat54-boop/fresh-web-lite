@@ -217,7 +217,7 @@ export default function StudioWorkspace() {
           <button onClick={runLocalWasm}>Run local WASM</button>
           <button onClick={exportDocument} disabled={exporting}>{exporting ? "Rendering…" : "Render current graph"}</button>
           {exportUrl && <a className="studio-download" href={exportUrl} download="fresh-web-lite-9x16.webm">Open exported video</a>}
-        </div>
+        </div>}
         <p className="studio-muted">Browser export: {browserSupport.mediaRecorder && browserSupport.canvasCapture ? "available" : "fallback required"} · WASM: executable · render graph: executable</p>
         <p className="studio-muted">Object URLs stay local to this browser session. Studio does not expose source files to the public feed.</p>
       </article>
