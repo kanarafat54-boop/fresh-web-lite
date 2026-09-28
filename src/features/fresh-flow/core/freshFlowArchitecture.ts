@@ -100,10 +100,6 @@ export const FRESH_FLOW_MEDIA_WORLDS: MediaWorld[] = [
     discovery: [
       { id: "for-you", label: "For You" },
       { id: "following", label: "Following" },
-      { id: "trending", label: "Trending" },
-      { id: "learn", label: "Learn" },
-      { id: "relax", label: "Relax" },
-      { id: "more", label: "More" },
     ],
   },
   {
@@ -118,12 +114,7 @@ export const FRESH_FLOW_MEDIA_WORLDS: MediaWorld[] = [
     discovery: [
       { id: "discover", label: "Discover" },
       { id: "following", label: "Following" },
-      { id: "trending", label: "Trending" },
-      { id: "learn", label: "Learn" },
-      { id: "entertainment", label: "Entertainment" },
-      { id: "documentaries", label: "Documentaries" },
       { id: "live", label: "Live" },
-      { id: "more", label: "More" },
     ],
   },
   {
@@ -139,11 +130,7 @@ export const FRESH_FLOW_MEDIA_WORLDS: MediaWorld[] = [
       { id: "news", label: "News" },
       { id: "posts", label: "Posts" },
       { id: "following", label: "Following" },
-      { id: "trending", label: "Trending" },
-      { id: "local", label: "Local" },
-      { id: "global", label: "Global" },
       { id: "topics", label: "Topics" },
-      { id: "more", label: "More" },
     ],
   },
   {
@@ -159,10 +146,7 @@ export const FRESH_FLOW_MEDIA_WORLDS: MediaWorld[] = [
       { id: "vr", label: "VR" },
       { id: "ar", label: "AR" },
       { id: "immersive", label: "Immersive" },
-      { id: "360", label: "360°" },
       { id: "experiences", label: "Experiences" },
-      { id: "spaces", label: "Spaces" },
-      { id: "more", label: "More" },
     ],
   },
   {
@@ -177,12 +161,8 @@ export const FRESH_FLOW_MEDIA_WORLDS: MediaWorld[] = [
     discovery: [
       { id: "discover", label: "Discover" },
       { id: "following", label: "Following" },
-      { id: "trending", label: "Trending" },
       { id: "episodes", label: "Episodes" },
       { id: "shows", label: "Shows" },
-      { id: "live", label: "Live" },
-      { id: "downloads", label: "Downloads" },
-      { id: "more", label: "More" },
     ],
   },
   {
@@ -198,11 +178,7 @@ export const FRESH_FLOW_MEDIA_WORLDS: MediaWorld[] = [
       { id: "music", label: "Music" },
       { id: "images", label: "Images" },
       { id: "stories", label: "Stories" },
-      { id: "gifs", label: "GIFs" },
-      { id: "live", label: "Live" },
       { id: "interactive", label: "Interactive" },
-      { id: "experiences", label: "Experiences" },
-      { id: "emerging", label: "Emerging" },
     ],
   },
 ];
