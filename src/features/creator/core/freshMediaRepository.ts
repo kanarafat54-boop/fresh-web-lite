@@ -1,5 +1,5 @@
-import { supabase } from "../../lib/supabase";
-import { publishFreshShort, type PublishShortInput, type PublishShortResult } from "../creator/core/publishFreshShort";
+import { supabase } from "../../../lib/supabase";
+import { publishFreshShort, type PublishShortInput, type PublishShortResult } from "./publishFreshShort";
 
 export type FreshPublishedMedia = { id:string; kind:"post"|"short"; authorId:string; text:string; mediaUrl:string|null; createdAt:string };
 
