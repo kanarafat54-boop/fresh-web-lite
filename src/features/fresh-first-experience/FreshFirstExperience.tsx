@@ -56,9 +56,20 @@ export default function FreshFirstExperience() {
   const [forceShow, setForceShow] = useState(false);
 
   useEffect(() => {
-    const t = window.setTimeout(() => setForceShow(true), 2500);
+    const t = window.setTimeout(() => setForceShow(true), 1200);
     return () => window.clearTimeout(t);
   }, []);
+
+  // Already completed first experience → go straight in
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("fresh.firstExperience.completed") === "true") {
+        setActiveRoute(DEFAULT_LANDING_ROUTE);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [setActiveRoute]);
 
   const greeting = useMemo(() => (user?.fullName ? `Welcome, ${user.fullName}.` : "Welcome to Fresh."), [user]);
   const blocked = (!ready || loading) && !forceShow;
