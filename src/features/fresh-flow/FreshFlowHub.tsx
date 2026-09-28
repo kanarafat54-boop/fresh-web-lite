@@ -195,6 +195,8 @@ export default function FreshFlowHub() {
         </header>
       )}
 
+      {showChrome && <nav className="fresh-flow-world-nav" aria-label="Fresh Flow media worlds"><button type="button" className={section === "fresh-flow" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow")}>Shorts</button><button type="button" className={section === "fresh-flow-long-videos" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-long-videos")}>Long Videos</button><button type="button" className={section === "fresh-flow-news-posts" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-news-posts")}>News / Posts</button><button type="button" className={section === "fresh-flow-ar-vr" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-ar-vr")}>AR / VR</button><button type="button" className={section === "fresh-flow-podcasts" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-podcasts")}>Podcasts</button><button type="button" className={section === "fresh-flow-more" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-more")}>Others</button></nav>}
+
       {showChrome && !isOverview && (
         <div className="fresh-flow-section-bar">
           <button type="button" className="fresh-flow-back-button" onClick={() => setActiveRoute("fresh-flow")} aria-label="Back to Fresh Short">
