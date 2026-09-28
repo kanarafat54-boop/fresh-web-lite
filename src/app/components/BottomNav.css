@@ -4,10 +4,10 @@
   bottom: max(10px, env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 100;
-  width: min(calc(100% - 12px), 820px);
+  width: min(calc(100% - 12px), 860px);
   padding: 7px;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 26px;
+  border-radius: 28px;
   background: linear-gradient(180deg, rgba(20, 21, 30, 0.92), rgba(8, 9, 15, 0.94));
   backdrop-filter: blur(24px) saturate(155%);
   -webkit-backdrop-filter: blur(24px) saturate(155%);
@@ -44,7 +44,7 @@
   color: var(--text-dim, #a7a9b8);
   font: inherit;
   cursor: pointer;
-  transition: transform 160ms ease, color 160ms ease, background 160ms ease, border-color 160ms ease;
+  transition: transform 180ms ease, color 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
 .fresh-nav-item:hover {
@@ -122,3 +122,4 @@
     transition: none;
   }
 }
+\n.fresh-bottom-nav{box-shadow:0 22px 70px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.08)}.fresh-nav-item.active{box-shadow:inset 0 0 28px rgba(124,92,255,.12),0 8px 28px rgba(0,0,0,.18)}
