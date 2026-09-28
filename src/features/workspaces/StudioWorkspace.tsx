@@ -115,7 +115,7 @@ export default function StudioWorkspace() {
     setMessage("Client WebAssembly runtime is executing locally. Smoke-test result: " + result);
   };
 
-  const exportVertical = async () => {
+  const exportDocument = async () => {
     const video = videoRef.current;
     if (!video || !browserSupport.mediaRecorder || !browserSupport.canvasCapture) {
       setMessage("Browser video export is not supported on this device.");
@@ -123,13 +123,31 @@ export default function StudioWorkspace() {
     }
     setExporting(true);
     try {
-      const blob = await exportVideoFrameStream(video, { aspect: "9:16", fps: 30 });
+      const trim = document.edits.find((edit) => edit.type === "trim");
+      const crop = [...document.edits].reverse().find((edit) => edit.type === "crop");
+      const grade = [...document.edits].reverse().find((edit) => edit.type === "grade");
+      const text = [...document.edits].reverse().find((edit) => edit.type === "text");
+      const blob = await exportVideoFrameStream(video, {
+        aspect: crop?.aspect ?? "9:16",
+        startSeconds: trim?.start,
+        endSeconds: trim?.end,
+        grade: grade ? { preset: grade.preset, intensity: grade.intensity } : undefined,
+        overlayText: text ? { text: text.text, start: text.start, end: text.end } : undefined,
+        fps: 30,
+      });
       if (exportUrl) URL.revokeObjectURL(exportUrl);
       const url = URL.createObjectURL(blob);
       setExportUrl(url);
-      setMessage("Real 9:16 browser export completed. The result is ready locally.");
+      if (project) {
+        const updated = updateMediaProject(project.id, { renderDocument: document, pipelineStatus: "ready" });
+        if (updated) {
+          setProject(updated);
+          setProjects(listMediaProjects());
+        }
+      }
+      setMessage("Real browser render completed from the current render graph. The WebM result is available locally.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Browser export failed.");
+      setMessage(error instanceof Error ? error.message : "Browser render failed.");
     } finally {
       setExporting(false);
     }
@@ -144,7 +162,7 @@ export default function StudioWorkspace() {
       const updated = updateMediaProject(project.id, { renderDocument: document, pipelineStatus: "queued" });
       if (updated) setProject(updated);
     }
-    setMessage("Render job queued on " + execution + ". Browser-capable 9:16 export is available below; cloud encoding remains an explicit worker integration.");
+    setMessage("Render job queued on " + execution + ". The browser render path is executable now; cloud workers remain a separate runtime deployment.");
   };
 
   const openCreator = () => {
@@ -152,24 +170,6 @@ export default function StudioWorkspace() {
       sessionStorage.setItem("fresh-studio-handoff", JSON.stringify({ projectId: project?.id, title: project?.title, sourceName: project?.sourceName }));
     } catch { /* ignore */ }
     setActiveRoute("creator");
-  };
-
-  const simulateRenderProgress = () => {
-    if (!renderJob) return;
-    setRenderJob({ ...renderJob, status: "rendering" });
-    setPipelineJob((current) => current ? { ...current, status: "running" } : current);
-    window.setTimeout(() => {
-      setRenderJob((current) => current ? { ...current, status: "complete" } : current);
-      setPipelineJob((current) => current ? { ...current, status: "complete" } : current);
-      if (project) {
-        const updated = updateMediaProject(project.id, { pipelineStatus: "ready" });
-        if (updated) {
-          setProject(updated);
-          setProjects(listMediaProjects());
-        }
-      }
-      setMessage("Browser render/export completed. The resulting media is available locally for review or Creator handoff.");
-    }, 700);
   };
 
   return <section className="workspace-page studio-workspace" aria-label="Fresh Creation and Platform Fabric">
@@ -213,10 +213,10 @@ export default function StudioWorkspace() {
         </div>}
         {sourcePreview && <div className="studio-actions">
           <button onClick={runLocalWasm}>Run local WASM</button>
-          <button onClick={exportVertical} disabled={exporting}>{exporting ? "Exporting…" : "Export real 9:16 video"}</button>
+          <button onClick={exportDocument} disabled={exporting}>{exporting ? "Rendering…" : "Render current graph"}</button>
           {exportUrl && <a className="studio-download" href={exportUrl} download="fresh-web-lite-9x16.webm">Open exported video</a>}
         </div>
-        <p className="studio-muted">Browser export: {browserSupport.mediaRecorder && browserSupport.canvasCapture ? "available" : "fallback required"} · WASM: available</p>
+        <p className="studio-muted">Browser export: {browserSupport.mediaRecorder && browserSupport.canvasCapture ? "available" : "fallback required"} · WASM: executable · render graph: executable</p>
         <p className="studio-muted">Object URLs stay local to this browser session. Studio does not expose source files to the public feed.</p>
       </article>
 
@@ -232,7 +232,7 @@ export default function StudioWorkspace() {
         <div className="studio-route"><b>{compute.target.toUpperCase()}</b><span>{compute.reason}</span></div>
         <p className="studio-muted">Fallback: {compute.fallbacks.join(" → ")}</p>
         <button onClick={queueRender} disabled={!project}>Queue render</button>
-        {renderJob && <div className="studio-job"><span>Render</span><b>{renderJob.status}</b><button onClick={simulateRenderProgress} disabled={renderJob.status !== "queued"}>Run browser render</button></div>}
+        {renderJob && <div className="studio-job"><span>Render</span><b>{renderJob.status}</b><button onClick={exportDocument} disabled={renderJob.status !== "queued" || !sourcePreview}>{exporting ? "Rendering…" : "Render queued graph"}</button></div>}
       </article>
 
       <article className="studio-panel"><div className="studio-panel-heading"><span>04</span><h2>AI media pipeline</h2></div>
