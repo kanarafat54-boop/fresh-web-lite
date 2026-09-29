@@ -1,14 +1,11 @@
-import { getServerEnv } from "../platform/serverEnv.js";
 /**
  * Canonical Fresh Unified Model inference boundary.
  *
  * This is the only serving contract that may turn a registered
  * `fresh-unified-1` checkpoint into model output. It intentionally has no
  * provider SDK dependency and never falls back to another model.
- *
- * A real checkpoint backend can be attached later without changing product
- * contracts, capability routing, or API callers.
  */
+import { getServerEnv } from "../platform/serverEnv.js";
 import { FRESH_UNIFIED_MODEL } from "./FreshUnifiedModelCore.js";
 
 export type FreshUnifiedModality = (typeof FRESH_UNIFIED_MODEL.modalities)[number];
@@ -39,7 +36,7 @@ export const FRESH_UNIFIED_INFERENCE_RUNTIME = {
 } as const;
 
 function registeredCheckpoint(explicit?: string | null): string | null {
-  const value = explicit?.trim() || process.env.FRESH_UNIFIED_CHECKPOINT_ID?.trim();
+  const value = explicit?.trim() || getServerEnv("FRESH_UNIFIED_CHECKPOINT_ID")?.trim();
   return value || null;
 }
 
@@ -58,8 +55,6 @@ export function inferFreshUnified(request: FreshUnifiedInferenceRequest): FreshU
     };
   }
 
-  // Do not fake inference. A backend must load the Fresh checkpoint and execute
-  // its weights here before this boundary can report `ready`.
   return {
     modelId: "fresh-unified-1",
     modality: request.modality,
