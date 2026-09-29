@@ -12,7 +12,7 @@ export type FreshFlowInteractionInput = {
 };
 
 export async function persistFreshFlowInteraction(input: FreshFlowInteractionInput) {
-  const { error } = await supabase.from("universal_interactions").insert({
+  const row = {
     actor_id: input.actorId,
     target_type: input.targetType,
     target_id: input.targetId,
@@ -21,9 +21,14 @@ export async function persistFreshFlowInteraction(input: FreshFlowInteractionInp
     parent_id: input.parentId ?? null,
     payload: input.payload ?? {},
     state_key: input.stateKey ?? null,
-  });
+  };
 
-  if (error) throw new Error(`Fresh Flow interaction failed: ${error.message}`);
+  const query = supabase.from("universal_interactions");
+  const result = input.stateKey
+    ? await query.upsert(row, { onConflict: "actor_id,target_type,target_id,state_key" })
+    : await query.insert(row);
+
+  if (result.error) throw new Error(`Fresh Flow interaction failed: ${result.error.message}`);
 }
 
 export async function broadcastFreshFlowEvent(
