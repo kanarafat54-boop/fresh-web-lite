@@ -55,7 +55,7 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
       .from("posts")
       .select("id, author_id, content, image_url, video_url, like_count, comment_count, created_at")
       .order("created_at", { ascending: false })
-      .limit(120);
+      .limit(24);
 
     if (postsError) {
       setError(`Couldn't load ${title}: ${postsError.message}`);
