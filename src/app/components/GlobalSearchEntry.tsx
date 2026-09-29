@@ -16,7 +16,7 @@ const RESULT_FILTERS: Array<{ id: "all" | IntelligenceSourceKind; label: string 
 const kindLabel: Record<IntelligenceSourceKind, string> = { web: "Web evidence", news: "News evidence", video: "Video evidence", image: "Image evidence", music: "Music evidence" };
 
 export default function GlobalSearchEntry() {
-  const { searchOverlayOpen, openSearch, closeSearch, setActiveRoute } = useLayout();
+  const { searchOverlayOpen, openSearch, closeSearch, setActiveRoute, pushNotification } = useLayout();
   const [query, setQuery] = useState("");
   const [researchMode, setResearchMode] = useState<ResearchMode>("global");
   const [filter, setFilter] = useState<"all" | IntelligenceSourceKind>("all");
@@ -28,12 +28,12 @@ export default function GlobalSearchEntry() {
 
   const searchWorld = async () => {
     const trimmed = query.trim();
-    if (!trimmed || loading) return;
+    if (!trimmed || loading) {\n      if (!trimmed) pushNotification({ id: `search-${Date.now()}`, title: "Search needs a question", message: "Enter something for Fresh to search, research, or open." });\n      return;\n    }
     setLoading(true); setError(null); setResearch(null); setFilter("all");
     try {
       setResearch(await runIntelligence({ prompt: trimmed, query: trimmed, task: "research", researchMode, maxSources: researchMode === "deep" || researchMode === "global" ? 12 : 10 }));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Fresh Search could not complete the research.");
+      const message = reason instanceof Error ? reason.message : "Fresh Search could not complete the research.";\n      setError(message);\n      pushNotification({ id: `search-error-${Date.now()}`, title: "Fresh Search failed", message: `${message} Try again or use a different search mode.` });
     } finally { setLoading(false); }
   };
 
