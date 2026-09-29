@@ -319,7 +319,7 @@ function DistributePanel({ caption, isShort }: { caption: string; isShort: boole
             <span>Stream key configured</span>
           </label>
           <label className={live.chatModeration ? "on" : ""}>
-            <input type="checkbox" checked={live.chatModeration} onChange={() => setLive((s) => ({ ...s, multiHost: !s.multiHost }))} />
+            <input type="checkbox" checked={live.chatModeration} onChange={() => setLive((s) => ({ ...s, chatModeration: !s.chatModeration }))} />
             <span>Chat moderation</span>
           </label>
           <label className={live.multiHost ? "on" : ""}>
