@@ -19,6 +19,7 @@ import type { UniversalReactionKind } from "../../../core/interactions/FreshReac
 import type { Short } from "../../shorts/types/short";
 import { getSocialAuthorIds } from "../core/social";
 import { useFreshFlowFeedRefresh } from "../core/useFreshFlowFeedRefresh";
+import { useFreshFlowRuntime } from "../core/useFreshFlowRuntime";
 import {
   SHORT_DISCOVERY_TABS,
   shortDiscoveryToCategory,
@@ -102,6 +103,7 @@ export default function FreshFlowShortsStream({
   const pageRef = useRef(0);
   const loadMoreInFlightRef = useRef(false);
   const viewedRef = useRef<Set<string>>(new Set());
+  const { replaceQueue, appendQueue, setActive: setRuntimeActive } = useFreshFlowRuntime();
 
   const load = async (tab: SubTab, mode: FilterMode) => {
     setLoading(true);
@@ -128,6 +130,18 @@ export default function FreshFlowShortsStream({
             ? rankForYou(candidates, viewedRef.current)
             : rankFreshFlow(candidates);
       setShorts(ranked);
+      replaceQueue(ranked.map((short) => ({
+        id: short.id,
+        kind: "short",
+        world: "short",
+        authorId: short.authorId,
+        title: short.caption || "Fresh Short",
+        description: short.caption || "",
+        mediaUrl: short.videoUrl,
+        posterUrl: null,
+        createdAt: new Date().toISOString(),
+        safety: "approved",
+      })), null, result.shorts.length >= FRESH_FLOW_SHORTS_PAGE_SIZE);
       setHasMore(result.shorts.length >= FRESH_FLOW_SHORTS_PAGE_SIZE);
       if (user && !isGuest) {
         try {
@@ -174,6 +188,18 @@ export default function FreshFlowShortsStream({
         const existing = new Set(current.map((s) => s.id));
         return [...current, ...ranked.filter((s) => !existing.has(s.id))];
       });
+      appendQueue(ranked.map((short) => ({
+        id: short.id,
+        kind: "short",
+        world: "short",
+        authorId: short.authorId,
+        title: short.caption || "Fresh Short",
+        description: short.caption || "",
+        mediaUrl: short.videoUrl,
+        posterUrl: null,
+        createdAt: new Date().toISOString(),
+        safety: "approved",
+      })), null, result.shorts.length >= FRESH_FLOW_SHORTS_PAGE_SIZE);
       pageRef.current = nextPage;
       setHasMore(result.shorts.length >= FRESH_FLOW_SHORTS_PAGE_SIZE);
     } catch {
@@ -205,7 +231,10 @@ export default function FreshFlowShortsStream({
         const activeIndex = getActiveIndex(candidates);
         if (activeIndex < 0) return;
         setCurrentIndex((previous) => (previous === activeIndex ? previous : activeIndex));
-        if (shorts[activeIndex]) viewedRef.current.add(shorts[activeIndex].id);
+        if (shorts[activeIndex]) {
+          viewedRef.current.add(shorts[activeIndex].id);
+          setRuntimeActive(shorts[activeIndex].id);
+        }
       },
       { root: container, threshold: [0, 0.6, 1] },
     );
