@@ -112,85 +112,25 @@ export default function FreshFlowHub() {
       data-surface={world.surface}
     >
       {showChrome && (
-        <header className="fresh-flow-brand-header">
-          <button type="button" className="fresh-flow-hamburger" onClick={toggleSidebar} aria-label="Open Fresh Web Lite navigation">
-            <span></span>
-            <span></span>
-            <span></span>
-          </button>
-          <button
-            type="button"
-            className="fresh-flow-brand-avatar"
-            onClick={() => setActiveRoute("profile")}
-            aria-label={isAuthenticated ? "Open profile" : "Open profile / sign in"}
-          >
-            <span className="fresh-flow-avatar-mark">FWL</span>
-            <span className="fresh-flow-avatar-plus" aria-hidden="true">
-              +
-            </span>
-          </button>
-          <div className="fresh-flow-brand-copy">
-            <strong>
-              FRESH WEB <span>LITE</span>
-            </strong>
-            <small>The Universal AI Platform</small>
+        <header className="fresh-flow-reference-header fresh-flow-unified-header">
+          <div className="fresh-flow-unified-brand">
+            <span className="fresh-flow-unified-mark" aria-hidden="true">F</span>
+            <span><strong>Fresh Flow</strong><small>Everything you watch, read, hear and explore</small></span>
           </div>
-          <button
-            type="button"
-            className="fresh-flow-notification-card"
-            onClick={openNotifications}
-            aria-label={`Notifications${notifications.length ? `, ${notifications.length} unread` : ""}`}
-          >
-            <span className="fresh-flow-bell" aria-hidden="true">
-              ♧
-            </span>
-            <span className="fresh-flow-notification-copy">
-              <strong>Notifications</strong>
-              <small>{notifications.length ? `${notifications.length} new updates` : "No new updates"}</small>
-            </span>
-            {notifications.length > 0 && <b className="fresh-flow-notification-badge">{Math.min(notifications.length, 9)}</b>}
-            <span className="fresh-flow-card-arrow" aria-hidden="true">
-              ›
-            </span>
-          </button>
-          <button type="button" className="fresh-flow-wallet-card" onClick={() => setActiveRoute("wallet")} aria-label="Open My Wallet">
-            <span>
-              <strong>My Wallet</strong>
-              <small>{walletLabel}</small>
-            </span>
-            <span className="fresh-flow-wallet-icon" aria-hidden="true">
-              ▣
-            </span>
-            <span className="fresh-flow-card-arrow" aria-hidden="true">
-              ›
-            </span>
-          </button>
-        </header>
-      )}
-
-      {showChrome && (
-        <header className="fresh-flow-reference-header">
           <button type="button" className="fresh-flow-search" onClick={openFreshSearch} aria-label="Search anything on Fresh">
             <span className="fresh-flow-search-icon">⌕</span>
             <span className="fresh-flow-search-text">Search anything on Fresh...</span>
-            <span className="fresh-flow-search-tool" aria-hidden="true">
-              ♩
-            </span>
-            <span className="fresh-flow-search-tool" aria-hidden="true">
-              文
-            </span>
+            <span className="fresh-flow-search-tool" aria-hidden="true">♩</span>
+            <span className="fresh-flow-search-tool" aria-hidden="true">文</span>
           </button>
-          <button
-            type="button"
-            className="fresh-flow-flow-switch-trigger"
-            onClick={() => setFlowSwitchOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={flowSwitchOpen}
-            aria-label="Open Flow Switch — choose media world"
-          >
-            <span aria-hidden="true">{world.icon}</span>
-            <span>{world.shortLabel}</span>
-            <span aria-hidden="true">▾</span>
+          <button type="button" className="fresh-flow-flow-switch-trigger" onClick={() => setFlowSwitchOpen(true)} aria-haspopup="dialog" aria-expanded={flowSwitchOpen} aria-label="Open Flow Switch — choose media world">
+            <span aria-hidden="true">{world.icon}</span><span>{world.shortLabel}</span><span aria-hidden="true">▾</span>
+          </button>
+          <button type="button" className="fresh-flow-wallet-card" onClick={() => setActiveRoute("wallet")} aria-label="Open My Wallet">
+            <span><strong>Wallet</strong><small>{walletLabel}</small></span><span className="fresh-flow-wallet-icon" aria-hidden="true">▣</span>
+          </button>
+          <button type="button" className="fresh-flow-unified-profile" onClick={() => setActiveRoute("profile")} aria-label={isAuthenticated ? "Open profile" : "Open profile / sign in"}>
+            <span aria-hidden="true">{isAuthenticated ? "M" : "?"}</span>
           </button>
         </header>
       )}
