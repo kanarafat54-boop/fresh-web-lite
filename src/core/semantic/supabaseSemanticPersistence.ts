@@ -1,3 +1,4 @@
+import { getServerEnv } from "../platform/serverEnv.js";
 import { createClient } from "@supabase/supabase-js";
 import type { SemanticPersistence } from "./semanticPersistence.js";
 
