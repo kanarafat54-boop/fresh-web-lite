@@ -1,38 +1,30 @@
-# Fresh Web Lite Runtime Infrastructure Inventory
+# Fresh Web Lite — Runtime Infrastructure Status
 
-Checked: 2026-09-29
+## Verified
+- Vercel production serves the Fresh Web Lite application.
+- Supabase is an active healthy project with existing production tables.
+- Browser media runtime supports local preview, playback persistence, WASM smoke execution, and WebM export.
+- Fresh Flow runtime contracts, recommendation reranking, media orchestration, and security/auth contracts are present.
+- An executable FFmpeg media-worker has been added at `workers/media-worker`.
 
-## Vercel
-- Project: fresh-web-lite
-- Framework: Vite
-- Project ID: prj_SCEAVQBAhefd47ISn6YsHYfUcGkm
-- Real production runtime is configured.
-- Latest observed main deployment for commit 92894ec...: ERROR, lint_or_type_error.
-- Previous known READY deployment: commit 991ca41...
-- Vercel runtime-error clusters: none in the selected window.
+## Media worker
+The worker image installs FFmpeg and exposes:
+- `GET /health`
+- `POST /jobs`
+- `GET /jobs/:id`
+- `GET /jobs/:id/output`
 
-## Supabase
-- Project ref: fwbbyowalnfckpmbutcz
-- Region: us-east-2
-- PostgreSQL 17.6.1.141
-- Status: ACTIVE_HEALTHY
-- Live public tables include posts, shorts, creator_drafts, universal_interactions, Fresh Intelligence and Treasury tables.
-- Edge Function noop-check is ACTIVE.
-- Security advisors currently report RLS-enabled tables without policies, exposed SECURITY DEFINER functions, disabled leaked-password protection, and other performance findings.
+A job downloads an HTTP(S) media input within bounded limits, performs a real FFmpeg transcode, records job state, and exposes the resulting media output while the worker instance retains it.
 
-## Railway
-- Project: Fresh Web Lite
-- Production environment exists.
-- Service: fresh-web-lite
-- Latest observed production deployment: FAILED on 2026-09-20.
-- GitHub main is configured as source.
-- One replica region is configured when deployed: us-east4-eqdc4a.
-- No current healthy media-worker runtime was verified.
+The browser adapter is `src/core/platform/remoteMediaWorker.ts` and activates only when `VITE_FRESH_MEDIA_WORKER_URL` is configured.
 
-## Runtime boundary
-Verified live infrastructure: Vercel platform, Supabase backend, Railway project/service (but failed).
-Browser runtime: media preview, IndexedDB playback state, WASM smoke execution and WebM export.
-Not deployed: distributed media workers, Kafka, Redis Pub/Sub, GPU inference, production HLS packager, WebRTC media backend, managed vector runtime.
+## Railway status
+The existing Railway service is configured to build from `workers/media-worker` using its Dockerfile, start with `node server.mjs`, and health-check `/health`.
 
-Do not call the media platform fully distributed until a real worker accepts a media job, executes it, persists state and returns an observable output.
-\n\n## Verification snapshot\n\n- GitHub Actions final build gate: PASS on commit `e1cfd244...`.\n- Runtime capability contract: PASS.\n- TypeScript/Vite build: PASS.\n- ESLint: PASS.\n- Supabase project health: ACTIVE_HEALTHY.\n- Railway production worker: FAILED / not healthy.\n- Vercel final production deployment: not yet re-confirmed after the green GitHub build.\n
+The service could not be redeployed in this pass because the Railway account/project trial has expired and Railway rejected the redeploy. No healthy worker deployment is claimed.
+
+## Production boundary
+Until Railway (or another real worker host) accepts a deployment and a live `/health` plus a real media job are verified, distributed media processing is **not** considered production-ready.
+
+## Verification rule
+A media feature is production only after an actual worker executes the operation, persists observable job state, and returns an observable output.
