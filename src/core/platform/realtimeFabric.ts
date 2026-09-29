@@ -1,6 +1,3 @@
-import { supabase } from "../../lib/supabase";
-import type { RealtimeChannel } from "@supabase/supabase-js";
-
 export type RealtimeEvent =
   | { type: "chat"; channelId: string; message: string; senderId: string }
   | { type: "reaction"; contentId: string; reaction: string; senderId: string }
@@ -14,43 +11,12 @@ export interface RealtimeTransport {
   subscribe(handler: (event: RealtimeEvent) => void): () => void;
 }
 
-export class SupabaseRealtimeTransport implements RealtimeTransport {
-  private channel: RealtimeChannel | null = null;
-  private listeners = new Set<(event: RealtimeEvent) => void>();
-
-  constructor(private readonly channelId: string) {}
-
-  async connect() {
-    if (this.channel) return;
-    this.channel = supabase.channel(`fresh-realtime:${this.channelId}`);
-    this.channel.on("broadcast", { event: "fresh-event" }, ({ payload }) => {
-      if (!payload || typeof payload !== "object" || typeof payload.type !== "string") return;
-      this.listeners.forEach((listener) => listener(payload as RealtimeEvent));
-    });
-    await this.channel.subscribe();
-  }
-
-  disconnect() {
-    if (this.channel) void supabase.removeChannel(this.channel);
-    this.channel = null;
-  }
-
-  publish(event: RealtimeEvent) {
-    if (!this.channel) return;
-    void this.channel.send({ type: "broadcast", event: "fresh-event", payload: event });
-  }
-
-  subscribe(handler: (event: RealtimeEvent) => void) {
-    this.listeners.add(handler);
-    return () => this.listeners.delete(handler);
-  }
-}
-
 export class BrowserRealtimeTransport implements RealtimeTransport {
   private socket: WebSocket | null = null;
   private listeners = new Set<(event: RealtimeEvent) => void>();
 
   async connect() {
+    // Production deployments provide the realtime endpoint through configuration.
     const url = typeof window !== "undefined" ? window.localStorage.getItem("fresh-realtime-url") : null;
     if (!url || typeof WebSocket === "undefined") return;
     this.socket = new WebSocket(url);
@@ -59,7 +25,7 @@ export class BrowserRealtimeTransport implements RealtimeTransport {
         const event = JSON.parse(message.data) as RealtimeEvent;
         this.listeners.forEach((listener) => listener(event));
       } catch {
-        // Gateway validation owns malformed frame handling.
+        // Ignore malformed transport frames; protocol validation belongs at the gateway.
       }
     };
   }
