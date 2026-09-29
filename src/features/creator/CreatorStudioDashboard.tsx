@@ -100,25 +100,35 @@ export default function CreatorStudioDashboard() {
   async function load() {
     if (!user) {
       setLoading(false);
+      setDrafts([]);
+      setItems([]);
+      setAnalytics({});
       return;
     }
     setLoading(true);
     setError(null);
-    const [draftResult, libraryResult, analyticsResult] = await Promise.all([
-      supabase
-        .from("creator_drafts")
-        .select("id,kind,content,media_url,status,created_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(30),
-      listCreatorPublishedMedia(user.id),
-      supabase.from("user_content_analytics").select("*").eq("user_id", user.id).maybeSingle(),
-    ]);
-    if (draftResult.error) setError(draftResult.error.message);
-    setDrafts((draftResult.data ?? []) as Draft[]);
-    setItems(libraryResult.map((item) => ({ ...item, title: item.kind === "short" ? "Short" : "Post" })));
-    setAnalytics((analyticsResult.data ?? {}) as Record<string, number>);
-    setLoading(false);
+    try {
+      const [draftResult, libraryResult, analyticsResult] = await Promise.all([
+        supabase
+          .from("creator_drafts")
+          .select("id,kind,content,media_url,status,created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(30),
+        listCreatorPublishedMedia(user.id).catch(() => []),
+        supabase.from("user_content_analytics").select("*").eq("user_id", user.id).maybeSingle(),
+      ]);
+      if (draftResult.error) setError(draftResult.error.message);
+      setDrafts((draftResult.data ?? []) as Draft[]);
+      setItems(
+        (libraryResult ?? []).map((item) => ({ ...item, title: item.kind === "short" ? "Short" : "Post" })),
+      );
+      setAnalytics((analyticsResult.data ?? {}) as Record<string, number>);
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "Could not load creator data.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -131,14 +141,18 @@ export default function CreatorStudioDashboard() {
         postCount: analytics.post_count ?? items.filter((i) => i.kind === "post").length,
         shortCount: analytics.short_count ?? items.filter((i) => i.kind === "short").length,
         shortViews: analytics.short_views ?? 0,
-        followers: analytics.follower_count ?? user?.stats.followerCount ?? 0,
+        followers: analytics.follower_count ?? user?.stats?.followerCount ?? 0,
         drafts,
       }),
     );
   }, [analytics, drafts, items, user]);
 
   async function saveDraft() {
-    if (!user || (!content.trim() && !media)) return;
+    if (!user) {
+      setError("Sign in with Fresh ID to save drafts.");
+      return;
+    }
+    if (!content.trim() && !media) return;
     setError(null);
     setMessage(null);
     try {
@@ -159,7 +173,11 @@ export default function CreatorStudioDashboard() {
   }
 
   async function publishNow() {
-    if (!user || (!content.trim() && !media)) return;
+    if (!user) {
+      setError("Sign in with Fresh ID to publish.");
+      return;
+    }
+    if (!content.trim() && !media) return;
     if (mode === "short" && media?.kind !== "video") {
       setError("A Short requires a video upload.");
       return;
@@ -211,6 +229,14 @@ export default function CreatorStudioDashboard() {
     setMessage("Draft restored.");
   }
 
+  function goSignIn() {
+    try {
+      setActiveRoute("profile");
+    } catch {
+      setMessage("Open My profile to sign in with Fresh ID.");
+    }
+  }
+
   const kpis = useMemo(
     () => [
       ["Posts", analytics.post_count ?? items.filter((i) => i.kind === "post").length],
@@ -218,21 +244,10 @@ export default function CreatorStudioDashboard() {
       ["Short views", analytics.short_views ?? 0],
       ["Likes", analytics.short_likes ?? analytics.post_likes ?? 0],
       ["Reposts", analytics.short_reposts ?? 0],
-      ["Followers", analytics.follower_count ?? user?.stats.followerCount ?? 0],
+      ["Followers", analytics.follower_count ?? user?.stats?.followerCount ?? 0],
     ],
     [analytics, items, user],
   );
-
-  if (!user) {
-    return (
-      <section className="creator-studio-dashboard">
-        <div className="creator-empty">
-          <h1>Creator Studio</h1>
-          <p>Sign in with Fresh ID to create, publish, and measure your work.</p>
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section className="creator-studio-dashboard">
@@ -260,8 +275,23 @@ export default function CreatorStudioDashboard() {
           <button type="button" onClick={() => void load()}>
             Refresh data
           </button>
+          {!user && (
+            <button type="button" className="publish" onClick={goSignIn}>
+              Sign in
+            </button>
+          )}
         </div>
       </header>
+
+      {!user && (
+        <div className="creator-auth-banner" role="status">
+          <strong>Fresh ID unlocks publish, drafts, and live analytics.</strong>
+          <span>Design, Audio, Monetize, and Distribute tools work now on this device.</span>
+          <button type="button" className="publish" onClick={goSignIn}>
+            Sign in with Fresh ID
+          </button>
+        </div>
+      )}
 
       <div className="creator-kpis">
         {kpis.map(([label, value]) => (
@@ -288,7 +318,7 @@ export default function CreatorStudioDashboard() {
 
       {tab === "publish" && (
         <>
-          {suggestions.length > 0 && (
+          {suggestions.length > 0 && user && (
             <section className="creator-panel creator-suggestions" aria-label="Suggestions">
               <div className="creator-section-heading">
                 <div>
@@ -363,7 +393,11 @@ export default function CreatorStudioDashboard() {
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   e.currentTarget.value = "";
-                  if (!file || !user) return;
+                  if (!file) return;
+                  if (!user) {
+                    setError("Sign in with Fresh ID to upload media.");
+                    return;
+                  }
                   try {
                     setError(null);
                     setMedia(await uploadMedia(user.id, file));
@@ -374,7 +408,7 @@ export default function CreatorStudioDashboard() {
                 }}
               />
               <div className="creator-editor-actions">
-                <button type="button" onClick={() => fileRef.current?.click()}>
+                <button type="button" onClick={() => (user ? fileRef.current?.click() : setError("Sign in to upload media."))}>
                   ＋ Media
                 </button>
                 <button type="button" onClick={() => void saveDraft()} disabled={!content.trim() && !media}>
@@ -386,7 +420,7 @@ export default function CreatorStudioDashboard() {
                   onClick={() => void publishNow()}
                   disabled={publishing || (!content.trim() && !media)}
                 >
-                  {publishing ? "Publishing…" : "Publish now"}
+                  {publishing ? "Publishing…" : user ? "Publish now" : "Sign in to publish"}
                 </button>
               </div>
               {error && <p className="creator-error">{error}</p>}
@@ -401,7 +435,9 @@ export default function CreatorStudioDashboard() {
                 </div>
                 <span>{drafts.length}</span>
               </div>
-              {loading ? (
+              {!user ? (
+                <p className="creator-muted">Sign in to sync drafts across devices.</p>
+              ) : loading ? (
                 <p>Loading…</p>
               ) : drafts.length ? (
                 drafts.map((d) => (
@@ -435,7 +471,9 @@ export default function CreatorStudioDashboard() {
               </div>
               <span>{items.length}</span>
             </div>
-            {items.length ? (
+            {!user ? (
+              <p className="creator-muted">Sign in to load your published library from Fresh.</p>
+            ) : items.length ? (
               <div className="creator-library">
                 {items.slice(0, 30).map((item) => (
                   <article key={`${item.kind}-${item.id}`}>
