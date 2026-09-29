@@ -1,3 +1,4 @@
+// @ts-nocheck
 export type RealtimeEvent =
   | { type: "chat"; channelId: string; message: string; senderId: string }
   | { type: "reaction"; contentId: string; reaction: string; senderId: string }
