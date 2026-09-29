@@ -1,84 +1,41 @@
-import { useState } from "react";
-import { knowledgeGraph } from "../../core/fresh-ai/knowledge/knowledgeGraph";
+import { useEffect, useState } from "react";
+import { useFreshId } from "../fresh-id/context/FreshIdContext";
+import { createCourse } from "../../core/platform/freshPlatformRuntime";
+import { supabase } from "../../lib/supabase";
 import "./WorkspacePage.css";
 
-const SEED_NODES = [
-  { id: "ai", type: "topic", label: "Artificial Intelligence" },
-  { id: "fresh", type: "project", label: "Fresh Web Lite" },
-  { id: "design", type: "topic", label: "Design Systems" },
-  { id: "treasury", type: "domain", label: "Fresh Treasury" },
-];
-const SEED_EDGES = [
-  { id: "e1", from: "fresh", to: "ai", relation: "uses" },
-  { id: "e2", from: "fresh", to: "design", relation: "applies" },
-  { id: "e3", from: "fresh", to: "treasury", relation: "owns" },
-];
-
-SEED_NODES.forEach((n) => knowledgeGraph.addNode(n));
-SEED_EDGES.forEach((e) => knowledgeGraph.addEdge(e));
-
-const RELATION_LABEL: Record<string, string> = {
-  uses: "uses",
-  applies: "applies",
-  owns: "owns",
-  related: "relates to",
-};
+type Course = { id: string; creator_id: string; title: string; description: string; curriculum: unknown; status: string };
 
 export default function LearningWorkspace() {
-  const [selected, setSelected] = useState<string | null>("fresh");
-  const nodes = knowledgeGraph.getNodes();
-  const node = selected ? knowledgeGraph.getNode(selected) : undefined;
-  const connections = selected ? knowledgeGraph.getConnections(selected) : [];
+  const { user, isGuest } = useFreshId();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [message, setMessage] = useState("Live Academy data.");
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase.from("fresh_courses").select("id,creator_id,title,description,curriculum,status").eq("status", "published").order("created_at", { ascending: false }).limit(24);
+    if (error) setMessage(error.message); else setCourses((data ?? []) as Course[]);
+    setLoading(false);
+  };
+
+  useEffect(() => { void load(); }, []);
+
+  const publish = async () => {
+    if (!user || isGuest || !title.trim()) return;
+    try {
+      await createCourse(user.id, title.trim(), description.trim(), []);
+      setTitle(""); setDescription(""); setMessage("Course created as a draft. Publish it after review.");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not create course."); }
+  };
 
   return (
     <section className="workspace-page" aria-label="Learning workspace">
-      <header className="workspace-hero">
-        <span className="workspace-eyebrow">Learn · Knowledge · Academy</span>
-        <h1>Fresh Academy</h1>
-        <p>
-          Explore the connected knowledge graph. Fresh turns what you learn into a living,
-          queryable map of topics, projects, and the relationships between them.
-        </p>
-      </header>
-
-      <section className="workspace-section">
-        <h2>Knowledge map</h2>
-        <div className="workspace-grid">
-          {nodes.map((n) => (
-            <button
-              key={n.id}
-              className={`workspace-card ${selected === n.id ? "workspace-pill" : ""}`}
-              onClick={() => setSelected(n.id)}
-            >
-              <h3>{n.label}</h3>
-              <p>{n.type}</p>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {node && (
-        <section className="workspace-section">
-          <h2>Relationships — {node.label}</h2>
-          {connections.length === 0 ? (
-            <p className="workspace-empty">No relationships recorded yet.</p>
-          ) : (
-            <ul className="workspace-list">
-              {connections.map((e) => {
-                const otherId = e.from === node.id ? e.to : e.from;
-                const other = knowledgeGraph.getNode(otherId);
-                const direction = e.from === node.id ? "→" : "←";
-                return (
-                  <li key={e.id}>
-                    <h3>{other?.label ?? otherId}</h3>
-                    <p>{direction} {RELATION_LABEL[e.relation] ?? e.relation}</p>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-      )}
+      <header className="workspace-hero"><span className="workspace-eyebrow">Learn · Knowledge · Academy</span><h1>Fresh Academy</h1><p>Courses are durable platform records. Your learning surface can grow from real creator-published curriculum instead of seeded placeholders.</p></header>
+      {user && !isGuest && <section className="workspace-section"><h2>Create a course</h2><div className="workspace-card"><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Course title" /><textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What will students learn?" /><button type="button" onClick={() => void publish()} disabled={!title.trim()}>Save course</button></div></section>}
+      <section className="workspace-section"><h2>Published courses</h2>{loading ? <p className="workspace-empty">Loading Academy…</p> : courses.length === 0 ? <p className="workspace-empty">No published courses yet.</p> : <div className="workspace-grid">{courses.map((course) => <article key={course.id} className="workspace-card"><span className="workspace-badge">Academy</span><h3>{course.title}</h3><p>{course.description || "No description provided."}</p></article>)}</div>}<p className="workspace-empty" role="status">{message}</p></section>
     </section>
   );
 }
