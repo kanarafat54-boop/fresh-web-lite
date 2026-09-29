@@ -38,6 +38,21 @@ export function serializeRenderDocument(document: RenderDocument): string {
   return JSON.stringify(document);
 }
 
+export function validateRenderDocument(document: RenderDocument): string[] {
+  const errors: string[] = [];
+  if (document.version !== 1) errors.push("Unsupported render document version.");
+  if (!document.source.id) errors.push("Render source id is required.");
+  if (!document.output.width || !document.output.height) errors.push("Render output dimensions are required.");
+  for (const edit of document.edits) {
+    if (edit.type === "trim" && (edit.start < 0 || edit.end <= edit.start)) errors.push("Trim range is invalid.");
+    if (edit.type === "grade" && (edit.intensity < 0 || edit.intensity > 1)) errors.push("Grade intensity must be 0..1.");
+    if (edit.type === "text" && edit.end <= edit.start) errors.push("Text overlay range is invalid.");
+  }
+  return errors;
+}
+
 export function createRenderJob(document: RenderDocument, execution: RenderJob["execution"] = "cloud"): RenderJob {
+  const errors = validateRenderDocument(document);
+  if (errors.length) throw new Error(errors[0]);
   return { id: crypto.randomUUID(), document, status: "queued", execution };
 }
