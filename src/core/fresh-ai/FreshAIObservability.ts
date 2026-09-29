@@ -12,12 +12,19 @@ export type FreshAITraceSink = {
 };
 
 export class InMemoryFreshAITraceSink implements FreshAITraceSink {
-  private readonly events: FreshAITraceEvent[] = [];
-  constructor(private readonly maxEvents = 500) {}
+  private readonly events: FreshAITraceEvent[];
+  private readonly maxEvents: number;
+
+  constructor(maxEvents = 500) {
+    this.maxEvents = maxEvents;
+    this.events = [];
+  }
+
   record(event: FreshAITraceEvent): void {
     this.events.push(event);
     if (this.events.length > this.maxEvents) this.events.splice(0, this.events.length - this.maxEvents);
   }
+
   list(requestId?: string): FreshAITraceEvent[] {
     return (requestId ? this.events.filter((event) => event.requestId === requestId) : [...this.events]).map((event) => ({ ...event }));
   }
