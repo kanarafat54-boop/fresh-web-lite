@@ -5,6 +5,7 @@ export type MediaEdit =
   | { type: "grade"; preset: string; intensity: number }
   | { type: "text"; text: string; start: number; end: number }
   | { type: "audio"; lane: "voice" | "music" | "ambient"; gain: number }
+  | { type: "stem-separate"; model: "demucs" | "s3t" | "lightweight"; lanes: Array<"voice" | "music" | "ambient"> }
   | { type: "dub"; language: string; voice?: string };
 
 export type RenderDocument = {
@@ -45,8 +46,12 @@ export function validateRenderDocument(document: RenderDocument): string[] {
   if (!document.output.width || !document.output.height) errors.push("Render output dimensions are required.");
   for (const edit of document.edits) {
     if (edit.type === "trim" && (edit.start < 0 || edit.end <= edit.start)) errors.push("Trim range is invalid.");
+    if (edit.type === "split" && edit.at < 0) errors.push("Split point must be >= 0.");
     if (edit.type === "grade" && (edit.intensity < 0 || edit.intensity > 1)) errors.push("Grade intensity must be 0..1.");
     if (edit.type === "text" && edit.end <= edit.start) errors.push("Text overlay range is invalid.");
+    if (edit.type === "stem-separate" && (!edit.lanes || edit.lanes.length === 0)) {
+      errors.push("Stem separation requires at least one output lane.");
+    }
   }
   return errors;
 }

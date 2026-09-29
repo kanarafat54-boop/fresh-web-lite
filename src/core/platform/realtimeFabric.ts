@@ -17,7 +17,16 @@ export type RealtimeEvent =
   | { type: "chat"; channelId: string; message: string; senderId: string }
   | { type: "reaction"; contentId: string; reaction: string; senderId: string }
   | { type: "poll"; channelId: string; optionId: string; senderId: string }
-  | { type: "presence"; channelId: string; state: "online" | "offline" };
+  | { type: "presence"; channelId: string; state: "online" | "offline" }
+  | {
+      type: "interactive-choice";
+      contentId: string;
+      nodeId: string;
+      optionId: string;
+      senderId: string;
+      segmentStartSeconds?: number;
+    }
+  | { type: "live-signal"; channelId: string; signal: string; senderId: string };
 
 export interface RealtimeTransport {
   connect(): Promise<void>;
