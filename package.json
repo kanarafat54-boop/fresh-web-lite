@@ -47,7 +47,8 @@
     "test:fresh-media-runtime": "node scripts/verify-fresh-media-runtime.mjs",
     "test:fresh-media-publishing": "node scripts/verify-fresh-media-publishing.mjs",
     "test:fresh-platform-runtime": "node scripts/verify-fresh-platform-runtime.mjs",
-    "test:fresh-ai-platform-20": "node scripts/verify-fresh-ai-platform-20.mjs"
+    "test:fresh-ai-platform-20": "node scripts/verify-fresh-ai-platform-20.mjs",
+    "test:fresh-ai-depth-contract": "node scripts/verify-fresh-ai-depth-contract.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
