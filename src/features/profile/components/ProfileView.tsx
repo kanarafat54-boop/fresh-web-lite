@@ -87,8 +87,8 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
     setMessage(null);
 
     const { data: profileData, error: profileError } = await supabase
-      .from("users")
-      .select("id, full_name, username, role, verified, email")
+      .from("user_public_profiles")
+      .select("id, full_name, username, verified")
       .eq("id", userId)
       .maybeSingle();
 
@@ -102,9 +102,9 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
       id: profileData.id,
       fullName: profileData.full_name ?? "Fresh User",
       username: profileData.username ?? "user",
-      role: profileData.role ?? "user",
+      role: "user",
       verified: Boolean(profileData.verified),
-      email: profileData.email ?? "",
+      email: isOwner ? (user?.email ?? "") : "",
     });
 
     const detailsResult = await supabase.from("profile_details").select("bio, avatar_url, cover_url, location, website_url, occupation, company, pronouns").eq("user_id", userId).maybeSingle();
