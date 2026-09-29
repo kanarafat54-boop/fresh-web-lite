@@ -11,7 +11,7 @@ export type FreshFlowInteractionInput = {
 };
 
 export async function persistFreshFlowInteraction(input: FreshFlowInteractionInput) {
-  const { error } = await supabase.from("universal_interactions").upsert({
+  const { error } = await supabase.from("universal_interactions").insert({
     actor_id: input.actorId,
     target_type: input.targetType,
     target_id: input.targetId,
@@ -19,7 +19,7 @@ export async function persistFreshFlowInteraction(input: FreshFlowInteractionInp
     interaction_value: input.interactionValue ?? null,
     parent_id: input.parentId ?? null,
     payload: input.payload ?? {},
-  }, { onConflict: "actor_id,target_type,target_id,interaction_type" });
+  });
 
   if (error) throw new Error(`Fresh Flow interaction failed: ${error.message}`);
 }
