@@ -28,12 +28,17 @@ export default function GlobalSearchEntry() {
 
   const searchWorld = async () => {
     const trimmed = query.trim();
-    if (!trimmed || loading) {\n      if (!trimmed) pushNotification({ id: `search-${Date.now()}`, title: "Search needs a question", message: "Enter something for Fresh to search, research, or open." });\n      return;\n    }
+    if (!trimmed || loading) {
+      if (!trimmed) pushNotification({ id: `search-${Date.now()}`, title: "Search needs a question", message: "Enter something for Fresh to search, research, or open." });
+      return;
+    }
     setLoading(true); setError(null); setResearch(null); setFilter("all");
     try {
       setResearch(await runIntelligence({ prompt: trimmed, query: trimmed, task: "research", researchMode, maxSources: researchMode === "deep" || researchMode === "global" ? 12 : 10 }));
     } catch (reason) {
-      const message = reason instanceof Error ? reason.message : "Fresh Search could not complete the research.";\n      setError(message);\n      pushNotification({ id: `search-error-${Date.now()}`, title: "Fresh Search failed", message: `${message} Try again or use a different search mode.` });
+      const message = reason instanceof Error ? reason.message : "Fresh Search could not complete the research.";
+      setError(message);
+      pushNotification({ id: `search-error-${Date.now()}`, title: "Fresh Search failed", message: `${message} Try again or use a different search mode.` });
     } finally { setLoading(false); }
   };
 
