@@ -9,7 +9,19 @@ import "./TopBar.css";
 export default function TopBar() {
   const { toggleSidebar, setActiveRoute, notifications, openNotifications, openSearch } = useLayout();
   const { isAuthenticated, setAuthView } = useFreshId();
-  const [showAuth, setShowAuth] = useState(false);\n  const [theme, setTheme] = useState<"dark" | "light">("dark");\n  useEffect(() => {\n    const saved = window.localStorage.getItem("fresh-theme");\n    const next = saved === "light" || saved === "dark" ? saved : window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";\n    setTheme(next);\n    document.documentElement.dataset.theme = next;\n  }, []);\n  function setFreshTheme(next: "dark" | "light") {\n    setTheme(next);\n    document.documentElement.dataset.theme = next;\n    window.localStorage.setItem("fresh-theme", next);\n  }
+  const [showAuth, setShowAuth] = useState(false);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  useEffect(() => {
+    const saved = window.localStorage.getItem("fresh-theme");
+    const next = saved === "light" || saved === "dark" ? saved : window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    setTheme(next);
+    document.documentElement.dataset.theme = next;
+  }, []);
+  function setFreshTheme(next: "dark" | "light") {
+    setTheme(next);
+    document.documentElement.dataset.theme = next;
+    window.localStorage.setItem("fresh-theme", next);
+  }
   function openAuth() { setAuthView("form"); setShowAuth(true); }
   function openProfile() { if (isAuthenticated) setActiveRoute("profile"); else openAuth(); }
   const authOverlay = showAuth && !isAuthenticated ? (
