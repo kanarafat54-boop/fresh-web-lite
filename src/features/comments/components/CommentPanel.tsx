@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { CloseIcon, SendIcon, MicIcon, VideoCameraIcon, StopIcon } from "../../../components/Icons";
@@ -7,6 +7,7 @@ import type { CommentTargetType } from "../types/comment";
 import { validateInteractionAttachments } from "../../../core/interactions/FreshAttachmentValidation";
 import { announceInteraction } from "../../../core/interactions/FreshInteractionA11y";
 import type { UniversalCommentAttachment, InteractionMediaKind } from "../../../core/interactions/FreshReactionModel";
+import { rankRootsBySignal } from "../../../core/platform/commentSignalRanking";
 
 interface CommentPanelProps {
   targetType: CommentTargetType;
@@ -71,6 +72,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const table = TABLE_MAP[targetType];
   const column = COLUMN_MAP[targetType];
   const [comments, setComments] = useState<ViewRow[]>([]);
+  const [sortMode, setSortMode] = useState<"time" | "signal">("time");
   const [draft, setDraft] = useState("");
   const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string } | null>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -88,6 +90,11 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const stream = useRef<MediaStream | null>(null);
   const chunks = useRef<BlobPart[]>([]);
   const live = useRef<HTMLVideoElement>(null);
+
+  const displayComments = useMemo(() => {
+    if (sortMode !== "signal") return comments;
+    return rankRootsBySignal(comments) as ViewRow[];
+  }, [comments, sortMode]);
 
   useEffect(() => {
     void loadComments();
@@ -276,12 +283,20 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
         <div className="sheet-drag-handle" onPointerDown={(event) => { dragY.current = event.clientY; dragH.current = sheetHeight; }} onPointerMove={(event) => { if (event.buttons === 1 && dragY.current !== null) setSheetHeight(Math.min(SHEET_MAX, Math.max(SHEET_MIN, dragH.current + ((dragY.current - event.clientY) / window.innerHeight) * 100))); }} onPointerUp={() => { dragY.current = null; setSheetHeight((height) => height > (SHEET_MIN + SHEET_MAX) / 2 ? SHEET_MAX : SHEET_MIN); }} />
         <div className="comment-panel-header">
           <h3>Comments</h3>
-          <button className="back-btn" onClick={onClose} aria-label="Close comments"><CloseIcon size={20} /></button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button type="button" className="reply-btn" onClick={() => setSortMode("time")} aria-pressed={sortMode === "time"}>
+              Time
+            </button>
+            <button type="button" className="reply-btn" onClick={() => setSortMode("signal")} aria-pressed={sortMode === "signal"} title="Domain expertise / signal-value ranking">
+              Signal
+            </button>
+            <button className="back-btn" onClick={onClose} aria-label="Close comments"><CloseIcon size={20} /></button>
+          </div>
         </div>
         <div className="comment-list">
           {loading && <p className="empty-state">Loading comments...</p>}
           {!loading && !comments.length && <p className="empty-state">No comments yet. Be the first.</p>}
-          {comments.map((comment) => renderComment(comment))}
+          {displayComments.map((comment) => renderComment(comment))}
         </div>
         {error && <p className="auth-error" role="alert">{error}</p>}
         {replyingTo && <div className="replying-banner"><span>Replying to {replyingTo.authorName}</span><button className="back-btn" onClick={() => setReplyingTo(null)} aria-label="Cancel reply"><CloseIcon size={14} /></button></div>}
