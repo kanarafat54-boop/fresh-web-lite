@@ -573,7 +573,7 @@ export default function StudioWorkspace() {
                   Queue render
                 </button>
                 <button type="button" onClick={() => void runLocalWasm()}>
-                  WASM check
+                  Run local WASM
                 </button>
                 <button type="button" onClick={runBrowserTranscription} disabled={!speechSupported}>
                   Transcribe
@@ -629,7 +629,7 @@ export default function StudioWorkspace() {
                   })
                 }
               >
-                + Trim
+                Apply trim
               </button>
               <button type="button" onClick={() => add({ type: "crop", aspect: "9:16", focus: "active-speaker" })}>
                 + 9:16 crop
