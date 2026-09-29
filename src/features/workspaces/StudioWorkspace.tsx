@@ -90,6 +90,10 @@ export default function StudioWorkspace() {
           sourceType: file.type,
           sourceUrl: url,
         });
+    if (!nextProject) {
+      setMessage("Media import could not create or update the local project.");
+      return;
+    }
     setProject(nextProject);
     setProjects(listMediaProjects());
     void file.arrayBuffer().then((bytes) => saveMediaAsset(nextProject.id, new Blob([bytes], { type: file.type }))).catch(() => {});
