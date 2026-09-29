@@ -30,16 +30,23 @@ export class SupabaseRealtimeTransport implements RealtimeTransport {
   private channel: RealtimeChannel | null = null;
   private listeners = new Set<(event: RealtimeEvent) => void>();
 
-  constructor(private readonly channelId: string) {}
+  private readonly channelId: string;
+
+  constructor(channelId: string) {
+    this.channelId = channelId;
+  }
 
   async connect() {
     if (this.channel) return;
-    this.channel = supabase.channel(`fresh-realtime:${this.channelId}`);
-    this.channel.on("broadcast", { event: "fresh-event" }, ({ payload }) => {
-      if (!payload || typeof payload !== "object" || typeof payload.type !== "string") return;
-      this.listeners.forEach((listener) => listener(payload as RealtimeEvent));
+    const channel = supabase.channel(`fresh-realtime:${this.channelId}`) as unknown as FreshRealtimeChannel;
+    channel.on("broadcast", { event: "fresh-event" }, ({ payload }) => {
+      if (!payload || typeof payload !== "object") return;
+      const event = payload as Partial<RealtimeEvent>;
+      if (typeof event.type !== "string") return;
+      this.listeners.forEach((listener) => listener(event as RealtimeEvent));
     });
-    await this.channel.subscribe();
+    this.channel = channel as unknown as RealtimeChannel;
+    await channel.subscribe();
   }
 
   disconnect() {
