@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { MEDIA_OPS_FIT } from "../../core/platform/mediaOpsArchitecture";
+import { ARCHITECTURE_PILLAR_MAP, UNIFIED_TECH_STACK } from "../../core/platform/unifiedTechStack";
 import {
   demoInteractiveManifest,
   isQuizCorrect,
@@ -14,6 +15,12 @@ import {
   runFairUseClassifier,
   type CopyrightClaim,
 } from "../../core/platform/copyrightArbitration";
+import {
+  authorizeMicroUnlock,
+  createMicroUnlock,
+  fulfillMicroUnlock,
+  type MicroUnlock,
+} from "../../core/platform/microSubscription";
 
 type Props = {
   onAddStemSeparate?: () => void;
@@ -21,7 +28,7 @@ type Props = {
 };
 
 /**
- * Additive Studio panels — interactive nodes, copyright arbitration, architecture fit map.
+ * Additive Studio panels — interactive nodes, copyright arbitration, micro-unlocks, architecture fit map.
  * Does not replace existing Studio panels; mount beside them.
  */
 export default function StudioMediaOpsPanels({ onAddStemSeparate, contentId = "studio-demo" }: Props) {
@@ -30,6 +37,7 @@ export default function StudioMediaOpsPanels({ onAddStemSeparate, contentId = "s
   const [lastJump, setLastJump] = useState<ClientJumpEvent | null>(null);
   const [quizResult, setQuizResult] = useState<string | null>(null);
   const [claim, setClaim] = useState<CopyrightClaim | null>(null);
+  const [unlock, setUnlock] = useState<MicroUnlock | null>(null);
 
   const activeNode = useMemo(
     () => manifest.nodes.find((n) => n.id === activeNodeId) ?? manifest.nodes[0] ?? null,
@@ -68,6 +76,19 @@ export default function StudioMediaOpsPanels({ onAddStemSeparate, contentId = "s
     setClaim(holdClaimProceeds(next));
   }
 
+  function startMicroUnlock() {
+    const next = createMicroUnlock({
+      buyerId: "viewer-demo",
+      sellerId: "creator-demo",
+      assetId: contentId,
+      assetKind: "video",
+      amountMinor: 1500,
+      currency: "UGX",
+      provider: "sandbox",
+    });
+    setUnlock(authorizeMicroUnlock(next));
+  }
+
   return (
     <>
       <article className="studio-panel">
@@ -91,7 +112,15 @@ export default function StudioMediaOpsPanels({ onAddStemSeparate, contentId = "s
                 </button>
               ))}
               {activeNode.kind === "end" && (
-                <button type="button" onClick={() => { setManifest(demoInteractiveManifest(contentId)); setActiveNodeId("n-intro"); setLastJump(null); setQuizResult(null); }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setManifest(demoInteractiveManifest(contentId));
+                    setActiveNodeId("n-intro");
+                    setLastJump(null);
+                    setQuizResult(null);
+                  }}
+                >
                   Restart demo tree
                 </button>
               )}
@@ -112,10 +141,10 @@ export default function StudioMediaOpsPanels({ onAddStemSeparate, contentId = "s
       <article className="studio-panel">
         <div className="studio-panel-heading">
           <span>08</span>
-          <h2>Stem separation · Copyright hold</h2>
+          <h2>Stem · Copyright · Micro-unlock</h2>
         </div>
         <p className="studio-muted">
-          Stem-separate is a first-class render-graph edit. Copyright claims hold proceeds neutrally until resolved — no invented balances.
+          Stem-separate is a render-graph edit. Copyright holds proceeds neutrally. Micro-unlocks are sandbox state machines until Stripe/treasury adapters connect.
         </p>
         <div className="studio-actions">
           <button type="button" onClick={() => onAddStemSeparate?.()}>
@@ -124,13 +153,16 @@ export default function StudioMediaOpsPanels({ onAddStemSeparate, contentId = "s
           <button type="button" onClick={openClaim}>
             Open claim + hold
           </button>
+          <button type="button" onClick={startMicroUnlock}>
+            Micro-unlock series
+          </button>
           {claim && (
             <>
               <button type="button" onClick={() => setClaim((c) => (c ? runFairUseClassifier(c, 0.28) : c))}>
-                Run fair-use check (low)
+                Fair-use (low)
               </button>
               <button type="button" onClick={() => setClaim((c) => (c ? runFairUseClassifier(c, 0.91) : c))}>
-                Run similarity (high)
+                Similarity (high)
               </button>
               <button type="button" onClick={() => setClaim((c) => (c ? resolveClaim(c, "creator") : c))}>
                 Resolve → creator
@@ -140,6 +172,11 @@ export default function StudioMediaOpsPanels({ onAddStemSeparate, contentId = "s
               </button>
             </>
           )}
+          {unlock && unlock.status === "authorized" && (
+            <button type="button" onClick={() => setUnlock((u) => (u ? fulfillMicroUnlock(u) : u))}>
+              Fulfill unlock
+            </button>
+          )}
         </div>
         {claim && (
           <div className="studio-job">
@@ -147,6 +184,14 @@ export default function StudioMediaOpsPanels({ onAddStemSeparate, contentId = "s
             <b>
               {claim.currency} {(claim.heldAmountMinor / 100).toFixed(2)}
               {claim.similarityScore != null ? ` · sim ${claim.similarityScore.toFixed(2)}` : ""}
+            </b>
+          </div>
+        )}
+        {unlock && (
+          <div className="studio-job">
+            <span>Unlock {unlock.status}</span>
+            <b>
+              {unlock.currency} {(unlock.amountMinor / 100).toFixed(2)} · {unlock.provider}
             </b>
           </div>
         )}
@@ -177,6 +222,42 @@ export default function StudioMediaOpsPanels({ onAddStemSeparate, contentId = "s
                   <em>{row.status}</em>
                 </div>
               ))}
+            </div>
+          ))}
+        </div>
+      </article>
+
+      <article className="studio-panel" style={{ gridColumn: "1 / -1" }}>
+        <div className="studio-panel-heading">
+          <span>10</span>
+          <h2>Unified tech stack · pillar map</h2>
+        </div>
+        <p className="studio-muted">Your architecture sections mapped to FWL homes — nothing removed, only fitted.</p>
+        <div className="studio-ranking">
+          {ARCHITECTURE_PILLAR_MAP.map((row) => (
+            <div key={row.pillar} style={{ display: "block", gridColumn: "1 / -1", marginTop: 8 }}>
+              <strong>{row.pillar}</strong>
+              <p className="studio-muted" style={{ margin: "4px 0" }}>
+                Spec: {row.userSpec}
+              </p>
+              <p className="studio-muted" style={{ margin: 0 }}>
+                FWL: {row.fwlHome}
+              </p>
+            </div>
+          ))}
+        </div>
+        <div className="studio-ranking" style={{ marginTop: 16 }}>
+          {UNIFIED_TECH_STACK.map((layer) => (
+            <div key={layer.layer} style={{ marginTop: 6 }}>
+              <span>{layer.status}</span>
+              <span>
+                <b>{layer.layer}</b>
+                <br />
+                <small style={{ opacity: 0.7 }}>{layer.technologies.join(" · ")}</small>
+                <br />
+                <small style={{ opacity: 0.55 }}>{layer.fwlModules.join(" · ")}</small>
+              </span>
+              <em>{layer.status}</em>
             </div>
           ))}
         </div>
