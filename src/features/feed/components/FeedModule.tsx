@@ -11,6 +11,7 @@ import { useProfileNav } from "../../profile/context/ProfileNavContext";
 import type { Post } from "../types/post";
 import { applyDiscoveryFilter, type DiscoverablePost } from "../../fresh-flow/core/applyDiscoveryFilter";
 import { getSocialAuthorIds } from "../../fresh-flow/core/social";
+import { useFreshFlowRuntime } from "../../fresh-flow/core/useFreshFlowRuntime";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -34,6 +35,7 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
   const [openCommentsFor, setOpenCommentsFor] = useState<string | null>(null);
   const [shareTarget, setShareTarget] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { state: runtimeState, replaceQueue, setActive: setRuntimeActive } = useFreshFlowRuntime();
 
   useEffect(() => {
     void loadPosts();
@@ -47,7 +49,7 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
       .from("posts")
       .select("id, author_id, content, image_url, video_url, like_count, comment_count, created_at")
       .order("created_at", { ascending: false })
-      .limit(80);
+      .limit(24);
 
     if (postsError) {
       setError(`Couldn't load the feed: ${postsError.message}`);
@@ -84,7 +86,7 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
 
     if (authorIds.length > 0) {
       const { data: profilesData, error: profilesError } = await supabase
-        .from("users")
+        .from("user_public_profiles")
         .select("id, full_name, username")
         .in("id", authorIds);
       if (profilesError) {
@@ -130,6 +132,18 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
 
     setPosts(mapped);
     setSavedIds(savedPostIds);
+    replaceQueue(mapped.map((post) => ({
+      id: post.id,
+      kind: post.videoUrl ? "long-video" : post.imageUrl ? "image" : "post",
+      world: "news-posts",
+      authorId: post.authorId,
+      title: post.content?.slice(0, 90) || "Fresh Post",
+      description: post.content || "",
+      mediaUrl: post.videoUrl || post.imageUrl,
+      posterUrl: post.imageUrl,
+      createdAt: post.createdAt,
+      safety: "approved",
+    })), null, false);
     setLoading(false);
   }
 
@@ -225,6 +239,7 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
     return `${Math.floor(hours / 24)}d ago`;
   }
 
+  const runtimeActiveId = runtimeState.activeId;
   const title = discoveryId ? `Feed · ${discoveryId.replace(/-/g, " ")}` : "Feed";
 
   return (
@@ -260,7 +275,7 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
 
       <ul className="notes-list">
         {posts.map((p) => (
-          <li key={p.id} className="post-item">
+          <li key={p.id} className={`post-item ${runtimeActiveId === p.id ? "active" : ""}`} onMouseEnter={() => setRuntimeActive(p.id)}>
             <div className="post-header">
               <span className="post-author" onClick={() => openProfile(p.authorId)} style={{ cursor: "pointer" }}>{p.authorName}</span>
               <span className="post-username">@{p.authorUsername}</span>
