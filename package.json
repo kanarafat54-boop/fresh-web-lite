@@ -49,7 +49,8 @@
     "test:fresh-platform-runtime": "node scripts/verify-fresh-platform-runtime.mjs",
     "test:fresh-ai-platform-20": "node scripts/verify-fresh-ai-platform-20.mjs",
     "test:fresh-ai-depth-contract": "node scripts/verify-fresh-ai-depth-contract.mjs",
-    "test:fresh-phases-15-22": "node scripts/verify-fresh-phases-15-22.mjs"
+    "test:fresh-phases-15-22": "node scripts/verify-fresh-phases-15-22.mjs",
+    "test:fresh-phases-15-24": "node scripts/verify-fresh-phases-15-24.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
