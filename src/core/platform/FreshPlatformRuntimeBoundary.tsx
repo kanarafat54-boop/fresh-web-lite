@@ -1,8 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { supabase } from "../../lib/supabase";
 import { saveFreshContext, recordFreshFlowEvents } from "./freshPlatformRuntime";
 
-export default function FreshPlatformRuntimeBoundary({ route, children }: { route: string; children: React.ReactNode }) {
+export default function FreshPlatformRuntimeBoundary({ route, children }: { route: string; children: ReactNode }) {
   useEffect(() => {
     let active = true;
     void supabase.auth.getUser().then(({ data }) => {
