@@ -20,6 +20,8 @@ import type { Short } from "../../shorts/types/short";
 import { getSocialAuthorIds } from "../core/social";
 import { useFreshFlowFeedRefresh } from "../core/useFreshFlowFeedRefresh";
 import { useFreshFlowRuntime } from "../core/useFreshFlowRuntime";
+import { FreshFlowTelemetryBuffer } from "../core/freshFlowTelemetry";
+import { recordFreshFlowEvents } from "../../../core/platform/freshPlatformRuntime";
 import {
   SHORT_DISCOVERY_TABS,
   shortDiscoveryToCategory,
@@ -103,7 +105,27 @@ export default function FreshFlowShortsStream({
   const pageRef = useRef(0);
   const loadMoreInFlightRef = useRef(false);
   const viewedRef = useRef<Set<string>>(new Set());
+  const telemetryRef = useRef(new FreshFlowTelemetryBuffer());
+  const sessionIdRef = useRef<string>(crypto.randomUUID());
   const { replaceQueue, appendQueue, setActive: setRuntimeActive } = useFreshFlowRuntime();
+
+  const flushTelemetry = async () => {
+    if (!user || isGuest || telemetryRef.current.size() === 0) return;
+    const records = telemetryRef.current.drain();
+    try {
+      await recordFreshFlowEvents(records.map((record) => ({
+        actorId: user.id,
+        mediaId: record.mediaId,
+        world: record.world,
+        event: record.event,
+        sessionId: record.sessionId,
+        positionMs: record.positionMs,
+        durationMs: record.durationMs,
+      })));
+    } catch {
+      // Telemetry must never block media playback.
+    }
+  };
 
   const load = async (tab: SubTab, mode: FilterMode) => {
     setLoading(true);
@@ -234,6 +256,13 @@ export default function FreshFlowShortsStream({
         if (shorts[activeIndex]) {
           viewedRef.current.add(shorts[activeIndex].id);
           setRuntimeActive(shorts[activeIndex].id);
+          telemetryRef.current.push({
+            event: "impression",
+            mediaId: shorts[activeIndex].id,
+            world: "short",
+            sessionId: sessionIdRef.current,
+          });
+          if (telemetryRef.current.size() >= 10) void flushTelemetry();
         }
       },
       { root: container, threshold: [0, 0.6, 1] },
@@ -241,6 +270,12 @@ export default function FreshFlowShortsStream({
     container.querySelectorAll<HTMLElement>(".fresh-flow-item").forEach((item) => observer.observe(item));
     return () => observer.disconnect();
   }, [shorts.length]);
+
+  useEffect(() => {
+    return () => {
+      void flushTelemetry();
+    };
+  }, [user?.id, isGuest]);
 
   useEffect(() => {
     try {
