@@ -13,9 +13,9 @@ export type FreshAIServerConfig = {
 
 export function getFreshAIServerConfig(): FreshAIServerConfig {
   return {
-    supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || null,
-    supabaseSecretKey: process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || null,
-    vercelEnvironment: process.env.VERCEL_ENV || null,
+    supabaseUrl: getServerEnv("SUPABASE_URL") || getServerEnv("VITE_SUPABASE_URL") || null,
+    supabaseSecretKey: getServerEnv("SUPABASE_SECRET_KEY") || getServerEnv("SUPABASE_SERVICE_ROLE_KEY") || null,
+    vercelEnvironment: getServerEnv("VERCEL_ENV") || null,
   };
 }
 
