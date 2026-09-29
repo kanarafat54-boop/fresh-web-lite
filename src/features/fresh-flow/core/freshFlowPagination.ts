@@ -1,5 +1,3 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-
 export const FRESH_FLOW_PAGE_SIZE = 24;
 
 export type FreshFlowPageCursor = {
@@ -26,7 +24,7 @@ export function nextFreshFlowCursor(current: string | null, received: number, pa
  * by keyset cursors without changing the runtime contract.
  */
 export async function fetchFreshFlowPage<T>(
-  query: ReturnType<SupabaseClient["from"]>,
+  query: { range: (start: number, end: number) => Promise<{ data: T[] | null; error: Error | null }> },
   cursor: string | null,
   pageSize = FRESH_FLOW_PAGE_SIZE,
 ) {
