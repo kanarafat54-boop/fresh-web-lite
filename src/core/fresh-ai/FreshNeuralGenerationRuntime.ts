@@ -1,13 +1,10 @@
-import { getServerEnv } from "../platform/serverEnv.js";
 /**
  * Fresh-owned neural generation runtime boundary.
  *
  * `fresh-unified-1` remains the single model identity. Image and avatar creation
  * are modalities/heads of that model, not provider-specific bots.
- *
- * This runtime deliberately refuses to fabricate an image until a Fresh-trained
- * checkpoint is installed. Training and checkpoint serving are the next phase.
  */
+import { getServerEnv } from "../platform/serverEnv.js";
 import { FRESH_UNIFIED_MODEL } from "./FreshUnifiedModelCore.js";
 
 export type FreshNeuralGenerationKind = "image" | "avatar";
@@ -42,7 +39,7 @@ export const FRESH_NEURAL_GENERATION_RUNTIME = {
 } as const;
 
 function checkpointId(): string | null {
-  const value = process.env.FRESH_UNIFIED_CHECKPOINT_ID?.trim();
+  const value = getServerEnv("FRESH_UNIFIED_CHECKPOINT_ID")?.trim();
   return value || null;
 }
 
@@ -59,8 +56,6 @@ export function generateFreshNeuralMedia(request: FreshNeuralGenerationRequest):
       reason: "No Fresh-trained checkpoint is installed. Train and register the Fresh Unified checkpoint before serving neural image generation.",
     };
   }
-  // The checkpoint-backed inference implementation is intentionally the next
-  // training/serving phase. Never substitute a provider API or procedural SVG.
   return {
     modelId: "fresh-unified-1",
     kind: request.kind,
