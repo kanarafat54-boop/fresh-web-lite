@@ -81,3 +81,5 @@ FeatureRegistry.register({ id: "life-services", name: "Digital Life", route: "/l
 FeatureRegistry.register({ id: "discovery", name: "Discovery", route: "/discovery", searchable: true, lazyLoader: () => import("../../features/workspaces/DiscoveryWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "opportunity", name: "Opportunity", route: "/opportunity", searchable: true, lazyLoader: () => import("../../features/workspaces/OpportunityWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "autonomous-engineering", name: "Autonomous Engineering", route: "/autonomous-engineering", searchable: true, lazyLoader: () => import("../../features/workspaces/AutonomousEngineeringWorkspace").then((m) => ({ default: m.default })) });
+
+FeatureRegistry.register({ id: "platform", name: "Fresh Platform", route: "/platform", searchable: true, lazyLoader: () => import("../../features/workspaces/UniversalPlatformWorkspace").then((m) => ({ default: m.default })) });
