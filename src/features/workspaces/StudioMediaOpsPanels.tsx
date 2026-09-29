@@ -25,13 +25,18 @@ import {
 type Props = {
   onAddStemSeparate?: () => void;
   contentId?: string;
+  /** Business tab: interactive + copyright + micro only */
+  compact?: boolean;
+  /** System tab: fit map + stack only */
+  showMapOnly?: boolean;
 };
 
-/**
- * Additive Studio panels — interactive nodes, copyright arbitration, micro-unlocks, architecture fit map.
- * Does not replace existing Studio panels; mount beside them.
- */
-export default function StudioMediaOpsPanels({ onAddStemSeparate, contentId = "studio-demo" }: Props) {
+export default function StudioMediaOpsPanels({
+  onAddStemSeparate,
+  contentId = "studio-demo",
+  compact = false,
+  showMapOnly = false,
+}: Props) {
   const [manifest, setManifest] = useState<InteractiveManifest>(() => demoInteractiveManifest(contentId));
   const [activeNodeId, setActiveNodeId] = useState(manifest.nodes[0]?.id ?? "");
   const [lastJump, setLastJump] = useState<ClientJumpEvent | null>(null);
@@ -89,20 +94,75 @@ export default function StudioMediaOpsPanels({ onAddStemSeparate, contentId = "s
     setUnlock(authorizeMicroUnlock(next));
   }
 
+  if (showMapOnly) {
+    return (
+      <>
+        <article className="studio-panel" style={{ gridColumn: "1 / -1" }}>
+          <div className="studio-panel-heading">
+            <span>Map</span>
+            <h2>Media ops fit</h2>
+          </div>
+          <p className="studio-muted">Architecture under the surface — status only.</p>
+          <div className="studio-ranking studio-fit-compact">
+            {Object.entries(byPillar).map(([pillar, rows]) => (
+              <div key={pillar} className="studio-fit-pillar">
+                <strong>{pillar}</strong>
+                {rows.map((row) => (
+                  <div key={row.id} className="studio-fit-row">
+                    <em>{row.status}</em>
+                    <span>{row.title}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </article>
+        <article className="studio-panel" style={{ gridColumn: "1 / -1" }}>
+          <div className="studio-panel-heading">
+            <span>Stack</span>
+            <h2>Unified tech · pillars</h2>
+          </div>
+          <div className="studio-ranking">
+            {ARCHITECTURE_PILLAR_MAP.map((row) => (
+              <div key={row.pillar} className="studio-fit-pillar">
+                <strong>{row.pillar}</strong>
+                <span className="studio-muted">{row.fwlHome}</span>
+              </div>
+            ))}
+          </div>
+          <div className="studio-ranking" style={{ marginTop: 12 }}>
+            {UNIFIED_TECH_STACK.map((layer) => (
+              <div key={layer.layer}>
+                <span>{layer.status}</span>
+                <span>
+                  <b>{layer.layer}</b>
+                  <br />
+                  <small style={{ opacity: 0.7 }}>{layer.technologies.join(" · ")}</small>
+                </span>
+                <em>{layer.status}</em>
+              </div>
+            ))}
+          </div>
+        </article>
+      </>
+    );
+  }
+
   return (
     <>
+      {!compact && null}
       <article className="studio-panel">
         <div className="studio-panel-heading">
-          <span>07</span>
+          <span>Live</span>
           <h2>Interactive nodes</h2>
         </div>
-        <p className="studio-muted">
-          Branching & quiz nodes live in the media manifest. Client jump switches segments without resetting the player pipeline.
-        </p>
+        <p className="studio-muted">Branching choices jump segments without resetting the player.</p>
         {activeNode ? (
           <div className="studio-escrow" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
             <div>
-              <span>{activeNode.kind.toUpperCase()} · @{activeNode.atSeconds}s</span>
+              <span>
+                {activeNode.kind.toUpperCase()} · @{activeNode.atSeconds}s
+              </span>
               <strong style={{ display: "block", marginTop: 6 }}>{activeNode.prompt}</strong>
             </div>
             <div className="studio-actions">
@@ -121,7 +181,7 @@ export default function StudioMediaOpsPanels({ onAddStemSeparate, contentId = "s
                     setQuizResult(null);
                   }}
                 >
-                  Restart demo tree
+                  Restart
                 </button>
               )}
             </div>
@@ -134,45 +194,39 @@ export default function StudioMediaOpsPanels({ onAddStemSeparate, contentId = "s
             )}
           </div>
         ) : (
-          <p className="studio-muted">No interactive nodes in manifest.</p>
+          <p className="studio-muted">No nodes.</p>
         )}
       </article>
 
       <article className="studio-panel">
         <div className="studio-panel-heading">
-          <span>08</span>
-          <h2>Stem · Copyright · Micro-unlock</h2>
+          <span>Rights</span>
+          <h2>Copyright · Micro-unlock</h2>
         </div>
-        <p className="studio-muted">
-          Stem-separate is a render-graph edit. Copyright holds proceeds neutrally. Micro-unlocks are sandbox state machines until Stripe/treasury adapters connect.
-        </p>
         <div className="studio-actions">
           <button type="button" onClick={() => onAddStemSeparate?.()}>
-            + Stem-separate edit
+            + Stem edit
           </button>
           <button type="button" onClick={openClaim}>
             Open claim + hold
           </button>
           <button type="button" onClick={startMicroUnlock}>
-            Micro-unlock series
+            Micro-unlock
           </button>
           {claim && (
             <>
               <button type="button" onClick={() => setClaim((c) => (c ? runFairUseClassifier(c, 0.28) : c))}>
-                Fair-use (low)
+                Fair-use
               </button>
               <button type="button" onClick={() => setClaim((c) => (c ? runFairUseClassifier(c, 0.91) : c))}>
-                Similarity (high)
+                High similarity
               </button>
               <button type="button" onClick={() => setClaim((c) => (c ? resolveClaim(c, "creator") : c))}>
-                Resolve → creator
-              </button>
-              <button type="button" onClick={() => setClaim((c) => (c ? resolveClaim(c, "claimant") : c))}>
-                Resolve → claimant
+                Resolve creator
               </button>
             </>
           )}
-          {unlock && unlock.status === "authorized" && (
+          {unlock?.status === "authorized" && (
             <button type="button" onClick={() => setUnlock((u) => (u ? fulfillMicroUnlock(u) : u))}>
               Fulfill unlock
             </button>
@@ -183,7 +237,6 @@ export default function StudioMediaOpsPanels({ onAddStemSeparate, contentId = "s
             <span>Claim {claim.status}</span>
             <b>
               {claim.currency} {(claim.heldAmountMinor / 100).toFixed(2)}
-              {claim.similarityScore != null ? ` · sim ${claim.similarityScore.toFixed(2)}` : ""}
             </b>
           </div>
         )}
@@ -191,76 +244,10 @@ export default function StudioMediaOpsPanels({ onAddStemSeparate, contentId = "s
           <div className="studio-job">
             <span>Unlock {unlock.status}</span>
             <b>
-              {unlock.currency} {(unlock.amountMinor / 100).toFixed(2)} · {unlock.provider}
+              {unlock.currency} {(unlock.amountMinor / 100).toFixed(2)}
             </b>
           </div>
         )}
-      </article>
-
-      <article className="studio-panel" style={{ gridColumn: "1 / -1" }}>
-        <div className="studio-panel-heading">
-          <span>09</span>
-          <h2>Media ops fit map</h2>
-        </div>
-        <p className="studio-muted">
-          How the high-concurrency / WASM / ML stack maps onto Fresh Web Lite — existing surfaces only; adapters pending where marked.
-        </p>
-        <div className="studio-ranking">
-          {Object.entries(byPillar).map(([pillar, rows]) => (
-            <div key={pillar} style={{ display: "block", gridColumn: "1 / -1" }}>
-              <strong style={{ textTransform: "uppercase", fontSize: 11, letterSpacing: "0.08em" }}>{pillar}</strong>
-              {rows.map((row) => (
-                <div key={row.id} style={{ marginTop: 6 }}>
-                  <span>{row.status}</span>
-                  <span>
-                    <b>{row.title}</b>
-                    <br />
-                    <small style={{ opacity: 0.7 }}>
-                      {row.fwlSurface} · {row.coreModule}
-                    </small>
-                  </span>
-                  <em>{row.status}</em>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </article>
-
-      <article className="studio-panel" style={{ gridColumn: "1 / -1" }}>
-        <div className="studio-panel-heading">
-          <span>10</span>
-          <h2>Unified tech stack · pillar map</h2>
-        </div>
-        <p className="studio-muted">Your architecture sections mapped to FWL homes — nothing removed, only fitted.</p>
-        <div className="studio-ranking">
-          {ARCHITECTURE_PILLAR_MAP.map((row) => (
-            <div key={row.pillar} style={{ display: "block", gridColumn: "1 / -1", marginTop: 8 }}>
-              <strong>{row.pillar}</strong>
-              <p className="studio-muted" style={{ margin: "4px 0" }}>
-                Spec: {row.userSpec}
-              </p>
-              <p className="studio-muted" style={{ margin: 0 }}>
-                FWL: {row.fwlHome}
-              </p>
-            </div>
-          ))}
-        </div>
-        <div className="studio-ranking" style={{ marginTop: 16 }}>
-          {UNIFIED_TECH_STACK.map((layer) => (
-            <div key={layer.layer} style={{ marginTop: 6 }}>
-              <span>{layer.status}</span>
-              <span>
-                <b>{layer.layer}</b>
-                <br />
-                <small style={{ opacity: 0.7 }}>{layer.technologies.join(" · ")}</small>
-                <br />
-                <small style={{ opacity: 0.55 }}>{layer.fwlModules.join(" · ")}</small>
-              </span>
-              <em>{layer.status}</em>
-            </div>
-          ))}
-        </div>
       </article>
     </>
   );
