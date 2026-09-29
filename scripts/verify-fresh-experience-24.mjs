@@ -1,0 +1,36 @@
+import fs from "node:fs";
+import path from "node:path";
+
+const root = process.cwd();
+const checks = [
+  ["primary mobile navigation", "src/app/components/BottomNav.tsx", ["label: \"Home\"", "label: \"Flow\"", "label: \"Create\"", "label: \"Work\"", "label: \"Profile\""]],
+  ["Create uses a real route", "src/app/components/BottomNav.tsx", ["id: \"studio\""]],
+  ["desktop Create uses Studio", "src/app/components/DesktopSidebar.tsx", ['go("studio")']],
+  ["Home command center", "src/features/home/HomeDashboard.tsx", ["YOUR FRESH HOME", "What do you want to do?", "Pick up where you left off"]],
+  ["Home Ask Fresh action", "src/features/home/HomeDashboard.tsx", ['fresh-ai-open']],
+  ["Home universal command", "src/features/home/HomeDashboard.tsx", ["UniversalCommandBar"]],
+  ["Home feed remains visible", "src/features/home/HomeDashboard.tsx", ["FeedModule"]],
+  ["Flow remains a first-class route", "src/app/components/BottomNav.tsx", ['id: "fresh-flow"']],
+  ["Flow dedicated surface", "src/app/AppRouter.css", [".fresh-flow-app-shell .fresh-desktop-sidebar{display:none}"]],
+  ["Flow media worlds remain available", "src/features/fresh-flow/FreshFlowHub.tsx", ["Shorts", "Long Videos", "News / Posts", "AR / VR", "Podcasts", "Others"]],
+  ["Topbar has universal search", "src/app/components/TopBar.tsx", ["Search anything across Fresh"]],
+  ["Topbar has Fresh AI", "src/app/components/TopBar.tsx", ["Open Fresh AI"]],
+  ["Topbar has notifications", "src/app/components/TopBar.tsx", ["Notifications"]],
+  ["Topbar has profile", "src/app/components/TopBar.tsx", ["Open profile", "Sign in"]],
+  ["No dead Create route in TopBar", "src/app/components/TopBar.tsx", ["setActiveRoute(\"studio\")"]]
+];
+
+for (const [name, file, tokens] of checks) {
+  const content = fs.readFileSync(path.join(root, file), "utf8");
+  for (const token of tokens) {
+    if (!content.includes(token)) throw new Error(`${name}: missing ${token} in ${file}`);
+  }
+}
+
+const homeCss = fs.readFileSync(path.join(root, "src/features/home/HomeDashboard.css"), "utf8");
+for (const token of ["@media(max-width:900px)", "@media(max-width:520px)", "fresh-home-action-grid"]) {
+  if (!homeCss.includes(token)) throw new Error(`Home responsive contract missing ${token}`);
+}
+
+console.log("Fresh Experience 24 visible-product contracts: PASS");
+console.log("Primary navigation, Home command center, Flow surface, search, AI, profile, Create routing, and responsive Home contracts verified.");
