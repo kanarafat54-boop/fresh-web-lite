@@ -24,13 +24,20 @@ export function fundEscrow(input: Omit<EscrowRecord, "id" | "status">): EscrowRe
 }
 
 export function verifyMilestone(record: EscrowRecord): EscrowRecord {
+  if (record.status === "released" || record.status === "refunded") return record;
   if (record.status !== "funded" && record.status !== "milestone-pending") return record;
   return { ...record, status: "milestone-pending" };
 }
 
+/** Release funds after milestone. Accepts funded (auto-verifies) or milestone-pending. */
 export function releaseEscrow(record: EscrowRecord): EscrowRecord {
-  if (record.status !== "milestone-pending") return record;
-  return { ...record, status: "released" };
+  if (record.status === "released") return record;
+  if (record.status === "refunded" || record.status === "disputed") return record;
+  // funded → release so a single click never looks dead
+  if (record.status === "funded" || record.status === "milestone-pending") {
+    return { ...record, status: "released" };
+  }
+  return record;
 }
 
 export function disputeEscrow(record: EscrowRecord): EscrowRecord {
