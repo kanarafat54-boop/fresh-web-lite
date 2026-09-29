@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabase";
+import { callTreasuryServer } from "./treasuryServer";
 import type { PaymentMethodDef } from "./paymentRails";
 import { RAILS_SANDBOX_MODE } from "./paymentRails";
 
@@ -51,25 +52,26 @@ export async function createRailRequest(params: {
   };
 
   if (RAILS_SANDBOX_MODE) {
-    const { data, error } = await supabase.rpc("treasury_create_and_sandbox_settle_rail_request", {
-      p_direction: params.direction,
-      p_method_id: params.method.id,
-      p_family: params.method.family,
-      p_amount_minor: params.amountMinor,
-      p_currency_code: params.currencyCode,
-      p_instrument_id: null,
-      p_metadata: meta,
-    });
-
-    if (error) throw new RailRequestError(error.message);
-    if (!data) throw new RailRequestError("Rail request was not created");
-
-    const row = data as {
+    let row: {
       request_id: string;
       ledger_transaction_id: string;
       status: string;
       sandbox: boolean;
     };
+    try {
+      row = await callTreasuryServer<typeof row>("create_and_sandbox_settle_rail_request", {
+        direction: params.direction,
+        methodId: params.method.id,
+        family: params.method.family,
+        amountMinor: params.amountMinor,
+        currencyCode: params.currencyCode,
+        instrumentId: null,
+        metadata: meta,
+      });
+    } catch (error) {
+      throw new RailRequestError(error instanceof Error ? error.message : "Rail request failed");
+    }
+    if (!row) throw new RailRequestError("Rail request was not created");
 
     return {
       requestId: row.request_id,
@@ -79,19 +81,21 @@ export async function createRailRequest(params: {
     };
   }
 
-  const { data, error } = await supabase.rpc("treasury_create_rail_request", {
-    p_direction: params.direction,
-    p_method_id: params.method.id,
-    p_family: params.method.family,
-    p_amount_minor: params.amountMinor,
-    p_currency_code: params.currencyCode,
-    p_instrument_id: null,
-    p_metadata: meta,
-  });
-
-  if (error) throw new RailRequestError(error.message);
-  if (!data) throw new RailRequestError("Rail request was not created");
-  return { requestId: data as string, status: "pending", sandbox: false };
+  try {
+    const data = await callTreasuryServer<string>("create_rail_request", {
+      direction: params.direction,
+      methodId: params.method.id,
+      family: params.method.family,
+      amountMinor: params.amountMinor,
+      currencyCode: params.currencyCode,
+      instrumentId: null,
+      metadata: meta,
+    });
+    if (!data) throw new RailRequestError("Rail request was not created");
+    return { requestId: data, status: "pending", sandbox: false };
+  } catch (error) {
+    throw new RailRequestError(error instanceof Error ? error.message : "Rail request failed");
+  }
 }
 
 export async function listMyRailRequests(limit = 20): Promise<RailRequestRow[]> {
