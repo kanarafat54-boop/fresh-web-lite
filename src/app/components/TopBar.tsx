@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BellIcon, ChevronDownIcon, SearchIcon } from "../../components/Icons";
+import { BellIcon, ChevronDownIcon, SearchIcon, SettingsIcon } from "../../components/Icons";
 import { useLayout } from "../contexts/useLayout";
 import { useFreshId } from "../../features/fresh-id/context/FreshIdContext";
 import { AuthForm } from "../../features/fresh-id/components/AuthForm";
