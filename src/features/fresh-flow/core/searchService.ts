@@ -32,7 +32,7 @@ export type TopicResult = {
 
 async function namesFor(authorIds: string[]): Promise<Map<string, string>> {
   if (authorIds.length === 0) return new Map();
-  const { data } = await supabase.from("users").select("id, full_name, username").in("id", authorIds);
+  const { data } = await supabase.from("user_public_profiles").select("id, full_name, username").in("id", authorIds);
   return new Map((data ?? []).map((row: any) => [row.id, row.full_name?.trim() || row.username || "Unknown"]));
 }
 
@@ -124,7 +124,7 @@ export async function searchWebInfo(query: string): Promise<IntelligenceResponse
 
 export async function searchPeople(query: string, limit = 20): Promise<PersonResult[]> {
   const { data, error } = await supabase
-    .from("users")
+    .from("user_public_profiles")
     .select("id, username, full_name")
     .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
     .limit(limit);
