@@ -28,10 +28,13 @@ function externalAnswerProviderEnabled(): boolean {
 }
 
 export class FreshAIProviderRouter {
-  constructor(
-    private readonly native: FreshAIProvider,
-    private readonly external?: FreshAIProvider,
-  ) {}
+  private readonly native: FreshAIProvider;
+  private readonly external?: FreshAIProvider;
+
+  constructor(native: FreshAIProvider, external?: FreshAIProvider) {
+    this.native = native;
+    this.external = external;
+  }
 
   async generate(request: FreshAIProviderRequest): Promise<FreshAIProviderResult> {
     if (await this.native.available()) return this.native.generate(request);
