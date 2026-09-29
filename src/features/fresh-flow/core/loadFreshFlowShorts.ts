@@ -45,7 +45,7 @@ export async function loadFreshFlowShorts(
   const authorIds = [...new Set(rows.map((row) => row.author_id))];
   let profileMap = new Map<string, { full_name: string; username: string }>();
   if (authorIds.length > 0) {
-    const { data: profilesData } = await supabase.from("users").select("id, full_name, username").in("id", authorIds);
+    const { data: profilesData } = await supabase.from("user_public_profiles").select("id, full_name, username").in("id", authorIds);
     profileMap = new Map((profilesData ?? []).map((u: any) => [u.id, u]));
   }
 
