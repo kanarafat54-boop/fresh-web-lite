@@ -35,6 +35,7 @@ export type FreshFlowRuntimeState = {
   cursor: string | null;
   hasMore: boolean;
   lastError: string | null;
+  loadingMore: boolean;
 };
 
 export const FRESH_FLOW_PAGE_SIZE = 24;
@@ -42,7 +43,7 @@ export const FRESH_FLOW_PREFETCH_AHEAD = 6;
 export const FRESH_FLOW_MAX_QUEUE = 60;
 
 export function createFreshFlowRuntimeState(): FreshFlowRuntimeState {
-  return { phase: "idle", activeId: null, queue: [], cursor: null, hasMore: true, lastError: null };
+  return { phase: "idle", activeId: null, queue: [], cursor: null, hasMore: true, lastError: null, loadingMore: false };
 }
 
 export function mergeFreshFlowQueue(
