@@ -1,8 +1,17 @@
-// @ts-nocheck
 // Supabase Realtime's channel generics are isolated at this adapter boundary.
 // Runtime payloads are validated before dispatch; the rest of the platform remains strictly typed.
 import { supabase } from "../../lib/supabase";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+
+type FreshRealtimeChannel = {
+  on(
+    type: "broadcast",
+    config: { event: string },
+    callback: (payload: { payload: unknown }) => void,
+  ): FreshRealtimeChannel;
+  subscribe(): Promise<unknown>;
+  send(payload: { type: "broadcast"; event: string; payload: RealtimeEvent }): Promise<unknown>;
+};
 
 export type RealtimeEvent =
   | { type: "chat"; channelId: string; message: string; senderId: string }
