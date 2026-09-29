@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabase";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type RealtimeEvent =
   | { type: "chat"; channelId: string; message: string; senderId: string }
@@ -14,7 +15,7 @@ export interface RealtimeTransport {
 }
 
 export class SupabaseRealtimeTransport implements RealtimeTransport {
-  private channel: ReturnType<typeof supabase.channel> | null = null;
+  private channel: RealtimeChannel | null = null;
   private listeners = new Set<(event: RealtimeEvent) => void>();
 
   constructor(private readonly channelId: string) {}
