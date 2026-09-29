@@ -335,7 +335,7 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
               <div className="fresh-flow-podcast-featured-body">
                 <span className="fresh-flow-podcast-host">@{hero.authorUsername}</span>
                 <h3>{hero.content?.slice(0, 90) || "Featured episode"}</h3>
-                <button type="button" className="fresh-flow-podcast-play-all" onClick={() => setActiveId(hero.id)}>
+                <button type="button" className="fresh-flow-podcast-play-all" onClick={() => setRuntimeActive(hero.id)}>
                   ▶ Play episode
                 </button>
                 <MediaActions post={hero} />
@@ -345,7 +345,7 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
           <ul className="fresh-flow-podcast-list">
             {posts.map((post, i) => (
               <li key={post.id} className={activeId === post.id ? "active" : ""}>
-                <button type="button" className="fresh-flow-podcast-row" onClick={() => setActiveId(post.id)}>
+                <button type="button" className="fresh-flow-podcast-row" onClick={() => setRuntimeActive(post.id)}>
                   <span className="fresh-flow-podcast-ep-num">{String(i + 1).padStart(2, "0")}</span>
                   <span className="fresh-flow-podcast-row-art">
                     <PosterMedia post={post} />
@@ -391,7 +391,7 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
                     </div>
                   </div>
                   {post.content && <p>{post.content}</p>}
-                  <button type="button" className="fresh-flow-vr-enter-btn" onClick={() => setActiveId(post.id)}>
+                  <button type="button" className="fresh-flow-vr-enter-btn" onClick={() => setRuntimeActive(post.id)}>
                     Enter experience
                   </button>
                   <MediaActions post={post} />
