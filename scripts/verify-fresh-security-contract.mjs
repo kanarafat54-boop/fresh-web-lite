@@ -17,7 +17,7 @@ const required = [
   ["Password recovery exists", freshId.includes("resetPasswordForEmail")],
   ["Password update exists", freshId.includes("supabase.auth.updateUser({ password")],
   ["Logout signs out Supabase", freshId.includes("supabase.auth.signOut()")],
-  ["Runtime startup boundary exists", router.includes("RuntimeErrorBoundary") || fs.readFileSync(path.join(root, "src/main.tsx"), "utf8").includes("RuntimeErrorBoundary")),
+  ["Runtime startup boundary exists", router.includes("RuntimeErrorBoundary") || fs.readFileSync(path.join(root, "src/main.tsx"), "utf8").includes("RuntimeErrorBoundary")],
   ["Security contract is part of CI", workflow.includes("test:fresh-security-contract")],
 ];
 
