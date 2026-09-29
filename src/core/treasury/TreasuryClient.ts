@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabase";
+import { callTreasuryServer } from "./treasuryServer";
 
 export type TreasuryAssetKind = "fiat" | "crypto" | "fresh-coin" | "token";
 
@@ -59,15 +60,17 @@ export class TreasuryClient {
     assetKind: TreasuryAssetKind,
     displayName?: string,
   ): Promise<string> {
-    const { data, error } = await supabase.rpc("treasury_ensure_user_account", {
-      p_asset_code: assetCode,
-      p_asset_kind: assetKind,
-      p_display_name: displayName ?? null,
-    });
-
-    if (error) throw new TreasuryClientError(error.message);
-    if (!data) throw new TreasuryClientError("Treasury account was not created");
-    return data as string;
+    try {
+      const data = await callTreasuryServer<string>("ensure_user_account", {
+        assetCode,
+        assetKind,
+        displayName: displayName ?? null,
+      });
+      if (!data) throw new TreasuryClientError("Treasury account was not created");
+      return data;
+    } catch (error) {
+      throw new TreasuryClientError(error instanceof Error ? error.message : "Treasury request failed");
+    }
   }
 
   async getMyBalances(): Promise<TreasuryBalance[]> {
@@ -117,15 +120,16 @@ export class TreasuryClient {
    * other user data.
    */
   async resolveRecipient(username: string, assetCode: string = "FRESH"): Promise<TreasuryRecipient> {
-    const { data, error } = await supabase.rpc("treasury_resolve_recipient", {
-      p_username: username,
-      p_asset_code: assetCode,
-    });
-
-    if (error) throw new TreasuryClientError(error.message);
-    const row = Array.isArray(data) ? data[0] : data;
-    if (!row) throw new TreasuryClientError("No matching Fresh account found for that username");
-    return { accountId: row.account_id as string, displayName: row.display_name as string };
+    try {
+      const row = await callTreasuryServer<{ account_id: string; display_name: string } | null>(
+        "resolve_recipient",
+        { username, assetCode },
+      );
+      if (!row) throw new TreasuryClientError("No matching Fresh account found for that username");
+      return { accountId: row.account_id, displayName: row.display_name };
+    } catch (error) {
+      throw new TreasuryClientError(error instanceof Error ? error.message : "Treasury request failed");
+    }
   }
 
   async transferInternal(params: {
@@ -142,18 +146,19 @@ export class TreasuryClient {
       throw new TreasuryClientError("A strong idempotency key is required");
     }
 
-    const { data, error } = await supabase.rpc("treasury_transfer_internal", {
-      p_from_account_id: params.fromAccountId,
-      p_to_account_id: params.toAccountId,
-      p_amount_minor: params.amountMinor,
-      p_idempotency_key: params.idempotencyKey,
-      p_description: params.description ?? "Fresh internal transfer",
-    });
-
-    if (error) throw new TreasuryClientError(error.message);
-    if (!data) throw new TreasuryClientError("Treasury transfer did not return a transaction id");
-
-    return data as string;
+    try {
+      const data = await callTreasuryServer<string>("transfer_internal", {
+        fromAccountId: params.fromAccountId,
+        toAccountId: params.toAccountId,
+        amountMinor: params.amountMinor,
+        idempotencyKey: params.idempotencyKey,
+        description: params.description ?? "Fresh internal transfer",
+      });
+      if (!data) throw new TreasuryClientError("Treasury transfer did not return a transaction id");
+      return data;
+    } catch (error) {
+      throw new TreasuryClientError(error instanceof Error ? error.message : "Treasury request failed");
+    }
   }
 }
 
