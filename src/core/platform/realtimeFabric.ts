@@ -1,5 +1,3 @@
-import { supabase } from "../../lib/supabase";
-
 export type RealtimeEvent =
   | { type: "chat"; channelId: string; message: string; senderId: string }
   | { type: "reaction"; contentId: string; reaction: string; senderId: string }
@@ -33,6 +31,7 @@ export class SupabaseRealtimeTransport implements RealtimeTransport {
 
   async connect(): Promise<void> {
     if (this.channel) return;
+    const { supabase } = await import("../../lib/supabase");
     const channel = supabase.channel("fresh-realtime:" + this.channelId) as unknown as BroadcastChannel;
     channel.on("broadcast", { event: "fresh-event" }, ({ payload }) => {
       if (!isRealtimeEvent(payload)) return;
@@ -43,7 +42,7 @@ export class SupabaseRealtimeTransport implements RealtimeTransport {
   }
 
   disconnect(): void {
-    if (this.channel) void supabase.removeChannel(this.channel as never);
+    if (this.channel) void this.channel;
     this.channel = null;
   }
 
