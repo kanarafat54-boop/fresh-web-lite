@@ -39,6 +39,8 @@ jobs:
         run: npm run test:remote-media-worker-contract
       - name: Unified media runtime contract
         run: npm run test:fresh-media-runtime
+      - name: Media publishing bridge contract
+        run: npm run test:fresh-media-publishing
       - name: Build
         run: npm run build
       - name: Lint
