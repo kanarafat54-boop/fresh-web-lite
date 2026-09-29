@@ -8,6 +8,7 @@ export type FreshFlowInteractionInput = {
   interactionValue?: string | null;
   parentId?: string | null;
   payload?: Record<string, unknown>;
+  stateKey?: string | null;
 };
 
 export async function persistFreshFlowInteraction(input: FreshFlowInteractionInput) {
@@ -19,6 +20,7 @@ export async function persistFreshFlowInteraction(input: FreshFlowInteractionInp
     interaction_value: input.interactionValue ?? null,
     parent_id: input.parentId ?? null,
     payload: input.payload ?? {},
+    state_key: input.stateKey ?? null,
   });
 
   if (error) throw new Error(`Fresh Flow interaction failed: ${error.message}`);
