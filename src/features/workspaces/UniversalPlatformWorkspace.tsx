@@ -5,7 +5,7 @@ import {
   FRESH_PLATFORM_CAPABILITIES,
   type FreshPlatformPhase,
 } from "../../core/platform/freshUniversalPlatformFabric";
-import { saveFreshContext, recordFreshFlowEvents } from "../../core/platform/freshPlatformRuntime";
+import { saveFreshContext } from "../../core/platform/freshPlatformRuntime";
 import "./WorkspacePage.css";
 
 export default function UniversalPlatformWorkspace() {
@@ -20,8 +20,7 @@ export default function UniversalPlatformWorkspace() {
       const id = data.user?.id ?? null;
       setUserId(id);
       if (id) {
-        void saveFreshContext({ userId: id, route: "/platform", context: { phase } });
-        void recordFreshFlowEvents([{ userId: id, eventType: "platform.opened", metadata: { phase } }]);
+        void saveFreshContext({ userId: id, world: "platform", context: { phase } });
       }
     });
     return () => { mounted = false; };
