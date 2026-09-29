@@ -195,7 +195,7 @@ export default function StudioWorkspace() {
 
   const queueRemoteRender = async () => {
     const remoteInput = project?.sourceUrl?.trim() ?? "";
-    if (!/^https?:\\/\\//i.test(remoteInput)) {
+    if (!/^https?:\/\//i.test(remoteInput)) {
       setMessage("Remote FFmpeg requires an HTTP(S) source URL. Local browser media remains device-only until an explicit upload is wired.");
       return;
     }
