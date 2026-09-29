@@ -29,7 +29,11 @@ export default function BottomNav() {
               className={`fresh-nav-item${active ? " active" : ""}`}
               aria-current={active ? "page" : undefined}
               aria-label={label}
-              onClick={() => {\n                const known = ["feed", "fresh-flow", "studio", "work", "profile"].includes(id);\n                if (!known) { pushNotification({ id: `nav-${Date.now()}`, title: "Fresh action unavailable", message: "This destination is not ready yet." }); return; }\n                setActiveRoute(id);\n              }}
+              onClick={() => {
+                const known = ["feed", "fresh-flow", "studio", "work", "profile"].includes(id);
+                if (!known) { pushNotification({ id: `nav-${Date.now()}`, title: "Fresh action unavailable", message: "This destination is not ready yet." }); return; }
+                setActiveRoute(id);
+              }}
             >
               <span className="fresh-nav-icon" aria-hidden="true"><Icon size={id === "studio" ? 26 : 24} /></span>
               <span className="fresh-nav-label">{label}</span>
