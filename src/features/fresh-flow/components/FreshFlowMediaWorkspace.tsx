@@ -5,6 +5,7 @@ import { CommentPanel } from "../../comments/components/CommentPanel";
 import { ReactionPicker } from "../../reactions/components/ReactionPicker";
 import { applyDiscoveryFilter, matchesMediaKind, type DiscoverablePost } from "../core/applyDiscoveryFilter";
 import { getSocialAuthorIds } from "../core/social";
+import { useFreshFlowRuntime } from "../core/useFreshFlowRuntime";
 import "./FreshFlowMediaWorkspace.css";
 
 type MediaWorkspaceProps = {
@@ -44,7 +45,8 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [commentsFor, setCommentsFor] = useState<string | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const { state: runtimeState, replaceQueue, setActive: setRuntimeActive } = useFreshFlowRuntime();
+  const activeId = runtimeState.activeId;
 
   async function loadMedia() {
     setLoading(true);
@@ -89,7 +91,7 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
     const profileMap = new Map<string, { full_name: string; username: string }>();
     if (authorIds.length) {
       const { data: profiles, error: profileError } = await supabase
-        .from("users")
+        .from("user_public_profiles")
         .select("id, full_name, username")
         .in("id", authorIds);
       if (profileError) {
@@ -122,12 +124,24 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
     });
     setPosts(mapped);
     setSavedIds(saved);
-    if (mapped.length && !activeId) setActiveId(mapped[0].id);
+    replaceQueue(mapped.map((post) => ({
+      id: post.id,
+      kind: kind === "long-videos" ? "long-video" : kind === "ar-vr" ? "vr" : kind === "podcasts" ? "podcast" : "interactive",
+      world: kind === "ar-vr" ? "vr-ar" : kind,
+      authorId: post.authorId,
+      title: post.content?.slice(0, 90) || title,
+      description: post.content ?? "",
+      mediaUrl: post.videoUrl,
+      posterUrl: post.imageUrl,
+      createdAt: post.createdAt,
+      safety: "approved",
+    })), null, false);
+    if (mapped.length && !activeId) setRuntimeActive(mapped[0].id);
     setLoading(false);
   }
 
   useEffect(() => {
-    setActiveId(null);
+    setRuntimeActive(null);
     void loadMedia();
   }, [kind, discoveryId, user?.id, isGuest]);
 
@@ -247,7 +261,7 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
               <span className="fresh-flow-cinematic-kicker">@{hero.authorUsername} · {timeAgo(hero.createdAt)}</span>
               <h3>{hero.content?.slice(0, 80) || "Featured Long Video"}</h3>
               <div className="fresh-flow-cinematic-cta">
-                <button type="button" className="fresh-flow-cta-play" onClick={() => setActiveId(hero.id)}>
+                <button type="button" className="fresh-flow-cta-play" onClick={() => setRuntimeActive(hero.id)}>
                   ▶ Play
                 </button>
                 <button type="button" className="fresh-flow-cta-icon" onClick={() => void toggleSave(hero)} disabled={isGuest} aria-label="Save">
@@ -272,7 +286,7 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
                     key={post.id}
                     type="button"
                     className={`fresh-flow-continue-card ${activeId === post.id ? "active" : ""}`}
-                    onClick={() => setActiveId(post.id)}
+                    onClick={() => setRuntimeActive(post.id)}
                   >
                     {post.imageUrl || post.videoUrl ? (
                       post.imageUrl ? (
