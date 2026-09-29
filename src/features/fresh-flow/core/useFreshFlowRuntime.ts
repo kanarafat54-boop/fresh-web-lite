@@ -22,6 +22,10 @@ export function useFreshFlowRuntime() {
     }));
   }, []);
 
+  const beginAppend = useCallback(() => setState((current) => ({ ...current, loadingMore: true })), []);
+
+  const endAppend = useCallback(() => setState((current) => ({ ...current, loadingMore: false })), []);
+
   const appendQueue = useCallback((items: FreshFlowItem[], cursor: string | null, hasMore: boolean) => {
     setState((current) => ({
       ...current,
@@ -30,6 +34,7 @@ export function useFreshFlowRuntime() {
       cursor,
       hasMore,
       lastError: null,
+      loadingMore: false,
     }));
   }, []);
 
@@ -51,6 +56,8 @@ export function useFreshFlowRuntime() {
     activeIndex,
     replaceQueue,
     appendQueue,
+    beginAppend,
+    endAppend,
     setActive,
     setError,
     shouldPrefetch: shouldPrefetch(Math.max(0, activeIndex), state.queue.length, state.hasMore),
