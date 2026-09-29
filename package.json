@@ -43,7 +43,8 @@
     "test:fresh-security-contract": "node scripts/verify-fresh-security-contract.mjs",
     "test:fresh-flow-fabric": "node scripts/verify-fresh-flow-fabric.mjs",
     "test:fresh-media-worker-contract": "node scripts/verify-fresh-media-worker-contract.mjs",
-    "test:remote-media-worker-contract": "node scripts/verify-remote-media-worker-contract.mjs"
+    "test:remote-media-worker-contract": "node scripts/verify-remote-media-worker-contract.mjs",
+    "test:fresh-media-runtime": "node scripts/verify-fresh-media-runtime.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
