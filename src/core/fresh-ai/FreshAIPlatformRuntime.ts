@@ -1,7 +1,8 @@
-import type { FreshConversationTurn, FreshExecutionResult, FreshGoalInterpretation } from "./FreshAIArchitecture.js";
+import type { FreshConversationTurn, FreshGoalInterpretation } from "./FreshAIArchitecture.js";
 import type { FreshAIRequest, FreshAIResponse, FreshAIIntelligenceGatewayDependencies } from "./FreshAIIntelligenceGateway.js";
 import { createFreshAIIntelligenceGateway } from "./FreshAIIntelligenceGateway.js";
 import { createFreshAIWorkspaceContext, type FreshAIWorkspaceContext } from "./FreshAIWorkspaceContext.js";
+import { understandFreshGoal } from "./FreshGoalUnderstanding.js";
 import { FRESH_UNIFIED_MODEL } from "./FreshUnifiedModelCore.js";
 
 export type FreshAIPlatformStep = {
@@ -48,10 +49,13 @@ export function createFreshAIPlatformRuntime(
   dependencies: FreshAIIntelligenceGatewayDependencies,
 ): FreshAIPlatformRuntime {
   const gateway = createFreshAIIntelligenceGateway(dependencies);
+
   const workspace = (route = "/", patch: Partial<FreshAIWorkspaceContext> = {}) =>
     ({ ...createFreshAIWorkspaceContext(route), ...patch }) as FreshAIWorkspaceContext;
 
-  const handle = async (request: Omit<FreshAIRequest, "requestId"> & { requestId?: string }): Promise<FreshAIResponse> =>
+  const handle = async (
+    request: Omit<FreshAIRequest, "requestId"> & { requestId?: string },
+  ): Promise<FreshAIResponse> =>
     gateway.handle({
       ...request,
       requestId: request.requestId ?? crypto.randomUUID(),
@@ -70,18 +74,7 @@ export function createFreshAIPlatformRuntime(
     interpret: (input, conversation = []) => {
       const text = input.trim();
       if (!text) throw new Error("Fresh AI requires a non-empty goal");
-      return gateway["__unused"] ? (null as never) : ({
-        intent: "answer",
-        objective: text,
-        desiredOutcome: "Directly satisfy the user's request.",
-        outputMode: "answer",
-        needsEvidence: false,
-        needsAction: false,
-        needsClarification: text.length < 4,
-        constraints: [],
-        entities: [],
-        contextDependency: conversation.length ? "conversation" : "none",
-      } as FreshGoalInterpretation);
+      return understandFreshGoal(text, conversation);
     },
     handle,
     execute: (request) => handle({ ...request, execute: request.execute ?? true }),
