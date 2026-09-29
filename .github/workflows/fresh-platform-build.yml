@@ -29,6 +29,8 @@ jobs:
         run: npm run test:fresh-ai-profile-creator-actions
       - name: Runtime capability contract
         run: npm run test:fresh-runtime-capabilities
+      - name: Security/auth contract
+        run: npm run test:fresh-security-contract
       - name: Build
         run: npm run build
       - name: Lint
