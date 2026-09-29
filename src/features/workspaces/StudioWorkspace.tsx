@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getComputeCapabilities, planCompute } from "../../core/platform/freshComputeFabric";
 import { addEdit, createRenderDocument, createRenderJob, type MediaEdit, type RenderDocument, type RenderJob } from "../../core/platform/mediaRenderGraph";
 import { DEFAULT_RECOMMENDATION_WEIGHTS, normalizeWeights, rerankCandidates } from "../../core/platform/recommendationEngine";
-import { DEFAULT_MEDIA_PIPELINE, createMediaPipelineJob, type MediaPipelineJob } from "../../core/platform/mediaPipeline";
+import { DEFAULT_MEDIA_PIPELINE, createMediaPipelineJob, runMediaPipeline, type MediaPipelineJob } from "../../core/platform/mediaPipeline";
+import { createBrowserSpeechRecognition, getBrowserSpeechCapability } from "../../core/platform/browserSpeech";
 import { fundEscrow, releaseEscrow, verifyMilestone } from "../../core/platform/escrowLedger";
 import { createMediaProject, listMediaProjects, saveMediaProject, updateMediaProject, type FreshMediaProject } from "../../core/platform/mediaProjectStore";
 import { exportVideoFrameStream, getBrowserExportSupport } from "../../core/platform/browserMediaExport";
@@ -34,6 +35,8 @@ export default function StudioWorkspace() {
   const [browserSupport] = useState(() => getBrowserExportSupport());
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [message, setMessage] = useState("Import media to begin a real device-side Studio project.");
+  const [transcript, setTranscript] = useState("");
+  const speechSupported = useMemo(() => getBrowserSpeechCapability().supported, []);
   const [trimStart, setTrimStart] = useState(0);
   const [trimEnd, setTrimEnd] = useState(30);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -110,6 +113,35 @@ export default function StudioWorkspace() {
       setPlaybackRate(state.playbackRate);
       setMessage("Playback position restored from this device.");
     }
+  };
+
+  const runBrowserTranscription = () => {
+    const recognition = createBrowserSpeechRecognition();
+    if (!recognition) {
+      setMessage("Browser speech recognition is not supported on this device.");
+      return;
+    }
+    setTranscript("");
+    recognition.onresult = (event: any) => {
+      const text = Array.from(event.results ?? [])
+        .map((result: any) => result?.[0]?.transcript ?? "")
+        .join(" ");
+      setTranscript(text.trim());
+    };
+    recognition.onerror = () => setMessage("Browser transcription stopped with an error.");
+    recognition.onend = () => setMessage("Browser transcription completed locally.");
+    recognition.start();
+    setMessage("Listening locally for speech…");
+  };
+
+  const runLocalPipelineSmoke = async () => {
+    const inputId = project?.id ?? document.source.id;
+    const job = createMediaPipelineJob(inputId, ["ingest"]);
+    const result = await runMediaPipeline(job, async (_current, stage) => {
+      if (stage === "ingest" && !sourcePreview) throw new Error("Import media before running the ingest check.");
+    });
+    setPipelineJob(result);
+    setMessage(result.status === "complete" ? "Local media pipeline ingest check completed." : result.error ?? "Pipeline check failed.");
   };
 
   const runLocalWasm = async () => {
@@ -214,10 +246,11 @@ export default function StudioWorkspace() {
           <button onClick={restorePlayback}>Restore position</button>
         </div>}
         {sourcePreview && <div className="studio-actions">
-          <button onClick={runLocalWasm}>Run local WASM</button>
+          <button onClick={runLocalWasm}>Run local WASM</button><button onClick={runLocalPipelineSmoke} disabled={!project}>Run ingest check</button><button onClick={runBrowserTranscription} disabled={!speechSupported}>Transcribe locally</button>
           <button onClick={exportDocument} disabled={exporting}>{exporting ? "Rendering…" : "Render current graph"}</button>
           {exportUrl && <a className="studio-download" href={exportUrl} download="fresh-web-lite-9x16.webm">Open exported video</a>}
         </div>}
+        <p className="studio-muted">Local speech: {speechSupported ? "available" : "unavailable"}{transcript ? ` · ${transcript.slice(0, 180)}` : ""}</p>
         <p className="studio-muted">Browser export: {browserSupport.mediaRecorder && browserSupport.canvasCapture ? "available" : "fallback required"} · WASM: executable · render graph: executable</p>
         <p className="studio-muted">Object URLs stay local to this browser session. Studio does not expose source files to the public feed.</p>
       </article>
