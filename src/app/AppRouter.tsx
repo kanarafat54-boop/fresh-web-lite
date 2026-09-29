@@ -19,7 +19,7 @@ export default function AppRouter() {
   const activeFeature = FeatureRegistry.getFeature(activeRoute);
 
   if (freshFlowRoute) {
-    return <div className="app-shell fresh-flow-app-shell fresh-shell-frame"><TopBar /><DesktopSidebar /><main className="app-content fresh-flow-content-root"><FreshFlowHub /></main><WorkspaceContextPanel /><BottomNav /><NotificationCenter /><GlobalSearchEntry /></div>;
+    return <div className="app-shell fresh-flow-app-shell fresh-shell-frame"><DesktopSidebar /><main className="app-content fresh-flow-content-root"><FreshFlowHub /></main><BottomNav /><NotificationCenter /><GlobalSearchEntry /></div>;
   }
 
   return <div className="app-shell fresh-shell-frame">
