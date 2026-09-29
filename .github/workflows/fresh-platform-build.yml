@@ -43,6 +43,8 @@ jobs:
         run: npm run test:fresh-media-publishing
       - name: Phases 15-22 certification
         run: npm run test:fresh-phases-15-22
+      - name: Phases 15-24 certification
+        run: npm run test:fresh-phases-15-24
       - name: Build
         run: npm run build
       - name: Lint
