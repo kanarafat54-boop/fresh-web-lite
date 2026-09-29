@@ -27,7 +27,7 @@ export default function AppRouter() {
     <DesktopSidebar />
     <div className="app-body">
       <main className="app-content">
-        {activeFeature ? <FreshPlatformRuntimeBoundary route={activeRoute}><FeatureLoader feature={activeFeature} /></FreshPlatformRuntimeBoundary> : <div className="empty-state">Select a workspace</div>}
+        {activeFeature ? <FreshPlatformRuntimeBoundary route={activeRoute ?? activeFeature.id}><FeatureLoader feature={activeFeature} /></FreshPlatformRuntimeBoundary> : <div className="empty-state">Select a workspace</div>}
       </main>
     </div>
     <WorkspaceContextPanel />
