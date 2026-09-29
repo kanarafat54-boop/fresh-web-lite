@@ -7,11 +7,9 @@ import "../../features/fresh-flow/components/FreshFlowReferenceShell.css";
 import "./TopBar.css";
 
 export default function TopBar() {
-  const { toggleSidebar, setActiveRoute, notifications, openNotifications, openSearch, activeRoute } = useLayout();
+  const { toggleSidebar, setActiveRoute, notifications, openNotifications, openSearch } = useLayout();
   const { isAuthenticated, setAuthView } = useFreshId();
   const [showAuth, setShowAuth] = useState(false);
-  const isFreshFlow = typeof activeRoute === "string" && activeRoute.startsWith("fresh-flow");
-
   function openAuth() { setAuthView("form"); setShowAuth(true); }
   function openProfile() { if (isAuthenticated) setActiveRoute("profile"); else openAuth(); }
   const authOverlay = showAuth && !isAuthenticated ? (
@@ -20,17 +18,7 @@ export default function TopBar() {
     </div>
   ) : null;
 
-  if (isFreshFlow) return (
-    <>
-      <header className="fresh-topbar" aria-label="Fresh Flow top navigation">
-        <div className="fresh-topbar-brand"><button className="fresh-topbar-tool" onClick={toggleSidebar} aria-label="Open navigation"><span>☰</span></button><div className="fresh-topbar-logo" aria-label="FWL">FWL</div><div><div className="fresh-topbar-title">FRESH WEB <span>LITE</span></div><div className="fresh-topbar-subtitle">The Universal AI Platform</div></div></div>
-        <div className="fresh-topbar-actions" aria-label="Fresh Flow tools"><button className="fresh-topbar-tool" onClick={openSearch} aria-label="Search"><SearchIcon size={19} /></button><button className="fresh-topbar-tool" onClick={() => openNotifications()} aria-label="Notifications"><BellIcon size={19} /></button><button className="fresh-topbar-tool" onClick={() => setActiveRoute("settings")} aria-label="Settings"><SettingsIcon size={19} /></button><button className="fresh-topbar-tool" onClick={() => window.dispatchEvent(new CustomEvent("fresh-ai-open"))} aria-label="Open Fresh AI"><span>✦</span></button></div>
-        <button className="fresh-topbar-avatar" onClick={openProfile} aria-label={isAuthenticated ? "Profile" : "Sign in"}><span aria-hidden="true">👤</span><span className="fresh-topbar-online" aria-hidden="true" /></button>
-      </header>
-      <div className="fresh-flow-reference-header"><button type="button" className="fresh-flow-search" onClick={openSearch} aria-label="Search anything on Fresh"><span className="fresh-flow-search-icon"><SearchIcon size={17} /></span><span>Search anything on Fresh...</span></button><button type="button" className="fresh-flow-reference-more" onClick={toggleSidebar} aria-label="More Fresh Flow navigation"><span>•••</span><span>⌁</span></button></div>
-      {authOverlay}
-    </>
-  );
+  function openCreate() { setActiveRoute("studio"); }
 
   return (
     <>
