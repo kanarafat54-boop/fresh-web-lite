@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BellIcon, ChevronDownIcon, SearchIcon, SettingsIcon } from "../../components/Icons";
+import { BellIcon, ChevronDownIcon, SearchIcon } from "../../components/Icons";
 import { useLayout } from "../contexts/useLayout";
 import { useFreshId } from "../../features/fresh-id/context/FreshIdContext";
 import { AuthForm } from "../../features/fresh-id/components/AuthForm";
@@ -11,7 +11,6 @@ export default function TopBar() {
   const { isAuthenticated, setAuthView } = useFreshId();
   const [showAuth, setShowAuth] = useState(false);
   const isFreshFlow = typeof activeRoute === "string" && activeRoute.startsWith("fresh-flow");
-  const openCreate = () => setActiveRoute("studio");
 
   function openAuth() { setAuthView("form"); setShowAuth(true); }
   function openProfile() { if (isAuthenticated) setActiveRoute("profile"); else openAuth(); }
