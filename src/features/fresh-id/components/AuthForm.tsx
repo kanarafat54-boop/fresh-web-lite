@@ -62,8 +62,8 @@ export function AuthForm() {
       return;
     }
 
-    if (password.length < 6) {
-      setSignupError("Your password must contain at least 6 characters.");
+    if (password.length < 12) {
+      setSignupError("Your password must contain at least 12 characters.");
       return;
     }
 
