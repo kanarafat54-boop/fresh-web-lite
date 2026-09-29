@@ -12,6 +12,7 @@ import { runWasmSmokeTest } from "../../core/platform/wasmRuntime";
 import { createThumbnail, probeMedia, submitMediaToWorker, waitForMediaWorker } from "../../core/platform/mediaRuntime";
 import { saveMediaAsset } from "../../core/platform/mediaStorage";
 import { useLayout } from "../../app/contexts/useLayout";
+import StudioMediaOpsPanels from "./StudioMediaOpsPanels";
 import "./WorkspacePage.css";
 import "./StudioWorkspace.css";
 
@@ -92,10 +93,6 @@ export default function StudioWorkspace() {
         });
     if (!nextProject) {
       setMessage("Media import could not create or update the local project.");
-      return;
-    }
-    if (!nextProject) {
-      setMessage("Could not save the imported project.");
       return;
     }
     setProject(nextProject);
@@ -239,11 +236,12 @@ export default function StudioWorkspace() {
     <header className="workspace-hero">
       <span className="workspace-eyebrow">Creation · Intelligence · Compute</span>
       <h1>Fresh Studio</h1>
-      <p>One production workspace: import, edit non-destructively, save, queue, preview execution, then hand off to the live Creator publishing system.</p>
+      <p>One production workspace: import, edit non-destructively, save, queue, preview execution, then hand off to the live Creator publishing system. High-concurrency media ops map into this surface without replacing Creator, Flow, or Treasury.</p>
       <div className="studio-hero-actions">
-        <button onClick={() => fileRef.current?.click()}>Import media</button>
-        <button onClick={persist}>Save project</button>
-        <button onClick={openCreator}>Open Creator</button>
+        <button type="button" onClick={() => fileRef.current?.click()}>Import media</button>
+        <button type="button" onClick={persist}>Save project</button>
+        <button type="button" onClick={openCreator}>Open Creator</button>
+        <button type="button" onClick={() => setActiveRoute("fresh-flow")}>Fresh Flow</button>
         <input ref={fileRef} hidden type="file" accept="video/*,audio/*,image/*" onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; if (file) importMedia(file); }} />
       </div>
       <p className="studio-message" role="status">{message}</p>
@@ -268,28 +266,36 @@ export default function StudioWorkspace() {
           onRateChange={(event) => setPlaybackRate(event.currentTarget.playbackRate)}
         /> : <div className="studio-preview-empty">Import a video to preview it privately on this device.</div>}
         {sourcePreview && <div className="studio-actions studio-player-controls">
-          <button onClick={() => { const next = Math.max(.25, playbackRate - .05); if (videoRef.current) videoRef.current.playbackRate = next; setPlaybackRate(next); }}>− 0.05×</button>
+          <button type="button" onClick={() => { const next = Math.max(.25, playbackRate - .05); if (videoRef.current) videoRef.current.playbackRate = next; setPlaybackRate(next); }}>− 0.05×</button>
           <strong>{playbackRate.toFixed(2)}×</strong>
-          <button onClick={() => { const next = Math.min(3, playbackRate + .05); if (videoRef.current) videoRef.current.playbackRate = next; setPlaybackRate(next); }}>+ 0.05×</button>
-          <button onClick={savePlayback}>Save position</button>
-          <button onClick={restorePlayback}>Restore position</button>
+          <button type="button" onClick={() => { const next = Math.min(3, playbackRate + .05); if (videoRef.current) videoRef.current.playbackRate = next; setPlaybackRate(next); }}>+ 0.05×</button>
+          <button type="button" onClick={savePlayback}>Save position</button>
+          <button type="button" onClick={restorePlayback}>Restore position</button>
         </div>}
         {sourcePreview && <div className="studio-actions">
-          <button onClick={runLocalWasm}>Run local WASM</button><button onClick={runLocalPipelineSmoke} disabled={!project}>Run ingest check</button><button onClick={runBrowserTranscription} disabled={!speechSupported}>Transcribe locally</button>
-          <button onClick={exportDocument} disabled={exporting}>{exporting ? "Rendering…" : "Render current graph"}</button>
+          <button type="button" onClick={runLocalWasm}>Run local WASM</button><button type="button" onClick={runLocalPipelineSmoke} disabled={!project}>Run ingest check</button><button type="button" onClick={runBrowserTranscription} disabled={!speechSupported}>Transcribe locally</button>
+          <button type="button" onClick={exportDocument} disabled={exporting}>{exporting ? "Rendering…" : "Render current graph"}</button>
           {exportUrl && <a className="studio-download" href={exportUrl} download="fresh-web-lite-9x16.webm">Open exported video</a>}
         </div>}
         <p className="studio-muted">Local speech: {speechSupported ? "available" : "unavailable"}{transcript ? ` · ${transcript.slice(0, 180)}` : ""}</p>
         <p className="studio-muted">Browser export: {browserSupport.mediaRecorder && browserSupport.canvasCapture ? "available" : "fallback required"} · WASM: executable · render graph: executable</p>
         <p className="studio-muted">Object URLs stay local to this browser session. Studio does not expose source files to the public feed.</p>
         {mediaInfo && <p className="studio-muted">Media: {Math.round(mediaInfo.duration)}s · {mediaInfo.width}×{mediaInfo.height} · {mediaInfo.aspectRatio.toFixed(2)}:1</p>}
-        {thumbnailUrl && <img className="studio-thumbnail" src={thumbnailUrl} alt="Generated media thumbnail" />
-        }
+        {thumbnailUrl && <img className="studio-thumbnail" src={thumbnailUrl} alt="Generated media thumbnail" />}
       </article>
 
       <article className="studio-panel"><div className="studio-panel-heading"><span>02</span><h2>Web NLE render graph</h2></div>
-        <p className="studio-muted">Non-destructive edits stay as a portable document until you queue rendering.</p>
-        <div className="studio-actions"><label>Trim start <input type="number" min="0" step=".1" value={trimStart} onChange={e => setTrimStart(Number(e.target.value))}/></label><label>Trim end <input type="number" min=".1" step=".1" value={trimEnd} onChange={e => setTrimEnd(Number(e.target.value))}/></label><button onClick={() => add({ type:"trim", start:Math.max(0, trimStart), end:Math.max(trimStart + .05, trimEnd) })}>+ Apply trim</button><button onClick={() => add({ type:"crop", aspect:"9:16", focus:"active-speaker" })}>+ Smart 9:16 crop</button><button onClick={() => add({ type:"grade", preset:"Fresh Clean", intensity:.65 })}>+ Color grade</button><button onClick={() => add({ type:"dub", language:"en", voice:"localized" })}>+ AI dub lane</button></div>
+        <p className="studio-muted">Non-destructive edits stay as a portable JSON AST until you queue rendering.</p>
+        <div className="studio-actions">
+          <label>Trim start <input type="number" min="0" step=".1" value={trimStart} onChange={e => setTrimStart(Number(e.target.value))}/></label>
+          <label>Trim end <input type="number" min=".1" step=".1" value={trimEnd} onChange={e => setTrimEnd(Number(e.target.value))}/></label>
+          <button type="button" onClick={() => add({ type:"trim", start:Math.max(0, trimStart), end:Math.max(trimStart + .05, trimEnd) })}>+ Apply trim</button>
+          <button type="button" onClick={() => add({ type:"crop", aspect:"9:16", focus:"active-speaker" })}>+ Smart 9:16 crop</button>
+          <button type="button" onClick={() => add({ type:"grade", preset:"Fresh Clean", intensity:.65 })}>+ Color grade</button>
+          <button type="button" onClick={() => add({ type:"dub", language:"en", voice:"localized" })}>+ AI dub lane</button>
+          <button type="button" onClick={() => add({ type:"stem-separate", model:"lightweight", lanes:["voice","music","ambient"] })}>+ Stem separate</button>
+          <button type="button" onClick={() => add({ type:"split", at: Math.max(0, trimStart) })}>+ Split</button>
+        </div>
         <div className="studio-stat-row"><strong>{document.edits.length}</strong><span>edits</span><strong>{document.output.width}×{document.output.height}</strong><span>target</span></div>
         <pre className="studio-code">{JSON.stringify(document, null, 2)}</pre>
       </article>
@@ -298,31 +304,75 @@ export default function StudioWorkspace() {
         <div className="studio-capabilities">{Object.entries(capabilities).map(([name,ready]) => <span key={name} className={ready ? "ready" : ""}>{name} · {ready ? "ready" : "fallback"}</span>)}</div>
         <div className="studio-route"><b>{compute.target.toUpperCase()}</b><span>{compute.reason}</span></div>
         <p className="studio-muted">Fallback: {compute.fallbacks.join(" → ")}</p>
-        <button onClick={queueRender} disabled={!project}>Queue render</button><button onClick={queueRemoteRender} disabled={!sourcePreview}>Run remote FFmpeg</button>
-        {renderJob && <div className="studio-job"><span>Render</span><b>{renderJob.status}</b><button onClick={exportDocument} disabled={renderJob.status !== "queued" || !sourcePreview}>{exporting ? "Rendering…" : "Render queued graph"}</button></div>}
+        <button type="button" onClick={queueRender} disabled={!project}>Queue render</button>
+        <button type="button" onClick={queueRemoteRender} disabled={!sourcePreview}>Run remote FFmpeg</button>
+        {renderJob && <div className="studio-job"><span>Render</span><b>{renderJob.status}</b><button type="button" onClick={exportDocument} disabled={renderJob.status !== "queued" || !sourcePreview}>{exporting ? "Rendering…" : "Render queued graph"}</button></div>}
       </article>
 
       <article className="studio-panel"><div className="studio-panel-heading"><span>04</span><h2>AI media pipeline</h2></div>
-        <p className="studio-muted">The same job contract can feed transcription, stem separation, subject detection, repurposing, translation, synthesis, packaging and publishing workers.</p>
+        <p className="studio-muted">Ingest → transcribe → separate-audio → detect-subjects → repurpose → translate → synthesize → package → publish.</p>
         <div className="studio-pipeline">{(pipelineJob?.stages ?? DEFAULT_MEDIA_PIPELINE).map((stage,i) => <span key={stage}>{i+1}. {stage}</span>)}</div>
         {pipelineJob && <div className="studio-job"><span>Pipeline</span><b>{pipelineJob.status}</b></div>}
       </article>
 
-      <article className="studio-panel"><div className="studio-panel-heading"><span>05</span><h2>User-controlled discovery</h2></div><p className="studio-muted">Live weights become normalized recommendation vectors.</p>
-        {Object.entries(weights).map(([key,value]) => <label className="studio-slider" key={key}><span>{key}</span><output>{Math.round(value*100)}%</output><input type="range" min="0" max="1" step=".05" value={value} onChange={e => setWeight(key as keyof typeof weights, Number(e.target.value))}/></label>)}
-        <div className="studio-ranking">{ranked.map(({candidate,score},i) => <div key={candidate.id}><b>{i+1}</b><span>{candidate.id}</span><em>{Math.round(score*100)}%</em></div>)}</div>
+      <article className="studio-panel"><div className="studio-panel-heading"><span>05</span><h2>Recommendation engine</h2></div>
+        <p className="studio-muted">Score = w₁·S_sub + w₂·S_niche + w₃·S_length + w₄·S_freshness. Sliders re-rank candidates on device.</p>
+        {(["subscription","niche","length","freshness"] as const).map((key) => (
+          <label className="studio-slider" key={key}>
+            {key} <output>{normalized[key].toFixed(2)}</output>
+            <input type="range" min={0} max={100} value={Math.round(weights[key] * 100)} onChange={(e) => setWeight(key, Number(e.target.value) / 100)} />
+          </label>
+        ))}
+        <div className="studio-ranking">
+          {ranked.map((row, index) => (
+            <div key={row.candidate.id}><span>{index + 1}</span><span>{row.candidate.id}</span><em>{row.score.toFixed(3)}</em></div>
+          ))}
+        </div>
       </article>
 
-      <article className="studio-panel"><div className="studio-panel-heading"><span>06</span><h2>Creator economy</h2></div>
-        <p className="studio-muted">Creator publishing remains the live source of truth for posts and Shorts; Studio hands off instead of duplicating publishing logic.</p>
-        <div className="studio-escrow"><b>{escrow.amountMinor.toLocaleString()} {escrow.currency}</b><span>{escrow.status}</span></div>
-        <button disabled={escrow.status==="released"} onClick={() => setEscrow(current => releaseEscrow(verifyMilestone(current)))}>{escrow.status==="released" ? "Released" : "Verify milestone & release"}</button>
+      <article className="studio-panel"><div className="studio-panel-heading"><span>06</span><h2>Brand escrow</h2></div>
+        <p className="studio-muted">Brand deposit → milestone verification → creator payout. Separate from user Treasury balances.</p>
+        <div className="studio-escrow">
+          <div>
+            <strong>{escrow.currency} {(escrow.amountMinor / 100).toFixed(2)}</strong>
+            <span>{escrow.status} · {escrow.milestone}</span>
+          </div>
+          <div className="studio-actions">
+            <button type="button" onClick={() => setEscrow((c) => verifyMilestone(c))}>Verify milestone</button>
+            <button type="button" onClick={() => setEscrow((c) => releaseEscrow(c))}>Release payout</button>
+          </div>
+        </div>
       </article>
+
+      <StudioMediaOpsPanels
+        contentId={project?.id ?? "studio-demo"}
+        onAddStemSeparate={() => add({ type: "stem-separate", model: "lightweight", lanes: ["voice", "music", "ambient"] })}
+      />
     </section>
 
     <section className="studio-panel studio-projects-panel">
-      <div className="studio-panel-heading"><span>07</span><h2>Recent projects</h2></div>
-      {projects.length ? <div className="studio-project-list">{projects.slice(0,8).map((item) => <button key={item.id} onClick={() => { setProject(item); if (item.renderDocument) setDocument(item.renderDocument as RenderDocument); setMessage("Resumed " + item.title + "."); }}><strong>{item.title}</strong><span>{item.sourceName ?? "No source"} · {item.pipelineStatus}</span></button>)}</div> : <p className="studio-muted">No saved projects yet.</p>}
+      <div className="studio-panel-heading"><span>10</span><h2>Recent projects</h2></div>
+      {projects.length ? (
+        <div className="studio-project-list">
+          {projects.map((item) => (
+            <button
+              type="button"
+              key={item.id}
+              onClick={() => {
+                setProject(item);
+                if (item.renderDocument && typeof item.renderDocument === "object") setDocument(item.renderDocument as RenderDocument);
+                if (item.sourceUrl) setSourcePreview(item.sourceUrl);
+                setMessage("Restored project " + item.title);
+              }}
+            >
+              <strong>{item.title}</strong>
+              <span>{item.pipelineStatus} · {item.sourceName ?? "no source"}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="studio-muted">Import media to create a local project.</p>
+      )}
     </section>
   </section>;
 }
