@@ -194,9 +194,13 @@ export default function StudioWorkspace() {
   };
 
   const queueRemoteRender = async () => {
-    if (!sourcePreview) return;
+    const remoteInput = project?.sourceUrl?.trim() ?? "";
+    if (!/^https?:\\/\\//i.test(remoteInput)) {
+      setMessage("Remote FFmpeg requires an HTTP(S) source URL. Local browser media remains device-only until an explicit upload is wired.");
+      return;
+    }
     try {
-      const accepted = await submitMediaToWorker(sourcePreview, "webm");
+      const accepted = await submitMediaToWorker(remoteInput, "webm");
       setMessage("Remote media job accepted: " + accepted.jobId);
       const result = await waitForMediaWorker(accepted.jobId);
       if (result.status === "succeeded") setMessage("Remote FFmpeg render completed. Output: " + (result.outputUrl ?? "available on worker"));
