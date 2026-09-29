@@ -17,7 +17,7 @@ const checks = [
   ["Topbar has Fresh AI", "src/app/components/TopBar.tsx", ["Open Fresh AI"]],
   ["Topbar has notifications", "src/app/components/TopBar.tsx", ["Notifications"]],
   ["Topbar has profile", "src/app/components/TopBar.tsx", ["Open profile", "Sign in"]],
-  ["No dead Create route in TopBar", "src/app/components/TopBar.tsx", ["setActiveRoute(\"studio\")"]]
+  ["Topbar does not point Create to a dead route", "src/app/components/TopBar.tsx", ["onClick={openNotifications}", "setActiveRoute(\"settings\")"]]
 ];
 
 for (const [name, file, tokens] of checks) {
