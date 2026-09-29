@@ -9,6 +9,7 @@ import { useLayout } from "./contexts/useLayout";
 import FeatureLoader from "./services/featureLoader";
 import FreshFlowHub from "../features/fresh-flow/FreshFlowHub";
 import "./AppRouter.css";
+import FreshPlatformRuntimeBoundary from "../core/platform/FreshPlatformRuntimeBoundary";
 
 const isFreshFlowRoute = (route?: string) => Boolean(route && (route === "fresh-flow" || route.startsWith("fresh-flow-")));
 
@@ -26,7 +27,7 @@ export default function AppRouter() {
     <DesktopSidebar />
     <div className="app-body">
       <main className="app-content">
-        {activeFeature ? <FeatureLoader feature={activeFeature} /> : <div className="empty-state">Select a workspace</div>}
+        {activeFeature ? <FreshPlatformRuntimeBoundary route={activeRoute}><FeatureLoader feature={activeFeature} /></FreshPlatformRuntimeBoundary> : <div className="empty-state">Select a workspace</div>}
       </main>
     </div>
     <WorkspaceContextPanel />
