@@ -32,14 +32,17 @@ jobs:
       - name: Fresh Flow performance contract
         run: node scripts/verify-fresh-flow-performance.mjs
 
+      - name: Fresh Flow runtime fabric contract
+        run: npm run test:fresh-flow-fabric
+
       - name: Fresh AI unified contract
         run: npm run test:fresh-ai
 
       - name: Fresh native dimensional contract
         run: npm run test:fresh-native-dimensions
 
-      - name: Lint Shorts-owned changes
-        run: npx eslint src/features/shorts/core/FreshShortsRuntime.ts src/features/fresh-flow/components/FreshFlowShortsExperience.tsx src/features/fresh-flow/core/shortsTelemetry.ts api/shorts/telemetry.ts
+      - name: Lint Shorts and Fresh Flow runtime changes
+        run: npx eslint src/features/shorts/core/FreshShortsRuntime.ts src/features/fresh-flow/components/FreshFlowShortsExperience.tsx src/features/fresh-flow/core/shortsTelemetry.ts src/features/fresh-flow/core/freshFlowRuntimeFabric.ts src/features/fresh-flow/core/freshFlowDiscovery.ts src/features/fresh-flow/core/freshFlowMediaPolicy.ts src/features/fresh-flow/core/freshFlowRealtime.ts src/features/fresh-flow/core/freshFlowTelemetry.ts api/shorts/telemetry.ts
 
       - name: Production build
         run: npm run build
