@@ -9,6 +9,8 @@ import { createMediaProject, listMediaProjects, saveMediaProject, updateMediaPro
 import { exportVideoFrameStream, getBrowserExportSupport } from "../../core/platform/browserMediaExport";
 import { loadPlaybackState, savePlaybackState } from "../../core/platform/playbackStateStore";
 import { runWasmSmokeTest } from "../../core/platform/wasmRuntime";
+import { createThumbnail, probeMedia, submitMediaToWorker, waitForMediaWorker } from "../../core/platform/mediaRuntime";
+import { saveMediaAsset } from "../../core/platform/mediaStorage";
 import { useLayout } from "../../app/contexts/useLayout";
 import "./WorkspacePage.css";
 import "./StudioWorkspace.css";
@@ -35,6 +37,8 @@ export default function StudioWorkspace() {
   const [browserSupport] = useState(() => getBrowserExportSupport());
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [message, setMessage] = useState("Import media to begin a real device-side Studio project.");
+  const [mediaInfo, setMediaInfo] = useState<{ duration: number; width: number; height: number; aspectRatio: number } | null>(null);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [transcript, setTranscript] = useState("");
   const speechSupported = useMemo(() => getBrowserSpeechCapability().supported, []);
   const [trimStart, setTrimStart] = useState(0);
@@ -77,6 +81,7 @@ export default function StudioWorkspace() {
     if (sourcePreview) URL.revokeObjectURL(sourcePreview);
     const url = URL.createObjectURL(file);
     setSourcePreview(url);
+    void Promise.all([probeMedia(url), createThumbnail(url)]).then(([info, thumbnail]) => { setMediaInfo(info); setThumbnailUrl(thumbnail); }).catch(() => setMessage("Media imported; metadata probe will retry when preview loads."));
     const nextProject = project
       ? updateMediaProject(project.id, { sourceName: file.name, sourceType: file.type, sourceUrl: url, pipelineStatus: "draft" })
       : saveMediaProject({
@@ -87,7 +92,8 @@ export default function StudioWorkspace() {
         });
     setProject(nextProject);
     setProjects(listMediaProjects());
-    setMessage("Imported " + file.name + ". Edits remain non-destructive until render.");
+    void file.arrayBuffer().then((bytes) => saveMediaAsset(nextProject.id, new Blob([bytes], { type: file.type }))).catch(() => {});
+    setMessage("Imported " + file.name + ". Metadata, thumbnail and local asset storage are wired.");
   };
 
   const savePlayback = async () => {
@@ -187,6 +193,17 @@ export default function StudioWorkspace() {
     }
   };
 
+  const queueRemoteRender = async () => {
+    if (!sourcePreview) return;
+    try {
+      const accepted = await submitMediaToWorker(sourcePreview, "webm");
+      setMessage("Remote media job accepted: " + accepted.jobId);
+      const result = await waitForMediaWorker(accepted.jobId);
+      if (result.status === "succeeded") setMessage("Remote FFmpeg render completed. Output: " + (result.outputUrl ?? "available on worker"));
+      else setMessage(result.error ?? "Remote media render failed.");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Remote render unavailable."); }
+  };
+
   const queueRender = () => {
     const execution = compute.target === "device" ? "device" : "cloud";
     const job = createRenderJob(document, execution);
@@ -253,6 +270,9 @@ export default function StudioWorkspace() {
         <p className="studio-muted">Local speech: {speechSupported ? "available" : "unavailable"}{transcript ? ` · ${transcript.slice(0, 180)}` : ""}</p>
         <p className="studio-muted">Browser export: {browserSupport.mediaRecorder && browserSupport.canvasCapture ? "available" : "fallback required"} · WASM: executable · render graph: executable</p>
         <p className="studio-muted">Object URLs stay local to this browser session. Studio does not expose source files to the public feed.</p>
+        {mediaInfo && <p className="studio-muted">Media: {Math.round(mediaInfo.duration)}s · {mediaInfo.width}×{mediaInfo.height} · {mediaInfo.aspectRatio.toFixed(2)}:1</p>}
+        {thumbnailUrl && <img className="studio-thumbnail" src={thumbnailUrl} alt="Generated media thumbnail" />
+        }
       </article>
 
       <article className="studio-panel"><div className="studio-panel-heading"><span>02</span><h2>Web NLE render graph</h2></div>
@@ -266,7 +286,7 @@ export default function StudioWorkspace() {
         <div className="studio-capabilities">{Object.entries(capabilities).map(([name,ready]) => <span key={name} className={ready ? "ready" : ""}>{name} · {ready ? "ready" : "fallback"}</span>)}</div>
         <div className="studio-route"><b>{compute.target.toUpperCase()}</b><span>{compute.reason}</span></div>
         <p className="studio-muted">Fallback: {compute.fallbacks.join(" → ")}</p>
-        <button onClick={queueRender} disabled={!project}>Queue render</button>
+        <button onClick={queueRender} disabled={!project}>Queue render</button><button onClick={queueRemoteRender} disabled={!sourcePreview}>Run remote FFmpeg</button>
         {renderJob && <div className="studio-job"><span>Render</span><b>{renderJob.status}</b><button onClick={exportDocument} disabled={renderJob.status !== "queued" || !sourcePreview}>{exporting ? "Rendering…" : "Render queued graph"}</button></div>}
       </article>
 
