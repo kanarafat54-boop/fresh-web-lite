@@ -52,7 +52,7 @@ const SECTION_COPY = {
  * Layer B (Discovery) and Layer C (Experience) stay contextual inside each world.
  */
 export default function FreshFlowHub() {
-  const { activeRoute, setActiveRoute, toggleSidebar, notifications, openNotifications, openSearch } = useLayout();
+  const { activeRoute, setActiveRoute, openSearch } = useLayout();
   const { isAuthenticated, user, isGuest } = useFreshId();
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
   const world = worldByRouteId(section);
