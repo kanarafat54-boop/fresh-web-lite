@@ -497,8 +497,8 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     setError(null);
     setMessage(null);
     setLoading(true);
-    if (!newPassword || newPassword.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (!newPassword || newPassword.length < 12) {
+      setError("Password must be at least 12 characters.");
       setLoading(false);
       return;
     }
