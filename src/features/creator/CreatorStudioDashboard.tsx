@@ -42,6 +42,27 @@ const TABS: { id: StudioTab; label: string }[] = [
   { id: "monetize", label: "Monetize" },
 ];
 
+const LOCAL_DRAFTS_KEY = "fresh.creator.localDrafts";
+
+function loadLocalDrafts(): Draft[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_DRAFTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Draft[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalDrafts(list: Draft[]) {
+  try {
+    localStorage.setItem(LOCAL_DRAFTS_KEY, JSON.stringify(list.slice(0, 40)));
+  } catch {
+    /* quota */
+  }
+}
+
 async function uploadMedia(userId: string, file: File): Promise<{ url: string; kind: "image" | "video" }> {
   const isVideo = file.type.startsWith("video/");
   const bucket = isVideo ? "post-videos" : "post-images";
@@ -100,7 +121,7 @@ export default function CreatorStudioDashboard() {
   async function load() {
     if (!user) {
       setLoading(false);
-      setDrafts([]);
+      setDrafts(loadLocalDrafts());
       setItems([]);
       setAnalytics({});
       return;
@@ -119,7 +140,10 @@ export default function CreatorStudioDashboard() {
         supabase.from("user_content_analytics").select("*").eq("user_id", user.id).maybeSingle(),
       ]);
       if (draftResult.error) setError(draftResult.error.message);
-      setDrafts((draftResult.data ?? []) as Draft[]);
+      const remote = (draftResult.data ?? []) as Draft[];
+      const local = loadLocalDrafts();
+      const remoteIds = new Set(remote.map((d) => d.id));
+      setDrafts([...local.filter((d) => !remoteIds.has(d.id)), ...remote]);
       setItems(
         (libraryResult ?? []).map((item) => ({ ...item, title: item.kind === "short" ? "Short" : "Post" })),
       );
@@ -148,13 +172,31 @@ export default function CreatorStudioDashboard() {
   }, [analytics, drafts, items, user]);
 
   async function saveDraft() {
-    if (!user) {
-      setError("Sign in with Fresh ID to save drafts.");
+    if (!content.trim() && !media) {
+      setError("Add text or media before saving a draft.");
       return;
     }
-    if (!content.trim() && !media) return;
     setError(null);
     setMessage(null);
+
+    if (!user) {
+      const draft: Draft = {
+        id: `local-${crypto.randomUUID()}`,
+        kind: mode,
+        content: content.trim(),
+        media_url: media?.url ?? null,
+        status: "draft",
+        created_at: new Date().toISOString(),
+      };
+      const next = [draft, ...loadLocalDrafts()].slice(0, 40);
+      saveLocalDrafts(next);
+      setDrafts(next);
+      setContent("");
+      setMedia(null);
+      setMessage("Draft saved on this device. Sign in to sync across devices.");
+      return;
+    }
+
     try {
       const data = await saveCreatorDraft({
         userId: user.id,
@@ -174,10 +216,13 @@ export default function CreatorStudioDashboard() {
 
   async function publishNow() {
     if (!user) {
-      setError("Sign in with Fresh ID to publish.");
+      setError("Sign in with Fresh ID to publish to Fresh Flow.");
       return;
     }
-    if (!content.trim() && !media) return;
+    if (!content.trim() && !media) {
+      setError("Add text or media before publishing.");
+      return;
+    }
     if (mode === "short" && media?.kind !== "video") {
       setError("A Short requires a video upload.");
       return;
@@ -213,10 +258,19 @@ export default function CreatorStudioDashboard() {
   }
 
   async function deleteDraft(id: string) {
-    if (!user) return;
+    if (id.startsWith("local-") || !user) {
+      const next = loadLocalDrafts().filter((d) => d.id !== id);
+      saveLocalDrafts(next);
+      setDrafts((c) => c.filter((d) => d.id !== id));
+      setMessage("Draft deleted.");
+      return;
+    }
     const { error: deleteError } = await supabase.from("creator_drafts").delete().eq("id", id).eq("user_id", user.id);
     if (deleteError) setError(deleteError.message);
-    else setDrafts((c) => c.filter((d) => d.id !== id));
+    else {
+      setDrafts((c) => c.filter((d) => d.id !== id));
+      setMessage("Draft deleted.");
+    }
   }
 
   function restoreDraft(draft: Draft) {
@@ -285,8 +339,8 @@ export default function CreatorStudioDashboard() {
 
       {!user && (
         <div className="creator-auth-banner" role="status">
-          <strong>Fresh ID unlocks publish, drafts, and live analytics.</strong>
-          <span>Design, Audio, Monetize, and Distribute tools work now on this device.</span>
+          <strong>Local drafts, Design, Audio, Monetize & Distribute work now.</strong>
+          <span>Sign in with Fresh ID only when you are ready to publish live or sync drafts.</span>
           <button type="button" className="publish" onClick={goSignIn}>
             Sign in with Fresh ID
           </button>
@@ -394,12 +448,15 @@ export default function CreatorStudioDashboard() {
                   const file = e.target.files?.[0];
                   e.currentTarget.value = "";
                   if (!file) return;
-                  if (!user) {
-                    setError("Sign in with Fresh ID to upload media.");
-                    return;
-                  }
                   try {
                     setError(null);
+                    if (!user) {
+                      const isVideo = file.type.startsWith("video/");
+                      const url = URL.createObjectURL(file);
+                      setMedia({ url, kind: isVideo ? "video" : "image" });
+                      setMessage("Media attached on this device. Sign in to upload for publish.");
+                      return;
+                    }
                     setMedia(await uploadMedia(user.id, file));
                     setMessage("Media uploaded.");
                   } catch (reason: unknown) {
@@ -408,7 +465,7 @@ export default function CreatorStudioDashboard() {
                 }}
               />
               <div className="creator-editor-actions">
-                <button type="button" onClick={() => (user ? fileRef.current?.click() : setError("Sign in to upload media."))}>
+                <button type="button" onClick={() => fileRef.current?.click()}>
                   ＋ Media
                 </button>
                 <button type="button" onClick={() => void saveDraft()} disabled={!content.trim() && !media}>
@@ -435,15 +492,16 @@ export default function CreatorStudioDashboard() {
                 </div>
                 <span>{drafts.length}</span>
               </div>
-              {!user ? (
-                <p className="creator-muted">Sign in to sync drafts across devices.</p>
-              ) : loading ? (
+              {loading ? (
                 <p>Loading…</p>
               ) : drafts.length ? (
                 drafts.map((d) => (
                   <article className="draft-row" key={d.id}>
                     <div>
-                      <strong>{d.kind === "short" ? "Short" : "Post"} draft</strong>
+                      <strong>
+                        {d.kind === "short" ? "Short" : "Post"} draft
+                        {d.id.startsWith("local-") ? " · local" : ""}
+                      </strong>
                       <p>{d.content || "Media-only draft"}</p>
                       <small>{new Date(d.created_at).toLocaleString()}</small>
                     </div>
@@ -458,7 +516,9 @@ export default function CreatorStudioDashboard() {
                   </article>
                 ))
               ) : (
-                <p className="creator-muted">No drafts yet.</p>
+                <p className="creator-muted">
+                  {user ? "No drafts yet." : "No local drafts yet — Save draft works without sign-in."}
+                </p>
               )}
             </section>
           </div>
