@@ -9,7 +9,8 @@ const explore: NavItem[] = [
 ];
 export default function DesktopSidebar() {
   const { activeRoute, setActiveRoute } = useLayout();
-  const go = (id: string) => setActiveRoute(id);\n  const isActive = (id: string) => id === "fresh-flow" ? Boolean(activeRoute?.startsWith("fresh-flow")) : activeRoute === id;
+  const go = (id: string) => setActiveRoute(id);
+  const isActive = (id: string) => id === "fresh-flow" ? Boolean(activeRoute?.startsWith("fresh-flow")) : activeRoute === id;
   return <aside className="fresh-desktop-sidebar" aria-label="Fresh workspace navigation">
     <div className="fresh-sidebar-workspace"><div className="fresh-sidebar-mark">F</div><div><strong>Fresh</strong><span>Everything connected</span></div></div>
     <button className="fresh-sidebar-create" type="button" onClick={() => go("studio")}><span>＋</span><strong>Create</strong><kbd>⌘ N</kbd></button>
