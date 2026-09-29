@@ -1,5 +1,6 @@
 import { supabase } from "../../../lib/supabase";
 import { treasuryClient } from "../../../core/treasury/TreasuryClient";
+import { callTreasuryServer } from "../../../core/treasury/treasuryServer";
 
 export type GiftTotal = { count: number; totalMinor: string };
 
@@ -11,12 +12,10 @@ export type GiftTotal = { count: number; totalMinor: string };
 export async function sendGift(shortId: string, authorId: string, amountMinor: string): Promise<void> {
   const myAccountId = await treasuryClient.ensureUserAccount("FRESH", "fresh-coin", "Fresh Coin");
 
-  const { data, error } = await supabase.rpc("treasury_resolve_recipient_by_id", {
-    p_recipient_id: authorId,
-    p_asset_code: "FRESH",
-  });
-  if (error) throw new Error(error.message);
-  const row = Array.isArray(data) ? data[0] : data;
+  const row = await callTreasuryServer<{ account_id: string; display_name: string } | null>(
+    "resolve_recipient_by_id",
+    { recipientId: authorId, assetCode: "FRESH" },
+  );
   if (!row) throw new Error("This creator doesn't have a Fresh Coin account yet.");
 
   const transactionId = await treasuryClient.transferInternal({
