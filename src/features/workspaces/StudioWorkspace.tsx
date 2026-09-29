@@ -3,7 +3,7 @@ import { getComputeCapabilities, planCompute } from "../../core/platform/freshCo
 import { addEdit, createRenderDocument, createRenderJob, type MediaEdit, type RenderDocument, type RenderJob } from "../../core/platform/mediaRenderGraph";
 import { DEFAULT_RECOMMENDATION_WEIGHTS, normalizeWeights, rerankCandidates } from "../../core/platform/recommendationEngine";
 import { DEFAULT_MEDIA_PIPELINE, createMediaPipelineJob, runMediaPipeline, type MediaPipelineJob } from "../../core/platform/mediaPipeline";
-import { createBrowserSpeechRecognition, getBrowserSpeechCapability } from "../../core/platform/browserSpeech";
+import { createBrowserSpeechRecognition, getBrowserSpeechCapability, type BrowserSpeechRecognitionEvent } from "../../core/platform/browserSpeech";
 import { fundEscrow, releaseEscrow, verifyMilestone } from "../../core/platform/escrowLedger";
 import { createMediaProject, listMediaProjects, saveMediaProject, updateMediaProject, type FreshMediaProject } from "../../core/platform/mediaProjectStore";
 import { exportVideoFrameStream, getBrowserExportSupport } from "../../core/platform/browserMediaExport";
@@ -122,9 +122,9 @@ export default function StudioWorkspace() {
       return;
     }
     setTranscript("");
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: BrowserSpeechRecognitionEvent) => {
       const text = Array.from(event.results ?? [])
-        .map((result: any) => result?.[0]?.transcript ?? "")
+        .map((result) => result?.[0]?.transcript ?? "")
         .join(" ");
       setTranscript(text.trim());
     };
