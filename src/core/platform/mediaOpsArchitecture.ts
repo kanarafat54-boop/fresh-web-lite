@@ -131,9 +131,9 @@ export const MEDIA_OPS_FIT: MediaOpsFit[] = [
     pillar: "community",
     title: "Domain expertise / signal-value comment ranking",
     fwlSurface: "Comments panel",
-    coreModule: "features/comments (extend)",
-    status: "adapter-pending",
-    note: "Comment UI live. LLM + badge signal scorer is next on Comments.",
+    coreModule: "commentSignalRanking",
+    status: "contract-ready",
+    note: "Signal scorer live (badges · relevance · contribution · recency). LLM classifier + badge source adapters pending.",
   },
 
   // 4 · Finance
@@ -142,9 +142,9 @@ export const MEDIA_OPS_FIT: MediaOpsFit[] = [
     pillar: "finance",
     title: "Smart sponsor & micro-subscription escrow",
     fwlSurface: "Studio brand escrow · Wallet / Treasury scopes",
-    coreModule: "escrowLedger · treasury",
+    coreModule: "escrowLedger · microSubscription · treasury",
     status: "contract-ready",
-    note: "fund → milestone → release state machine live in Studio. Settlement to treasury_entries is adapter-pending.",
+    note: "fund → milestone → release + micro-unlock state machines live. Settlement to treasury_entries is adapter-pending.",
   },
   {
     id: "copyright-arbitration",
@@ -201,6 +201,15 @@ export const MEDIA_OPS_FIT: MediaOpsFit[] = [
     coreModule: "treasury · escrowLedger · mediaProjectStore",
     status: "live",
     note: "Postgres + double-entry treasury. High-throughput log streams (Kafka/Scylla) adapter-pending.",
+  },
+  {
+    id: "high-concurrency",
+    pillar: "stack",
+    title: "High-concurrency microservices & streaming pipelines",
+    fwlSurface: "Studio · Fresh Flow · Platform fabric",
+    coreModule: "unifiedTechStack · freshComputeFabric · eventFabric",
+    status: "contract-ready",
+    note: "Architecture map + device compute routing live. Full microservice fleet is deployment-side.",
   },
 ];
 
