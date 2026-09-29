@@ -116,7 +116,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     const ids = [...new Set((data ?? []).map((row: any) => row.author_id).filter(Boolean))];
     let profiles: any[] = [];
     if (ids.length) {
-      const result = await supabase.from("users").select("id,full_name,username").in("id", ids);
+      const result = await supabase.from("user_public_profiles").select("id,full_name,username").in("id", ids);
       profiles = result.data ?? [];
     }
     const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
