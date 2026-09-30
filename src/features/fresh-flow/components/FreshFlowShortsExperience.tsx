@@ -22,7 +22,7 @@ function getConnectionType(): string | undefined {
  * Short as a full-page surface with a persistent back control.
  */
 export default function FreshFlowShortsExperience({ onOpenTopic, onImmersiveChange }: Props) {
-  const { setActiveRoute } = useLayout();
+  const { setActiveRoute, pushNotification } = useLayout();
   const { isGuest } = useFreshId();
   const [immersive, setImmersive] = useState(false);
   const [streamKey, setStreamKey] = useState(0);
@@ -236,7 +236,7 @@ export default function FreshFlowShortsExperience({ onOpenTopic, onImmersiveChan
       return;
     }
     if (isGuest) setActiveRoute("auth-signin");
-    else window.alert("Gift actions are unavailable when viewing your own Short.");
+    else pushNotification({ title: "Gift unavailable", message: "You cannot send a gift to your own Short.", type: "info" });
   };
 
   return (
