@@ -48,7 +48,7 @@ export async function sendGift(shortId: string, authorId: string, amountMinor: s
     if (!giftError) return;
     lastReceiptError = giftError.message;
     if (attempt < 2) {
-      await new Promise((resolve) => window.setTimeout(resolve, 250 * (attempt + 1)));
+      await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
     }
   }
 
