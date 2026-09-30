@@ -20,6 +20,6 @@ export type LayoutActions = {
   closeSearch: () => void;
   openNotifications: () => void;
   closeNotifications: () => void;
-  pushNotification: (n: UINotification) => void;
+  pushNotification: (n: Omit<UINotification, "id" | "createdAt">) => void;
   removeNotification: (id: string) => void;
 };
