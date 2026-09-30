@@ -15,7 +15,7 @@ import {
   syncVideoPlayback,
 } from "../../shorts/core/FreshShortsRuntime";
 import { sendGift, getGiftTotals, type GiftTotal } from "../core/giftService";
-import { interactWithShort } from "../../shorts/core/ShortsUniversalInteractionAdapter";
+import { interactWithShort, removeShortInteraction } from "../../shorts/core/ShortsUniversalInteractionAdapter";
 import type { UniversalReactionKind } from "../../../core/interactions/FreshReactionModel";
 import type { Short } from "../../shorts/types/short";
 import { getSocialAuthorIds, setAuthorFollow } from "../core/social";
@@ -326,7 +326,29 @@ export default function FreshFlowShortsStream({
       pushNotification({ title: "Sign in to react", message: "Sign in to react to Fresh Shorts." });
       return;
     }
+    const current = shorts.find((short) => short.id === shortId);
+    if (!current) return;
+    const previous = current.myReaction as UniversalReactionKind | null | undefined;
     try {
+      if (previous === kind) {
+        await removeShortInteraction(user.id, shortId, "react");
+        setShorts((prev) =>
+          prev.map((s) =>
+            s.id === shortId
+              ? {
+                  ...s,
+                  myReaction: null,
+                  reactionBreakdown: {
+                    ...s.reactionBreakdown,
+                    [kind]: Math.max(0, (s.reactionBreakdown[kind] ?? 0) - 1),
+                  },
+                }
+              : s,
+          ),
+        );
+        return;
+      }
+
       await interactWithShort(user.id, shortId, "react", { reaction: kind });
       setShorts((prev) =>
         prev.map((s) =>
@@ -336,6 +358,9 @@ export default function FreshFlowShortsStream({
                 myReaction: kind,
                 reactionBreakdown: {
                   ...s.reactionBreakdown,
+                  ...(previous
+                    ? { [previous]: Math.max(0, (s.reactionBreakdown[previous] ?? 0) - 1) }
+                    : {}),
                   [kind]: (s.reactionBreakdown[kind] ?? 0) + 1,
                 },
               }
