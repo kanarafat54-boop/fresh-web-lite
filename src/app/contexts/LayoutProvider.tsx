@@ -31,7 +31,19 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     toggleSidebar: () => setSidebarOpen((value) => !value),
     openSidebar: () => setSidebarOpen(true),
     closeSidebar: () => setSidebarOpen(false),
-    setActiveRoute: (route) => setActiveRouteState(route),
+    setActiveRoute: (route) => {
+      const isKnownFeature = Boolean(FeatureRegistry.getFeature(route));
+      const isFreshFlowWorld = route === "fresh-flow" || route.startsWith("fresh-flow-");
+      if (!isKnownFeature && !isFreshFlowWorld) {
+        NotificationService.notify({
+          title: "Fresh action unavailable",
+          message: `The destination "${route}" is not registered yet. Nothing was changed.`,
+          type: "warning",
+        });
+        return;
+      }
+      setActiveRouteState(route);
+    },
     openSearch: () => setSearchOverlayOpen(true),
     closeSearch: () => setSearchOverlayOpen(false),
     openNotifications: () => setNotificationsOpen(true),
