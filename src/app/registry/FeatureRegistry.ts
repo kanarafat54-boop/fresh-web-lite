@@ -52,6 +52,7 @@ FeatureRegistry.register({ id: "wallet", name: "Fresh Wallet", route: "/wallet",
 FeatureRegistry.register({ id: "saved", name: "Saved", route: "/saved", searchable: false, lazyLoader: () => import("../../features/saved/components/SavedModule").then((m) => ({ default: m.SavedModule })) });
 FeatureRegistry.register({ id: "creator", name: "Creator Studio", route: "/creator", searchable: true, lazyLoader: () => import("../../features/creator/CreatorStudioDashboard").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "profile", name: "Profile", route: "/profile", searchable: false, lazyLoader: () => import("../../features/profile/components/ProfileRoute").then((m) => ({ default: m.default })) });
+FeatureRegistry.register({ id: "settings", name: "Settings", route: "/settings", searchable: false, lazyLoader: () => import("../../features/workspaces/SettingsWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "admin", name: "Admin", route: "/admin", searchable: false, lazyLoader: () => import("../../features/admin/AdminPanel").then((m) => ({ default: m.AdminPanel })) });
 FeatureRegistry.register({ id: "communication", name: "Connect", route: "/connect", searchable: true, lazyLoader: () => import("../../features/workspaces/CommunicationWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "learning", name: "Academy", route: "/learn", searchable: true, lazyLoader: () => import("../../features/workspaces/LearningWorkspace").then((m) => ({ default: m.default })) });
