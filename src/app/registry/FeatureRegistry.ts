@@ -44,6 +44,7 @@ class Registry {
 export const FeatureRegistry = new Registry();
 export default FeatureRegistry;
 
+FeatureRegistry.register({ id: "auth-signin", name: "Fresh ID Sign In", route: "/auth/sign-in", searchable: false, lazyLoader: () => import("../../features/fresh-id/components/AuthRoute").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "first-experience", name: "Fresh First Experience", searchable: false, lazyLoader: () => import("../../features/fresh-first-experience/FreshFirstExperience").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "feed", name: "Home", route: "/", searchable: true, lazyLoader: () => import("../../features/home/HomeDashboard").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "ai", name: "Fresh AI", route: "/ai", searchable: false, lazyLoader: () => import("../../features/ai/components/FreshAIHome").then((m) => ({ default: m.default })) });
