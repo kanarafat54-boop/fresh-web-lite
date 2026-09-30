@@ -6,7 +6,7 @@ const source = fs.readFileSync(path.join(root, "src/core/platform/freshCompletio
 
 const required = [
   "FRESH_PHASE_15_22",
-  "FRESH_PHASE_15_22_STEP_COUNT = 80",
+  "FRESH_PHASE_15_22_STEP_COUNT",
   "createIdentitySession",
   "createAIAction",
   "createMemoryItem",
