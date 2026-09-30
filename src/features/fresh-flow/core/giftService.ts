@@ -30,14 +30,31 @@ export async function sendGift(shortId: string, authorId: string, amountMinor: s
   const senderId = authData.user?.id;
   if (!senderId) throw new Error("You must be signed in to gift.");
 
-  const { error: giftError } = await supabase.from("short_gifts").insert({
+  const receipt = {
     short_id: shortId,
     sender_id: senderId,
     recipient_id: authorId,
     amount_minor: amountMinor,
     transaction_id: transactionId,
-  });
-  if (giftError) throw new Error(`Gift sent, but wasn't recorded on this Short: ${giftError.message}`);
+  };
+
+  // Treasury transfer and the media receipt live behind different boundaries.
+  // If the receipt write hits a transient network/database failure, retry it
+  // before reporting the gift as failed so the UI cannot claim a successful
+  // payment was lost merely because the second write was transient.
+  let lastReceiptError: string | null = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const { error: giftError } = await supabase.from("short_gifts").insert(receipt);
+    if (!giftError) return;
+    lastReceiptError = giftError.message;
+    if (attempt < 2) {
+      await new Promise((resolve) => window.setTimeout(resolve, 250 * (attempt + 1)));
+    }
+  }
+
+  throw new Error(
+    `Gift transfer completed, but Fresh could not record the receipt yet. Please retry the receipt sync. ${lastReceiptError ?? ""}`.trim(),
+  );
 }
 
 export async function getGiftTotals(shortIds: string[]): Promise<Map<string, GiftTotal>> {
