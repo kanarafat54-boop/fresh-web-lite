@@ -360,7 +360,19 @@ export default function FreshFlowShortsStream({
     }
   }
 
-  async function handleFollow(short: Short) {\n    if (!user || isGuest) { pushNotification({ title: "Sign in to follow", message: "Follow creators and keep their content in your Following feed." }); return; }\n    const next = !followingAuthors.has(short.authorId);\n    try {\n      await setAuthorFollow(user.id, short.authorId, next);\n      setFollowingAuthors((current) => { const copy = new Set(current); if (next) copy.add(short.authorId); else copy.delete(short.authorId); return copy; });\n      pushNotification({ title: next ? "Following creator" : "Unfollowed creator", message: `@${short.authorUsername} is ${next ? "now in" : "removed from"} your Following feed.` });\n    } catch (error) {\n      pushNotification({ title: "Follow failed", message: error instanceof Error ? error.message : "Fresh could not update the follow right now." });\n    }\n  }\n\n  function openAdvanced(action: AdvancedAction, short: Short) {
+  async function handleFollow(short: Short) {
+    if (!user || isGuest) { pushNotification({ title: "Sign in to follow", message: "Follow creators and keep their content in your Following feed." }); return; }
+    const next = !followingAuthors.has(short.authorId);
+    try {
+      await setAuthorFollow(user.id, short.authorId, next);
+      setFollowingAuthors((current) => { const copy = new Set(current); if (next) copy.add(short.authorId); else copy.delete(short.authorId); return copy; });
+      pushNotification({ title: next ? "Following creator" : "Unfollowed creator", message: `@${short.authorUsername} is ${next ? "now in" : "removed from"} your Following feed.` });
+    } catch (error) {
+      pushNotification({ title: "Follow failed", message: error instanceof Error ? error.message : "Fresh could not update the follow right now." });
+    }
+  }
+
+  function openAdvanced(action: AdvancedAction, short: Short) {
     setAdvancedOpen(false);
     const intent = {
       action,
