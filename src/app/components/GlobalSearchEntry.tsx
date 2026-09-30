@@ -16,7 +16,7 @@ const RESULT_FILTERS: Array<{ id: "all" | IntelligenceSourceKind; label: string 
 const kindLabel: Record<IntelligenceSourceKind, string> = { web: "Web evidence", news: "News evidence", video: "Video evidence", image: "Image evidence", music: "Music evidence" };
 
 export default function GlobalSearchEntry() {
-  const { searchOverlayOpen, openSearch, closeSearch, setActiveRoute, pushNotification } = useLayout();
+  const { searchOverlayOpen, openSearch, closeSearch, setActiveRoute } = useLayout();
   const [query, setQuery] = useState("");
   const [researchMode, setResearchMode] = useState<ResearchMode>("global");
   const [filter, setFilter] = useState<"all" | IntelligenceSourceKind>("all");
@@ -28,17 +28,13 @@ export default function GlobalSearchEntry() {
 
   const searchWorld = async () => {
     const trimmed = query.trim();
-    if (!trimmed || loading) {
-      if (!trimmed) pushNotification({ id: `search-${Date.now()}`, title: "Search needs a question", message: "Enter something for Fresh to search, research, or open." });
-      return;
-    }
+    if (!trimmed || loading) return;
     setLoading(true); setError(null); setResearch(null); setFilter("all");
     try {
       setResearch(await runIntelligence({ prompt: trimmed, query: trimmed, task: "research", researchMode, maxSources: researchMode === "deep" || researchMode === "global" ? 12 : 10 }));
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "Fresh Search could not complete the research.";
       setError(message);
-      pushNotification({ id: `search-error-${Date.now()}`, title: "Fresh Search failed", message: `${message} Try again or use a different search mode.` });
     } finally { setLoading(false); }
   };
 
@@ -59,7 +55,7 @@ export default function GlobalSearchEntry() {
         </div>
 
         {query.trim() && <button className="share-option-btn" onClick={() => void searchWorld()} disabled={loading}>{loading ? "Fresh is researching and verifying…" : `Research “${query.trim()}”`}</button>}
-        {error && <div className="search-error" role="alert">{error}</div>}
+        {error && <div className="search-error" role="alert"><span>{error}</span><button type="button" onClick={() => void searchWorld()} disabled={loading}>Retry</button></div>}
 
         {research && (
           <div className="fresh-global-research" onClick={(e) => e.stopPropagation()}>
