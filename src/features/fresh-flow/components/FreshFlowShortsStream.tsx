@@ -322,7 +322,10 @@ export default function FreshFlowShortsStream({
   }, [shorts.length]);
 
   async function handleReaction(shortId: string, kind: UniversalReactionKind) {
-    if (!user || isGuest) return;
+    if (!user || isGuest) {
+      pushNotification({ title: "Sign in to react", message: "Sign in to react to Fresh Shorts." });
+      return;
+    }
     try {
       await interactWithShort(user.id, shortId, "react", { reaction: kind });
       setShorts((prev) =>
@@ -339,13 +342,24 @@ export default function FreshFlowShortsStream({
             : s,
         ),
       );
-    } catch {
-      /* ignore */
+    } catch (error) {
+      pushNotification({
+        title: "Reaction failed",
+        message: error instanceof Error ? error.message : "Fresh could not save your reaction. Try again.",
+        type: "error",
+      });
     }
   }
 
   async function handleGift(short: Short, amountMinor: string) {
-    if (!user || isGuest || short.authorId === user.id) return;
+    if (!user || isGuest) {
+      pushNotification({ title: "Sign in to send gifts", message: "Sign in to send gifts to creators." });
+      return;
+    }
+    if (short.authorId === user.id) {
+      pushNotification({ title: "Gift unavailable", message: "You cannot send a gift to yourself." });
+      return;
+    }
     try {
       await sendGift(short.id, short.authorId, amountMinor);
       const totals = await getGiftTotals([short.id]);
@@ -355,8 +369,13 @@ export default function FreshFlowShortsStream({
         if (t) next.set(short.id, t);
         return next;
       });
-    } catch {
-      /* ignore */
+      pushNotification({ title: "Gift sent", message: "Your gift was recorded successfully.", type: "success" });
+    } catch (error) {
+      pushNotification({
+        title: "Gift failed",
+        message: error instanceof Error ? error.message : "Fresh could not send the gift. Try again.",
+        type: "error",
+      });
     }
   }
 
