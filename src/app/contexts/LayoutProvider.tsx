@@ -36,7 +36,7 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     closeSearch: () => setSearchOverlayOpen(false),
     openNotifications: () => setNotificationsOpen(true),
     closeNotifications: () => setNotificationsOpen(false),
-    pushNotification: (notification) => setNotifications((previous) => [notification, ...previous]),
+    pushNotification: (notification) => NotificationService.notify(notification),
     removeNotification: (id) => setNotifications((previous) => previous.filter((item) => item.id !== id)),
   };
 
