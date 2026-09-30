@@ -33,8 +33,7 @@ export default function GlobalSearchEntry() {
     try {
       setResearch(await runIntelligence({ prompt: trimmed, query: trimmed, task: "research", researchMode, maxSources: researchMode === "deep" || researchMode === "global" ? 12 : 10 }));
     } catch (reason) {
-      const message = reason instanceof Error ? reason.message : "Fresh Search could not complete the research.";
-      setError(message);
+      setError(reason instanceof Error ? reason.message : "Fresh Search could not complete the research.");
     } finally { setLoading(false); }
   };
 
@@ -55,7 +54,7 @@ export default function GlobalSearchEntry() {
         </div>
 
         {query.trim() && <button className="share-option-btn" onClick={() => void searchWorld()} disabled={loading}>{loading ? "Fresh is researching and verifying…" : `Research “${query.trim()}”`}</button>}
-        {error && <div className="search-error" role="alert"><span>{error}</span><button type="button" onClick={() => void searchWorld()} disabled={loading}>Retry</button></div>}
+        {error && <div className="search-error" role="alert">{error}</div>}
 
         {research && (
           <div className="fresh-global-research" onClick={(e) => e.stopPropagation()}>
