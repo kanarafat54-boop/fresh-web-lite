@@ -142,7 +142,12 @@ export function createInteractionExecutor(
   return {
     async execute(command) {
       const validation = validateInteractionCommand(command)
-      if (!validation.accepted) return validation
+      if (!validation.accepted) {
+        // A rejected command is an action failure, not a successful no-op.
+        // Callers rely on the promise rejecting so they cannot update UI state
+        // before the interaction has actually been accepted/persisted.
+        throw new Error(validation.reason)
+      }
       await persist(command)
       return validation
     },
