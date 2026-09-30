@@ -12,7 +12,7 @@ const primaryDestinations: BottomDestination[] = [
 ];
 
 export default function BottomNav() {
-  const { activeRoute, setActiveRoute, pushNotification } = useLayout();
+  const { activeRoute, setActiveRoute } = useLayout();
   return (
     <nav className="fresh-bottom-nav" aria-label="Fresh primary navigation">
       <div className="fresh-bottom-nav-scroll">
@@ -29,11 +29,7 @@ export default function BottomNav() {
               className={`fresh-nav-item${active ? " active" : ""}`}
               aria-current={active ? "page" : undefined}
               aria-label={label}
-              onClick={() => {
-                const known = ["feed", "fresh-flow", "studio", "work", "profile"].includes(id);
-                if (!known) { pushNotification({ id: `nav-${Date.now()}`, title: "Fresh action unavailable", message: "This destination is not ready yet." }); return; }
-                setActiveRoute(id);
-              }}
+              onClick={() => setActiveRoute(id)}
             >
               <span className="fresh-nav-icon" aria-hidden="true"><Icon size={id === "studio" ? 26 : 24} /></span>
               <span className="fresh-nav-label">{label}</span>
