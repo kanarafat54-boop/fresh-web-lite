@@ -3,7 +3,7 @@ import { useLayout } from "../../../../app/contexts/useLayout";
 const ACTIONS: Array<{ label: string; route?: string; action?: "search" }> = [
   { label: "🚀 Build App", route: "software" },
   { label: "🤖 Create AI", route: "ai" },
-  { label: "📺 Go Live", route: "shorts" },
+  { label: "📺 Go Live", route: "live" },
   { label: "💰 Wallet", route: "wallet" },
   { label: "🛒 Marketplace", route: "marketplace" },
   { label: "📚 Learn", route: "learning" },
@@ -21,6 +21,7 @@ export default function QuickActionsCard() {
       <div className="quick-grid">
         {ACTIONS.map((a) => (
           <button
+            type="button"
             key={a.label}
             onClick={() => (a.action === "search" ? openSearch() : a.route && setActiveRoute(a.route))}
           >
