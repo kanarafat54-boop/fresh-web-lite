@@ -102,7 +102,9 @@ export default function FreshIdAuthDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, isGuest, listPasskeys]);
+  // Auth state changes are the refresh boundary; the context exposes stable behavior but not memoized function identities.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isGuest]);
 
   async function handleRegisterPasskey() {
     setPasskeyBusy(true);
@@ -262,7 +264,7 @@ export default function FreshIdAuthDashboard() {
                   <span className="fresh-id-card-label">PASSWORD</span>
                   <strong>Password credential enabled</strong>
                   <span>••••••••••••</span>
-                  <button type="button" className="fresh-id-small-button" onClick={() => setAuthView("forgot-password")}>Reset password</button>
+                  <button type="button" className="fresh-id-small-button" onClick={() => { setPanel("auth"); setAuthView("forgot-password"); }}>Reset password</button>
                 </article>
                 <article className="fresh-id-security-card">
                   <span className="fresh-id-card-label">PASSKEYS</span>
