@@ -6,7 +6,7 @@
  * readable by normal scrolling, while action layers use full-screen snapping.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type WheelEvent, type TouchEvent } from "react";
 import { useFreshId } from "../context/FreshIdContext";
 import { useLayout } from "../../../app/contexts/useLayout";
 import { AuthForm } from "./AuthForm";
@@ -101,7 +101,7 @@ export default function FreshIdAuthDashboard() {
     setLayer(next);
   }
 
-  function onWheel(event: React.WheelEvent<HTMLDivElement>) {
+  function onWheel(event: WheelEvent<HTMLDivElement>) {
     if (Math.abs(event.deltaY) < 18) return;
     if (event.deltaY > 0 && layer !== "privacy") {
       event.preventDefault();
@@ -112,7 +112,7 @@ export default function FreshIdAuthDashboard() {
     }
   }
 
-  function onTouchStart(event: React.TouchEvent<HTMLDivElement>) {
+  function onTouchStart(event: TouchEvent<HTMLDivElement>) {
     setTouchStart(event.touches[0]?.clientY ?? null);
   }
 
