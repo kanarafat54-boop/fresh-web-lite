@@ -152,7 +152,7 @@ export function AuthForm() {
       {message && <p className="auth-message">{message}</p>}
       {socialError && <p className="auth-error">Sign-in provider: {socialError}</p>}
 
-      <button className="auth-submit-btn" onClick={handleSubmit} disabled={loading || socialLoading}>
+      <button className="auth-submit-btn" onClick={handleSubmit} disabled={loading || Boolean(socialLoading)}>
         {loading ? "Please wait..." : mode === "login" ? "Log In" : "Create Account"}
       </button>
 
@@ -179,7 +179,7 @@ export function AuthForm() {
           <button
             className="auth-submit-btn"
             onClick={() => void loginWithPasskey()}
-            disabled={loading || googleLoading || !passkeySupported}
+            disabled={loading || Boolean(socialLoading) || !passkeySupported}
             title={!passkeySupported ? "Passkeys require HTTPS/localhost and browser support" : "Use your device biometric, PIN, or security key"}
           >
             {loading ? "Verifying..." : passkeySupported ? "Sign in with biometrics" : "Biometrics unavailable here"}
