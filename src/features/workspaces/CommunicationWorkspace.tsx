@@ -250,7 +250,7 @@ export default function CommunicationWorkspace() {
                 className="workspace-pill"
                 onClick={() => {
                   setAuthView("form");
-                  setActiveRoute("profile");
+                  setActiveRoute("auth-signin");
                 }}
               >
                 Sign in
