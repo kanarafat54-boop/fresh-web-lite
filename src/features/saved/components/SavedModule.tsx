@@ -68,20 +68,24 @@ export function SavedModule() {
         .from("users")
         .select("id, full_name, username")
         .in("id", authorIds);
-      const profileMap = new Map((profilesData ?? []).map((u: { id: string; full_name?: string; username?: string }) => [u.id, u]));
+      const profileMap = new Map(
+        (profilesData ?? []).map((u: { id: string; full_name?: string; username?: string }) => [u.id, u]),
+      );
 
       setSavedPosts(
-        (postsData ?? []).map((p: { id: string; author_id: string; content: string; image_url: string | null; created_at: string }) => {
-          const profile = profileMap.get(p.author_id);
-          return {
-            id: p.id,
-            authorName: profile?.full_name ?? "Unknown",
-            authorUsername: profile?.username ?? "unknown",
-            content: p.content,
-            imageUrl: p.image_url,
-            createdAt: p.created_at,
-          };
-        }),
+        (postsData ?? []).map(
+          (p: { id: string; author_id: string; content: string; image_url: string | null; created_at: string }) => {
+            const profile = profileMap.get(p.author_id);
+            return {
+              id: p.id,
+              authorName: profile?.full_name ?? "Unknown",
+              authorUsername: profile?.username ?? "unknown",
+              content: p.content,
+              imageUrl: p.image_url,
+              createdAt: p.created_at,
+            };
+          },
+        ),
       );
     } else {
       setSavedPosts([]);
@@ -111,20 +115,24 @@ export function SavedModule() {
         .from("users")
         .select("id, full_name, username")
         .in("id", authorIds);
-      const profileMap = new Map((profilesData ?? []).map((u: { id: string; full_name?: string; username?: string }) => [u.id, u]));
+      const profileMap = new Map(
+        (profilesData ?? []).map((u: { id: string; full_name?: string; username?: string }) => [u.id, u]),
+      );
 
       setSavedShorts(
-        (shortsData ?? []).map((s: { id: string; author_id: string; caption: string | null; video_url: string; created_at: string }) => {
-          const profile = profileMap.get(s.author_id);
-          return {
-            id: s.id,
-            authorName: profile?.full_name ?? "Unknown",
-            authorUsername: profile?.username ?? "unknown",
-            caption: s.caption ?? "",
-            videoUrl: s.video_url,
-            createdAt: s.created_at,
-          };
-        }),
+        (shortsData ?? []).map(
+          (s: { id: string; author_id: string; caption: string | null; video_url: string; created_at: string }) => {
+            const profile = profileMap.get(s.author_id);
+            return {
+              id: s.id,
+              authorName: profile?.full_name ?? "Unknown",
+              authorUsername: profile?.username ?? "unknown",
+              caption: s.caption ?? "",
+              videoUrl: s.video_url,
+              createdAt: s.created_at,
+            };
+          },
+        ),
       );
     } else {
       setSavedShorts([]);
@@ -154,7 +162,7 @@ export function SavedModule() {
             className="nav-btn active"
             onClick={() => {
               setAuthView("form");
-              setActiveRoute("profile");
+              setActiveRoute("auth-signin");
             }}
           >
             Sign in
@@ -192,7 +200,9 @@ export function SavedModule() {
 
       {!loading && tab === "posts" && (
         <ul className="notes-list">
-          {savedPosts.length === 0 && <p className="empty-state">No saved posts yet. Save from Fresh Flow to collect them here.</p>}
+          {savedPosts.length === 0 && (
+            <p className="empty-state">No saved posts yet. Save from Fresh Flow to collect them here.</p>
+          )}
           {savedPosts.map((p) => (
             <li key={p.id} className="post-item">
               <div className="post-header">
@@ -211,7 +221,9 @@ export function SavedModule() {
 
       {!loading && tab === "shorts" && (
         <ul className="notes-list">
-          {savedShorts.length === 0 && <p className="empty-state">No saved shorts yet. Save from Fresh Flow to collect them here.</p>}
+          {savedShorts.length === 0 && (
+            <p className="empty-state">No saved shorts yet. Save from Fresh Flow to collect them here.</p>
+          )}
           {savedShorts.map((s) => (
             <li key={s.id} className="post-item">
               <div className="post-header">
