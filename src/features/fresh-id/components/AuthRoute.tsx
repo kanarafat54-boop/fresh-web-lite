@@ -1,11 +1,6 @@
-import { AuthForm } from "./AuthForm";
+import FreshIdAuthDashboard from "./FreshIdAuthDashboard";
 
+/** Canonical independent Fresh ID sign-in / register surface. */
 export default function AuthRoute() {
-  return (
-    <main className="auth-route" aria-label="Fresh ID sign in">
-      <div className="auth-modal">
-        <AuthForm />
-      </div>
-    </main>
-  );
+  return <FreshIdAuthDashboard />;
 }
