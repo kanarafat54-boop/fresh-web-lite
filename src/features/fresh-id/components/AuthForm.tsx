@@ -29,31 +29,34 @@ export function AuthForm() {
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
+  const [socialError, setSocialError] = useState<string | null>(null);
   const [signupError, setSignupError] = useState<string | null>(null);
   const [policyAccepted, setPolicyAccepted] = useState(false);
 
-  async function handleGoogleSignIn() {
-    setGoogleError(null);
-    setGoogleLoading(true);
-
+  async function handleSocialSignIn(provider: "google" | "apple" | "facebook" | "x") {
+    setSocialError(null);
+    setSocialLoading(provider);
+    const oauthProvider = provider === "x" ? "twitter" : provider;
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
+      provider: oauthProvider,
       options: {
         redirectTo: window.location.origin,
-        queryParams: {
-          access_type: "offline",
-          prompt: "select_account",
-        },
+        queryParams: provider === "google" ? { access_type: "offline", prompt: "select_account" } : undefined,
       },
     });
-
     if (oauthError) {
-      setGoogleError(oauthError.message);
-      setGoogleLoading(false);
+      setSocialError(oauthError.message);
+      setSocialLoading(null);
     }
   }
+
+  const socialProviders = [
+    { id: "google" as const, label: "Google", symbol: "G", className: "google", title: "Continue with Google" },
+    { id: "apple" as const, label: "Apple", symbol: "●", className: "apple", title: "Continue with Apple" },
+    { id: "facebook" as const, label: "Facebook", symbol: "f", className: "facebook", title: "Continue with Facebook" },
+    { id: "x" as const, label: "X", symbol: "𝕏", className: "x", title: "Continue with X" },
+  ];
 
   async function handleRegister() {
     setSignupError(null);
@@ -147,21 +150,31 @@ export function AuthForm() {
         </label>
       )}
       {message && <p className="auth-message">{message}</p>}
-      {googleError && <p className="auth-error">Google sign-in: {googleError}</p>}
+      {socialError && <p className="auth-error">Sign-in provider: {socialError}</p>}
 
-      <button className="auth-submit-btn" onClick={handleSubmit} disabled={loading || googleLoading}>
+      <button className="auth-submit-btn" onClick={handleSubmit} disabled={loading || socialLoading}>
         {loading ? "Please wait..." : mode === "login" ? "Log In" : "Create Account"}
       </button>
 
       {mode === "login" && (
         <>
-          <button
-            className="auth-submit-btn google-auth-btn"
-            onClick={() => void handleGoogleSignIn()}
-            disabled={loading || googleLoading}
-          >
-            {googleLoading ? "Connecting to Google..." : "Continue with Google"}
-          </button>
+          <div className="auth-social-divider"><span>or continue with</span></div>
+          <div className="auth-social-grid" aria-label="Social sign-in providers">
+            {socialProviders.map((provider) => (
+              <button
+                key={provider.id}
+                type="button"
+                className={`auth-social-btn ${provider.className}`}
+                onClick={() => void handleSocialSignIn(provider.id)}
+                disabled={loading || Boolean(socialLoading)}
+                aria-label={provider.title}
+                title={provider.title}
+              >
+                <span className="auth-social-symbol" aria-hidden="true">{provider.symbol}</span>
+                <span className="sr-only">{provider.label}</span>
+              </button>
+            ))}
+          </div>
 
           <button
             className="auth-submit-btn"
