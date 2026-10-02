@@ -170,7 +170,11 @@ export function AuthForm() {
                 aria-label={provider.title}
                 title={provider.title}
               >
-                <span className="auth-social-symbol" aria-hidden="true">{provider.symbol}</span>
+                <span className="auth-social-symbol" aria-hidden="true">
+                  {provider.id === "apple" ? (
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.05 12.53c-.02-2.2 1.8-3.27 1.88-3.32-1.03-1.5-2.64-1.71-3.2-1.73-1.35-.14-2.66.8-3.34.8-.69 0-1.75-.78-2.87-.76-1.47.02-2.82.85-3.57 2.17-1.53 2.66-.39 6.57 1.1 8.72.73 1.05 1.59 2.23 2.72 2.19 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.71.71 2.86.69 1.18-.02 1.92-1.07 2.65-2.12.84-1.22 1.19-2.4 1.21-2.46-.03-.01-2.32-.89-2.34-3.47ZM14.86 6.05c.61-.74 1.02-1.77.91-2.8-.88.04-1.95.59-2.58 1.32-.56.65-1.06 1.69-.92 2.68.98.08 1.98-.5 2.59-1.2Z"/></svg>
+                  ) : provider.symbol}
+                </span>
                 <span className="sr-only">{provider.label}</span>
               </button>
             ))}
