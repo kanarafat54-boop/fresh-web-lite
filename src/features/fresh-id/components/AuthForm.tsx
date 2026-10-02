@@ -4,7 +4,6 @@
  */
 
 import { useState } from "react";
-import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../context/FreshIdContext";
 
 export function AuthForm() {
@@ -19,6 +18,7 @@ export function AuthForm() {
     setAuthView,
     requestPasswordReset,
     updatePassword,
+    register,
     passkeySupported,
   } = useFreshId();
 
@@ -30,8 +30,8 @@ export function AuthForm() {
   const [newPassword, setNewPassword] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
-  const [signupLoading, setSignupLoading] = useState(false);
   const [signupError, setSignupError] = useState<string | null>(null);
+  const [policyAccepted, setPolicyAccepted] = useState(false);
 
   async function handleGoogleSignIn() {
     setGoogleError(null);
@@ -57,55 +57,12 @@ export function AuthForm() {
   async function handleRegister() {
     setSignupError(null);
 
-    if (!email.trim() || !password || !username.trim() || !fullName.trim()) {
-      setSignupError("Please fill in your full name, username, email, and password.");
+    if (!policyAccepted) {
+      setSignupError("Please review and accept the Privacy and Policy sections before creating your Fresh ID.");
       return;
     }
 
-    if (password.length < 12) {
-      setSignupError("Your password must contain at least 12 characters.");
-      return;
-    }
-
-    setSignupLoading(true);
-
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: {
-          full_name: fullName.trim(),
-          name: fullName.trim(),
-          user_name: username.trim(),
-          preferred_username: username.trim(),
-        },
-      },
-    });
-
-    if (signUpError) {
-      setSignupError(signUpError.message);
-      setSignupLoading(false);
-      return;
-    }
-
-    if (!data.user) {
-      setSignupError("Supabase did not return a user account. Please try again.");
-      setSignupLoading(false);
-      return;
-    }
-
-    // Profile creation is deliberately deferred to FreshIdProvider.
-    // This is important when Supabase email confirmation is enabled: signup
-    // returns a user but no authenticated session, so the browser must not
-    // attempt an RLS-protected public.users insert as an anonymous user.
-    if (!data.session) {
-      setAuthView("check-email");
-      setSignupLoading(false);
-      return;
-    }
-
-    setSignupLoading(false);
+    await register(email.trim(), password, username.trim(), fullName.trim());
   }
 
   function handleSubmit() {
@@ -181,11 +138,18 @@ export function AuthForm() {
 
       {error && <p className="auth-error">{error}</p>}
       {signupError && <p className="auth-error">{signupError}</p>}
+
+      {mode === "register" && (
+        <label className="auth-policy-check">
+          <input type="checkbox" checked={policyAccepted} onChange={(e) => setPolicyAccepted(e.target.checked)} />
+          <span>I have reviewed the <strong>Privacy</strong> and <strong>Policy</strong> sections on this page.</span>
+        </label>
+      )}
       {message && <p className="auth-message">{message}</p>}
       {googleError && <p className="auth-error">Google sign-in: {googleError}</p>}
 
-      <button className="auth-submit-btn" onClick={handleSubmit} disabled={loading || googleLoading || signupLoading}>
-        {signupLoading ? "Creating account..." : loading ? "Please wait..." : mode === "login" ? "Log In" : "Create Account"}
+      <button className="auth-submit-btn" onClick={handleSubmit} disabled={loading || googleLoading}>
+        {loading ? "Please wait..." : mode === "login" ? "Log In" : "Create Account"}
       </button>
 
       {mode === "login" && (
