@@ -1,7 +1,7 @@
 import { useLayout } from "../contexts/useLayout";
 
 export default function NotificationCenter() {
-  const { notifications, removeNotification, notificationsOpen, closeNotifications } = useLayout();
+  const { notifications, removeNotification, notificationsOpen, closeNotifications, setActiveRoute } = useLayout();
   if (!notificationsOpen) return null;
 
   return (
@@ -18,7 +18,10 @@ export default function NotificationCenter() {
             <div key={n.id} className="comment-item">
               <strong>{n.title}</strong>
               {n.message && <p className="comment-content">{n.message}</p>}
-              <button className="reply-btn" onClick={() => removeNotification(n.id)}>Dismiss</button>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {n.route && <button className="reply-btn" onClick={() => { setActiveRoute(n.route); closeNotifications(); }}>Open</button>}
+                <button className="reply-btn" onClick={() => removeNotification(n.id)}>Dismiss</button>
+              </div>
             </div>
           ))
         )}
