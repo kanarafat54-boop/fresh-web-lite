@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
+import { useLayout } from "../../../app/contexts/useLayout";
 
 interface SavedPostItem {
   id: string;
@@ -26,7 +27,8 @@ interface SavedShortItem {
 }
 
 export function SavedModule() {
-  const { user, isGuest } = useFreshId();
+  const { user, isGuest, setAuthView } = useFreshId();
+  const { setActiveRoute } = useLayout();
   const [tab, setTab] = useState<"posts" | "shorts">("posts");
   const [savedPosts, setSavedPosts] = useState<SavedPostItem[]>([]);
   const [savedShorts, setSavedShorts] = useState<SavedShortItem[]>([]);
@@ -36,7 +38,7 @@ export function SavedModule() {
   useEffect(() => {
     if (user && !isGuest) loadSaved();
     else setLoading(false);
-  }, [user]);
+  }, [user, isGuest]);
 
   async function loadSaved() {
     setLoading(true);
@@ -53,7 +55,7 @@ export function SavedModule() {
       return;
     }
 
-    const postIds = (savedPostRows ?? []).map((r: any) => r.post_id);
+    const postIds = (savedPostRows ?? []).map((r: { post_id: string }) => r.post_id);
 
     if (postIds.length > 0) {
       const { data: postsData } = await supabase
@@ -61,15 +63,15 @@ export function SavedModule() {
         .select("id, author_id, content, image_url, created_at")
         .in("id", postIds);
 
-      const authorIds = [...new Set((postsData ?? []).map((p: any) => p.author_id))];
+      const authorIds = [...new Set((postsData ?? []).map((p: { author_id: string }) => p.author_id))];
       const { data: profilesData } = await supabase
         .from("users")
         .select("id, full_name, username")
         .in("id", authorIds);
-      const profileMap = new Map((profilesData ?? []).map((u: any) => [u.id, u]));
+      const profileMap = new Map((profilesData ?? []).map((u: { id: string; full_name?: string; username?: string }) => [u.id, u]));
 
       setSavedPosts(
-        (postsData ?? []).map((p: any) => {
+        (postsData ?? []).map((p: { id: string; author_id: string; content: string; image_url: string | null; created_at: string }) => {
           const profile = profileMap.get(p.author_id);
           return {
             id: p.id,
@@ -79,7 +81,7 @@ export function SavedModule() {
             imageUrl: p.image_url,
             createdAt: p.created_at,
           };
-        })
+        }),
       );
     } else {
       setSavedPosts([]);
@@ -96,7 +98,7 @@ export function SavedModule() {
       return;
     }
 
-    const shortIds = (savedShortRows ?? []).map((r: any) => r.short_id);
+    const shortIds = (savedShortRows ?? []).map((r: { short_id: string }) => r.short_id);
 
     if (shortIds.length > 0) {
       const { data: shortsData } = await supabase
@@ -104,15 +106,15 @@ export function SavedModule() {
         .select("id, author_id, caption, video_url, created_at")
         .in("id", shortIds);
 
-      const authorIds = [...new Set((shortsData ?? []).map((s: any) => s.author_id))];
+      const authorIds = [...new Set((shortsData ?? []).map((s: { author_id: string }) => s.author_id))];
       const { data: profilesData } = await supabase
         .from("users")
         .select("id, full_name, username")
         .in("id", authorIds);
-      const profileMap = new Map((profilesData ?? []).map((u: any) => [u.id, u]));
+      const profileMap = new Map((profilesData ?? []).map((u: { id: string; full_name?: string; username?: string }) => [u.id, u]));
 
       setSavedShorts(
-        (shortsData ?? []).map((s: any) => {
+        (shortsData ?? []).map((s: { id: string; author_id: string; caption: string | null; video_url: string; created_at: string }) => {
           const profile = profileMap.get(s.author_id);
           return {
             id: s.id,
@@ -122,7 +124,7 @@ export function SavedModule() {
             videoUrl: s.video_url,
             createdAt: s.created_at,
           };
-        })
+        }),
       );
     } else {
       setSavedShorts([]);
@@ -145,7 +147,22 @@ export function SavedModule() {
     return (
       <div className="module">
         <h2>Saved</h2>
-        <p className="empty-state">Register a real account to save posts and shorts.</p>
+        <p className="empty-state">Sign in with a Fresh ID account to save posts and shorts across devices.</p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+          <button
+            type="button"
+            className="nav-btn active"
+            onClick={() => {
+              setAuthView("form");
+              setActiveRoute("profile");
+            }}
+          >
+            Sign in
+          </button>
+          <button type="button" className="nav-btn" onClick={() => setActiveRoute("fresh-flow")}>
+            Explore Flow
+          </button>
+        </div>
       </div>
     );
   }
@@ -155,26 +172,27 @@ export function SavedModule() {
       <h2>Saved</h2>
 
       <div className="app-nav" style={{ marginBottom: 12 }}>
-        <button
-          className={tab === "posts" ? "nav-btn active" : "nav-btn"}
-          onClick={() => setTab("posts")}
-        >
+        <button className={tab === "posts" ? "nav-btn active" : "nav-btn"} onClick={() => setTab("posts")}>
           Posts
         </button>
-        <button
-          className={tab === "shorts" ? "nav-btn active" : "nav-btn"}
-          onClick={() => setTab("shorts")}
-        >
+        <button className={tab === "shorts" ? "nav-btn active" : "nav-btn"} onClick={() => setTab("shorts")}>
           Shorts
         </button>
       </div>
 
-      {error && <p className="auth-error">{error}</p>}
-      {loading && <p className="empty-state">Loading saved items...</p>}
+      {error && (
+        <div role="alert" className="auth-error" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <span>{error}</span>
+          <button type="button" className="reply-btn" onClick={() => void loadSaved()}>
+            Retry
+          </button>
+        </div>
+      )}
+      {loading && <p className="empty-state">Loading saved items…</p>}
 
       {!loading && tab === "posts" && (
         <ul className="notes-list">
-          {savedPosts.length === 0 && <p className="empty-state">No saved posts yet.</p>}
+          {savedPosts.length === 0 && <p className="empty-state">No saved posts yet. Save from Fresh Flow to collect them here.</p>}
           {savedPosts.map((p) => (
             <li key={p.id} className="post-item">
               <div className="post-header">
@@ -183,7 +201,9 @@ export function SavedModule() {
               </div>
               {p.content && <p className="post-content">{p.content}</p>}
               {p.imageUrl && <img src={p.imageUrl} alt="Saved post" className="post-image" />}
-              <button className="delete-note-btn" onClick={() => unsavePost(p.id)}>Unsave</button>
+              <button className="delete-note-btn" type="button" onClick={() => void unsavePost(p.id)}>
+                Unsave
+              </button>
             </li>
           ))}
         </ul>
@@ -191,7 +211,7 @@ export function SavedModule() {
 
       {!loading && tab === "shorts" && (
         <ul className="notes-list">
-          {savedShorts.length === 0 && <p className="empty-state">No saved shorts yet.</p>}
+          {savedShorts.length === 0 && <p className="empty-state">No saved shorts yet. Save from Fresh Flow to collect them here.</p>}
           {savedShorts.map((s) => (
             <li key={s.id} className="post-item">
               <div className="post-header">
@@ -200,7 +220,9 @@ export function SavedModule() {
               </div>
               <video src={s.videoUrl} controls className="post-image" />
               {s.caption && <p className="post-content">{s.caption}</p>}
-              <button className="delete-note-btn" onClick={() => unsaveShort(s.id)}>Unsave</button>
+              <button className="delete-note-btn" type="button" onClick={() => void unsaveShort(s.id)}>
+                Unsave
+              </button>
             </li>
           ))}
         </ul>
