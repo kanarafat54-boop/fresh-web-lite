@@ -1,0 +1,288 @@
+.fresh-id-dashboard {
+  min-height: 100%;
+  padding: 20px 16px 40px;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, color-mix(in srgb, var(--fresh-accent, #7c3aed) 18%, transparent), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, color-mix(in srgb, var(--fresh-accent-2, #22d3ee) 12%, transparent), transparent 55%),
+    var(--fresh-bg, #07090d);
+  color: var(--fresh-text, #f4f6fb);
+}
+
+.fresh-id-dashboard-shell {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.2fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.fresh-id-dashboard-brand {
+  position: sticky;
+  top: 16px;
+  padding: 24px;
+  border: 1px solid var(--fresh-border, rgba(255, 255, 255, 0.1));
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--fresh-surface, #12161f) 88%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.fresh-id-mark {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--fresh-accent, #72e6c1), var(--fresh-accent-2, #8da7ff));
+  color: #081016;
+  margin-bottom: 16px;
+}
+
+.fresh-id-eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.fresh-id-dashboard-brand h1 {
+  margin: 0 0 12px;
+  font-size: clamp(1.4rem, 2.4vw, 1.85rem);
+  line-height: 1.15;
+}
+
+.fresh-id-lede {
+  margin: 0 0 16px;
+  opacity: 0.82;
+  line-height: 1.5;
+}
+
+.fresh-id-promises {
+  margin: 0 0 18px;
+  padding-left: 18px;
+  opacity: 0.8;
+  line-height: 1.55;
+}
+
+.fresh-id-ghost {
+  border: 1px solid var(--fresh-border, rgba(255, 255, 255, 0.14));
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.fresh-id-dashboard-main {
+  border: 1px solid var(--fresh-border, rgba(255, 255, 255, 0.1));
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--fresh-surface, #12161f) 92%, transparent);
+  overflow: hidden;
+}
+
+.fresh-id-dashboard-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--fresh-border, rgba(255, 255, 255, 0.08));
+  scrollbar-width: none;
+}
+
+.fresh-id-dashboard-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.fresh-id-dashboard-tabs button {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: var(--fresh-muted, #9aa3b2);
+  border-radius: 999px;
+  padding: 10px 14px;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fresh-id-dashboard-tabs button.active,
+.fresh-id-dashboard-tabs button:hover {
+  color: var(--fresh-text, #fff);
+  background: var(--fresh-surface-2, rgba(255, 255, 255, 0.08));
+}
+
+.fresh-id-panel {
+  padding: 20px 18px 24px;
+}
+
+.fresh-id-panel-head {
+  margin-bottom: 16px;
+}
+
+.fresh-id-panel-head h2 {
+  margin: 0 0 6px;
+  font-size: 1.2rem;
+}
+
+.fresh-id-panel-head p {
+  margin: 0;
+  opacity: 0.75;
+  line-height: 1.45;
+}
+
+.fresh-id-panel-auth .auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 420px;
+}
+
+.fresh-id-panel-auth .auth-input,
+.fresh-id-panel-auth .auth-submit-btn,
+.fresh-id-panel-auth .guest-btn,
+.fresh-id-panel-auth .auth-tab {
+  font: inherit;
+}
+
+.fresh-id-panel-auth .auth-input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid var(--fresh-border, rgba(255, 255, 255, 0.12));
+  background: var(--fresh-surface-2, rgba(255, 255, 255, 0.05));
+  color: inherit;
+  padding: 12px 14px;
+}
+
+.fresh-id-panel-auth .auth-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.fresh-id-panel-auth .auth-tab {
+  border: 1px solid var(--fresh-border, rgba(255, 255, 255, 0.12));
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.fresh-id-panel-auth .auth-tab.active {
+  background: color-mix(in srgb, var(--fresh-accent, #7c3aed) 28%, transparent);
+  border-color: transparent;
+}
+
+.fresh-id-panel-auth .auth-submit-btn,
+.fresh-id-primary {
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--fresh-accent, #7c3aed), var(--fresh-accent-2, #22d3ee));
+  color: #081016;
+}
+
+.fresh-id-panel-auth .guest-btn {
+  border: 1px solid var(--fresh-border, rgba(255, 255, 255, 0.14));
+  background: transparent;
+  color: inherit;
+  border-radius: 12px;
+  padding: 11px 14px;
+  cursor: pointer;
+}
+
+.fresh-id-panel-auth .auth-error {
+  color: #ff7b8a;
+  margin: 0;
+}
+
+.fresh-id-panel-auth .auth-message {
+  opacity: 0.8;
+  margin: 0;
+}
+
+.fresh-id-legal-foot {
+  margin: 16px 0 0;
+  max-width: 480px;
+  font-size: 0.88rem;
+  opacity: 0.72;
+  line-height: 1.45;
+}
+
+.fresh-id-inline-link {
+  border: 0;
+  background: none;
+  color: var(--fresh-accent-2, #8da7ff);
+  padding: 0;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.fresh-id-surface-board {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.fresh-id-surface-row {
+  border: 1px solid var(--fresh-border, rgba(255, 255, 255, 0.1));
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: var(--fresh-surface-2, rgba(255, 255, 255, 0.04));
+}
+
+.fresh-id-surface-label {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin-bottom: 4px;
+}
+
+.fresh-id-surface-row strong {
+  display: block;
+  word-break: break-word;
+}
+
+.fresh-id-surface-row small {
+  display: block;
+  margin-top: 4px;
+  opacity: 0.65;
+  line-height: 1.4;
+}
+
+.fresh-id-surface-disclaimer {
+  opacity: 0.72;
+  line-height: 1.45;
+  margin: 0 0 14px;
+}
+
+.fresh-id-doc h3 {
+  margin: 16px 0 6px;
+  font-size: 1rem;
+}
+
+.fresh-id-doc p {
+  margin: 0 0 8px;
+  opacity: 0.8;
+  line-height: 1.5;
+}
+
+@media (max-width: 860px) {
+  .fresh-id-dashboard-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .fresh-id-dashboard-brand {
+    position: static;
+  }
+}
