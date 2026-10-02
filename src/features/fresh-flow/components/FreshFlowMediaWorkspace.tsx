@@ -147,30 +147,47 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
 
   async function react(post: MediaPost, reaction: string) {
     if (!user || isGuest) return;
-    if (post.myReaction === reaction) {
-      await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
-    } else if (post.myReaction) {
-      await supabase.from("post_likes").update({ reaction_type: reaction }).eq("post_id", post.id).eq("user_id", user.id);
-    } else {
-      await supabase.from("post_likes").insert({ post_id: post.id, user_id: user.id, reaction_type: reaction });
+    try {
+      const result = post.myReaction === reaction
+        ? await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", user.id)
+        : post.myReaction
+          ? await supabase.from("post_likes").update({ reaction_type: reaction }).eq("post_id", post.id).eq("user_id", user.id)
+          : await supabase.from("post_likes").insert({ post_id: post.id, user_id: user.id, reaction_type: reaction });
+      if (result.error) throw result.error;
+      await loadMedia();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Reaction failed. Retry.");
     }
-    void loadMedia();
   }
 
   async function toggleSave(post: MediaPost) {
     if (!user || isGuest) return;
-    if (savedIds.has(post.id)) await supabase.from("saved_posts").delete().eq("post_id", post.id).eq("user_id", user.id);
-    else await supabase.from("saved_posts").insert({ post_id: post.id, user_id: user.id });
-    void loadMedia();
+    try {
+      const result = savedIds.has(post.id)
+        ? await supabase.from("saved_posts").delete().eq("post_id", post.id).eq("user_id", user.id)
+        : await supabase.from("saved_posts").insert({ post_id: post.id, user_id: user.id });
+      if (result.error) throw result.error;
+      await loadMedia();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Save failed. Retry.");
+    }
   }
 
   async function share(post: MediaPost) {
     const url = post.videoUrl || post.imageUrl || window.location.href;
     try {
-      if (navigator.share) await navigator.share({ title: post.content || title, text: post.content || title, url });
-      else await navigator.clipboard.writeText(url);
-    } catch {
-      /* user cancelled */
+      if (navigator.share) {
+        await navigator.share({ title: post.content || title, text: post.content || title, url });
+        return;
+      }
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+        return;
+      }
+      throw new Error("Sharing is not supported in this browser.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setError(error instanceof Error ? error.message : "Share failed. Retry.");
     }
   }
 
