@@ -97,4 +97,12 @@ if (!rootElement) {
 
 const root = createRoot(rootElement);
 root.render(<BootScreen state="loading" />);
+
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => {
+    void navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch((error) => {
+      console.warn("Fresh Web Lite service worker registration failed", error);
+    });
+  });
+}
 void bootstrap(root);
