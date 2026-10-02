@@ -193,13 +193,26 @@ export default function FreshIdAuthDashboard() {
 
         {layer === "auth" && (
           <section className="fresh-id-screen fresh-id-screen-form" aria-labelledby="fresh-auth-title">
-            <div className="fresh-id-form-intro">
-              <p className="fresh-id-overline">02 · ACCOUNT</p>
-              <h1 id="fresh-auth-title">Sign in or create your Fresh ID.</h1>
-              <p>Nothing from the main Fresh Web Lite navigation appears here. Finish identity first; the product comes after.</p>
-            </div>
-            <div className="fresh-id-form-stage">
-              <AuthForm />
+            <div className="fresh-id-auth-shell">
+              <div className="fresh-id-auth-identity">
+                <div className="fresh-id-auth-orb" aria-hidden="true">
+                  <span>F</span>
+                  <i />
+                </div>
+                <p className="fresh-id-overline">02 · ACCOUNT</p>
+                <h1 id="fresh-auth-title">Your identity.<br /><em>Your way into Fresh.</em></h1>
+                <p>One focused gateway. Sign in, create your Fresh ID, then the identity surface gets out of your way.</p>
+                <div className="fresh-id-provider-constellation" aria-hidden="true">
+                  <span className="provider-symbol google">G</span>
+                  <span className="provider-symbol apple">●</span>
+                  <span className="provider-symbol facebook">f</span>
+                  <span className="provider-symbol x">𝕏</span>
+                </div>
+                <small>Connected identity providers appear as symbols, not oversized labels.</small>
+              </div>
+              <div className="fresh-id-form-stage">
+                <AuthForm />
+              </div>
             </div>
             <div className="fresh-id-lower-actions">
               <button type="button" className="fresh-id-text-button" onClick={() => go("privacy")}>Privacy</button>
