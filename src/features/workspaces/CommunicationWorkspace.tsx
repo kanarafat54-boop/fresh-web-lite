@@ -11,6 +11,8 @@ import {
   type ConnectionRequest,
 } from "./connectionService";
 import { listThread, sendMessage, markThreadRead, getUnreadCounts, type DirectMessage } from "./messagingService";
+import { useFreshId } from "../fresh-id/context/FreshIdContext";
+import { useLayout } from "../../app/contexts/useLayout";
 import "./WorkspacePage.css";
 
 const SIGNALS = ["interests", "skills", "goals", "communities", "projects", "professional", "location"] as const;
@@ -61,6 +63,8 @@ function displayName(names: Record<string, NameRow>, userId: string): string {
 }
 
 export default function CommunicationWorkspace() {
+  const { setAuthView } = useFreshId();
+  const { setActiveRoute } = useLayout();
   const [viewer, setViewer] = useState<ConnectionProfile | null>(null);
   const [candidates, setCandidates] = useState<ConnectionProfile[]>([]);
   const [names, setNames] = useState<Record<string, NameRow>>({});
@@ -70,6 +74,7 @@ export default function CommunicationWorkspace() {
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [needsAuth, setNeedsAuth] = useState(false);
 
   const [activeThreadUserId, setActiveThreadUserId] = useState<string | null>(null);
   const [threadMessages, setThreadMessages] = useState<DirectMessage[]>([]);
@@ -81,10 +86,16 @@ export default function CommunicationWorkspace() {
   const load = async () => {
     setLoading(true);
     setError(null);
+    setNeedsAuth(false);
     try {
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError) throw authError;
-      if (!authData.user) throw new Error("Sign in to use Fresh Connect.");
+      if (!authData.user) {
+        setNeedsAuth(true);
+        setError("Sign in with Fresh ID to discover people, send requests, and message.");
+        setLoading(false);
+        return;
+      }
       setMyUserId(authData.user.id);
 
       const { data, error: profileError } = await supabase
@@ -127,7 +138,9 @@ export default function CommunicationWorkspace() {
       setAcceptedIds(accepted);
       setUnreadCounts(unread);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to load Fresh Connect.");
+      const message = cause instanceof Error ? cause.message : "Unable to load Fresh Connect.";
+      setError(message);
+      if (/sign in|auth|session|missing/i.test(message)) setNeedsAuth(true);
     } finally {
       setLoading(false);
     }
@@ -222,12 +235,36 @@ export default function CommunicationWorkspace() {
         <span className="workspace-eyebrow">Connect · Discover · Message</span>
         <h1>Fresh Connect</h1>
         <p>
-          Discover real Fresh profiles using permitted signals. Connection requests and messages are
-          authenticated and persisted in Supabase rather than simulated in local UI state.
+          Discover real Fresh profiles using permitted signals. Connection requests and messages are authenticated and
+          persisted in Supabase rather than simulated in local UI state.
         </p>
       </header>
 
-      {error && <p className="workspace-empty" role="alert">{error}</p>}
+      {error && (
+        <div className="workspace-empty" role="alert" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <p style={{ margin: 0 }}>{error}</p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {needsAuth && (
+              <button
+                type="button"
+                className="workspace-pill"
+                onClick={() => {
+                  setAuthView("form");
+                  setActiveRoute("profile");
+                }}
+              >
+                Sign in
+              </button>
+            )}
+            <button type="button" className="workspace-badge" onClick={() => void load()}>
+              Retry
+            </button>
+            <button type="button" className="workspace-badge" onClick={() => setActiveRoute("fresh-flow")}>
+              Explore Flow
+            </button>
+          </div>
+        </div>
+      )}
 
       {incoming.length > 0 && (
         <section className="workspace-section">
@@ -237,8 +274,12 @@ export default function CommunicationWorkspace() {
               <li key={request.id}>
                 <h3>{displayName(names, request.requester_id)}</h3>
                 <div className="workspace-meta">
-                  <button className="workspace-badge" onClick={() => void respond(request.requester_id, true)}>Accept</button>
-                  <button className="workspace-badge" onClick={() => void respond(request.requester_id, false)}>Decline</button>
+                  <button type="button" className="workspace-badge" onClick={() => void respond(request.requester_id, true)}>
+                    Accept
+                  </button>
+                  <button type="button" className="workspace-badge" onClick={() => void respond(request.requester_id, false)}>
+                    Decline
+                  </button>
                 </div>
               </li>
             ))}
@@ -250,6 +291,8 @@ export default function CommunicationWorkspace() {
         <h2>Suggested connections</h2>
         {loading ? (
           <p className="workspace-empty">Loading real profiles…</p>
+        ) : needsAuth ? (
+          <p className="workspace-empty">Sign in to see people you can connect with.</p>
         ) : !viewer ? (
           <p className="workspace-empty">Complete your public profile before Fresh can calculate matches.</p>
         ) : matches.length === 0 ? (
@@ -264,16 +307,25 @@ export default function CommunicationWorkspace() {
                   <span className="workspace-pill">{match.overallScore}% match</span>
                   <span className="workspace-badge">confidence {Math.round(match.confidence * 100)}%</span>
                   {acceptedIds.includes(match.userId) ? (
-                    <button className="workspace-badge" onClick={() => void openThread(match.userId)}>Message</button>
+                    <button type="button" className="workspace-badge" onClick={() => void openThread(match.userId)}>
+                      Message
+                    </button>
                   ) : sent[match.userId] ? (
                     <button
+                      type="button"
                       className="workspace-badge"
-                      onClick={() => void cancelConnectionRequest(match.userId).then(() => setSent((c) => ({ ...c, [match.userId]: false })))}
+                      onClick={() =>
+                        void cancelConnectionRequest(match.userId).then(() =>
+                          setSent((c) => ({ ...c, [match.userId]: false })),
+                        )
+                      }
                     >
                       Request pending · Cancel
                     </button>
                   ) : (
-                    <button className="workspace-badge" onClick={() => void connect(match.userId)}>Connect</button>
+                    <button type="button" className="workspace-badge" onClick={() => void connect(match.userId)}>
+                      Connect
+                    </button>
                   )}
                 </div>
               </li>
@@ -289,6 +341,7 @@ export default function CommunicationWorkspace() {
             {acceptedIds.map((id) => (
               <button
                 key={id}
+                type="button"
                 className={`workspace-card ${activeThreadUserId === id ? "workspace-pill" : ""}`}
                 onClick={() => void openThread(id)}
               >
@@ -330,7 +383,14 @@ export default function CommunicationWorkspace() {
                 </div>
               )}
 
-              {threadError && <p className="workspace-empty" role="alert">{threadError}</p>}
+              {threadError && (
+                <div className="workspace-empty" role="alert" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span>{threadError}</span>
+                  <button type="button" className="workspace-badge" onClick={() => void openThread(activeThreadUserId)}>
+                    Retry
+                  </button>
+                </div>
+              )}
 
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                 <input
@@ -339,9 +399,18 @@ export default function CommunicationWorkspace() {
                   onKeyDown={(e) => e.key === "Enter" && void send()}
                   placeholder="Write a message…"
                   aria-label="Write a message"
-                  style={{ flex: 1, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--text)", padding: "8px 10px" }}
+                  style={{
+                    flex: 1,
+                    background: "var(--surface-2)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
+                    color: "var(--text)",
+                    padding: "8px 10px",
+                  }}
                 />
-                <button className="workspace-pill" onClick={() => void send()}>Send</button>
+                <button type="button" className="workspace-pill" onClick={() => void send()}>
+                  Send
+                </button>
               </div>
             </div>
           )}
