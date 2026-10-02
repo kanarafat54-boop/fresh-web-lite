@@ -405,6 +405,10 @@ export default function StudioWorkspace() {
   };
 
   const openCreator = () => {
+    if (!project && !sourcePreview) {
+      setMessage("Import media or save a project before opening Creator.");
+      return;
+    }
     try {
       sessionStorage.setItem(
         "fresh-studio-handoff",
@@ -414,10 +418,10 @@ export default function StudioWorkspace() {
           sourceName: project?.sourceName,
         }),
       );
-    } catch {
-      /* ignore */
+      setActiveRoute("creator");
+    } catch (error) {
+      setMessage(error instanceof Error ? `Creator handoff failed: ${error.message}` : "Creator handoff failed. Retry.");
     }
-    setActiveRoute("creator");
   };
 
   const restoreProject = (item: FreshMediaProject) => {
