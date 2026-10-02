@@ -46,6 +46,19 @@ const SECTION_COPY = {
   },
 };
 
+function readInitialTheme(): "dark" | "light" {
+  try {
+    const saved = window.localStorage.getItem("fresh-theme");
+    if (saved === "light" || saved === "dark") return saved;
+  } catch {
+    // ignore storage errors
+  }
+  if (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: light)").matches) {
+    return "light";
+  }
+  return "dark";
+}
+
 /**
  * Fresh Flow Hub — media operating shell.
  * Layer A (Media Director) is organized as a compact media directorate with the Flow Switch retained for overflow.
@@ -67,10 +80,20 @@ export default function FreshFlowHub() {
   const [shortsImmersive, setShortsImmersive] = useState(false);
   const [flowSwitchOpen, setFlowSwitchOpen] = useState(false);
   const [discoveryId, setDiscoveryId] = useState(world.discovery[0]?.id ?? "for-you");
+  const [theme, setTheme] = useState<"dark" | "light">(readInitialTheme);
 
   useEffect(() => {
     setDiscoveryId(world.discovery[0]?.id ?? "for-you");
   }, [world.id]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      window.localStorage.setItem("fresh-theme", theme);
+    } catch {
+      // ignore
+    }
+  }, [theme]);
 
   const [wallet, setWallet] = useState<WalletSummary | null | undefined>(undefined);
   useEffect(() => {
@@ -114,28 +137,110 @@ export default function FreshFlowHub() {
       {showChrome && (
         <header className="fresh-flow-reference-header fresh-flow-unified-header">
           <div className="fresh-flow-unified-brand">
-            <span className="fresh-flow-unified-mark" aria-hidden="true">F</span>
-            <span><strong>Fresh Flow</strong><small>Everything you watch, read, hear and explore</small></span>
+            <span className="fresh-flow-unified-mark" aria-hidden="true">
+              F
+            </span>
+            <span>
+              <strong>Fresh Flow</strong>
+              <small>Everything you watch, read, hear and explore</small>
+            </span>
           </div>
           <button type="button" className="fresh-flow-search" onClick={openFreshSearch} aria-label="Search anything on Fresh">
             <span className="fresh-flow-search-icon">⌕</span>
             <span className="fresh-flow-search-text">Search anything on Fresh...</span>
-            <span className="fresh-flow-search-tool" aria-hidden="true">♩</span>
-            <span className="fresh-flow-search-tool" aria-hidden="true">文</span>
+            <span className="fresh-flow-search-tool" aria-hidden="true">
+              ♩
+            </span>
+            <span className="fresh-flow-search-tool" aria-hidden="true">
+              文
+            </span>
           </button>
-          <button type="button" className="fresh-flow-flow-switch-trigger" onClick={() => setFlowSwitchOpen(true)} aria-haspopup="dialog" aria-expanded={flowSwitchOpen} aria-label="Open Flow Switch — choose media world">
-            <span aria-hidden="true">{world.icon}</span><span>{world.shortLabel}</span><span aria-hidden="true">▾</span>
+          <button
+            type="button"
+            className="fresh-flow-flow-switch-trigger"
+            onClick={() => setFlowSwitchOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={flowSwitchOpen}
+            aria-label="Open Flow Switch — choose media world"
+          >
+            <span aria-hidden="true">{world.icon}</span>
+            <span>{world.shortLabel}</span>
+            <span aria-hidden="true">▾</span>
           </button>
+          <div className="fresh-theme-switch" role="group" aria-label="Appearance">
+            <button
+              type="button"
+              className={theme === "dark" ? "is-active" : ""}
+              onClick={() => setTheme("dark")}
+              aria-label="Dark mode"
+              title="Dark mode"
+            >
+              ◐
+            </button>
+            <button
+              type="button"
+              className={theme === "light" ? "is-active" : ""}
+              onClick={() => setTheme("light")}
+              aria-label="Light mode"
+              title="Light mode"
+            >
+              ☼
+            </button>
+          </div>
           <button type="button" className="fresh-flow-wallet-card" onClick={() => setActiveRoute("wallet")} aria-label="Open My Wallet">
-            <span><strong>Wallet</strong><small>{walletLabel}</small></span><span className="fresh-flow-wallet-icon" aria-hidden="true">▣</span>
+            <span>
+              <strong>Wallet</strong>
+              <small>{walletLabel}</small>
+            </span>
+            <span className="fresh-flow-wallet-icon" aria-hidden="true">
+              ▣
+            </span>
           </button>
-          <button type="button" className="fresh-flow-unified-profile" onClick={() => setActiveRoute("profile")} aria-label={isAuthenticated ? "Open profile" : "Open profile / sign in"}>
+          <button
+            type="button"
+            className="fresh-flow-unified-profile"
+            onClick={() => setActiveRoute("profile")}
+            aria-label={isAuthenticated ? "Open profile" : "Open profile / sign in"}
+          >
             <span aria-hidden="true">{isAuthenticated ? "M" : "?"}</span>
           </button>
         </header>
       )}
 
-      {showChrome && <nav className="fresh-flow-world-nav" aria-label="Fresh Flow media worlds"><button type="button" className={section === "fresh-flow" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow")}>Shorts</button><button type="button" className={section === "fresh-flow-long-videos" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-long-videos")}>Long Videos</button><button type="button" className={section === "fresh-flow-news-posts" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-news-posts")}>News / Posts</button><button type="button" className={section === "fresh-flow-ar-vr" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-ar-vr")}>AR / VR</button><button type="button" className={section === "fresh-flow-podcasts" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-podcasts")}>Podcasts</button><button type="button" className={section === "fresh-flow-more" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-more")}>Others</button></nav>}
+      {showChrome && (
+        <nav className="fresh-flow-world-nav" aria-label="Fresh Flow media worlds">
+          <button type="button" className={section === "fresh-flow" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow")}>
+            Shorts
+          </button>
+          <button
+            type="button"
+            className={section === "fresh-flow-long-videos" ? "active" : ""}
+            onClick={() => setActiveRoute("fresh-flow-long-videos")}
+          >
+            Long Videos
+          </button>
+          <button
+            type="button"
+            className={section === "fresh-flow-news-posts" ? "active" : ""}
+            onClick={() => setActiveRoute("fresh-flow-news-posts")}
+          >
+            News / Posts
+          </button>
+          <button type="button" className={section === "fresh-flow-ar-vr" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-ar-vr")}>
+            AR / VR
+          </button>
+          <button
+            type="button"
+            className={section === "fresh-flow-podcasts" ? "active" : ""}
+            onClick={() => setActiveRoute("fresh-flow-podcasts")}
+          >
+            Podcasts
+          </button>
+          <button type="button" className={section === "fresh-flow-more" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-more")}>
+            Others
+          </button>
+        </nav>
+      )}
 
       {showChrome && !isOverview && (
         <div className="fresh-flow-section-bar">
@@ -154,14 +259,12 @@ export default function FreshFlowHub() {
       )}
 
       {((showChrome && !isOverview) || (isOverview && shortsImmersive)) && world.discovery.length > 0 && (
-        <nav className={shortsImmersive ? "fresh-flow-discovery-rail fresh-flow-discovery-rail-immersive" : "fresh-flow-discovery-rail"} aria-label={`${world.label} discovery`}>
+        <nav
+          className={shortsImmersive ? "fresh-flow-discovery-rail fresh-flow-discovery-rail-immersive" : "fresh-flow-discovery-rail"}
+          aria-label={`${world.label} discovery`}
+        >
           {world.discovery.map((mode) => (
-            <button
-              key={mode.id}
-              type="button"
-              className={discoveryId === mode.id ? "active" : ""}
-              onClick={() => setDiscoveryId(mode.id)}
-            >
+            <button key={mode.id} type="button" className={discoveryId === mode.id ? "active" : ""} onClick={() => setDiscoveryId(mode.id)}>
               {mode.label}
             </button>
           ))}
