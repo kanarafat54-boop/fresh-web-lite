@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { FeatureRegistry } from "../registry/FeatureRegistry";
 import { useLayout } from "../contexts/useLayout";
 import { SearchIcon, XCircleIcon } from "../../components/Icons";
+import { NotificationService } from "../services/notificationService";
 import { runIntelligence, type IntelligenceResponse, type IntelligenceSourceKind, type ResearchMode } from "../../features/ai/intelligence";
 
 const RESEARCH_MODES: Array<{ id: ResearchMode; label: string }> = [
@@ -33,8 +34,17 @@ export default function GlobalSearchEntry() {
     try {
       setResearch(await runIntelligence({ prompt: trimmed, query: trimmed, task: "research", researchMode, maxSources: researchMode === "deep" || researchMode === "global" ? 12 : 10 }));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Fresh Search could not complete the research.");
+      const message = reason instanceof Error ? reason.message : "Fresh Search could not complete the research.";
+      setError(message);
+      NotificationService.notify({ title: "Fresh Search failed", message: "The research request did not complete. You can retry without reopening Search.", type: "error" });
     } finally { setLoading(false); }
+  };
+
+  const resetSearch = () => {
+    setQuery("");
+    setResearch(null);
+    setError(null);
+    setFilter("all");
   };
 
   if (!searchOverlayOpen) return <button className="icon-only-btn" onClick={openSearch} aria-label="Open Fresh Search"><SearchIcon size={20} /></button>;
@@ -53,8 +63,12 @@ export default function GlobalSearchEntry() {
           {RESEARCH_MODES.map((mode) => <button key={mode.id} type="button" className={researchMode === mode.id ? "search-mode active" : "search-mode"} onClick={() => setResearchMode(mode.id)}>{mode.label}</button>)}
         </div>
 
-        {query.trim() && <button className="share-option-btn" onClick={() => void searchWorld()} disabled={loading}>{loading ? "Fresh is researching and verifying…" : `Research “${query.trim()}”`}</button>}
-        {error && <div className="search-error" role="alert">{error}</div>}
+        {query.trim() ? (
+          <button className="share-option-btn" onClick={() => void searchWorld()} disabled={loading}>{loading ? "Fresh is researching and verifying…" : `Research “${query.trim()}”`}</button>
+        ) : (
+          <div role="status" style={{ marginTop: 10, opacity: .68 }}>Enter a question or search term to begin Fresh Search.</div>
+        )}
+        {error && <div className="search-error" role="alert"><span>{error}</span><button className="reply-btn" type="button" onClick={() => void searchWorld()} disabled={loading}>{loading ? "Retrying…" : "Retry"}</button></div>}
 
         {research && (
           <div className="fresh-global-research" onClick={(e) => e.stopPropagation()}>
@@ -70,7 +84,7 @@ export default function GlobalSearchEntry() {
               <div style={{ display: "grid", gap: 8 }}>
                 {sources.map((source, index) => {
                   const kind = source.kind ?? "web";
-                  return <article key={`${source.url}-${source.title}`} style={{ padding: 12, border: "1px solid rgba(0,0,0,.1)", borderRadius: 14 }}>
+                  return <article key={String(source.url) + "-" + String(source.title)} style={{ padding: 12, border: "1px solid rgba(0,0,0,.1)", borderRadius: 14 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><strong>{source.title}</strong><span style={{ fontSize: 11, fontWeight: 800, opacity: .65 }}>{kindLabel[kind]} · Evidence {index + 1}</span></div>
                     {source.publishedAt && <small style={{ display: "block", marginTop: 4, opacity: .62 }}>{new Date(source.publishedAt).toLocaleDateString()}</small>}
                     {source.snippet && <small style={{ display: "block", marginTop: 7, lineHeight: 1.45, opacity: .82 }}>{source.snippet}</small>}
@@ -83,6 +97,7 @@ export default function GlobalSearchEntry() {
           </div>
         )}
         {!research && featureResults.map((f) => <button key={f.id} className="share-option-btn" onClick={() => { setActiveRoute(f.id); closeSearch(); }}>{f.name}</button>)}
+        {(query || research || error) && <button className="reply-btn" type="button" onClick={resetSearch}>Clear search</button>}
       </div>
     </div>
   );
