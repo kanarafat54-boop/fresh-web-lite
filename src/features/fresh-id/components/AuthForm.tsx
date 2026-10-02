@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import { useFreshId } from "../context/FreshIdContext";
+import { supabase } from "../../../lib/supabase";
 
 export function AuthForm() {
   const {
