@@ -77,6 +77,7 @@ FeatureRegistry.register({ id: "api-hub", name: "Fresh API Hub", route: "/api-hu
 FeatureRegistry.register({ id: "organizations", name: "Fresh Organizations", route: "/organizations", searchable: true, lazyLoader: () => import("../../features/workspaces/OrganizationsWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "sports", name: "Fresh Sports", route: "/sports", searchable: true, lazyLoader: () => import("../../features/workspaces/SportsWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "fresh-flow", name: "Fresh Flow", route: "/fresh-flow", searchable: true, lazyLoader: () => import("../../features/fresh-flow/FreshFlowHub").then((m) => ({ default: m.default })) });
+FeatureRegistry.register({ id: "downloads", name: "Downloads", route: "/downloads", searchable: false, lazyLoader: () => import("../../features/downloads/DownloadCenter").then((m) => ({ default: m.default })) });
 
 /* FWL ecosystems that had zero routes — domain surfaces (honest status badges) */
 FeatureRegistry.register({ id: "life-services", name: "Digital Life", route: "/life-services", searchable: true, lazyLoader: () => import("../../features/workspaces/LifeServicesWorkspace").then((m) => ({ default: m.default })) });
