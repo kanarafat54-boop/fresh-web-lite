@@ -101,23 +101,20 @@ export default function FreshIdAuthDashboard() {
   }
 
   function onWheel(event: WheelEvent<HTMLDivElement>) {
-    if (Math.abs(event.deltaY) < 18) return;
-    if (event.deltaY > 0 && layer !== "privacy") {
-      event.preventDefault();
-      advance();
-    } else if (event.deltaY < 0) {
-      event.preventDefault();
-      back();
-    }
+    const primaryDelta = Math.abs(event.deltaX) >= Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+    if (Math.abs(primaryDelta) < 18) return;
+    event.preventDefault();
+    if (primaryDelta > 0 && layer !== "privacy") advance();
+    if (primaryDelta < 0) back();
   }
 
   function onTouchStart(event: TouchEvent<HTMLDivElement>) {
-    setTouchStart(event.touches[0]?.clientY ?? null);
+    setTouchStart(event.touches[0]?.clientX ?? null);
   }
 
   function onTouchEnd(event: TouchEvent<HTMLDivElement>) {
     if (touchStart === null) return;
-    const end = event.changedTouches[0]?.clientY ?? touchStart;
+    const end = event.changedTouches[0]?.clientX ?? touchStart;
     const delta = touchStart - end;
     if (Math.abs(delta) > 48) {
       if (delta > 0 && layer !== "privacy") advance();
@@ -323,9 +320,9 @@ export default function FreshIdAuthDashboard() {
       </div>
 
       <div className="fresh-id-gateway-bottom">
-        <button type="button" className="fresh-id-nav-arrow" onClick={back} disabled={layerIndex === 0} aria-label="Previous layer">↑</button>
-        <span>Swipe or scroll to move through layers</span>
-        <button type="button" className="fresh-id-nav-arrow" onClick={advance} disabled={layerIndex === layers.length - 1} aria-label="Next layer">↓</button>
+        <button type="button" className="fresh-id-nav-arrow" onClick={back} disabled={layerIndex === 0} aria-label="Previous layer">←</button>
+        <span>Swipe sideways to move through layers</span>
+        <button type="button" className="fresh-id-nav-arrow" onClick={advance} disabled={layerIndex === layers.length - 1} aria-label="Next layer">→</button>
       </div>
     </main>
   );
