@@ -88,6 +88,12 @@ function createMockUser(): FreshUser {
 
 type AuthView = "form" | "check-email" | "reset-password" | "forgot-password";
 
+export type FreshSessionState = {
+  expiresAt: number | null;
+  lastRefreshedAt: string | null;
+  accessLevel: "signed-out" | "authenticated" | "guest";
+};
+
 function passkeyErrorMessage(error: { message?: string; code?: string } | null, action: "sign-in" | "register") {
   const code = error?.code ?? "";
   const message = error?.message ?? "";
@@ -139,6 +145,7 @@ interface FreshIdContextValue {
   updateUser: (patch: Partial<FreshUser>) => void;
   requestPasswordReset: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
+  session: FreshSessionState;
 }
 
 const FreshIdContext = createContext<FreshIdContextValue | undefined>(undefined);
@@ -151,6 +158,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState<string | null>(null);
   const [authView, setAuthView] = useState<AuthView>("form");
   const [passkeySupported, setPasskeySupported] = useState(false);
+  const [session, setSession] = useState<FreshSessionState>({ expiresAt: null, lastRefreshedAt: null, accessLevel: "signed-out" });
 
   useEffect(() => {
     const supported =
@@ -171,8 +179,10 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
 
     supabase.auth.getSession().then(async ({ data }) => {
       if (data.session?.user) {
+        setSession({ expiresAt: data.session.expires_at ?? null, lastRefreshedAt: new Date().toISOString(), accessLevel: "authenticated" });
         await loadUserProfile(data.session.user);
       } else {
+        setSession({ expiresAt: null, lastRefreshedAt: new Date().toISOString(), accessLevel: "signed-out" });
         setLoading(false);
       }
     });
@@ -184,8 +194,10 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (session?.user) {
+        setSession({ expiresAt: session.expires_at ?? null, lastRefreshedAt: new Date().toISOString(), accessLevel: "authenticated" });
         await loadUserProfile(session.user);
       } else if (!isGuest) {
+        setSession({ expiresAt: null, lastRefreshedAt: new Date().toISOString(), accessLevel: "signed-out" });
         setUser(null);
       }
     });
@@ -459,12 +471,14 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     setMessage(null);
     setUser(createMockUser());
     setIsGuest(true);
+    setSession({ expiresAt: null, lastRefreshedAt: new Date().toISOString(), accessLevel: "guest" });
   }
 
   async function logout() {
     if (!isGuest) await supabase.auth.signOut();
     setUser(null);
     setIsGuest(false);
+    setSession({ expiresAt: null, lastRefreshedAt: new Date().toISOString(), accessLevel: "signed-out" });
     setError(null);
     setMessage(null);
     setAuthView("form");
@@ -515,7 +529,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <FreshIdContext.Provider value={{ user, isAuthenticated: user !== null, isGuest, loading, error, message, authView, passkeySupported, setAuthView, register, login, loginWithPasskey, registerPasskey, listPasskeys, removePasskey, loginAsGuest, logout, updateUser, requestPasswordReset, updatePassword }}>
+    <FreshIdContext.Provider value={{ user, isAuthenticated: user !== null, isGuest, loading, error, message, authView, passkeySupported, session, setAuthView, register, login, loginWithPasskey, registerPasskey, listPasskeys, removePasskey, loginAsGuest, logout, updateUser, requestPasswordReset, updatePassword }}>
       {children}
     </FreshIdContext.Provider>
   );
