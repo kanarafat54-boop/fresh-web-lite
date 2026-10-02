@@ -43,7 +43,6 @@ export default function FreshIdAuthDashboard() {
     setAuthView,
     registerPasskey,
     listPasskeys,
-    removePasskey,
     logout,
   } = useFreshId();
   const { setActiveRoute } = useLayout();
@@ -116,7 +115,7 @@ export default function FreshIdAuthDashboard() {
     setTouchStart(event.touches[0]?.clientY ?? null);
   }
 
-  function onTouchEnd(event: React.TouchEvent<HTMLDivElement>) {
+  function onTouchEnd(event: TouchEvent<HTMLDivElement>) {
     if (touchStart === null) return;
     const end = event.changedTouches[0]?.clientY ?? touchStart;
     const delta = touchStart - end;
@@ -139,14 +138,17 @@ export default function FreshIdAuthDashboard() {
     setLayer("auth");
   }
 
-  const surfaceClass = useMemo(() => {
-    if (typeof navigator === "undefined") return "Browser";
-    if (/Android/i.test(navigator.userAgent)) return "Android";
-    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) return "Apple";
-    if (/Windows/i.test(navigator.userAgent)) return "Windows";
-    if (/Macintosh/i.test(navigator.userAgent)) return "Mac";
-    return "Browser";
-  }, []);
+  const surfaceClass = typeof navigator === "undefined"
+    ? "Browser"
+    : /Android/i.test(navigator.userAgent)
+      ? "Android"
+      : /iPhone|iPad|iPod/i.test(navigator.userAgent)
+        ? "Apple"
+        : /Windows/i.test(navigator.userAgent)
+          ? "Windows"
+          : /Macintosh/i.test(navigator.userAgent)
+            ? "Mac"
+            : "Browser";
 
   function enterFresh() {
     try {
