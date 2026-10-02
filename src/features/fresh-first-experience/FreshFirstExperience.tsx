@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFreshCore } from "../../app/providers/FreshCoreProvider";
 import { contextService } from "../../core/context/contextService";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
@@ -52,6 +52,8 @@ export default function FreshFirstExperience() {
   const { setActiveRoute } = useLayout();
   const [intent, setIntent] = useState<Intent | null>(null);
   const [input, setInput] = useState("");
+  const [composerHint, setComposerHint] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   /** Never block the surface forever if auth/core is slow. */
   const [forceShow, setForceShow] = useState(false);
 
@@ -134,7 +136,12 @@ export default function FreshFirstExperience() {
 
   function startWithAI() {
     const prompt = input.trim();
-    if (!prompt) return;
+    if (!prompt) {
+      setComposerHint("Type what you want to accomplish, then start with Fresh AI — or use Enter Fresh below.");
+      textareaRef.current?.focus();
+      return;
+    }
+    setComposerHint(null);
     beginWith(
       {
         id: "custom",
@@ -153,20 +160,30 @@ export default function FreshFirstExperience() {
         <h1>{greeting}</h1>
         <p className="fresh-first__headline">One account. One intelligent world.</p>
         <p className="fresh-first__intro">
-          Tell Fresh what you want to accomplish. Fresh can connect the right tools, knowledge, people, and workspace instead of making you learn where everything lives.
+          Tell Fresh what you want to accomplish. Fresh can connect the right tools, knowledge, people, and workspace
+          instead of making you learn where everything lives.
         </p>
         <div className="fresh-first__composer">
           <textarea
+            ref={textareaRef}
             value={input}
-            onChange={(event) => setInput(event.target.value)}
+            onChange={(event) => {
+              setInput(event.target.value);
+              if (composerHint) setComposerHint(null);
+            }}
             placeholder="Tell Fresh what you want to accomplish…"
             rows={3}
             aria-label="Tell Fresh what you want to accomplish"
           />
-          <button type="button" disabled={!input.trim()} onClick={startWithAI}>
+          <button type="button" onClick={startWithAI} aria-disabled={!input.trim()}>
             Start with Fresh AI
           </button>
         </div>
+        {composerHint && (
+          <p className="fresh-first__intro" role="status" style={{ marginTop: 8 }}>
+            {composerHint}
+          </p>
+        )}
         <button type="button" className="fresh-first__enter" onClick={continueToFresh}>
           Enter Fresh
         </button>
