@@ -4,7 +4,6 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../context/FreshIdContext";
 import { useLayout } from "../../../app/contexts/useLayout";
 import { AuthForm } from "./AuthForm";
