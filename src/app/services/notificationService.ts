@@ -3,6 +3,7 @@ export interface UINotification {
   title: string;
   message?: string;
   type?: "info" | "success" | "warning" | "error";
+  route?: string;
   createdAt: string;
 }
 
