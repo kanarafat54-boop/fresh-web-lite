@@ -76,7 +76,7 @@ FeatureRegistry.register({ id: "language", name: "Fresh Language", route: "/lang
 FeatureRegistry.register({ id: "api-hub", name: "Fresh API Hub", route: "/api-hub", searchable: true, lazyLoader: () => import("../../features/workspaces/ApiHubWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "organizations", name: "Fresh Organizations", route: "/organizations", searchable: true, lazyLoader: () => import("../../features/workspaces/OrganizationsWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "sports", name: "Fresh Sports", route: "/sports", searchable: true, lazyLoader: () => import("../../features/workspaces/SportsWorkspace").then((m) => ({ default: m.default })) });
-FeatureRegistry.register({ id: "fresh-flow", name: "Fresh Flow", route: "/fresh-flow", searchable: true, lazyLoader: () => import("../../features/fresh-flow/FreshFlowHub").then((m) => ({ default: m.default })) });\n
+FeatureRegistry.register({ id: "fresh-flow", name: "Fresh Flow", route: "/fresh-flow", searchable: true, lazyLoader: () => import("../../features/fresh-flow/FreshFlowHub").then((m) => ({ default: m.default })) });
 
 /* FWL ecosystems that had zero routes — domain surfaces (honest status badges) */
 FeatureRegistry.register({ id: "life-services", name: "Digital Life", route: "/life-services", searchable: true, lazyLoader: () => import("../../features/workspaces/LifeServicesWorkspace").then((m) => ({ default: m.default })) });
