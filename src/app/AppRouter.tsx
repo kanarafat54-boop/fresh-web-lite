@@ -11,12 +11,12 @@ import FreshFlowHub from "../features/fresh-flow/FreshFlowHub";
 import "./AppRouter.css";
 import FreshPlatformRuntimeBoundary from "../core/platform/FreshPlatformRuntimeBoundary";
 
-const isFreshFlowRoute = (route?: string) => Boolean(route && (route === "fresh-flow" || route.startsWith("fresh-flow-")));
+const isFreshFlowRoute = (route?: string) => Boolean(route && (route === "fresh-flow" || route.startsWith("fresh-flow-")));\nconst isFreshIdGatewayPath = () => {\n  if (typeof window === "undefined") return false;\n  const path = window.location.pathname.replace(/\\/+$/, "") || "/";\n  return path === "/auth/sign-in" || path.startsWith("/auth/");\n};
 
 export default function AppRouter() {
   const { activeRoute } = useLayout();
   const freshFlowRoute = isFreshFlowRoute(activeRoute);
-  const activeFeature = FeatureRegistry.getFeature(activeRoute);
+  const activeFeature = FeatureRegistry.getFeature(activeRoute);\n\n  // Fresh ID is an independent gateway: no FWL shell or navigation is mounted here.\n  if (isFreshIdGatewayPath()) {\n    const authFeature = FeatureRegistry.getFeature("auth-signin");\n    return authFeature\n      ? <div className="fresh-id-independent-root"><FeatureLoader feature={authFeature} /></div>\n      : <div className="empty-state">Fresh ID is unavailable.</div>;\n  }
 
   if (freshFlowRoute) {
     return <div className="app-shell fresh-flow-app-shell fresh-shell-frame"><DesktopSidebar /><main className="app-content fresh-flow-content-root"><FreshFlowHub /></main><BottomNav /><NotificationCenter /><GlobalSearchEntry /></div>;
