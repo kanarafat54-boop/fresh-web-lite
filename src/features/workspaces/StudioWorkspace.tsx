@@ -301,8 +301,12 @@ export default function StudioWorkspace() {
   };
 
   const runLocalWasm = async () => {
-    const result = await runWasmSmokeTest();
-    setMessage(`WASM runtime OK · ${result}`);
+    try {
+      const result = await runWasmSmokeTest();
+      setMessage(`WASM runtime OK · ${result}`);
+    } catch (error) {
+      setMessage(error instanceof Error ? `WASM check failed: ${error.message}` : "WASM check failed. Retry.");
+    }
   };
 
   const exportDocument = async () => {
