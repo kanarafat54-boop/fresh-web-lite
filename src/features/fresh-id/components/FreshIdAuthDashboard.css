@@ -16,6 +16,312 @@
 .fresh-id-layer{height:100%;width:100%;position:relative;z-index:1}
 .fresh-id-screen{height:100%;min-height:100svh;box-sizing:border-box;padding:92px clamp(20px,6vw,96px) 82px;display:flex;flex-direction:column;justify-content:center}
 .fresh-id-screen-centered{align-items:center;text-align:center}.fresh-id-screen-form{align-items:stretch}
+/* Full Fresh ID journey overview — the gateway's first screen */
+.fresh-id-screen-overview{
+  justify-content:flex-start;
+  gap:0;
+  padding-top:96px;
+  overflow:auto;
+}
+.fresh-id-overview-head{
+  width:min(1440px,100%);
+  margin:0 auto 22px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:28px;
+  align-items:end;
+}
+.fresh-id-overview-head h1{
+  font-size:clamp(2.8rem,5.8vw,5.9rem);
+  max-width:780px;
+}
+.fresh-id-overview-head h1 em{
+  font-style:normal;
+  background:linear-gradient(100deg,#72e6c1,#9caeff 70%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+.fresh-id-overview-lede{
+  max-width:720px;
+  margin:18px 0 0;
+  font-size:clamp(.95rem,1.35vw,1.1rem);
+  line-height:1.55;
+  opacity:.6;
+}
+.fresh-id-capability-rail{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(150px,1fr));
+  gap:8px;
+  width:min(370px,100%);
+}
+.fresh-id-capability-rail span{
+  min-height:46px;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:0 13px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:15px;
+  background:rgba(255,255,255,.025);
+  font-size:.72rem;
+  opacity:.72;
+}
+.fresh-id-capability-rail b{
+  font-size:1rem;
+  color:#72e6c1;
+}
+.fresh-id-journey-board{
+  width:min(1440px,100%);
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:repeat(7,minmax(105px,1fr));
+  gap:8px;
+}
+.fresh-id-journey-step{
+  position:relative;
+  min-width:0;
+  min-height:126px;
+  padding:13px 12px 12px;
+  text-align:left;
+  color:inherit;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:18px;
+  background:rgba(7,10,15,.62);
+  cursor:pointer;
+  transition:transform .18s,border-color .18s,background .18s,box-shadow .18s;
+}
+.fresh-id-journey-step:hover{
+  transform:translateY(-2px);
+  border-color:rgba(114,230,193,.25);
+  background:rgba(255,255,255,.04);
+}
+.fresh-id-journey-step.active{
+  border-color:rgba(114,230,193,.5);
+  background:linear-gradient(145deg,rgba(114,230,193,.1),rgba(141,167,255,.06));
+  box-shadow:0 12px 40px rgba(0,0,0,.18);
+}
+.fresh-id-step-number{
+  display:block;
+  margin-bottom:8px;
+  font-size:.61rem;
+  letter-spacing:.12em;
+  opacity:.45;
+}
+.fresh-id-journey-step .fresh-id-step-icon{
+  width:34px;
+  height:34px;
+  margin:0 0 10px;
+  border-radius:11px;
+  font-size:.9rem;
+  color:#72e6c1;
+  background:rgba(114,230,193,.08);
+  border:1px solid rgba(114,230,193,.12);
+}
+.fresh-id-journey-step strong{
+  display:block;
+  font-size:.76rem;
+  letter-spacing:-.01em;
+}
+.fresh-id-journey-step small{
+  display:block;
+  margin-top:4px;
+  font-size:.62rem;
+  line-height:1.3;
+  opacity:.48;
+}
+.fresh-id-journey-connector{
+  position:absolute;
+  top:50%;
+  right:-12px;
+  transform:translateY(-50%);
+  z-index:2;
+  width:16px;
+  height:16px;
+  display:grid;
+  place-items:center;
+  font-style:normal;
+  font-size:.65rem;
+  color:rgba(141,167,255,.75);
+  pointer-events:none;
+}
+.fresh-id-overview-stage{
+  width:min(1440px,100%);
+  min-height:245px;
+  margin:22px auto 0;
+  padding:24px clamp(22px,3vw,42px);
+  box-sizing:border-box;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 310px;
+  gap:36px;
+  align-items:center;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:28px;
+  background:
+    radial-gradient(500px 240px at 85% 50%,rgba(141,167,255,.09),transparent 70%),
+    linear-gradient(120deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+  box-shadow:0 30px 100px rgba(0,0,0,.22);
+}
+.fresh-id-overview-copy{
+  max-width:720px;
+}
+.fresh-id-stage-kicker{
+  font-size:.65rem;
+  letter-spacing:.16em;
+  font-weight:850;
+  opacity:.45;
+}
+.fresh-id-overview-copy h2{
+  margin:9px 0 10px;
+  font-size:clamp(1.45rem,2.8vw,2.55rem);
+  line-height:1.02;
+  letter-spacing:-.045em;
+}
+.fresh-id-overview-copy p{
+  max-width:650px;
+  margin:0;
+  font-size:.9rem;
+  line-height:1.55;
+  opacity:.57;
+}
+.fresh-id-overview-actions{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+  margin-top:20px;
+}
+.fresh-id-device-preview{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+}
+.fresh-id-device{
+  width:154px;
+  height:238px;
+  padding:7px;
+  box-sizing:border-box;
+  border-radius:28px;
+  background:linear-gradient(145deg,#2a2f38,#0d1015);
+  border:1px solid rgba(255,255,255,.18);
+  box-shadow:0 24px 50px rgba(0,0,0,.42),inset 0 0 0 1px rgba(255,255,255,.04);
+  transform:rotate(2deg);
+}
+.fresh-id-device-speaker{
+  width:44px;
+  height:5px;
+  border-radius:5px;
+  background:#030508;
+  margin:3px auto 4px;
+}
+.fresh-id-device-screen{
+  height:calc(100% - 12px);
+  border-radius:22px;
+  padding:15px 12px;
+  box-sizing:border-box;
+  background:
+    radial-gradient(120px 100px at 80% 12%,rgba(114,230,193,.15),transparent 70%),
+    linear-gradient(145deg,#070a0f,#0c1118);
+  text-align:center;
+  overflow:hidden;
+}
+.fresh-id-device-top{
+  display:flex;
+  justify-content:space-between;
+  font-size:.42rem;
+  opacity:.45;
+}
+.fresh-id-device-mark{
+  width:34px;
+  height:34px;
+  margin:20px auto 10px;
+  display:grid;
+  place-items:center;
+  border-radius:11px;
+  font-weight:950;
+  font-size:1rem;
+  color:#071017;
+  background:linear-gradient(135deg,#72e6c1,#8da7ff);
+}
+.fresh-id-device-overline{
+  font-size:.43rem;
+  letter-spacing:.18em;
+  opacity:.5;
+}
+.fresh-id-device-screen h3{
+  margin:9px 0 6px;
+  font-size:1rem;
+  line-height:.98;
+  letter-spacing:-.045em;
+}
+.fresh-id-device-screen h3 em{
+  font-style:normal;
+  color:#72e6c1;
+}
+.fresh-id-device-screen p{
+  margin:0 auto 13px;
+  max-width:120px;
+  font-size:.48rem;
+  line-height:1.35;
+  opacity:.5;
+}
+.fresh-id-device-screen button{
+  width:100%;
+  height:27px;
+  border:0;
+  border-radius:8px;
+  color:#071017;
+  background:linear-gradient(135deg,#72e6c1,#8da7ff);
+  font-size:.5rem;
+  font-weight:850;
+  cursor:pointer;
+}
+.fresh-id-device-screen small{
+  display:block;
+  margin-top:8px;
+  font-size:.4rem;
+  opacity:.35;
+}
+.fresh-id-device-caption{
+  display:grid;
+  gap:5px;
+  font-size:.55rem;
+  letter-spacing:.1em;
+  opacity:.4;
+}
+.fresh-id-device-caption b{
+  font-size:.9rem;
+  color:#72e6c1;
+  opacity:.9;
+}
+.fresh-id-context{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:9px;
+  font-size:.6rem;
+  letter-spacing:.1em;
+  opacity:.42;
+}
+.fresh-id-context-line{
+  width:32px;
+  height:1px;
+  background:currentColor;
+}
+.fresh-id-context-status{
+  letter-spacing:.03em;
+  text-transform:none;
+}
+@media(max-width:1100px){
+  .fresh-id-journey-board{grid-template-columns:repeat(4,minmax(120px,1fr))}
+  .fresh-id-journey-step:nth-child(4) .fresh-id-journey-connector{display:none}
+  .fresh-id-overview-stage{grid-template-columns:minmax(0,1fr) 250px}
+  .fresh-id-device{transform:rotate(2deg) scale(.9)}
+}
+
 .fresh-id-screen-detail{max-width:1120px;margin:0 auto;width:100%}
 .fresh-id-overline{margin:0 0 14px;font-size:.68rem;letter-spacing:.17em;font-weight:850;opacity:.55}
 .fresh-id-screen h1{margin:0;max-width:900px;font-size:clamp(2.5rem,7vw,6.8rem);line-height:.96;letter-spacing:-.06em;text-wrap:balance}
@@ -52,7 +358,27 @@
 @media(max-width:900px){
   .fresh-id-auth-shell{grid-template-columns:1fr;gap:22px;min-height:auto;align-content:center;padding-top:12px}.fresh-id-auth-identity{padding:0}.fresh-id-auth-orb{width:72px;height:72px;border-radius:24px;margin-bottom:20px}.fresh-id-auth-orb span{font-size:1.8rem}.fresh-id-auth-orb i{width:92px;height:92px}.fresh-id-auth-identity h1{font-size:clamp(2.55rem,11vw,4.8rem)}.fresh-id-auth-identity>p:not(.fresh-id-overline){margin-top:16px}.fresh-id-provider-constellation{margin-top:20px}.fresh-id-auth-identity small{display:none}.fresh-id-form-stage{padding:22px;border-radius:24px}
 }
+
 @media(max-width:720px){
+  .fresh-id-context{display:none}
+  .fresh-id-screen-overview{padding-top:72px;padding-left:16px;padding-right:16px;padding-bottom:66px}
+  .fresh-id-overview-head{display:block;margin-bottom:16px}
+  .fresh-id-overview-head h1{font-size:clamp(2.5rem,13vw,4.1rem)}
+  .fresh-id-overview-lede{font-size:.88rem;margin-top:13px}
+  .fresh-id-capability-rail{grid-template-columns:repeat(2,1fr);margin-top:16px;width:100%}
+  .fresh-id-capability-rail span{min-height:40px;font-size:.62rem}
+  .fresh-id-journey-board{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 8px;scrollbar-width:none}
+  .fresh-id-journey-board::-webkit-scrollbar{display:none}
+  .fresh-id-journey-step{flex:0 0 126px;min-height:116px;scroll-snap-align:start}
+  .fresh-id-journey-connector{display:none}
+  .fresh-id-overview-stage{grid-template-columns:1fr;gap:18px;margin-top:14px;padding:20px;border-radius:22px}
+  .fresh-id-overview-copy h2{font-size:1.65rem}
+  .fresh-id-overview-copy p{font-size:.82rem}
+  .fresh-id-device-preview{justify-content:flex-start}
+  .fresh-id-device{width:132px;height:205px}
+  .fresh-id-device-caption{font-size:.48rem}
+}
+\n@media(max-width:720px){
   .fresh-id-gateway-top{height:60px;padding:0 16px}.fresh-id-gateway-bottom{height:54px}.fresh-id-progress i{width:24px}.fresh-id-screen{padding:72px 16px 62px}.fresh-id-screen h1{font-size:clamp(2.25rem,12vw,4rem)}.fresh-id-form-stage{padding:20px;border-radius:22px}.fresh-id-detail-grid,.fresh-id-security-list{grid-template-columns:1fr}.fresh-id-screen-document{padding:80px 20px}.fresh-id-document h2{margin-top:32px}.fresh-id-auth-shell{padding-top:4px}.fresh-id-auth-identity{display:grid;grid-template-columns:auto 1fr;column-gap:18px;align-items:center}.fresh-id-auth-identity .fresh-id-auth-orb{grid-row:1 / span 2}.fresh-id-auth-identity .fresh-id-overline{margin:0}.fresh-id-auth-identity h1{grid-column:1 / -1;margin-top:12px}.fresh-id-auth-identity>p:not(.fresh-id-overline){grid-column:1 / -1}.fresh-id-provider-constellation{grid-column:1 / -1}.fresh-id-auth-identity small{display:none}
 }
 @media(prefers-reduced-motion:reduce){.fresh-id-primary{transition:none}}
