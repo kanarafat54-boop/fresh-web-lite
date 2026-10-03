@@ -2,8 +2,8 @@
  * Fresh Web Lite — Independent Fresh ID Gateway
  *
  * Fresh ID is intentionally separate from the main FWL application shell.
- * Authentication is a focused, layered journey; detailed trust material is
- * readable by normal scrolling, while action layers use full-screen snapping.
+ * The gateway presents the complete identity journey first, then hands the
+ * authenticated user into Fresh Web Lite.
  */
 
 import { useEffect, useState, type WheelEvent, type TouchEvent } from "react";
@@ -13,6 +13,22 @@ import { AuthForm } from "./AuthForm";
 import "./FreshIdAuthDashboard.css";
 
 type Layer = "welcome" | "auth" | "verify" | "credentials" | "security" | "privacy" | "ready";
+
+const journeySteps: Array<{
+  id: Layer;
+  number: string;
+  title: string;
+  description: string;
+  icon: string;
+}> = [
+  { id: "welcome", number: "01", title: "Welcome", description: "Start your Fresh identity", icon: "✦" },
+  { id: "auth", number: "02", title: "Account", description: "Sign in or create", icon: "◎" },
+  { id: "verify", number: "03", title: "Verify", description: "Confirm your access", icon: "✓" },
+  { id: "credentials", number: "04", title: "Secure", description: "Passkeys & credentials", icon: "⌁" },
+  { id: "security", number: "05", title: "Security", description: "Sessions & controls", icon: "◇" },
+  { id: "privacy", number: "06", title: "Privacy", description: "Understand your surface", icon: "◌" },
+  { id: "ready", number: "07", title: "Enter Fresh", description: "Continue to FWL", icon: "→" },
+];
 
 function readSurfaceId(): string {
   try {
@@ -52,7 +68,7 @@ export default function FreshIdAuthDashboard() {
   const [passkeys, setPasskeys] = useState<Array<{ id: string; friendly_name?: string; created_at: string }>>([]);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
 
-  const layers: Layer[] = ["welcome", "auth", "verify", "credentials", "security", "privacy", "ready"];
+  const layers: Layer[] = journeySteps.map((step) => step.id);
   const layerIndex = layers.indexOf(layer);
 
   useEffect(() => {
@@ -169,6 +185,11 @@ export default function FreshIdAuthDashboard() {
           <span className="fresh-id-gateway-mark" aria-hidden="true">F</span>
           <span>Fresh ID</span>
         </div>
+        <div className="fresh-id-gateway-context">
+          <span className="fresh-id-context-label">IDENTITY GATEWAY</span>
+          <span className="fresh-id-context-line" />
+          <span className="fresh-id-context-status">Private by design</span>
+        </div>
         <div className="fresh-id-progress" aria-label={`Layer ${layerIndex + 1} of 7`}>
           <span>{String(layerIndex + 1).padStart(2, "0")}</span>
           <i />
@@ -178,13 +199,75 @@ export default function FreshIdAuthDashboard() {
 
       <div className="fresh-id-layer">
         {layer === "welcome" && (
-          <section className="fresh-id-screen fresh-id-screen-centered" aria-labelledby="fresh-welcome-title">
-            <div className="fresh-id-orbit" aria-hidden="true"><span>F</span></div>
-            <p className="fresh-id-overline">YOUR IDENTITY GATEWAY</p>
-            <h1 id="fresh-welcome-title">Welcome to Fresh.</h1>
-            <p className="fresh-id-lede">One identity. A calm, secure way into everything Fresh.</p>
-            <button className="fresh-id-primary" type="button" onClick={advance}>Continue</button>
-            <p className="fresh-id-micro">Secure surface · Private by design</p>
+          <section className="fresh-id-screen fresh-id-screen-overview" aria-labelledby="fresh-welcome-title">
+            <div className="fresh-id-overview-head">
+              <div>
+                <p className="fresh-id-overline">FRESH ID · SECURE IDENTITY GATEWAY</p>
+                <h1 id="fresh-welcome-title">One identity.<br /><em>Everything Fresh.</em></h1>
+                <p className="fresh-id-overview-lede">
+                  Create one secure identity for Fresh Web Lite and the experiences that follow.
+                  The gateway stays separate from the product you are entering.
+                </p>
+              </div>
+              <div className="fresh-id-capability-rail" aria-label="Fresh ID capabilities">
+                <span><b>◎</b> Unified identity</span>
+                <span><b>⌁</b> Passkey access</span>
+                <span><b>◇</b> Security controls</span>
+                <span><b>◌</b> Privacy clarity</span>
+              </div>
+            </div>
+
+            <div className="fresh-id-journey-board" aria-label="Fresh ID journey">
+              {journeySteps.map((step, index) => (
+                <button
+                  key={step.id}
+                  type="button"
+                  className={`fresh-id-journey-step ${index === layerIndex ? "active" : ""}`}
+                  onClick={() => go(step.id)}
+                  aria-current={index === layerIndex ? "step" : undefined}
+                >
+                  <span className="fresh-id-step-number">{step.number}</span>
+                  <span className="fresh-id-step-icon" aria-hidden="true">{step.icon}</span>
+                  <strong>{step.title}</strong>
+                  <small>{step.description}</small>
+                  {index < journeySteps.length - 1 && <i className="fresh-id-journey-connector" aria-hidden="true">→</i>}
+                </button>
+              ))}
+            </div>
+
+            <div className="fresh-id-overview-stage">
+              <div className="fresh-id-overview-copy">
+                <span className="fresh-id-stage-kicker">01 · WELCOME</span>
+                <h2>Designed as a gateway, not another app screen.</h2>
+                <p>
+                  Move through identity, verification, credentials, security and privacy in one calm
+                  environment. When you are ready, Fresh ID disappears and Fresh Web Lite takes over.
+                </p>
+                <div className="fresh-id-overview-actions">
+                  <button className="fresh-id-primary" type="button" onClick={advance}>Create or sign in</button>
+                  <button className="fresh-id-text-button" type="button" onClick={() => go("privacy")}>Read privacy first</button>
+                </div>
+              </div>
+
+              <div className="fresh-id-device-preview" aria-label="Fresh ID mobile preview">
+                <div className="fresh-id-device">
+                  <div className="fresh-id-device-speaker" />
+                  <div className="fresh-id-device-screen">
+                    <div className="fresh-id-device-top"><span>9:41</span><span>● ●</span></div>
+                    <div className="fresh-id-device-mark">F</div>
+                    <span className="fresh-id-device-overline">FRESH ID</span>
+                    <h3>Your identity,<br /><em>your way in.</em></h3>
+                    <p>One secure gateway into everything Fresh.</p>
+                    <button type="button" onClick={advance}>Continue</button>
+                    <small>Private by design</small>
+                  </div>
+                </div>
+                <div className="fresh-id-device-caption">
+                  <span>HUMAN SURFACE</span>
+                  <b>01</b>
+                </div>
+              </div>
+            </div>
           </section>
         )}
 
@@ -214,14 +297,14 @@ export default function FreshIdAuthDashboard() {
             <div className="fresh-id-lower-actions">
               <button type="button" className="fresh-id-text-button" onClick={() => go("privacy")}>Privacy</button>
               <button type="button" className="fresh-id-text-button" onClick={() => go("security")}>Security</button>
-              <button type="button" className="fresh-id-text-button" onClick={() => go("welcome")}>Back</button>
+              <button type="button" className="fresh-id-text-button" onClick={() => go("welcome")}>Overview</button>
             </div>
           </section>
         )}
 
         {layer === "verify" && (
           <section className="fresh-id-screen fresh-id-screen-centered" aria-labelledby="fresh-verify-title">
-            <div className="fresh-id-step-icon" aria-hidden="true">02</div>
+            <div className="fresh-id-step-icon" aria-hidden="true">03</div>
             <p className="fresh-id-overline">03 · VERIFICATION</p>
             <h1 id="fresh-verify-title">Check your email.</h1>
             <p className="fresh-id-lede">Confirm the address you used to create your Fresh ID. Return here after confirmation.</p>
