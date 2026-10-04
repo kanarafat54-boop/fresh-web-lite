@@ -103,6 +103,7 @@ export default function FreshFlowShortsStream({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [openCommentsFor, setOpenCommentsFor] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [freshAiPanelOpen, setFreshAiPanelOpen] = useState(false);
   const [followingAuthors, setFollowingAuthors] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement | null>(null);
   const pageRef = useRef(0);
@@ -416,6 +417,14 @@ export default function FreshFlowShortsStream({
     }
   }
 
+  function openFreshAI(short: Short, prompt: string) {
+    setFreshAiPanelOpen(false);
+    setAdvancedOpen(false);
+    try { sessionStorage.setItem("fresh-ai-prompt", prompt); } catch { /* ignore */ }
+    setActiveRoute("ai");
+    window.dispatchEvent(new CustomEvent("fresh-ai-open", { detail: { prompt } }));
+  }
+
   function openAdvanced(action: AdvancedAction, short: Short) {
     setAdvancedOpen(false);
     const intent = {
@@ -546,10 +555,23 @@ export default function FreshFlowShortsStream({
                     <span>🎁</span>
                     <span>{giftTotals.get(short.id)?.count ?? 0}</span>
                   </button>
+                  <button type="button" onClick={() => setFreshAiPanelOpen((v) => !v)} aria-label="Fresh AI" className="fresh-flow-ai-action">
+                    <span>✦</span><span>Fresh AI</span>
+                  </button>
                   <button type="button" onClick={() => setAdvancedOpen((v) => !v)} aria-label="More">
                     <span>⋯</span>
                   </button>
                 </div>
+                {freshAiPanelOpen && index === currentIndex && (
+                  <div className="fresh-flow-ai-panel">
+                    <div className="fresh-flow-ai-panel-header"><div><strong>Fresh AI</strong><small>Understand this Short without leaving Flow.</small></div><button type="button" onClick={() => setFreshAiPanelOpen(false)} aria-label="Close Fresh AI">×</button></div>
+                    <button type="button" onClick={() => openFreshAI(short, `Explain this Fresh Short in a concise way. Include the main idea, important context, and anything a viewer should know. Caption: ${short.caption || "No caption provided."}`)}><strong>Instant Knowledge</strong><small>Get an AI-generated explanation and context.</small></button>
+                    <button type="button" onClick={() => openFreshAI(short, `Research this Fresh Short and identify relevant supporting context, related topics, and trustworthy sources. Clearly separate verified facts from uncertain claims. Caption: ${short.caption || "No caption provided."}`)}><strong>Context & Sources</strong><small>Explore related knowledge and source integrity.</small></button>
+                    <button type="button" onClick={() => openFreshAI(short, `Create a concise multi-format digest of this Fresh Short for me. Summarize what happens, why it matters, and key takeaways. Caption: ${short.caption || "No caption provided."}`)}><strong>Generate Fresh AI Digest</strong><small>Turn the Short into a quick knowledge card.</small></button>
+                    <button type="button" onClick={() => openFreshAI(short, `Help me discover useful products, services, or creator-support options related to this Fresh Short. Do not invent listings or prices. Caption: ${short.caption || "No caption provided."}`)}><strong>Shop / Support Creator</strong><small>Explore useful commerce or creator-support paths.</small></button>
+                    <button type="button" onClick={() => openFreshAI(short, `Explain how I could preserve or collect this memorable moment responsibly, including ownership, rights, and provenance considerations. Do not assume NFT availability. Caption: ${short.caption || "No caption provided."}`)}><strong>Collectible & Provenance</strong><small>Explore ownership and provenance with Fresh AI.</small></button>
+                  </div>
+                )}
                 {advancedOpen && index === currentIndex && (
                   <div className="fresh-flow-advanced">
                     {ADVANCED_ACTIONS.map((a) => (
