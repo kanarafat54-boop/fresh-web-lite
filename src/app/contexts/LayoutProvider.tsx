@@ -7,13 +7,25 @@ import type { LayoutState, LayoutActions } from "./LayoutTypes";
 
 const FIRST_EXPERIENCE_KEY = "fresh.firstExperience.completed";
 
+function routeFromPath(pathname: string): string {
+  const path = pathname.replace(/\\/+$/, "") || "/";
+  if (path === "/welcome") return "first-experience";
+  if (path === "/") return "feed";
+  const feature = FeatureRegistry.getNavEntries().find((item) => item.route === path);
+  if (feature) return feature.id;
+  if (path === "/fresh-flow" || path.startsWith("/fresh-flow-")) return path.slice(1);
+  return "feed";
+}
+
 function initialRoute(): string {
-  try {
-    if (localStorage.getItem(FIRST_EXPERIENCE_KEY) !== "true") return "first-experience";
-  } catch {
-    // Storage can be unavailable in privacy-restricted browsers; fall back safely.
-  }
-  return FeatureRegistry.getNavEntries()[0]?.id ?? "feed";
+  if (typeof window === "undefined") return "feed";
+  return routeFromPath(window.location.pathname);
+}
+
+function pathForRoute(route: string): string {
+  if (route === "first-experience") return "/welcome";
+  if (route === "fresh-flow" || route.startsWith("fresh-flow-")) return `/${route}`;
+  return FeatureRegistry.getFeature(route)?.route ?? "/";
 }
 
 export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -25,6 +37,11 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   useEffect(() => deviceService.subscribe(setDeviceType), []);
+  useEffect(() => {
+    const handlePopState = () => setActiveRouteState(routeFromPath(window.location.pathname));
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
   useEffect(() => NotificationService.subscribe((notification) => setNotifications((previous) => [notification, ...previous])), []);
 
   const actions: LayoutActions = {
@@ -47,6 +64,10 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return;
       }
       setActiveRouteState(route);
+      if (typeof window !== "undefined") {
+        const nextPath = pathForRoute(route);
+        if (window.location.pathname !== nextPath) window.history.pushState({ freshRoute: route }, "", nextPath);
+      }
     },
     openSearch: () => setSearchOverlayOpen(true),
     closeSearch: () => setSearchOverlayOpen(false),
