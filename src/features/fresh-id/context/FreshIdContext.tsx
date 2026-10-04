@@ -334,7 +334,10 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: window.location.origin },
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: { username, full_name: fullName },
+      },
     });
 
     if (signUpError || !data.user) {
@@ -343,29 +346,10 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const defaults = defaultUserFields();
-    const { error: insertError } = await supabase.from("users").insert({
-      id: data.user.id,
-      username,
-      email,
-      full_name: fullName,
-      role: "user",
-      verified: false,
-      presence: "online",
-      identity: defaults.identity,
-      preferences: defaults.preferences,
-      stats: defaults.stats,
-      security: defaults.security,
-      subscription: defaults.subscription,
-      linked_accounts: defaults.linkedAccounts,
-    });
-
-    if (insertError) {
-      setError(insertError.code === "23505" ? "That username or email is already taken." : "Registration failed while creating your profile. Please try again.");
-      setLoading(false);
-      return;
-    }
-
+    // Email confirmation can leave the client without an authenticated session.
+    // Do not write to the protected users table until the user has confirmed and
+    // Fresh ID has an authenticated Supabase session. loadUserProfile() will
+    // provision the profile from auth metadata after confirmation/sign-in.
     if (!data.session) {
       setMessage(`We sent a confirmation link to ${email}. Please check your inbox to activate your account.`);
       setAuthView("check-email");
