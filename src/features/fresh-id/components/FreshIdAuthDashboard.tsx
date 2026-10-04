@@ -67,6 +67,7 @@ export default function FreshIdAuthDashboard() {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [passkeys, setPasskeys] = useState<Array<{ id: string; friendly_name?: string; created_at: string }>>([]);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const standaloneAuth = typeof window !== "undefined" && window.location.pathname.startsWith("/auth/");
 
   const layers: Layer[] = journeySteps.map((step) => step.id);
   const layerIndex = layers.indexOf(layer);
@@ -174,13 +175,13 @@ export default function FreshIdAuthDashboard() {
 
   return (
     <main
-      className="fresh-id-gateway"
+      className={`fresh-id-gateway ${standaloneAuth ? "fresh-id-standalone-auth" : ""}`}
       aria-label="Fresh ID authentication gateway"
       onWheel={onWheel}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      <div className="fresh-id-gateway-top">
+      {!standaloneAuth && <div className="fresh-id-gateway-top">
         <div className="fresh-id-gateway-brand" aria-label="Fresh ID">
           <span className="fresh-id-gateway-mark" aria-hidden="true">F</span>
           <span>Fresh ID</span>
@@ -195,7 +196,7 @@ export default function FreshIdAuthDashboard() {
           <i />
           <span>07</span>
         </div>
-      </div>
+      </div>}
 
       <div className="fresh-id-layer">
         {layer === "welcome" && (
@@ -294,11 +295,11 @@ export default function FreshIdAuthDashboard() {
                 <AuthForm />
               </div>
             </div>
-            <div className="fresh-id-lower-actions">
+            {!standaloneAuth && <div className="fresh-id-lower-actions">
               <button type="button" className="fresh-id-text-button" onClick={() => go("privacy")}>Privacy</button>
               <button type="button" className="fresh-id-text-button" onClick={() => go("security")}>Security</button>
               <button type="button" className="fresh-id-text-button" onClick={() => go("welcome")}>Overview</button>
-            </div>
+            </div>}
           </section>
         )}
 
@@ -402,11 +403,11 @@ export default function FreshIdAuthDashboard() {
         )}
       </div>
 
-      <div className="fresh-id-gateway-bottom">
+      {!standaloneAuth && <div className="fresh-id-gateway-bottom">
         <button type="button" className="fresh-id-nav-arrow" onClick={back} disabled={layerIndex === 0} aria-label="Previous layer">←</button>
         <span>Swipe sideways to move through layers</span>
         <button type="button" className="fresh-id-nav-arrow" onClick={advance} disabled={layerIndex === layers.length - 1} aria-label="Next layer">→</button>
-      </div>
+      </div>}
     </main>
   );
 }
