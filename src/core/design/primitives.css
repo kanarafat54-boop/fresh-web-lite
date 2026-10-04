@@ -8,7 +8,7 @@
 .fresh-button {
   min-height: var(--fresh-control-height, 44px);
   border: 1px solid transparent;
-  border-radius: 12px;
+  border-radius: var(--fresh-radius-md, 12px);
   padding: 0 16px;
   display: inline-flex;
   align-items: center;
@@ -54,7 +54,7 @@
   height: var(--fresh-control-min, 44px);
   min-width: var(--fresh-control-min, 44px);
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--fresh-radius-pill, 999px);
   background: transparent;
   color: inherit;
   display: inline-grid;
@@ -81,7 +81,7 @@
 .fresh-surface {
   background: var(--fresh-color-surface, #11151B);
   border: 1px solid var(--fresh-color-border, #2A313B);
-  border-radius: 16px;
+  border-radius: var(--fresh-radius-lg, 16px);
   color: var(--fresh-color-text, #F5F7FA);
 }
 
@@ -97,7 +97,7 @@
   width: 100%;
   min-height: var(--fresh-control-height, 44px);
   border: 1px solid var(--fresh-color-border, #2A313B);
-  border-radius: 12px;
+  border-radius: var(--fresh-radius-md, 12px);
   background: var(--fresh-color-surface, #11151B);
   color: var(--fresh-color-text, #F5F7FA);
   padding: 0 12px;
