@@ -3,6 +3,7 @@ import { ThemeProvider, useTheme } from "./providers/ThemeProvider";
 import { LayoutProvider } from "./contexts/LayoutProvider";
 import FreshAIUnified from "./components/FreshAIUnified";
 import "../index.css";
+import "../core/design/primitives.css";
 
 function GlobalThemeControl() {
   const { theme, setTheme } = useTheme();
