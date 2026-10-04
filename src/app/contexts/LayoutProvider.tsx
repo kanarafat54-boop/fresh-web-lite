@@ -8,7 +8,7 @@ import type { LayoutState, LayoutActions } from "./LayoutTypes";
 const FIRST_EXPERIENCE_KEY = "fresh.firstExperience.completed";
 
 function routeFromPath(pathname: string): string {
-  const path = pathname.replace(/\\/+$/, "") || "/";
+  const path = pathname.replace(/\/+$/, "") || "/";
   if (path === "/welcome") return "first-experience";
   if (path === "/") return "feed";
   const feature = FeatureRegistry.getNavEntries().find((item) => item.route === path);
