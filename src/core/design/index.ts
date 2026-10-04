@@ -6,7 +6,4 @@ export * from "./primitives";
 export * from "./layout";
 export * from "./accessibility";
 export * from "./productSurfaceRules";
-export * from "./accessibility";
-export * from "./layout";
-export * from "./productSurfaceRules";
 export * from "./icons/registry";
