@@ -9,6 +9,8 @@ function routeFromPath(pathname: string): string {
   const path = pathname.replace(/\/+$/, "") || "/";
   if (path === "/welcome") return "first-experience";
   if (path === "/") return "feed";
+  if (path === "/auth/sign-in") return "auth-signin";
+  if (path === "/auth/sign-up") return "auth-signup";
   const feature = FeatureRegistry.getNavEntries().find((item) => item.route === path);
   if (feature) return feature.id;
   if (path === "/fresh-flow" || path.startsWith("/fresh-flow-")) return path.slice(1);
@@ -22,6 +24,8 @@ function initialRoute(): string {
 
 function pathForRoute(route: string): string {
   if (route === "first-experience") return "/welcome";
+  if (route === "auth-sign-in" || route === "auth-signin") return "/auth/sign-in";
+  if (route === "auth-sign-up" || route === "auth-signup") return "/auth/sign-up";
   if (route === "fresh-flow" || route.startsWith("fresh-flow-")) return `/${route}`;
   return FeatureRegistry.getFeature(route)?.route ?? "/";
 }
