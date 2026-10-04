@@ -212,3 +212,128 @@ export const SparkAIIcon = ({ size, className }: IconProps) => (
   </svg>
 );
 
+
+
+/**
+ * Fresh Icon System
+ * Canonical platform icon primitives.
+ *
+ * Rules:
+ * - 24x24 optical grid
+ * - monochrome currentColor by default
+ * - consistent 1.75px stroke
+ * - rounded joins/caps
+ * - semantic names instead of emoji/unicode symbols
+ * - filled state is explicit, never accidental
+ */
+
+export type FreshIconName =
+  | "voice" | "search" | "home" | "flow" | "discover" | "create"
+  | "learn" | "work" | "connect" | "profile" | "settings" | "notifications"
+  | "menu" | "more" | "close" | "back" | "forward" | "play" | "pause"
+  | "stop" | "camera" | "video" | "image" | "microphone" | "send"
+  | "share" | "bookmark" | "heart" | "comment" | "link" | "check";
+
+export const FRESH_ICON_SIZES = {
+  xs: 16,
+  sm: 20,
+  md: 24,
+  lg: 32,
+  xl: 48,
+} as const;
+
+export const FRESH_ICON_STROKE = 1.75;
+
+export type FreshIconProps = IconProps & {
+  strokeWidth?: number;
+  title?: string;
+};
+
+const freshBase = (size = 24, strokeWidth = FRESH_ICON_STROKE) => ({
+  width: size,
+  height: size,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  focusable: "false" as const,
+});
+
+const freshSvg = (
+  props: FreshIconProps,
+  children: React.ReactNode,
+) => (
+  <svg
+    {...freshBase(props.size, props.strokeWidth)}
+    className={props.className}
+    role={props.title ? "img" : "presentation"}
+    aria-hidden={props.title ? undefined : true}
+    aria-label={props.title}
+  >
+    {props.title ? <title>{props.title}</title> : null}
+    {children}
+  </svg>
+);
+
+export const VoiceIcon = (props: FreshIconProps) => freshSvg(props, <>
+  <path d="M12 3a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/>
+  <path d="M6.5 11a5.5 5.5 0 0 0 11 0"/>
+  <path d="M12 16.5V21M9 21h6"/>
+</>);
+
+export const MicrophoneIcon = VoiceIcon;
+
+export const PlayIcon = (props: FreshIconProps) => freshSvg(props,
+  <path d="m9 6 9 6-9 6V6Z" fill="currentColor" stroke="none"/>
+);
+
+export const PauseIcon = (props: FreshIconProps) => freshSvg(props, <>
+  <rect x="7" y="6" width="3" height="12" rx="1" fill="currentColor" stroke="none"/>
+  <rect x="14" y="6" width="3" height="12" rx="1" fill="currentColor" stroke="none"/>
+</>);
+
+export const MenuIcon = (props: FreshIconProps) => freshSvg(props,
+  <path d="M4 7h16M4 12h16M4 17h16"/>
+);
+
+export const ForwardIcon = (props: FreshIconProps) => freshSvg(props,
+  <path d="m9 6 6 6-6 6"/>
+);
+
+export const DiscoverIcon = (props: FreshIconProps) => freshSvg(props, <>
+  <circle cx="12" cy="12" r="8"/>
+  <path d="m14.8 9.2-1.9 3.7-3.7 1.9 1.9-3.7 3.7-1.9Z"/>
+</>);
+
+export const CreateIcon = (props: FreshIconProps) => freshSvg(props, <>
+  <path d="M5 19h4l9.8-9.8a2.1 2.1 0 0 0-3-3L6 16v3Z"/>
+  <path d="m14.8 7.2 2 2"/>
+</>);
+
+export const LearnIcon = (props: FreshIconProps) => freshSvg(props, <>
+  <path d="m4 7 8-4 8 4-8 4-8-4Z"/>
+  <path d="M7 9.5V14c2.8 2 7.2 2 10 0V9.5"/>
+  <path d="M20 8v6"/>
+</>);
+
+export const WorkIcon = (props: FreshIconProps) => freshSvg(props, <>
+  <rect x="4" y="7" width="16" height="13" rx="2"/>
+  <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M4 12h16"/>
+  <path d="M10 12v2h4v-2"/>
+</>);
+
+export const ConnectIcon = (props: FreshIconProps) => freshSvg(props, <>
+  <circle cx="8" cy="8" r="3"/>
+  <circle cx="17" cy="9" r="2.5"/>
+  <path d="M2.5 20a5.5 5.5 0 0 1 11 0M14 14.5a4.5 4.5 0 0 1 7.5 3.4"/>
+</>);
+
+export const ImageIcon = (props: FreshIconProps) => freshSvg(props, <>
+  <rect x="3" y="4" width="18" height="16" rx="2"/>
+  <circle cx="8.5" cy="9" r="1.5"/>
+  <path d="m4 17 5-5 3 3 2-2 6 6"/>
+</>);
+
+export const RefreshIcon = RotateIcon;
