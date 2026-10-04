@@ -81,3 +81,95 @@ body { background: var(--bg); color: var(--text); margin: 0; font-family: var(--
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Semantic theme roles: legacy variables remain mapped for compatibility during migration. */
+:root {
+  color-scheme: dark;
+  --fresh-color-background: #080A0E;
+  --fresh-color-surface: #11151B;
+  --fresh-color-surface-subtle: #171C23;
+  --fresh-color-surface-elevated: #1B212A;
+  --fresh-color-text: #F5F7FA;
+  --fresh-color-text-muted: #AAB2BF;
+  --fresh-color-text-on-accent: #FFFFFF;
+  --fresh-color-border: #2A313B;
+  --fresh-color-border-strong: #3A4350;
+  --fresh-color-accent: #8B7CFF;
+  --fresh-color-accent-hover: #9B8EFF;
+  --fresh-color-accent-pressed: #7969F0;
+  --fresh-color-accent-subtle: #211D43;
+  --fresh-color-focus: #A99DFF;
+  --fresh-color-success: #43C983;
+  --fresh-color-warning: #F0B44D;
+  --fresh-color-danger: #FF7080;
+  --fresh-control-min: 44px;
+  --fresh-control-height: 44px;
+  --fresh-z-navigation: 40;
+  --fresh-z-overlay: 60;
+  --fresh-z-dialog: 80;
+  --fresh-z-toast: 100;
+
+  /* Compatibility bridge — new components should consume semantic Fresh tokens. */
+  --bg: var(--fresh-color-background);
+  --surface: var(--fresh-color-surface);
+  --surface-2: var(--fresh-color-surface-subtle);
+  --border: var(--fresh-color-border);
+  --text: var(--fresh-color-text);
+  --text-dim: var(--fresh-color-text-muted);
+  --accent: var(--fresh-color-accent);
+  --accent-2: var(--fresh-color-accent-hover);
+  --accent-dim: var(--fresh-color-accent-pressed);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --fresh-color-background: #F7F8FA;
+  --fresh-color-surface: #FFFFFF;
+  --fresh-color-surface-subtle: #F1F3F5;
+  --fresh-color-surface-elevated: #FFFFFF;
+  --fresh-color-text: #111318;
+  --fresh-color-text-muted: #5F6673;
+  --fresh-color-text-on-accent: #FFFFFF;
+  --fresh-color-border: #D9DEE7;
+  --fresh-color-border-strong: #B8C0CC;
+  --fresh-color-accent: #5B4CE6;
+  --fresh-color-accent-hover: #4D3ED1;
+  --fresh-color-accent-pressed: #4033B8;
+  --fresh-color-accent-subtle: #EEEBFF;
+  --fresh-color-focus: #5B4CE6;
+  --fresh-color-success: #16834A;
+  --fresh-color-warning: #A86600;
+  --fresh-color-danger: #C9364A;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --fresh-color-background: #F7F8FA;
+    --fresh-color-surface: #FFFFFF;
+    --fresh-color-surface-subtle: #F1F3F5;
+    --fresh-color-surface-elevated: #FFFFFF;
+    --fresh-color-text: #111318;
+    --fresh-color-text-muted: #5F6673;
+    --fresh-color-text-on-accent: #FFFFFF;
+    --fresh-color-border: #D9DEE7;
+    --fresh-color-border-strong: #B8C0CC;
+    --fresh-color-accent: #5B4CE6;
+    --fresh-color-accent-hover: #4D3ED1;
+    --fresh-color-accent-pressed: #4033B8;
+    --fresh-color-accent-subtle: #EEEBFF;
+    --fresh-color-focus: #5B4CE6;
+    --fresh-color-success: #16834A;
+    --fresh-color-warning: #A86600;
+    --fresh-color-danger: #C9364A;
+  }
+}
+
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--fresh-color-focus);
+  outline-offset: 2px;
+}
+
+:where(button, [role="button"]) {
+  min-height: var(--fresh-control-min);
+}
