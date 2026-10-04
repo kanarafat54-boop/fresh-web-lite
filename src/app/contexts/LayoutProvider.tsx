@@ -5,8 +5,6 @@ import { FeatureRegistry } from "../registry/FeatureRegistry";
 import { LayoutContext } from "./LayoutContextValue";
 import type { LayoutState, LayoutActions } from "./LayoutTypes";
 
-const FIRST_EXPERIENCE_KEY = "fresh.firstExperience.completed";
-
 function routeFromPath(pathname: string): string {
   const path = pathname.replace(/\/+$/, "") || "/";
   if (path === "/welcome") return "first-experience";
