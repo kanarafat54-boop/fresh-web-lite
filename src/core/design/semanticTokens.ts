@@ -59,7 +59,9 @@ export const freshSemanticColors = {
 
 export type FreshSemanticColorRole = keyof typeof freshSemanticColors.light;
 
-export const freshThemeTokens: Record<Exclude<FreshTheme, "system">, typeof freshSemanticColors.light> = {
+export type FreshSemanticColorSet = Record<FreshSemanticColorRole, string>;
+
+export const freshThemeTokens: Record<Exclude<FreshTheme, "system">, FreshSemanticColorSet> = {
   light: freshSemanticColors.light,
   dark: freshSemanticColors.dark,
 };
