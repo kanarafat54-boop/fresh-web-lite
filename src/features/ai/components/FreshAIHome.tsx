@@ -70,7 +70,16 @@ export default function FreshAIHome() {
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const userPinnedToBottomRef = useRef(true);
 
-  useEffect(() => { const open = (event: Event) => { const prompt = (event as CustomEvent<{ prompt?: string }>).detail?.prompt; if (prompt) setDraft(prompt); composerRef.current?.focus(); }; window.addEventListener("fresh-ai-open", open); return () => window.removeEventListener("fresh-ai-open", open); }, []);
+  useEffect(() => {
+    const applyPrompt = (prompt?: string) => { if (!prompt) return; setDraft(prompt); window.setTimeout(() => composerRef.current?.focus(), 0); };
+    const open = (event: Event) => applyPrompt((event as CustomEvent<{ prompt?: string }>).detail?.prompt);
+    window.addEventListener("fresh-ai-open", open);
+    try {
+      const savedPrompt = sessionStorage.getItem("fresh-ai-prompt");
+      if (savedPrompt) { sessionStorage.removeItem("fresh-ai-prompt"); applyPrompt(savedPrompt); }
+    } catch { /* ignore storage errors */ }
+    return () => window.removeEventListener("fresh-ai-open", open);
+  }, []);
   useEffect(() => { const el = composerRef.current; if (!el) return; el.style.height = "auto"; el.style.height = `${Math.min(Math.max(el.scrollHeight, 54), 180)}px`; }, [draft]);
   useEffect(() => { const el = messageListRef.current; if (!el || !userPinnedToBottomRef.current) return; el.scrollTo({ top: el.scrollHeight, behavior: loading ? "auto" : "smooth" }); }, [turns, evidence, loading]);
   function onMessageScroll() { const el = messageListRef.current; if (!el) return; userPinnedToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }
