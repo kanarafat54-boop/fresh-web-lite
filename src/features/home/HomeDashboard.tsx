@@ -52,7 +52,7 @@ export default function HomeDashboard() {
           <h1 id="fresh-home-title">{greeting}</h1>
           <p>One place to find what matters, continue what you started, and tell Fresh what you want done.</p>
         </div>
-        <button type="button" className="fresh-home-ai-button" onClick={() => window.dispatchEvent(new CustomEvent("fresh-ai-open"))}>
+        <button type="button" className="fresh-home-ai-button" onClick={() => setActiveRoute("ai")}>
           <AIIcon size={20} /><span><strong>Ask Fresh</strong><small>Search, plan or act</small></span>
         </button>
       </section>
