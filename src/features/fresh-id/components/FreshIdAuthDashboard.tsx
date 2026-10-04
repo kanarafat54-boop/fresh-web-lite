@@ -62,7 +62,7 @@ export default function FreshIdAuthDashboard() {
     logout,
   } = useFreshId();
   const { setActiveRoute } = useLayout();
-  const [layer, setLayer] = useState<Layer>("welcome");
+  const [layer, setLayer] = useState<Layer>(() => typeof window !== "undefined" && window.location.pathname.startsWith("/auth/") ? "auth" : "welcome");
   const [surfaceId] = useState(readSurfaceId);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [passkeys, setPasskeys] = useState<Array<{ id: string; friendly_name?: string; created_at: string }>>([]);
