@@ -1,6 +1,9 @@
 /**
  * Fresh Web Lite
- * Shared line-icon set — consistent monochrome icons, no external dependency
+ * Legacy-compatible icon exports.
+ *
+ * Canonical icon meaning is governed by src/core/design/icons/registry.ts.
+ * Keep this module as the compatibility surface while existing consumers migrate.
  */
 
 type IconProps = { size?: number; className?: string };
