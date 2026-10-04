@@ -209,7 +209,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     const defaults = defaultUserFields();
     const email = authUser.email ?? "";
     const metadata = authUser.user_metadata ?? {};
-    const baseUsername = String(metadata.user_name ?? metadata.preferred_username ?? email.split("@")[0] ?? "user")
+    const baseUsername = String(metadata.username ?? metadata.user_name ?? metadata.preferred_username ?? email.split("@")[0] ?? "user")
       .toLowerCase()
       .replace(/[^a-z0-9_]/g, "")
       .slice(0, 24) || "user";
@@ -242,7 +242,13 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     });
 
     if (insertError) {
-      setError("Your sign-in succeeded, but Fresh ID could not create your profile. Please contact support.");
+      // Auth callbacks can race with the initial profile load. A duplicate
+      // primary key means the other callback already provisioned this profile.
+      if (insertError.code === "23505") {
+        const { data: existing } = await supabase.from("users").select("id").eq("id", authUser.id).maybeSingle();
+        if (existing) return true;
+      }
+      setError("Your sign-in succeeded, but Fresh ID could not create your profile. Please try again.");
       return false;
     }
 
