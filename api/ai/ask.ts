@@ -19,6 +19,12 @@ type MemoryRow = {
 type Gemini = { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
 const json = (x: unknown, status = 200) => Response.json(x, { status, headers: { "cache-control": "no-store" } });
 const service = () => createFreshAIServerSupabase();
+
+function requestsImage(goal: string, interpretation: FreshGoalInterpretation | null | undefined, mode?: string) {
+  if (mode === "image" || mode === "image-generation") return true;
+  if (interpretation?.intent === "create" && /\\b(image|picture|photo|illustration|logo|poster|artwork|portrait|wallpaper|icon|visual|drawing|render|graphic)\\b/i.test(goal)) return true;
+  return /\\b(generate|create|draw|render|make)\\b[\\s\\S]{0,80}\\b(image|picture|photo|illustration|logo|poster|artwork|portrait|wallpaper|icon|visual|drawing|graphic)\\b/i.test(goal);
+}
 async function auth(req: Request) { const u = process.env.VITE_SUPABASE_URL, k = process.env.VITE_SUPABASE_ANON_KEY, a = req.headers.get("authorization") || "", t = a.startsWith("Bearer ") ? a.slice(7) : ""; if (!u || !k || !t) return null; const c = createClient(u, k, { auth: { persistSession: false, autoRefreshToken: false } }); const r = await c.auth.getUser(t); return r.data.user ?? null; }
 async function research(goal: string): Promise<Evidence[]> {
   const configured = process.env.FRESH_RESEARCH_URL?.trim();
