@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import "./FreshAIHome.css";
 import { createFreshAIWorkspaceContext } from "../../../core/fresh-ai/FreshAIWorkspaceContext";
+import { useLayout } from "../../../app/contexts/useLayout";
 
 type Turn = { id: string; role: "user" | "assistant"; content: string; pending?: boolean };
 type Evidence = { title: string; snippet?: string; url?: string };
@@ -51,6 +52,7 @@ function renderAnswer(text: string) {
 }
 
 export default function FreshAIHome() {
+  const { setActiveRoute } = useLayout();
   const route = typeof window === "undefined" ? "/ai" : window.location.pathname;
   const context = useMemo(() => createFreshAIWorkspaceContext(route), [route]);
   const [mode, setMode] = useState<Mode>("chat");
@@ -107,7 +109,7 @@ export default function FreshAIHome() {
   }
 
   return <main className="fresh-ai-main">
-    <header className="fresh-ai-main-header"><div className="fresh-ai-main-brand"><div className="fresh-ai-main-mark">F</div><div><span>FRESH AI</span><h1>One intelligence. Everywhere.</h1><p>Ask anything. Fresh understands the space you're in and chooses the right capabilities, knowledge, models and tools.</p></div></div><div className="fresh-ai-main-header-actions"><button type="button" onClick={startVoice}>{listening ? "Listening…" : voice ? "Voice on" : "Voice"}</button><button type="button" onClick={() => window.history.pushState({}, "", "/ai")}>Open companion</button></div></header>
+    <header className="fresh-ai-main-header"><div className="fresh-ai-main-brand"><div className="fresh-ai-main-mark">F</div><div><span>FRESH AI</span><h1>One intelligence. Everywhere.</h1><p>Ask anything. Fresh understands the space you're in and chooses the right capabilities, knowledge, models and tools.</p></div></div><div className="fresh-ai-main-header-actions"><button type="button" onClick={startVoice}>{listening ? "Listening…" : voice ? "Voice on" : "Voice"}</button><button type="button" onClick={() => setActiveRoute("ai")}>Open companion</button></div></header>
     <section className="fresh-ai-workspace" aria-label="Fresh AI conversation workspace">
       <div className="fresh-ai-answer-space">
         <div className="fresh-ai-context-strip"><span>LIVE CONTEXT</span><b>{context.featureName}</b><em>{context.surface}</em><small>{context.capabilities.length} capabilities · {context.toolNamespaces.length} tool spaces</small></div>
