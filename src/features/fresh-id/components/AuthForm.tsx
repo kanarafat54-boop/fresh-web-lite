@@ -23,7 +23,8 @@ export function AuthForm() {
     passkeySupported,
   } = useFreshId();
 
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const initialMode = typeof window !== "undefined" && window.location.pathname.replace(/\/+$/, "") === "/auth/sign-up" ? "register" : "login";
+  const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
@@ -125,9 +126,9 @@ export function AuthForm() {
 
   return (
     <div className="auth-form">
-      <div className="auth-tabs">
-        <button className={mode === "login" ? "auth-tab active" : "auth-tab"} onClick={() => { setMode("login"); setSignupError(null); }}>Log In</button>
-        <button className={mode === "register" ? "auth-tab active" : "auth-tab"} onClick={() => { setMode("register"); setSignupError(null); }}>Register</button>
+      <div className="auth-tabs" aria-label="Fresh ID account access">
+        <button className={mode === "login" ? "auth-tab active" : "auth-tab"} onClick={() => { setMode("login"); setSignupError(null); if (window.location.pathname !== "/auth/sign-in") window.history.replaceState({ freshRoute: "auth-signin" }, "", "/auth/sign-in"); }}>Log In</button>
+        <button className={mode === "register" ? "auth-tab active" : "auth-tab"} onClick={() => { setMode("register"); setSignupError(null); if (window.location.pathname !== "/auth/sign-up") window.history.replaceState({ freshRoute: "auth-signup" }, "", "/auth/sign-up"); }}>Sign Up</button>
       </div>
 
       {mode === "register" && (
