@@ -17,6 +17,14 @@ const actions = [
   { id: "profile", label: "Profile", description: "Identity, preferences and account.", icon: SearchIcon, route: "profile" },
 ];
 
+function openAction(route: string, isAuthenticated: boolean, setActiveRoute: (route: string) => void) {
+  if (route === "profile" && !isAuthenticated) {
+    setActiveRoute("auth-signin");
+    return;
+  }
+  setActiveRoute(route);
+}
+
 export default function HomeDashboard() {
   const { setActiveRoute } = useLayout();
   const { user, isAuthenticated } = useFreshId();
@@ -66,7 +74,7 @@ export default function HomeDashboard() {
         </div>
         <div className="fresh-home-action-grid">
           {actions.map(({ id, label, description, icon: Icon, route }) => (
-            <button key={id} type="button" className="fresh-home-action-card" onClick={() => setActiveRoute(route)}>
+            <button key={id} type="button" className="fresh-home-action-card" onClick={() => openAction(route, isAuthenticated, setActiveRoute)}>
               <span className="fresh-home-action-icon"><Icon size={22} /></span><span><strong>{label}</strong><small>{description}</small></span><b aria-hidden="true">›</b>
             </button>
           ))}
