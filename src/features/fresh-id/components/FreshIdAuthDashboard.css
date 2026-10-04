@@ -378,7 +378,8 @@
   .fresh-id-device{width:132px;height:205px}
   .fresh-id-device-caption{font-size:.48rem}
 }
-\n@media(max-width:720px){
+
+@media(max-width:720px){
   .fresh-id-gateway-top{height:60px;padding:0 16px}.fresh-id-gateway-bottom{height:54px}.fresh-id-progress i{width:24px}.fresh-id-screen{padding:72px 16px 62px}.fresh-id-screen h1{font-size:clamp(2.25rem,12vw,4rem)}.fresh-id-form-stage{padding:20px;border-radius:22px}.fresh-id-detail-grid,.fresh-id-security-list{grid-template-columns:1fr}.fresh-id-screen-document{padding:80px 20px}.fresh-id-document h2{margin-top:32px}.fresh-id-auth-shell{padding-top:4px}.fresh-id-auth-identity{display:grid;grid-template-columns:auto 1fr;column-gap:18px;align-items:center}.fresh-id-auth-identity .fresh-id-auth-orb{grid-row:1 / span 2}.fresh-id-auth-identity .fresh-id-overline{margin:0}.fresh-id-auth-identity h1{grid-column:1 / -1;margin-top:12px}.fresh-id-auth-identity>p:not(.fresh-id-overline){grid-column:1 / -1}.fresh-id-provider-constellation{grid-column:1 / -1}.fresh-id-auth-identity small{display:none}
 }
 @media(prefers-reduced-motion:reduce){.fresh-id-primary{transition:none}}
