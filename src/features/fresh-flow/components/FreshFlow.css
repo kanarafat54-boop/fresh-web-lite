@@ -78,3 +78,14 @@
 .fresh-flow-advanced { position:absolute; z-index:12; right:16px; bottom:90px; width:min(330px,calc(100% - 32px)); padding:12px; border:1px solid rgba(255,255,255,.14); border-radius:22px; background:rgba(8,10,17,.88); color:#fff; display:flex; flex-direction:column; gap:6px; }
 
 
+
+.fresh-flow-ai-action { min-width:58px; min-height:48px; padding:7px 5px; border:1px solid rgba(139,124,255,.45); border-radius:999px; background:rgba(91,76,230,.28); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font:inherit; font-size:.62rem; font-weight:800; cursor:pointer; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
+.fresh-flow-ai-panel { position:absolute; z-index:20; right:16px; bottom:92px; width:min(360px,calc(100% - 32px)); padding:12px; border:1px solid rgba(139,124,255,.38); border-radius:22px; background:rgba(8,10,17,.92); color:#fff; box-shadow:0 20px 60px rgba(0,0,0,.55); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); }
+.fresh-flow-ai-panel-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
+.fresh-flow-ai-panel-header strong { display:block; font-size:.95rem; }
+.fresh-flow-ai-panel-header small { display:block; margin-top:2px; opacity:.62; font-size:.7rem; }
+.fresh-flow-ai-panel-header button { width:32px; height:32px; border:0; border-radius:50%; background:rgba(255,255,255,.08); color:#fff; font-size:1.2rem; cursor:pointer; }
+.fresh-flow-ai-panel > button { display:block; width:100%; padding:10px; margin-top:6px; border:1px solid rgba(255,255,255,.08); border-radius:14px; background:rgba(255,255,255,.045); color:#fff; text-align:left; font:inherit; cursor:pointer; }
+.fresh-flow-ai-panel > button strong { display:block; font-size:.82rem; }
+.fresh-flow-ai-panel > button small { display:block; margin-top:2px; opacity:.62; font-size:.7rem; }
+@media (max-width: 640px) { .fresh-flow-ai-panel { right:8px; bottom:82px; width:calc(100% - 16px); } }
