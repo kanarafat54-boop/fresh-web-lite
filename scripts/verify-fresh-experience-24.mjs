@@ -3,9 +3,7 @@ import path from "node:path";
 
 const root = process.cwd();
 const checks = [
-  ["primary mobile navigation", "src/app/components/BottomNav.tsx", ["label: \"Home\"", "label: \"Flow\"", "label: \"Create\"", "label: \"Work\"", "label: \"Profile\""]],
-  ["Create uses a real route", "src/app/components/BottomNav.tsx", ["id: \"studio\""]],
-  ["desktop Create uses Studio", "src/app/components/DesktopSidebar.tsx", ['go("studio")']],
+  ["primary mobile navigation", "src/app/components/BottomNav.tsx", ["label: \"Home\"", "label: \"Flow\"", "label: \"AI\"", "label: \"Ecosystems\"", "label: \"Profile\""]],
   ["Home command center", "src/features/home/HomeDashboard.tsx", ["YOUR FRESH HOME", "What do you want to do?", "Pick up where you left off"]],
   ["Home Ask Fresh action", "src/features/home/HomeDashboard.tsx", ['fresh-ai-open']],
   ["Home universal command", "src/features/home/HomeDashboard.tsx", ["UniversalCommandBar"]],
