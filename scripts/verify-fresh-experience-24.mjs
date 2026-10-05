@@ -5,7 +5,7 @@ const root = process.cwd();
 const checks = [
   ["primary mobile navigation", "src/app/components/BottomNav.tsx", ["label: \"Home\"", "label: \"Flow\"", "label: \"AI\"", "label: \"Ecosystems\"", "label: \"Profile\""]],
   ["Home command center", "src/features/home/HomeDashboard.tsx", ["YOUR FRESH HOME", "What do you want to do?", "Pick up where you left off"]],
-  ["Home Ask Fresh action", "src/features/home/HomeDashboard.tsx", ['fresh-ai-open']],
+  ["Home Ask Fresh action", "src/features/home/HomeDashboard.tsx", ['setActiveRoute("ai")']],
   ["Home universal command", "src/features/home/HomeDashboard.tsx", ["UniversalCommandBar"]],
   ["Home feed remains visible", "src/features/home/HomeDashboard.tsx", ["FeedModule"]],
   ["Flow remains a first-class route", "src/app/components/BottomNav.tsx", ['id: "fresh-flow"']],
