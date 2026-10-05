@@ -7,7 +7,8 @@ import type { LayoutState, LayoutActions } from "./LayoutTypes";
 
 function routeFromPath(pathname: string): string {
   const path = pathname.replace(/\/+$/, "") || "/";
-  if (path === "/welcome") return "first-experience";
+  if (path === "/welcome") return "welcome";
+  if (path === "/onboarding") return "onboarding";
   if (path === "/") return "feed";
   if (path === "/auth/sign-in") return "auth-signin";
   if (path === "/auth/sign-up") return "auth-signup";
@@ -23,7 +24,8 @@ function initialRoute(): string {
 }
 
 function pathForRoute(route: string): string {
-  if (route === "first-experience") return "/welcome";
+  if (route === "welcome" || route === "first-experience") return "/welcome";
+  if (route === "onboarding") return "/onboarding";
   if (route === "auth-sign-in" || route === "auth-signin") return "/auth/sign-in";
   if (route === "auth-sign-up" || route === "auth-signup") return "/auth/sign-up";
   if (route === "fresh-flow" || route.startsWith("fresh-flow-")) return `/${route}`;
@@ -57,7 +59,8 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       const isKnownFeature = Boolean(FeatureRegistry.getFeature(route));
       const isFreshFlowWorld = route === "fresh-flow" || route.startsWith("fresh-flow-");
-      if (!isKnownFeature && !isFreshFlowWorld) {
+      const isJourney = route === "welcome" || route === "onboarding" || route === "auth-signin" || route === "auth-signup";
+      if (!isKnownFeature && !isFreshFlowWorld && !isJourney) {
         NotificationService.notify({
           title: "Fresh couldn't open that destination",
           message: `The destination "${route}" is not registered, so Fresh kept your current workspace.`,
