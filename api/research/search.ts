@@ -1,5 +1,5 @@
 import { synthesizeResearch, type ResearchPass } from "./orchestrator.js";
-import { persistSemanticResearch } from "./persistSemanticResearch.js";
+import { persistSemanticResearch } from "./persistSemanticResearchV2.js";
 import { reasonAcrossDimensions } from "../../src/core/fresh-ai/dimensionalIntelligence.js";
 
 type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
