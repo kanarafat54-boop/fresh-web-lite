@@ -35,16 +35,19 @@ class Registry {
 export const FeatureRegistry = new Registry();
 export default FeatureRegistry;
 
+const loadAuth = () => import("../../features/fresh-id/components/AuthRoute").then((m) => ({ default: m.default }));
+
 FeatureRegistry.register({ id: "welcome", name: "Welcome", route: "/welcome", searchable: false, lazyLoader: () => import("../../features/product-journey/WelcomeRoute").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "onboarding", name: "Onboarding", route: "/onboarding", searchable: false, lazyLoader: () => import("../../features/product-journey/OnboardingRoute").then((m) => ({ default: m.default })) });
-FeatureRegistry.register({ id: "auth-signin", name: "Fresh ID Sign In", route: "/auth/sign-in", searchable: false, lazyLoader: () => import("../../features/fresh-id/components/AuthRoute").then((m) => ({ default: m.default })) });
+FeatureRegistry.register({ id: "auth-signin", name: "Fresh ID Sign In", route: "/auth/sign-in", searchable: false, lazyLoader: loadAuth });
+FeatureRegistry.register({ id: "auth-signup", name: "Fresh ID Sign Up", route: "/auth/sign-up", searchable: false, lazyLoader: loadAuth });
 FeatureRegistry.register({ id: "first-experience", name: "Fresh First Experience", searchable: false, lazyLoader: () => import("../../features/fresh-first-experience/FreshFirstExperience").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "feed", name: "Home", route: "/", searchable: true, lazyLoader: () => import("../../features/home/HomeDashboard").then((m) => ({ default: m.default })) });
-FeatureRegistry.register({ id: "ai", name: "Fresh AI", route: "/ai", searchable: false, lazyLoader: () => import("../../features/ai/components/FreshAIHome").then((m) => ({ default: m.default })) });
+FeatureRegistry.register({ id: "ai", name: "Fresh AI", route: "/ai", searchable: true, lazyLoader: () => import("../../features/ai/components/FreshAIHome").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "wallet", name: "Fresh Wallet", route: "/wallet", searchable: true, permissions: ["wallet:read"], lazyLoader: () => import("../../features/wallet/WalletDashboard").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "studio", name: "Creator Studio", route: "/studio", searchable: true, lazyLoader: () => import("../../features/creator/CreatorStudioDashboard").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "profile", name: "Profile", route: "/profile", searchable: true, lazyLoader: () => import("../../features/fresh-id/components/SmartProfilePage").then((m) => ({ default: m.default })) });
-FeatureRegistry.register({ id: "discovery", name: "Discovery", route: "/discovery", searchable: true, lazyLoader: () => import("../../features/discovery/DiscoveryWorkspace").then((m) => ({ default: m.default })) });
+FeatureRegistry.register({ id: "discovery", name: "Ecosystems", route: "/discovery", searchable: true, lazyLoader: () => import("../../features/discovery/DiscoveryWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "work", name: "Work", route: "/work", searchable: true, lazyLoader: () => import("../../features/workspaces/WorkWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "learning", name: "Learning", route: "/learning", searchable: true, lazyLoader: () => import("../../features/workspaces/LearningWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "communication", name: "Communication", route: "/communication", searchable: true, lazyLoader: () => import("../../features/workspaces/CommunicationWorkspace").then((m) => ({ default: m.default })) });
@@ -53,3 +56,4 @@ FeatureRegistry.register({ id: "marketplace", name: "Trade", route: "/marketplac
 FeatureRegistry.register({ id: "crypto", name: "Crypto", route: "/crypto", searchable: true, lazyLoader: () => import("../../features/wallet/WalletDashboard").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "saved", name: "Saved", route: "/saved", searchable: true, lazyLoader: () => import("../../features/saved/components/SavedModule").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "fresh-flow", name: "Fresh Flow", route: "/fresh-flow", searchable: true, lazyLoader: () => import("../../features/fresh-flow/FreshFlowHub").then((m) => ({ default: m.default })) });
+FeatureRegistry.register({ id: "settings", name: "Settings", route: "/settings", searchable: true, lazyLoader: () => import("../../features/workspaces/SettingsWorkspace").then((m) => ({ default: m.default })) });
