@@ -24,7 +24,7 @@ const gatewayFeatureId = (): string => {
   const path = window.location.pathname.replace(/\/+$/, "") || "/";
   if (path === "/welcome") return "welcome";
   if (path === "/onboarding") return "onboarding";
-  if (path === "/auth/sign-up") return "auth-signin";
+  if (path === "/auth/sign-up") return "auth-signup";
   return "auth-signin";
 };
 
@@ -35,9 +35,13 @@ export default function AppRouter() {
 
   // Independent gateway surfaces: Welcome, Auth, Onboarding — no main shell chrome.
   if (isGatewayPath() || activeRoute === "welcome" || activeRoute === "onboarding" || activeRoute === "auth-signin" || activeRoute === "auth-signup") {
-    const id = activeRoute === "welcome" || activeRoute === "onboarding" || activeRoute === "auth-signin" || activeRoute === "auth-signup"
-      ? (activeRoute === "auth-signup" ? "auth-signin" : activeRoute)
-      : gatewayFeatureId();
+    const id =
+      activeRoute === "welcome" ||
+      activeRoute === "onboarding" ||
+      activeRoute === "auth-signin" ||
+      activeRoute === "auth-signup"
+        ? activeRoute
+        : gatewayFeatureId();
     const feature = FeatureRegistry.getFeature(id) ?? FeatureRegistry.getFeature("auth-signin");
     return feature
       ? <div className="fresh-id-independent-root"><FeatureLoader feature={feature} /></div>
@@ -45,20 +49,38 @@ export default function AppRouter() {
   }
 
   if (freshFlowRoute) {
-    return <div className="app-shell fresh-flow-app-shell fresh-shell-frame"><DesktopSidebar /><main className="app-content fresh-flow-content-root"><FreshFlowHub /></main><BottomNav /><NotificationCenter /><GlobalSearchEntry /></div>;
+    return (
+      <div className="app-shell fresh-flow-app-shell fresh-shell-frame">
+        <DesktopSidebar />
+        <main className="app-content fresh-flow-content-root">
+          <FreshFlowHub />
+        </main>
+        <BottomNav />
+        <NotificationCenter />
+        <GlobalSearchEntry />
+      </div>
+    );
   }
 
-  return <div className="app-shell fresh-shell-frame">
-    <TopBar />
-    <DesktopSidebar />
-    <div className="app-body">
-      <main className="app-content">
-        {activeFeature ? <FreshPlatformRuntimeBoundary route={activeRoute ?? activeFeature.id}><FeatureLoader feature={activeFeature} /></FreshPlatformRuntimeBoundary> : <div className="empty-state">Select a workspace</div>}
-      </main>
+  return (
+    <div className="app-shell fresh-shell-frame">
+      <TopBar />
+      <DesktopSidebar />
+      <div className="app-body">
+        <main className="app-content">
+          {activeFeature ? (
+            <FreshPlatformRuntimeBoundary route={activeRoute ?? activeFeature.id}>
+              <FeatureLoader feature={activeFeature} />
+            </FreshPlatformRuntimeBoundary>
+          ) : (
+            <div className="empty-state">Select a workspace</div>
+          )}
+        </main>
+      </div>
+      <WorkspaceContextPanel />
+      <BottomNav />
+      <NotificationCenter />
+      <GlobalSearchEntry />
     </div>
-    <WorkspaceContextPanel />
-    <BottomNav />
-    <NotificationCenter />
-    <GlobalSearchEntry />
-  </div>;
+  );
 }
