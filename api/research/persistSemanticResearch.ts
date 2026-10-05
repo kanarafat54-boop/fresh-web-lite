@@ -3,7 +3,7 @@ import { assessEvidenceStance } from "../../src/core/semantic/evidenceStance.js"
 import { assessClaimConfidence } from "../../src/core/semantic/claimConfidence.js";
 import { arbitrateClaimSet } from "../../src/core/semantic/beliefArbitration.js";
 import { compareClaims, type Claim } from "../../src/core/semantic/claimIntelligence.js";
-import { decideTruthBatch, type TruthDecision } from "../../src/core/semantic/truthDecisionOrchestrator.js";
+import { decideTruthBatch } from "../../src/core/semantic/truthDecisionOrchestrator.js";
 import type { SemanticClaim, SemanticEvidence } from "../../src/core/semantic/types.js";
 import type { ProvenanceNode } from "../../src/core/semantic/sourceProvenance.js";
 import type { ResearchResult } from "../../src/core/research/contracts.js";
@@ -60,7 +60,7 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
     claim.status = assessment.counterEvidenceIds.length && assessment.supportingEvidenceIds.length ? "contested" : assessment.supportingEvidenceIds.length ? "supported" : "uncertain";
   }
 
-  // Keep provenance IDs identical to persisted source IDs so calibration can\n  // resolve evidence -> source -> provenance without inventing lineage.\n  const provenanceNodes: ProvenanceNode[] = sources.map((source) => ({\n    id: source.id,\n    provider: source.provider,\n    url: source.url,\n    title: source.name,\n    kind: "unknown",\n    observedAt: researchedAt,\n  }));\n  const truthDecisions: TruthDecision[] = decideTruthBatch(claims, evidence, provenanceNodes, [], researchedAt);
+  // Keep provenance IDs identical to persisted source IDs so calibration can\n  // resolve evidence -> source -> provenance without inventing lineage.\n  const provenanceNodes: ProvenanceNode[] = sources.map((source) => ({\n    id: source.id,\n    provider: source.provider,\n    url: source.url,\n    title: source.name,\n    kind: "unknown",\n    observedAt: researchedAt,\n  }));\n  const truthDecisions = decideTruthBatch(claims, evidence, provenanceNodes, [], researchedAt);
   logStage(runId, "research.truth.decided", {
     count: truthDecisions.length,
     actionable: truthDecisions.filter((decision) => decision.actionable).length,
