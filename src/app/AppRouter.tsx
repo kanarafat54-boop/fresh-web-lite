@@ -7,7 +7,6 @@ import GlobalSearchEntry from "./components/GlobalSearchEntry";
 import { FeatureRegistry } from "./registry/FeatureRegistry";
 import { useLayout } from "./contexts/useLayout";
 import FeatureLoader from "./services/featureLoader";
-import FreshFlowHub from "../features/fresh-flow/FreshFlowHub";
 import "./AppRouter.css";
 import FreshPlatformRuntimeBoundary from "../core/platform/FreshPlatformRuntimeBoundary";
 
@@ -32,6 +31,7 @@ export default function AppRouter() {
   const { activeRoute } = useLayout();
   const freshFlowRoute = isFreshFlowRoute(activeRoute);
   const activeFeature = FeatureRegistry.getFeature(activeRoute);
+  const freshFlowFeature = FeatureRegistry.getFeature("fresh-flow");
 
   // Independent gateway surfaces: Welcome, Auth, Onboarding — no main shell chrome.
   if (isGatewayPath() || activeRoute === "welcome" || activeRoute === "onboarding" || activeRoute === "auth-signin" || activeRoute === "auth-signup") {
@@ -53,7 +53,7 @@ export default function AppRouter() {
       <div className="app-shell fresh-flow-app-shell fresh-shell-frame">
         <DesktopSidebar />
         <main className="app-content fresh-flow-content-root">
-          <FreshFlowHub />
+          <FeatureLoader feature={freshFlowFeature ?? activeFeature!} />
         </main>
         <BottomNav />
         <NotificationCenter />
