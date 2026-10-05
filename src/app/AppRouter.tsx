@@ -12,10 +12,20 @@ import "./AppRouter.css";
 import FreshPlatformRuntimeBoundary from "../core/platform/FreshPlatformRuntimeBoundary";
 
 const isFreshFlowRoute = (route?: string) => Boolean(route && (route === "fresh-flow" || route.startsWith("fresh-flow-")));
-const isFreshIdGatewayPath = () => {
+
+const isGatewayPath = () => {
   if (typeof window === "undefined") return false;
   const path = window.location.pathname.replace(/\/+$/, "") || "/";
-  return path === "/auth/sign-in" || path.startsWith("/auth/");
+  return path === "/auth/sign-in" || path === "/auth/sign-up" || path.startsWith("/auth/") || path === "/welcome" || path === "/onboarding";
+};
+
+const gatewayFeatureId = (): string => {
+  if (typeof window === "undefined") return "auth-signin";
+  const path = window.location.pathname.replace(/\/+$/, "") || "/";
+  if (path === "/welcome") return "welcome";
+  if (path === "/onboarding") return "onboarding";
+  if (path === "/auth/sign-up") return "auth-signin";
+  return "auth-signin";
 };
 
 export default function AppRouter() {
@@ -23,12 +33,15 @@ export default function AppRouter() {
   const freshFlowRoute = isFreshFlowRoute(activeRoute);
   const activeFeature = FeatureRegistry.getFeature(activeRoute);
 
-  // Fresh ID is an independent gateway: no FWL shell or navigation is mounted here.
-  if (isFreshIdGatewayPath()) {
-    const authFeature = FeatureRegistry.getFeature("auth-signin");
-    return authFeature
-      ? <div className="fresh-id-independent-root"><FeatureLoader feature={authFeature} /></div>
-      : <div className="empty-state">Fresh ID is unavailable.</div>;
+  // Independent gateway surfaces: Welcome, Auth, Onboarding — no main shell chrome.
+  if (isGatewayPath() || activeRoute === "welcome" || activeRoute === "onboarding" || activeRoute === "auth-signin" || activeRoute === "auth-signup") {
+    const id = activeRoute === "welcome" || activeRoute === "onboarding" || activeRoute === "auth-signin" || activeRoute === "auth-signup"
+      ? (activeRoute === "auth-signup" ? "auth-signin" : activeRoute)
+      : gatewayFeatureId();
+    const feature = FeatureRegistry.getFeature(id) ?? FeatureRegistry.getFeature("auth-signin");
+    return feature
+      ? <div className="fresh-id-independent-root"><FeatureLoader feature={feature} /></div>
+      : <div className="empty-state">Fresh gateway is unavailable.</div>;
   }
 
   if (freshFlowRoute) {
