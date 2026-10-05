@@ -99,7 +99,7 @@ export async function POST(req: Request): Promise<Response> {
       const persistencePromise = persistSemanticResearch(researchResult, { dryRun, runId });
       const timeoutPromise = new Promise<never>((_, reject) => { setTimeout(() => reject(new Error("Fresh Intelligence persistence timed out")), 8_000); });
       persistence = await Promise.race([persistencePromise, timeoutPromise]);
-      logStage(runId, "research.persistence.complete", { dryRun, durationMs: elapsed(persistenceStarted), ...persistence });
+      logStage(runId, "research.persistence.complete", { durationMs: elapsed(persistenceStarted), ...persistence });
     } catch (error) {
       console.error("Fresh Intelligence persistence error", { runId, error });
       persistenceWarning = "Research completed, but the Fresh Intelligence memory layer could not persist this run.";
