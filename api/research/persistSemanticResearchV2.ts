@@ -62,7 +62,15 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
 
   // Keep provenance IDs identical to persisted source IDs so calibration can
   // resolve evidence -> source -> provenance without inventing lineage.
-  const provenanceNodes: ProvenanceNode[] = sources.map((source) => ({\n    id: source.id,\n    provider: source.provider,\n    url: source.url,\n    title: source.name,\n    kind: "unknown",\n    observedAt: researchedAt,\n  }));\n  const truthDecisions = decideTruthBatch(claims, evidence, provenanceNodes, [], researchedAt);
+  const provenanceNodes: ProvenanceNode[] = sources.map((source) => ({
+    id: source.id,
+    provider: source.provider,
+    url: source.url,
+    title: source.name,
+    kind: "unknown",
+    observedAt: researchedAt,
+  }));
+  const truthDecisions = decideTruthBatch(claims, evidence, provenanceNodes, [], researchedAt);
   logStage(runId, "research.truth.decided", {
     count: truthDecisions.length,
     actionable: truthDecisions.filter((decision) => decision.actionable).length,
