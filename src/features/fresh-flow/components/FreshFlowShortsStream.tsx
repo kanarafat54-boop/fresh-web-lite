@@ -90,7 +90,7 @@ export default function FreshFlowShortsStream({
   onOpenCreate,
 }: FreshFlowShortsStreamProps = {}) {
   const { user, isGuest } = useFreshId();
-  const { pushNotification } = useLayout();
+  const { pushNotification, setActiveRoute } = useLayout();
   const [subTab, setSubTab] = useState<SubTab>(() => readSavedPosition().subTab ?? "for-you");
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterMode, setFilterMode] = useState<FilterMode>(() => readSavedPosition().filterMode ?? "all");
@@ -417,7 +417,7 @@ export default function FreshFlowShortsStream({
     }
   }
 
-  function openFreshAI(short: Short, prompt: string) {
+  function openFreshAI(prompt: string) {
     setFreshAiPanelOpen(false);
     setAdvancedOpen(false);
     try { sessionStorage.setItem("fresh-ai-prompt", prompt); } catch { /* ignore */ }
@@ -565,11 +565,11 @@ export default function FreshFlowShortsStream({
                 {freshAiPanelOpen && index === currentIndex && (
                   <div className="fresh-flow-ai-panel">
                     <div className="fresh-flow-ai-panel-header"><div><strong>Fresh AI</strong><small>Understand this Short without leaving Flow.</small></div><button type="button" onClick={() => setFreshAiPanelOpen(false)} aria-label="Close Fresh AI">×</button></div>
-                    <button type="button" onClick={() => openFreshAI(short, `Explain this Fresh Short in a concise way. Include the main idea, important context, and anything a viewer should know. Caption: ${short.caption || "No caption provided."}`)}><strong>Instant Knowledge</strong><small>Get an AI-generated explanation and context.</small></button>
-                    <button type="button" onClick={() => openFreshAI(short, `Research this Fresh Short and identify relevant supporting context, related topics, and trustworthy sources. Clearly separate verified facts from uncertain claims. Caption: ${short.caption || "No caption provided."}`)}><strong>Context & Sources</strong><small>Explore related knowledge and source integrity.</small></button>
-                    <button type="button" onClick={() => openFreshAI(short, `Create a concise multi-format digest of this Fresh Short for me. Summarize what happens, why it matters, and key takeaways. Caption: ${short.caption || "No caption provided."}`)}><strong>Generate Fresh AI Digest</strong><small>Turn the Short into a quick knowledge card.</small></button>
-                    <button type="button" onClick={() => openFreshAI(short, `Help me discover useful products, services, or creator-support options related to this Fresh Short. Do not invent listings or prices. Caption: ${short.caption || "No caption provided."}`)}><strong>Shop / Support Creator</strong><small>Explore useful commerce or creator-support paths.</small></button>
-                    <button type="button" onClick={() => openFreshAI(short, `Explain how I could preserve or collect this memorable moment responsibly, including ownership, rights, and provenance considerations. Do not assume NFT availability. Caption: ${short.caption || "No caption provided."}`)}><strong>Collectible & Provenance</strong><small>Explore ownership and provenance with Fresh AI.</small></button>
+                    <button type="button" onClick={() => openFreshAI(`Explain this Fresh Short in a concise way. Include the main idea, important context, and anything a viewer should know. Caption: ${short.caption || "No caption provided."}`)}><strong>Instant Knowledge</strong><small>Get an AI-generated explanation and context.</small></button>
+                    <button type="button" onClick={() => openFreshAI(`Research this Fresh Short and identify relevant supporting context, related topics, and trustworthy sources. Clearly separate verified facts from uncertain claims. Caption: ${short.caption || "No caption provided."}`)}><strong>Context & Sources</strong><small>Explore related knowledge and source integrity.</small></button>
+                    <button type="button" onClick={() => openFreshAI(`Create a concise multi-format digest of this Fresh Short for me. Summarize what happens, why it matters, and key takeaways. Caption: ${short.caption || "No caption provided."}`)}><strong>Generate Fresh AI Digest</strong><small>Turn the Short into a quick knowledge card.</small></button>
+                    <button type="button" onClick={() => openFreshAI(`Help me discover useful products, services, or creator-support options related to this Fresh Short. Do not invent listings or prices. Caption: ${short.caption || "No caption provided."}`)}><strong>Shop / Support Creator</strong><small>Explore useful commerce or creator-support paths.</small></button>
+                    <button type="button" onClick={() => openFreshAI(`Explain how I could preserve or collect this memorable moment responsibly, including ownership, rights, and provenance considerations. Do not assume NFT availability. Caption: ${short.caption || "No caption provided."}`)}><strong>Collectible & Provenance</strong><small>Explore ownership and provenance with Fresh AI.</small></button>
                   </div>
                 )}
                 {advancedOpen && index === currentIndex && (
