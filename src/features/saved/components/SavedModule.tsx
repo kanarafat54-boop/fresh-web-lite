@@ -242,3 +242,5 @@ export function SavedModule() {
     </div>
   );
 }
+
+export default SavedModule;
