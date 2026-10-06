@@ -9,8 +9,26 @@ function GlobalThemeControl() {
   const { theme, setTheme } = useTheme();
   return (
     <div className="fresh-global-theme" role="group" aria-label="Fresh appearance">
-      <button type="button" className={theme === "light" ? "is-active" : ""} onClick={() => setTheme("light")} aria-pressed={theme === "light"}>Light</button>
-      <button type="button" className={theme === "dark" ? "is-active" : ""} onClick={() => setTheme("dark")} aria-pressed={theme === "dark"}>Dark</button>
+      <button
+        type="button"
+        className={theme === "light" ? "is-active" : ""}
+        onClick={() => setTheme("light")}
+        aria-pressed={theme === "light"}
+        aria-label="Use light mode"
+        title="Light mode"
+      >
+        ☀
+      </button>
+      <button
+        type="button"
+        className={theme === "dark" ? "is-active" : ""}
+        onClick={() => setTheme("dark")}
+        aria-pressed={theme === "dark"}
+        aria-label="Use dark mode"
+        title="Dark mode"
+      >
+        ◐
+      </button>
     </div>
   );
 }
