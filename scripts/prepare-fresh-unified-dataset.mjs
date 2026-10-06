@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from "node:fs";
+import path from "node:path";
 import crypto from "node:crypto";
 
 const inputPath = process.argv[2];
@@ -31,6 +32,9 @@ const manifest = {
   weightsCreated: false,
   checkpointCreated: false,
 };
+
+const outputDir = path.dirname(outputPath);
+if (outputDir && outputDir !== ".") fs.mkdirSync(outputDir, { recursive: true });
 fs.writeFileSync(outputPath, JSON.stringify(manifest, null, 2) + "\n");
 console.log(`Fresh dataset validated: ${examples.length} examples`);
 console.log(`Manifest: ${outputPath}`);
