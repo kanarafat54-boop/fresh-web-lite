@@ -165,12 +165,20 @@ export default function FreshIdAuthDashboard() {
             : "Browser";
 
   function enterFresh() {
+    // Authentication completion and product onboarding are separate states.
+    // First-time authenticated users must complete onboarding before Home.
     try {
       window.localStorage.setItem("fresh.id.onboarded", "1");
     } catch {
       // The main application still uses the authoritative auth session.
     }
-    setActiveRoute("feed");
+    let onboardingDone = false;
+    try {
+      onboardingDone = window.localStorage.getItem("fresh.journey.onboardingDone") === "true";
+    } catch {
+      /* ignore local preference errors */
+    }
+    setActiveRoute(onboardingDone ? "feed" : "onboarding");
   }
 
   return (
