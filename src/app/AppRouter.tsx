@@ -6,6 +6,8 @@ import NotificationCenter from "./components/NotificationCenter";
 import GlobalSearchEntry from "./components/GlobalSearchEntry";
 import { FeatureRegistry } from "./registry/FeatureRegistry";
 import { useLayout } from "./contexts/useLayout";
+import { useFreshId } from "../features/fresh-id/context/FreshIdContext";
+import { isOnboardingDone } from "../features/product-journey/productJourney";
 import FeatureLoader from "./services/featureLoader";
 import "./AppRouter.css";
 import FreshPlatformRuntimeBoundary from "../core/platform/FreshPlatformRuntimeBoundary";
@@ -28,7 +30,24 @@ const gatewayFeatureId = (): string => {
 };
 
 export default function AppRouter() {
-  const { activeRoute } = useLayout();
+  const { activeRoute, setActiveRoute } = useLayout();
+  const { isAuthenticated, isGuest, loading: authLoading } = useFreshId();
+
+  // Canonical cold-start journey: unauthenticated users see Welcome first;
+  // authenticated users who have not completed onboarding see Onboarding.
+  // Explicit gateway routes always win and are never redirected by this gate.
+  if (!authLoading && !isGatewayPath()) {
+    const path = typeof window === "undefined" ? "/" : window.location.pathname.replace(/\\/+$/, "") || "/";
+    if (path === "/") {
+      if (isAuthenticated && !isGuest && !isOnboardingDone()) {
+        if (activeRoute !== "onboarding") setActiveRoute("onboarding");
+      } else if (!isAuthenticated && !isGuest) {
+        let welcomeSeen = false;
+        try { welcomeSeen = window.localStorage.getItem("fresh.journey.welcomeSeen") === "true"; } catch { /* ignore */ }
+        if (!welcomeSeen && activeRoute !== "welcome") setActiveRoute("welcome");
+      }
+    }
+  }
   const freshFlowRoute = isFreshFlowRoute(activeRoute);
   const activeFeature = FeatureRegistry.getFeature(activeRoute);
   const freshFlowFeature = FeatureRegistry.getFeature("fresh-flow");
