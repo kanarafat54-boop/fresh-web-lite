@@ -45,9 +45,9 @@ jobs:
       - run: npm run test:fresh-tokenizer-training
       - run: npm run test:fresh-training-backend
       - run: npm run test:fresh-dataset-preparation
-      - run: npm run prepare:fresh-training -- --dataset data/fresh-training/synthetic-starter-v1.jsonl --output artifacts/fresh-training/jobs/ci-prepared.json
+      - run: node scripts/run-fresh-unified-training.mjs --dataset data/fresh-training/synthetic-starter-v1.jsonl --curriculum src/core/fresh-ai/FreshUnifiedTrainingCurriculum.ts --output artifacts/fresh-training/jobs/ci-prepared.json
       - run: npm run test:fresh-training-run-record -- artifacts/fresh-training/jobs/ci-prepared.json
-      - name: Verify prepared record is not a checkpoint
+      - name: Verify prepared training record is not a checkpoint
         run: |
           test ! -e artifacts/fresh-training/jobs/ci-prepared.safetensors
           grep -q '"execution"' artifacts/fresh-training/jobs/ci-prepared.json
