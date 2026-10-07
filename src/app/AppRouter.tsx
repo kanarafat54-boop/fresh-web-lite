@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import TopBar from "./components/TopBar";
 import BottomNav from "./components/BottomNav";
 import DesktopSidebar from "./components/DesktopSidebar";
@@ -36,18 +37,22 @@ export default function AppRouter() {
   // Canonical cold-start journey: unauthenticated users see Welcome first;
   // authenticated users who have not completed onboarding see Onboarding.
   // Explicit gateway routes always win and are never redirected by this gate.
-  if (!authLoading && !isGatewayPath()) {
-    const path = typeof window === "undefined" ? "/" : window.location.pathname.replace(/\\/+$/, "") || "/";
-    if (path === "/") {
-      if (isAuthenticated && !isGuest && !isOnboardingDone()) {
-        if (activeRoute !== "onboarding") setActiveRoute("onboarding");
-      } else if (!isAuthenticated && !isGuest) {
-        let welcomeSeen = false;
-        try { welcomeSeen = window.localStorage.getItem("fresh.journey.welcomeSeen") === "true"; } catch { /* ignore */ }
-        if (!welcomeSeen && activeRoute !== "welcome") setActiveRoute("welcome");
-      }
+  useEffect(() => {
+    if (authLoading || isGatewayPath() || typeof window === "undefined") return;
+    const path = window.location.pathname.replace(/\/+$/, "") || "/";
+    if (path !== "/") return;
+
+    if (isAuthenticated && !isGuest && !isOnboardingDone()) {
+      if (activeRoute !== "onboarding") setActiveRoute("onboarding");
+      return;
     }
-  }
+
+    if (!isAuthenticated && !isGuest) {
+      let welcomeSeen = false;
+      try { welcomeSeen = window.localStorage.getItem("fresh.journey.welcomeSeen") === "true"; } catch { /* ignore */ }
+      if (!welcomeSeen && activeRoute !== "welcome") setActiveRoute("welcome");
+    }
+  }, [activeRoute, authLoading, isAuthenticated, isGuest, setActiveRoute]);
   const freshFlowRoute = isFreshFlowRoute(activeRoute);
   const activeFeature = FeatureRegistry.getFeature(activeRoute);
   const freshFlowFeature = FeatureRegistry.getFeature("fresh-flow");
