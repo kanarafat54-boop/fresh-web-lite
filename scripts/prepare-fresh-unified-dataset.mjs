@@ -3,10 +3,29 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 
-const inputPath = process.argv[2];
-const outputPath = process.argv[3] || "fresh-unified-dataset.manifest.json";
+const args = process.argv.slice(2);
+let inputPath;
+let outputPath;
+const positional = [];
+for (let i = 0; i < args.length; i += 1) {
+  const arg = args[i];
+  if (arg === "--dataset") {
+    inputPath = args[++i];
+    if (!inputPath) throw new Error("--dataset requires a path");
+  } else if (arg === "--output") {
+    outputPath = args[++i];
+    if (!outputPath) throw new Error("--output requires a path");
+  } else if (arg.startsWith("--")) {
+    throw new Error(`Unknown option: ${arg}`);
+  } else {
+    positional.push(arg);
+  }
+}
+inputPath ??= positional[0];
+outputPath ??= positional[1] ?? "fresh-unified-dataset.manifest.json";
 if (!inputPath) {
   console.error("Usage: node scripts/prepare-fresh-unified-dataset.mjs <dataset.jsonl> [manifest.json]");
+  console.error("   or: node scripts/prepare-fresh-unified-dataset.mjs --dataset <dataset.jsonl> --output <manifest.json>");
   process.exit(1);
 }
 
