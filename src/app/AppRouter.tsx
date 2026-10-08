@@ -50,7 +50,8 @@ export default function AppRouter() {
     if (!isAuthenticated && !isGuest) {
       let welcomeSeen = false;
       try { welcomeSeen = window.localStorage.getItem("fresh.journey.welcomeSeen") === "true"; } catch { /* ignore */ }
-      if (!welcomeSeen && activeRoute !== "welcome") setActiveRoute("welcome");
+      const requiredRoute = welcomeSeen ? "auth-signin" : "welcome";
+      if (activeRoute !== requiredRoute) setActiveRoute(requiredRoute);
     }
   }, [activeRoute, authLoading, isAuthenticated, isGuest, setActiveRoute]);
   const freshFlowRoute = isFreshFlowRoute(activeRoute);
