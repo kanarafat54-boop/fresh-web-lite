@@ -32,5 +32,10 @@ if (!routerSource.includes("resolveEntryRoute(false)")) {
   throw new Error("AppRouter must use the canonical entry route resolver to prevent journey drift.");
 }
 
+const aiHomeSource = fs.readFileSync("src/features/ai/components/FreshAIHome.tsx", "utf8");
+if (!aiHomeSource.includes('onClick={() => setActiveRoute("fresh-flow")}>Open Fresh Flow</button>')) {
+  throw new Error("Fresh AI must provide a working navigation path back into Fresh Flow.");
+}
+
 console.log("Fresh Web Lite production routing gate: PASS");
 console.log("API routes resolve before filesystem/SPA fallback; Vite remains the production build contract.");
