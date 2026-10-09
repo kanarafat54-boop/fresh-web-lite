@@ -120,7 +120,7 @@ export function loadOnboardingInterests(): string[] {
 
 /** Resolve entry route for cold start. */
 export function resolveEntryRoute(isAuthenticated: boolean): string {
-  if (!hasSeenWelcome() && !isAuthenticated) return "welcome";
-  if (isAuthenticated && !isOnboardingDone()) return "onboarding";
+  if (!isAuthenticated) return hasSeenWelcome() ? "auth-signin" : "welcome";
+  if (!isOnboardingDone()) return "onboarding";
   return "feed";
 }
