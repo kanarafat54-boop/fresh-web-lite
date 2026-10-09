@@ -8,7 +8,7 @@ import GlobalSearchEntry from "./components/GlobalSearchEntry";
 import { FeatureRegistry } from "./registry/FeatureRegistry";
 import { useLayout } from "./contexts/useLayout";
 import { useFreshId } from "../features/fresh-id/context/FreshIdContext";
-import { isOnboardingDone } from "../features/product-journey/productJourney";
+import { isOnboardingDone, resolveEntryRoute } from "../features/product-journey/productJourney";
 import FeatureLoader from "./services/featureLoader";
 import "./AppRouter.css";
 import FreshPlatformRuntimeBoundary from "../core/platform/FreshPlatformRuntimeBoundary";
@@ -48,9 +48,7 @@ export default function AppRouter() {
     }
 
     if (!isAuthenticated && !isGuest) {
-      let welcomeSeen = false;
-      try { welcomeSeen = window.localStorage.getItem("fresh.journey.welcomeSeen") === "true"; } catch { /* ignore */ }
-      const requiredRoute = welcomeSeen ? "auth-signin" : "welcome";
+      const requiredRoute = resolveEntryRoute(false);
       if (activeRoute !== requiredRoute) setActiveRoute(requiredRoute);
     }
   }, [activeRoute, authLoading, isAuthenticated, isGuest, setActiveRoute]);
