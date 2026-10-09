@@ -19,5 +19,18 @@ if (routes.indexOf(apiRoute) > filesystemIndex) throw new Error("API routing mus
 const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
 if (packageJson.scripts?.build !== "vite build") throw new Error("Production build contract changed unexpectedly.");
 
+const journeySource = fs.readFileSync("src/features/product-journey/productJourney.ts", "utf8");
+if (!journeySource.includes('return hasSeenWelcome() ? "auth-signin" : "welcome";')) {
+  throw new Error("Unauthenticated entry must resolve to Welcome on first visit and Sign In on return visits.");
+}
+if (!journeySource.includes('if (!isOnboardingDone()) return "onboarding";')) {
+  throw new Error("Authenticated users must complete onboarding before entering the main home.");
+}
+
+const routerSource = fs.readFileSync("src/app/AppRouter.tsx", "utf8");
+if (!routerSource.includes("resolveEntryRoute(false)")) {
+  throw new Error("AppRouter must use the canonical entry route resolver to prevent journey drift.");
+}
+
 console.log("Fresh Web Lite production routing gate: PASS");
 console.log("API routes resolve before filesystem/SPA fallback; Vite remains the production build contract.");
