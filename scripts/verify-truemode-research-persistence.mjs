@@ -54,8 +54,11 @@ const truthDecisionIndex = aiGateway.indexOf("const blockedTruth=truthDecisions.
 const executionIndex = aiGateway.indexOf("this.kernel.execute", truthDecisionIndex);
 if (truthDecisionIndex < 0 || executionIndex < 0 || truthDecisionIndex > executionIndex) throw new Error("TRUEMODE execution gate must run before any plan execution.");
 
-if (researchPersistence.includes("from \"../../src/core/semantic/supabaseSemanticPersistence\"") && !researchPersistence.includes("from \"../../src/core/semantic/supabaseSemanticPersistence.js\"")) {
-  throw new Error("Server persistence import should use the ESM .js contract used by the API layer.");
+if (researchPersistence.includes('"../../src/core/')) {
+  throw new Error("Research persistence contains invalid src/src relative imports.");
+}
+if (!researchPersistence.includes('from "../../core/semantic/supabaseSemanticPersistence.js"')) {
+  throw new Error("Research persistence must import the server-only Supabase adapter from the correct relative path.");
 }
 
 console.log("TRUEMODE research → truth decision → Supabase contract: PASS");
