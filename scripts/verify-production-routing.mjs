@@ -37,5 +37,19 @@ if (!aiHomeSource.includes('onClick={() => setActiveRoute("fresh-flow")}>Open Fr
   throw new Error("Fresh AI must provide a working navigation path back into Fresh Flow.");
 }
 
+const streamSource = fs.readFileSync("api/ai/stream.ts", "utf8");
+if (!streamSource.includes("intent: b.intent")) {
+  throw new Error("Fresh AI API must forward the selected intent to the intelligence gateway.");
+}
+if (!aiHomeSource.includes("intent: ({ chat: \"chat\", research: \"research\", create: \"create\", build: \"code\", learn: \"learn\", act: \"act\" } as const)[mode]")) {
+  throw new Error("Fresh AI mode selector must influence the request sent to the gateway.");
+}
+if (!aiHomeSource.includes('void send(lastPrompt)')) {
+  throw new Error("Fresh AI retry must replay the failed prompt after the composer has been cleared.");
+}
+if (!aiHomeSource.includes("previousUser.content")) {
+  throw new Error("Fresh AI regenerate action must replay the prior user prompt, not the assistant answer.");
+}
+
 console.log("Fresh Web Lite production routing gate: PASS");
 console.log("API routes resolve before filesystem/SPA fallback; Vite remains the production build contract.");
