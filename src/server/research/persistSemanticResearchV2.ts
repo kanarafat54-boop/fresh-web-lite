@@ -19,6 +19,7 @@ function logStage(runId: string | undefined, stage: string, details: Record<stri
 export async function persistSemanticResearch(result: ResearchResult, options: PersistenceOptions = {}): Promise<PersistenceSummary> {
   const runId = options.runId;
   const researchedAt = result.researchedAt;
+  const queryScope = hash(normalizeResearchQuery(result.query));
   const sources = result.sources.map((source) => ({ id: `research-source-${hash(source.url)}`, provider: source.provider, name: source.title, url: source.url, metadata: { publishedAt: source.publishedAt } }));
   const sourceIdByUrl = new Map(sources.filter((s) => s.url).map((s) => [s.url as string, s.id]));
   const evidence: SemanticEvidence[] = result.sources.map((source, index) => ({
@@ -33,7 +34,6 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
     confidence: source.snippet ? 0.6 : 0.35,
   }));
 
-  const queryScope = hash(normalizeResearchQuery(result.query));
   const subjectEntityId = `research-subject-${queryScope}`;
   // Scope claim IDs to a canonicalized research query so casing/spacing variants do not create inconsistent identity.
   const findingIdByClaimId = new Map<string, string>();
