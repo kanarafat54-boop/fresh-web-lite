@@ -113,3 +113,65 @@
   opacity: 0.5;
   letter-spacing: 0.02em;
 }
+
+
+/* Fresh Point-0 welcome surface: quiet, premium, and mobile-first. */
+.fwl-welcome{
+  isolation:isolate;
+  padding:clamp(18px,4vw,48px);
+  background:
+    radial-gradient(ellipse at 12% 18%,rgba(99,91,255,.20),transparent 42%),
+    radial-gradient(ellipse at 88% 82%,rgba(168,85,247,.12),transparent 38%),
+    linear-gradient(145deg,#0D0D12 0%,#10111B 55%,#090A10 100%);
+}
+.fwl-welcome__sky{
+  opacity:.72;
+  background:
+    radial-gradient(circle at 18% 26%,rgba(99,91,255,.16),transparent 34%),
+    radial-gradient(circle at 82% 18%,rgba(168,85,247,.12),transparent 32%),
+    linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:auto,auto,48px 48px,48px 48px;
+  mask-image:linear-gradient(to bottom,black,transparent 88%);
+}
+.fwl-welcome__card{
+  width:min(520px,100%);
+  padding:clamp(28px,5vw,48px) clamp(22px,5vw,44px) clamp(24px,4vw,36px);
+  gap:14px;
+  border-radius:30px;
+  border-color:rgba(167,157,255,.20);
+  background:linear-gradient(155deg,rgba(21,22,34,.94),rgba(13,14,22,.90));
+  box-shadow:0 30px 100px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.055);
+  backdrop-filter:blur(22px);
+}
+.fwl-welcome__logo{
+  width:76px;height:76px;border-radius:24px;
+  background:linear-gradient(135deg,#8B7CFF 0%,#635BFF 58%,#A855F7 100%);
+  box-shadow:0 14px 40px rgba(99,91,255,.30),inset 0 1px 0 rgba(255,255,255,.28);
+}
+.fwl-welcome__mark{font-size:17px;letter-spacing:.07em}
+.fwl-welcome h1{font-size:clamp(1.8rem,5vw,2.25rem);letter-spacing:-.045em}
+.fwl-welcome__tagline{color:#B5ACFF;font-size:.94rem;letter-spacing:.01em}
+.fwl-welcome__sub{max-width:360px;margin:4px auto 12px;color:#B8BBCB;line-height:1.7;font-size:.94rem}
+.fwl-welcome__actions{gap:11px;margin-top:3px}
+.fwl-welcome__primary,.fwl-welcome__secondary{
+  min-height:50px;border-radius:15px;font-size:.94rem;
+  transition:transform .18s ease,border-color .18s ease,filter .18s ease,background .18s ease;
+}
+.fwl-welcome__primary{
+  background:linear-gradient(110deg,#635BFF,#7C5CFF 58%,#9B5DE5);
+  box-shadow:0 10px 28px rgba(99,91,255,.23),inset 0 1px 0 rgba(255,255,255,.22);
+}
+.fwl-welcome__secondary{border-color:rgba(185,181,220,.23);background:rgba(255,255,255,.025)}
+.fwl-welcome__primary:hover,.fwl-welcome__secondary:hover{transform:translateY(-1px)}
+.fwl-welcome__primary:focus-visible,.fwl-welcome__secondary:focus-visible{outline:2px solid #A99DFF;outline-offset:3px}
+.fwl-welcome__foot{max-width:340px;margin:12px auto 0;color:#9295A8;line-height:1.6}
+@media(max-width:480px){
+  .fwl-welcome{padding:16px}
+  .fwl-welcome__card{border-radius:25px;padding:30px 21px 24px;gap:12px}
+  .fwl-welcome__logo{width:68px;height:68px;border-radius:21px}
+  .fwl-welcome__sub{font-size:.88rem}
+}
+@media(prefers-reduced-motion:reduce){
+  .fwl-welcome__primary,.fwl-welcome__secondary{transition:none}
+}

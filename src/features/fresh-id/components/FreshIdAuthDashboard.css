@@ -472,3 +472,57 @@
 :root[data-theme="light"] .fresh-id-device-screen h3 em{color:#5B4CE6}
 :root[data-theme="light"] .fresh-id-device-caption b{color:#5B4CE6}
 :root[data-theme="light"] .fresh-id-gateway-bottom .fresh-id-nav-arrow{background:rgba(17,19,24,.035);border-color:rgba(17,19,24,.11)}
+
+
+/* Fresh ID final polish — keep the identity journey calm, legible, and thumb-friendly. */
+.fresh-id-gateway{
+  background:
+    radial-gradient(70vw 70vw at 0% 0%,rgba(99,91,255,.15),transparent 56%),
+    radial-gradient(65vw 65vw at 100% 8%,rgba(168,85,247,.10),transparent 58%),
+    linear-gradient(135deg,#0D0D12 0%,#11121B 52%,#090A10 100%);
+}
+.fresh-id-gateway::before{opacity:.20;background-size:48px 48px}
+.fresh-id-gateway-mark{
+  background:linear-gradient(135deg,#8B7CFF,#635BFF 65%,#A855F7);
+  color:#fff;box-shadow:0 0 32px rgba(99,91,255,.22),inset 0 1px 0 rgba(255,255,255,.24);
+}
+.fresh-id-journey-step:focus-visible,
+.fresh-id-gateway button:focus-visible,
+.fresh-id-gateway a:focus-visible{
+  outline:2px solid #A99DFF;outline-offset:3px;
+}
+.fresh-id-journey-step{touch-action:manipulation}
+.fresh-id-form-stage{
+  border-color:rgba(167,157,255,.20);
+  box-shadow:0 24px 80px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.035);
+}
+.auth-input{min-height:48px}
+.auth-submit-btn{min-height:49px}
+.auth-social-btn{min-height:46px}
+@media(max-width:760px){
+  .fresh-id-gateway-top{height:62px;padding-inline:16px}
+  .fresh-id-screen{padding:78px 18px 76px}
+  .fresh-id-screen-overview{padding-top:78px;padding-bottom:86px}
+  .fresh-id-overview-head{grid-template-columns:minmax(0,1fr);gap:18px;margin-bottom:18px}
+  .fresh-id-overview-head h1{font-size:clamp(2.2rem,10vw,3.5rem);line-height:1.02}
+  .fresh-id-overview-lede{font-size:.92rem;line-height:1.6;margin-top:12px}
+  .fresh-id-capability-rail{width:100%;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fresh-id-capability-rail span{min-height:42px;padding:0 10px;border-radius:12px;font-size:.69rem}
+  .fresh-id-journey-board{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .fresh-id-journey-step{min-height:108px;padding:12px;border-radius:15px}
+  .fresh-id-journey-step strong{font-size:.8rem}
+  .fresh-id-journey-step small{font-size:.68rem}
+  .fresh-id-journey-connector{display:none}
+  .fresh-id-overview-stage{grid-template-columns:minmax(0,1fr);gap:22px;margin-top:16px;padding:20px;border-radius:20px}
+  .fresh-id-form-stage{width:100%;max-width:100%;padding:clamp(18px,5vw,26px);border-radius:22px}
+  .fresh-id-auth-shell{width:100%;min-width:0}
+  .auth-form{width:100%;min-width:0}
+  .auth-input{font-size:16px}
+  .fresh-id-gateway-bottom{padding-inline:16px}
+}
+@media(max-width:380px){
+  .fresh-id-overview-head h1{font-size:2.15rem}
+  .fresh-id-capability-rail span{font-size:.64rem;gap:6px}
+  .fresh-id-journey-step{min-height:100px;padding:10px}
+  .fresh-id-journey-step .fresh-id-step-icon{width:30px;height:30px}
+}
