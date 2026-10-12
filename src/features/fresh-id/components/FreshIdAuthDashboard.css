@@ -526,3 +526,45 @@
   .fresh-id-journey-step{min-height:100px;padding:10px}
   .fresh-id-journey-step .fresh-id-step-icon{width:30px;height:30px}
 }
+
+
+/* Fresh ID clarity pass: visible field labels, consistent spacing, and legible provider actions. */
+.auth-form { gap: 12px; }
+.auth-field {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+.auth-field-label {
+  display: block;
+  color: var(--fresh-text, #f4f6fb);
+  font-size: .9rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.auth-field .auth-input { width: 100%; box-sizing: border-box; }
+.auth-social-btn {
+  min-width: 0;
+  gap: 8px;
+  justify-content: center;
+}
+.auth-social-label {
+  display: inline;
+  color: inherit;
+  font-size: .86rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.auth-form button:disabled { cursor: not-allowed; }
+.auth-form :is(input, button) { scroll-margin-block: 12px; }
+.auth-form :is(input, button):focus-visible {
+  outline: 3px solid #A99DFF;
+  outline-offset: 3px;
+}
+@media (max-width: 380px) {
+  .auth-field-label { font-size: .88rem; }
+  .auth-social-label { font-size: .78rem; }
+}
+:root[data-theme="light"] .auth-field-label { color: #111318; }
