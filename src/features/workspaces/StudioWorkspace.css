@@ -70,3 +70,19 @@
   .studio-panel{padding:14px}
   .studio-mode-tabs button{min-width:56px;padding:9px 8px;font-size:12px}
 }
+
+
+/* Studio: keep project controls and their labels together without horizontal clipping. */
+.studio-workspace, .studio-panel, .studio-project-bar > div { min-width: 0; }
+.studio-workspace :is(h1,h2,h3,p,span,strong,small,label,em) { overflow-wrap: anywhere; }
+.studio-workspace :is(button,a,input,select,textarea) { min-height: 44px; max-width: 100%; }
+.studio-message { font-size: .95rem; line-height: 1.5; }
+.studio-project-list span { font-size: .85rem; line-height: 1.45; }
+.studio-escrow { flex-wrap: wrap; gap: 10px; }
+.studio-escrow span { font-size: .85rem; line-height: 1.45; }
+.studio-fit-compact .studio-fit-row em { min-width: 0; }
+@media (max-width: 760px) {
+  .studio-mode-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .studio-mode-tabs button { flex: 1 1 90px; min-height: 44px; white-space: normal; }
+  .studio-project-list button { min-height: 64px; }
+}
