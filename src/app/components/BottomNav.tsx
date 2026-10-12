@@ -1,4 +1,4 @@
-import { HomeIcon, FeedIcon, AIIcon, SearchIcon } from "../../components/Icons";
+import { HomeIcon, FeedIcon, AIIcon, SearchIcon, ProfileIcon } from "../../components/Icons";
 import { useLayout } from "../contexts/useLayout";
 import "./BottomNav.css";
 
@@ -8,8 +8,8 @@ const primaryDestinations: BottomDestination[] = [
   { id: "feed", label: "Home", icon: HomeIcon },
   { id: "fresh-flow", label: "Flow", icon: FeedIcon },
   { id: "ai", label: "AI", icon: AIIcon },
-  { id: "discovery", label: "Ecosystems", icon: SearchIcon },
-  { id: "profile", label: "Profile", icon: HomeIcon },
+  { id: "discovery", label: "Explore", icon: SearchIcon },
+  { id: "profile", label: "Profile", icon: ProfileIcon },
 ];
 
 export default function BottomNav() {
