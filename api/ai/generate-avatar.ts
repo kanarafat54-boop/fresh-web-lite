@@ -1,3 +1,4 @@
+import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 import { generateFreshNeuralMedia } from "../../src/core/fresh-ai/FreshNeuralGenerationRuntime.js";
 
 export const config = { maxDuration: 60 };
@@ -38,3 +39,5 @@ export async function POST(req: Request): Promise<Response> {
     return json({ error: error instanceof Error ? error.message : "Fresh AI avatar generation failed" }, 500);
   }
 }
+
+export default createVercelNodeHandler({ POST });
