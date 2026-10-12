@@ -6,23 +6,19 @@ import { runIntelligence, type IntelligenceResponse } from "../ai/intelligence";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
 import { useState } from "react";
 import { FeedModule } from "../feed/components/FeedModule";
-import HomeEcosystemGrid from "../product-journey/HomeEcosystemGrid";
 import "./HomeDashboard.css";
 
 type SearchMode = "instant" | "ai" | "research" | "private";
 
+// Keep the first screen focused on the destinations people use most.
+// The full ecosystem directory lives in Explore instead of competing with Home.
 const actions = [
-  { id: "flow", label: "Open Flow", description: "Watch, read, listen and explore.", icon: FilmIcon, route: "fresh-flow" },
-  { id: "create", label: "Create", description: "Make a video, post, audio or project.", icon: PlusIcon, route: "studio" },
-  { id: "work", label: "Work", description: "Continue a task or open your workspace.", icon: AIIcon, route: "work" },
-  { id: "profile", label: "Profile", description: "Identity, preferences and account.", icon: SearchIcon, route: "profile" },
-];
-
-const hubCards = [
-  { id: "ai", label: "Fresh AI", description: "Your intelligent companion", route: "ai" },
-  { id: "flow", label: "Fresh Flow", description: "Shorts · Long · News · More", route: "fresh-flow" },
-  { id: "ecosystems", label: "Ecosystems", description: "32 connected worlds", route: "discovery" },
-  { id: "wallet", label: "Wallet", description: "Treasury & payments", route: "wallet" },
+  { id: "flow", label: "Fresh Flow", description: "Watch videos, read posts and listen.", icon: FilmIcon, route: "fresh-flow" },
+  { id: "create", label: "Create", description: "Make a post, video or project.", icon: PlusIcon, route: "studio" },
+  { id: "work", label: "Work", description: "Open your tasks and workspaces.", icon: AIIcon, route: "work" },
+  { id: "explore", label: "Explore", description: "Find tools and connected ecosystems.", icon: SearchIcon, route: "discovery" },
+  { id: "wallet", label: "Wallet", description: "View your wallet and payment tools.", icon: SearchIcon, route: "wallet" },
+  { id: "profile", label: "Profile & settings", description: "Manage your identity and preferences.", icon: AIIcon, route: "profile" },
 ];
 
 function openAction(route: string, isAuthenticated: boolean, setActiveRoute: (route: string) => void) {
@@ -80,79 +76,41 @@ export default function HomeDashboard() {
           <h1 id="fresh-home-title">{greeting}</h1>
           <p>
             {isAuthenticated
-              ? "Explore. Create. Grow. Your central hub for Fresh Flow, Fresh AI, and 32 ecosystems."
-              : "One place to find what matters, continue what you started, and tell Fresh what you want done."}
+              ? "Your place to connect, create, learn and get things done."
+              : "Find what you need, discover something useful, or ask Fresh for help."}
           </p>
         </div>
         <button type="button" className="fresh-home-ai-button" onClick={() => setActiveRoute("ai")}>
           <AIIcon size={20} />
           <span>
-            <strong>Ask Fresh</strong>
-            <small>Search, plan or act</small>
+            <strong>Ask Fresh AI</strong>
+            <small>Get help, search or plan</small>
           </span>
         </button>
       </section>
 
-      <UniversalCommandBar onSearch={handleSearch} />
-
-      <section className="fresh-home-hub" aria-label="Fresh hub">
-        <div className="fresh-home-hub-grid">
-          {hubCards.map((card) => (
-            <button key={card.id} type="button" className="fresh-home-hub-card" onClick={() => openAction(card.route, isAuthenticated, setActiveRoute)}>
-              <strong>{card.label}</strong>
-              <small>{card.description}</small>
-            </button>
-          ))}
-        </div>
+      <section className="fresh-home-search" aria-label="Search Fresh">
+        <UniversalCommandBar onSearch={handleSearch} />
       </section>
-
-      <HomeEcosystemGrid onOpen={(route) => openAction(route, isAuthenticated, setActiveRoute)} />
 
       <section className="fresh-home-actions" aria-labelledby="fresh-home-actions-title">
         <div className="fresh-home-section-heading">
           <div>
-            <span>GET STARTED</span>
-            <h2 id="fresh-home-actions-title">What do you want to do?</h2>
+            <span>QUICK ACCESS</span>
+            <h2 id="fresh-home-actions-title">Where would you like to go?</h2>
           </div>
-          <button type="button" onClick={() => setActiveRoute("fresh-flow")}>Open Flow</button>
         </div>
         <div className="fresh-home-action-grid">
           {actions.map(({ id, label, description, icon: Icon, route }) => (
             <button key={id} type="button" className="fresh-home-action-card" onClick={() => openAction(route, isAuthenticated, setActiveRoute)}>
               <span className="fresh-home-action-icon"><Icon size={22} /></span>
-              <span>
+              <span className="fresh-home-action-copy">
                 <strong>{label}</strong>
                 <small>{description}</small>
               </span>
               <b aria-hidden="true">›</b>
             </button>
           ))}
-        </div>
-      </section>
-
-      <section className="fresh-home-continue" aria-labelledby="fresh-home-continue-title">
-        <div className="fresh-home-section-heading">
-          <div>
-            <span>CONTINUE</span>
-            <h2 id="fresh-home-continue-title">Pick up where you left off</h2>
-          </div>
-        </div>
-        <div className="fresh-home-continue-grid">
-          <button type="button" onClick={() => setActiveRoute("studio")}>
-            <FilmIcon size={20} />
-            <span><strong>Fresh Studio</strong><small>Continue creating or editing</small></span>
-            <b>›</b>
-          </button>
-          <button type="button" onClick={() => setActiveRoute("work")}>
-            <AIIcon size={20} />
-            <span><strong>Fresh Work</strong><small>Continue a workspace task</small></span>
-            <b>›</b>
-          </button>
-          <button type="button" onClick={() => setActiveRoute("saved")}>
-            <SearchIcon size={20} />
-            <span><strong>Saved</strong><small>Return to something you kept</small></span>
-            <b>›</b>
-          </button>
         </div>
       </section>
 
@@ -177,7 +135,7 @@ export default function HomeDashboard() {
             <span>YOUR FEED</span>
             <h2>What’s useful to you</h2>
           </div>
-          <button type="button" onClick={() => setActiveRoute("fresh-flow")}>Explore Flow</button>
+          <button type="button" onClick={() => setActiveRoute("fresh-flow")}>Open Fresh Flow</button>
         </div>
         <FeedModule />
       </section>
