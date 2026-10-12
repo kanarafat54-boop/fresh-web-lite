@@ -9,8 +9,25 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
   const url = getServerEnv("SUPABASE_URL");
   const serviceRoleKey = getServerEnv("SUPABASE_SECRET_KEY") || getServerEnv("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceRoleKey) throw new Error("Missing server Supabase environment variables.");
-  // Log only the destination hostname, never credentials or the full URL.
-  console.info("Fresh Intelligence persistence target", { host: new URL(url).hostname });
+  // Safe diagnostics only: log host/project references, never credentials or full URLs.
+  const keyMetadata = (value: string | null): { present: boolean; kind?: string; projectRef?: string; role?: string } => {
+    if (!value) return { present: false };
+    const parts = value.split(".");
+    if (parts.length === 3) {
+      try {
+        const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8")) as { ref?: unknown; role?: unknown };
+        return { present: true, kind: "jwt", ...(typeof payload.ref === "string" ? { projectRef: payload.ref } : {}), ...(typeof payload.role === "string" ? { role: payload.role } : {}) };
+      } catch { /* opaque key */ }
+    }
+    return { present: true, kind: value.startsWith("sb_secret_") ? "supabase-secret" : "opaque" };
+  };
+  const hostOf = (value: string | null) => { try { return value ? new URL(value).hostname : null; } catch { return null; } };
+  console.info("Fresh Intelligence persistence target", {
+    host: new URL(url).hostname,
+    browserHost: hostOf(getServerEnv("VITE_SUPABASE_URL")),
+    primaryKey: keyMetadata(getServerEnv("SUPABASE_SECRET_KEY")),
+    legacyKey: keyMetadata(getServerEnv("SUPABASE_SERVICE_ROLE_KEY")),
+  });
 
   const client = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
