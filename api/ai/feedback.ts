@@ -1,3 +1,4 @@
+import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 import { createClient } from "@supabase/supabase-js";
 import { createFreshAIServerSupabase } from "../../src/core/fresh-ai/FreshAIServerServices.js";
 
@@ -9,3 +10,5 @@ export async function POST(req: Request): Promise<Response> { try { const user =
     if (rating !== null) await client.from("fresh_ai_evaluations").insert({ request_id: requestId, user_id: user.id, evaluator: "user-feedback", metric: "user_rating", score: rating / 5, expected: 0.8, feedback: comment, evidence: { rating, correct: typeof body.correct === "boolean" ? body.correct : null } });
     return json({ ok: true, requestId, evaluated: rating !== null });
   } catch (error) { return json({ error: error instanceof Error ? error.message : "Feedback request failed" }, 500); } }
+
+export default createVercelNodeHandler({ POST });
