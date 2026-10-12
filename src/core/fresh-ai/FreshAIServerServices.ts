@@ -14,7 +14,7 @@ export type FreshAIServerConfig = {
 export function getFreshAIServerConfig(): FreshAIServerConfig {
   return {
     supabaseUrl: getServerEnv("SUPABASE_URL") || getServerEnv("VITE_SUPABASE_URL") || null,
-    supabaseSecretKey: getServerEnv("SUPABASE_SECRET_KEY") || getServerEnv("SUPABASE_SERVICE_ROLE_KEY") || null,
+    supabaseSecretKey: getServerEnv("SUPABASE_SECRET_KEY_FRESHWEBLITE") || getServerEnv("SUPABASE_SECRET_KEY") || getServerEnv("SUPABASE_SERVICE_ROLE_KEY") || null,
     vercelEnvironment: getServerEnv("VERCEL_ENV") || null,
   };
 }
@@ -28,7 +28,7 @@ export function createFreshAIServerSupabase(): SupabaseClient | null {
 export function getFreshAIPersistenceStatus(): { configured: boolean; environment: string | null; reason?: string } {
   const config = getFreshAIServerConfig();
   if (!config.supabaseUrl) return { configured: false, environment: config.vercelEnvironment, reason: "SUPABASE_URL is missing" };
-  if (!config.supabaseSecretKey) return { configured: false, environment: config.vercelEnvironment, reason: "SUPABASE_SECRET_KEY (or legacy SUPABASE_SERVICE_ROLE_KEY) is missing from the server environment" };
+  if (!config.supabaseSecretKey) return { configured: false, environment: config.vercelEnvironment, reason: "SUPABASE_SECRET_KEY_FRESHWEBLITE, SUPABASE_SECRET_KEY, or legacy SUPABASE_SERVICE_ROLE_KEY is missing from the server environment" };
   return { configured: true, environment: config.vercelEnvironment };
 }
 
