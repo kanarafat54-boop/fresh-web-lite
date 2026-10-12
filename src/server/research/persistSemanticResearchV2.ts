@@ -34,23 +34,30 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
   }));
 
   const subjectEntityId = `research-subject-${hash(result.query)}`;
-  const claims: SemanticClaim[] = result.claims.map((finding) => ({
-    id: finding.id,
-    subjectEntityId,
-    predicate: "research_finding",
-    object: finding.text,
-    normalizedText: finding.text.toLocaleLowerCase().normalize("NFKC").trim(),
-    status: finding.status === "conflicted" ? "contested" : finding.status === "supported" ? "supported" : "uncertain",
-    confidence: finding.confidence,
-    firstObservedAt: researchedAt,
-    lastObservedAt: researchedAt,
-    evidenceIds: [],
-    counterEvidenceIds: [],
-  }));
+  // Scope claim IDs to the normalized research query so unrelated searches cannot overwrite each other's claims.
+  const findingIdByClaimId = new Map<string, string>();
+  const claims: SemanticClaim[] = result.claims.map((finding) => {
+    const persistedId = "research-claim-" + hash(result.query) + "-" + hash(finding.id);
+    findingIdByClaimId.set(persistedId, finding.id);
+    return {
+      id: persistedId,
+      subjectEntityId,
+      predicate: "research_finding",
+      object: finding.text,
+      normalizedText: finding.text.toLocaleLowerCase().normalize("NFKC").trim(),
+      status: finding.status === "conflicted" ? "contested" : finding.status === "supported" ? "supported" : "uncertain",
+      confidence: finding.confidence,
+      firstObservedAt: researchedAt,
+      lastObservedAt: researchedAt,
+      evidenceIds: [],
+      counterEvidenceIds: [],
+    };
+  });
 
   const evidenceByUrl = new Map(result.sources.map((source, index) => [source.url, evidence[index]]));
   for (const claim of claims) {
-    const related = result.claims.find((finding) => finding.id === claim.id)?.sourceUrls.map((url) => evidenceByUrl.get(url)).filter((item): item is SemanticEvidence => Boolean(item)) ?? [];
+    const findingId = findingIdByClaimId.get(claim.id);
+    const related = result.claims.find((finding) => finding.id === findingId)?.sourceUrls.map((url) => evidenceByUrl.get(url)).filter((item): item is SemanticEvidence => Boolean(item)) ?? [];
     const claimModel: Claim = { id: claim.id, subjectEntityId, predicate: claim.predicate, object: String(claim.object), statement: String(claim.object), normalizedStatement: claim.normalizedText, observedAt: researchedAt, confidence: claim.confidence };
     const stances = related.map((item) => assessEvidenceStance(claimModel, item));
     claim.evidenceIds = stances.filter((s) => s.stance === "supports").map((s) => s.evidenceId);
