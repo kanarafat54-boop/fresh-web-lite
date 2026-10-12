@@ -9,6 +9,10 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
   const url = getServerEnv("SUPABASE_URL");
   const serviceRoleKey = getServerEnv("SUPABASE_SECRET_KEY") || getServerEnv("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceRoleKey) throw new Error("Missing server Supabase environment variables.");
+  const browserUrl = getServerEnv("VITE_SUPABASE_URL");
+  if (browserUrl && new URL(browserUrl).hostname !== new URL(url).hostname) {
+    throw new Error("Server Supabase URL does not match the browser Supabase project. Align SUPABASE_URL and its server secret key.");
+  }
 
   const client = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },

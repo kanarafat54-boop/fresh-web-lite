@@ -1,3 +1,4 @@
+import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 import { createClient } from "@supabase/supabase-js";
 
 export const config = { maxDuration: 30 };
@@ -96,3 +97,5 @@ export async function POST(req: Request): Promise<Response> {
     return response({ error: error instanceof Error ? error.message : "Admin operation failed" }, 500);
   }
 }
+
+export default createVercelNodeHandler({ POST });

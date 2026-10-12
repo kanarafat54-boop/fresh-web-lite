@@ -1,3 +1,4 @@
+import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 import { createClient } from "@supabase/supabase-js";
 
 type Action =
@@ -153,3 +154,5 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 }
+
+export default createVercelNodeHandler({ POST });

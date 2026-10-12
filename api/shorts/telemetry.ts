@@ -1,3 +1,4 @@
+import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 type TelemetryEvent = {
   event?: string;
   sessionId?: string;
@@ -74,3 +75,5 @@ export async function POST(req: Request): Promise<Response> {
 
   return json({ accepted: events.length });
 }
+
+export default createVercelNodeHandler({ POST });

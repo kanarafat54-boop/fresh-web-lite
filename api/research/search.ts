@@ -1,3 +1,4 @@
+import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 import { synthesizeResearch, type ResearchPass } from "../../src/server/research/orchestrator.js";
 import { persistSemanticResearch } from "../../src/server/research/persistSemanticResearchV2.js";
 import { reasonAcrossDimensions } from "../../src/core/fresh-ai/dimensionalIntelligence.js";
@@ -6,7 +7,7 @@ type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "busines
 type SearchRequest = { query?: string; maxSources?: number; context?: string[]; mode?: ResearchMode };
 type TavilyResult = { title?: string; url?: string; content?: string; published_date?: string };
 type SourceKind = "web" | "news" | "video" | "image" | "music";
-export const config = { maxDuration: 60 };
+export const config = { maxDuration: 60, api: { bodyParser: false } };
 
 const MODE_CONFIG: Record<ResearchMode, { searchDepth: "basic" | "advanced"; topic: "general" | "news"; prefix?: string }> = {
   quick: { searchDepth: "basic", topic: "general" },
@@ -62,6 +63,11 @@ async function runTavily(apiKey: string, query: string, modeConfig: (typeof MODE
 }
 
 function json(data: unknown, status = 200, headers?: Record<string, string>): Response { return Response.json(data, { status, headers }); }
+
+// Return a deliberate method response instead of letting unsupported GET requests crash the function.
+export function GET(): Response {
+  return json({ error: "Method not allowed" }, 405, { Allow: "POST", "Cache-Control": "no-store" });
+}
 
 export async function POST(req: Request): Promise<Response> {
   const runId = crypto.randomUUID();
@@ -126,3 +132,5 @@ export async function POST(req: Request): Promise<Response> {
     return json({ error: error instanceof Error ? error.message : "Web research provider unavailable", runId }, 502);
   } finally { logStage(runId, "research.request.complete", { durationMs: elapsed(requestStarted) }); }
 }
+
+export default createVercelNodeHandler({ GET, POST });
