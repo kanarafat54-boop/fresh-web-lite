@@ -210,7 +210,7 @@ export default function FreshFlowHub() {
       {showChrome && (
         <nav className="fresh-flow-world-nav" aria-label="Fresh Flow media worlds">
           <button type="button" className={section === "fresh-flow" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow")}>
-            Shorts
+            Home
           </button>
           <button
             type="button"
@@ -244,9 +244,9 @@ export default function FreshFlowHub() {
 
       {showChrome && !isOverview && (
         <div className="fresh-flow-section-bar">
-          <button type="button" className="fresh-flow-back-button" onClick={() => setActiveRoute("fresh-flow")} aria-label="Back to Fresh Short">
+          <button type="button" className="fresh-flow-back-button" onClick={() => setActiveRoute("fresh-flow")} aria-label="Back to Fresh Flow home">
             <span aria-hidden="true">‹</span>
-            <span>Short</span>
+            <span>Home</span>
           </button>
           <span className="fresh-flow-section-title">
             <span aria-hidden="true">{world.icon}</span>

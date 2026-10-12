@@ -75,3 +75,30 @@
 .fresh-flow-section-title{
   flex:1;display:inline-flex;align-items:center;gap:8px;font-weight:750;font-size:.95rem;
 }
+
+
+/* Fresh Flow directorate polish — clear active state, touch targets and keyboard access. */
+.fresh-flow-world-nav button{
+  min-height:40px;
+  border:1px solid transparent;
+  transition:color .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.fresh-flow-world-nav button:hover{
+  border-color:rgba(139,124,255,.22);
+  background:rgba(139,124,255,.08);
+}
+.fresh-flow-world-nav button.active{
+  color:#fff;
+  border-color:rgba(139,124,255,.36);
+  background:linear-gradient(120deg,rgba(99,91,255,.28),rgba(168,85,247,.16));
+  box-shadow:inset 0 0 0 1px rgba(139,124,255,.08),0 4px 18px rgba(99,91,255,.08);
+}
+.fresh-flow-world-nav button:focus-visible{
+  outline:2px solid #8b7cff;
+  outline-offset:2px;
+}
+@media(max-width:640px){
+  .fresh-flow-world-nav{padding-bottom:9px;scroll-padding-inline:12px;overscroll-behavior-x:contain;}
+  .fresh-flow-world-nav button{min-height:42px;padding-inline:12px;font-size:.84rem;}
+}
+@media(prefers-reduced-motion:reduce){.fresh-flow-world-nav button{transition:none;}}
