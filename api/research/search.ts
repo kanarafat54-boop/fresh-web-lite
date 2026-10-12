@@ -63,6 +63,11 @@ async function runTavily(apiKey: string, query: string, modeConfig: (typeof MODE
 
 function json(data: unknown, status = 200, headers?: Record<string, string>): Response { return Response.json(data, { status, headers }); }
 
+// Return a deliberate method response instead of letting unsupported GET requests crash the function.
+export function GET(): Response {
+  return json({ error: "Method not allowed" }, 405, { Allow: "POST", "Cache-Control": "no-store" });
+}
+
 export async function POST(req: Request): Promise<Response> {
   const runId = crypto.randomUUID();
   const requestStarted = Date.now();
