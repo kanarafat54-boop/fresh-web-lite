@@ -94,19 +94,22 @@ export async function POST(req: Request): Promise<Response> {
     let persistenceWarning: string | undefined;
     let persistence: Awaited<ReturnType<typeof persistSemanticResearch>> | undefined;
     const persistenceStarted = Date.now();
+    let persistenceTimeout: ReturnType<typeof setTimeout> | undefined;
     logStage(runId, "research.persistence.start", { dryRun });
     try {
       const persistencePromise = persistSemanticResearch(researchResult, { dryRun, runId });
-      const timeoutPromise = new Promise<never>((_, reject) => { setTimeout(() => reject(new Error("Fresh Intelligence persistence timed out")), 8_000); });
+      const timeoutPromise = new Promise<never>((_, reject) => { persistenceTimeout = setTimeout(() => reject(new Error("Fresh Intelligence persistence timed out")), 8_000); });
       persistence = await Promise.race([persistencePromise, timeoutPromise]);
       logStage(runId, "research.persistence.complete", { durationMs: elapsed(persistenceStarted), ...persistence });
     } catch (error) {
       console.error("Fresh Intelligence persistence error", { runId, error });
       persistenceWarning = "Research completed, but the Fresh Intelligence memory layer could not persist this run.";
       logStage(runId, "research.persistence.error", { durationMs: elapsed(persistenceStarted), error: error instanceof Error ? error.message : "unknown" });
+    } finally {
+      if (persistenceTimeout) clearTimeout(persistenceTimeout);
     }
     const warnings = [...(failures.length ? [`${failures.length} research pass(es) failed or timed out; Fresh returned the successfully completed evidence.`] : []), ...(persistenceWarning ? [persistenceWarning] : [])];
-    return json({ answer: synthesis.answer, sources: synthesis.sources, claims: synthesis.claims, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && !persistenceWarning, proof: { provenance: "internal", dimensionalReasoning: { enabled: true, dimensions: dimensions.length, maxDimension: 11 } } }, 200, { "x-truemode-run-id": runId });
+    return json({ answer: synthesis.answer, sources: synthesis.sources, claims: synthesis.claims, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning, proof: { provenance: "internal", dimensionalReasoning: { enabled: true, dimensions: dimensions.length, maxDimension: 11 } } }, 200, { "x-truemode-run-id": runId });
   } catch (error) {
     console.error("Fresh Web Research error", { runId, error });
     return json({ error: error instanceof Error ? error.message : "Web research provider unavailable", runId }, 502);
