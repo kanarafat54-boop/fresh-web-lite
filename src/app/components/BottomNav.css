@@ -156,3 +156,47 @@
   .fresh-nav-item { border-color: currentColor; }
   .fresh-nav-item.active { outline: 2px solid currentColor; outline-offset: -2px; }
 }
+
+
+/* Clear-navigation refinement: show all five destinations without horizontal hunting. */
+.fresh-bottom-nav {
+  left: 50%;
+  width: min(calc(100% - 16px), 680px);
+  padding: 6px;
+}
+.fresh-bottom-nav-scroll {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-auto-flow: row;
+  grid-auto-columns: auto;
+  gap: 4px;
+  overflow: visible;
+}
+.fresh-nav-item {
+  min-width: 0;
+  width: 100%;
+  min-height: 58px;
+  padding: 5px 2px;
+  gap: 4px;
+  border-radius: 15px;
+}
+.fresh-nav-icon { flex: 0 0 auto; }
+.fresh-nav-icon svg { width: 22px; height: 22px; }
+.fresh-nav-label {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  font-size: clamp(.68rem, 2.7vw, .78rem);
+  line-height: 1.15;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  text-overflow: clip;
+}
+@media (max-width: 360px) {
+  .fresh-bottom-nav { width: calc(100% - 12px); padding: 5px; }
+  .fresh-bottom-nav-scroll { gap: 2px; }
+  .fresh-nav-item { min-height: 56px; padding-inline: 1px; }
+  .fresh-nav-icon svg { width: 20px; height: 20px; }
+  .fresh-nav-label { font-size: .68rem; }
+}
