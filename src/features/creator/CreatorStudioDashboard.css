@@ -87,3 +87,71 @@
   .creator-mode-tabs button{min-width:56px;font-size:12px;padding:9px 8px}
   .creator-brand-grid{grid-template-columns:1fr}
 }
+
+
+/* Visibility/accessibility pass: clearer hierarchy, stronger contrast, and less cramped controls. */
+.creator-studio-dashboard {
+  color: var(--fresh-text, #F5F7FA);
+  font-size: 1rem;
+  line-height: 1.6;
+  padding: clamp(16px, 3vw, 32px) clamp(12px, 2.5vw, 24px) 72px;
+  gap: clamp(14px, 2vw, 22px);
+}
+.creator-studio-dashboard .creator-studio-hero,
+.creator-studio-dashboard .creator-editor,
+.creator-studio-dashboard .creator-panel {
+  color: var(--fresh-text, #F5F7FA);
+  background: linear-gradient(145deg, var(--fresh-surface, #11151B), var(--fresh-surface-2, #171C23));
+  border-color: var(--fresh-border, rgba(255,255,255,.18));
+  box-shadow: 0 12px 34px rgba(0,0,0,.2);
+}
+.creator-studio-dashboard :is(p, span, small, label, .creator-note, .creator-muted, .creator-auth-banner span, .creator-kpis span, .creator-suggestion-card p, .creator-note-list, .creator-metric-row span, .creator-schedule-list span, .creator-library small, .draft-row small) {
+  opacity: 1;
+  color: var(--fresh-muted, #D2D7E0);
+}
+.creator-studio-dashboard .workspace-eyebrow,
+.creator-studio-dashboard .creator-kind {
+  font-size: .8rem;
+  letter-spacing: .08em;
+  color: #C8C1FF;
+}
+.creator-studio-dashboard :is(h1,h2,h3,strong) { line-height: 1.35; }
+.creator-studio-dashboard .creator-studio-hero h1 { font-size: clamp(1.75rem, 4vw, 2.25rem); }
+.creator-studio-dashboard .creator-section-heading h2 { font-size: clamp(1.15rem, 2.5vw, 1.4rem); }
+.creator-studio-dashboard .creator-kpis { grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)); }
+.creator-studio-dashboard .creator-kpis div { background: var(--fresh-surface-2, #171C23); border-color: var(--fresh-border, rgba(255,255,255,.2)); }
+.creator-studio-dashboard .creator-kpis strong,
+.creator-studio-dashboard .creator-metric-row strong { font-size: clamp(1.35rem, 3vw, 1.7rem); }
+.creator-studio-dashboard :is(button, input, textarea, select) { font-size: 1rem; line-height: 1.45; }
+.creator-studio-dashboard :is(button, input, select) { min-height: 44px; }
+.creator-studio-dashboard :is(button, input, textarea, select) {
+  border-color: var(--fresh-control-border, rgba(255,255,255,.24));
+}
+.creator-studio-dashboard :is(button, input, textarea, select):focus-visible {
+  outline: 3px solid #A99FFF;
+  outline-offset: 3px;
+}
+.creator-studio-dashboard :is(input, textarea, select) {
+  background: #090B10;
+  color: #FFFFFF;
+}
+.creator-studio-dashboard .creator-mode-tabs button { opacity: 1; font-size: .95rem; }
+.creator-studio-dashboard .creator-mode-tabs button.active,
+.creator-studio-dashboard .creator-mode-switch button.active {
+  background: #635BFF;
+  color: #FFFFFF;
+}
+.creator-studio-dashboard .creator-studio-grid,
+.creator-studio-dashboard .creator-prod-grid { align-items: start; }
+.creator-studio-dashboard .creator-editor,
+.creator-studio-dashboard .creator-panel { min-width: 0; }
+@media (max-width: 560px) {
+  .creator-studio-dashboard { padding-inline: 12px; }
+  .creator-studio-dashboard .creator-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .creator-studio-dashboard .creator-section-heading { align-items: flex-start; flex-wrap: wrap; }
+  .creator-studio-dashboard .creator-mode-tabs button { min-width: 0; padding: 10px 8px; }
+  .creator-studio-dashboard .draft-row { flex-wrap: wrap; }
+  .creator-studio-dashboard .draft-row div:last-child { flex-wrap: wrap; }
+  .creator-studio-dashboard .creator-audio-lane { grid-template-columns: minmax(72px, auto) minmax(80px, 1fr); }
+  .creator-studio-dashboard .creator-audio-lane button { grid-column: 1 / -1; }
+}
