@@ -1,5 +1,4 @@
 import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
-import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 import { synthesizeResearch, type ResearchPass } from "../../src/server/research/orchestrator.js";
 import { persistSemanticResearch } from "../../src/server/research/persistSemanticResearchV2.js";
 import { reasonAcrossDimensions } from "../../src/core/fresh-ai/dimensionalIntelligence.js";
@@ -133,7 +132,5 @@ export async function POST(req: Request): Promise<Response> {
     return json({ error: error instanceof Error ? error.message : "Web research provider unavailable", runId }, 502);
   } finally { logStage(runId, "research.request.complete", { durationMs: elapsed(requestStarted) }); }
 }
-
-export default createVercelNodeHandler({ GET, POST });
 
 export default createVercelNodeHandler({ GET, POST });
