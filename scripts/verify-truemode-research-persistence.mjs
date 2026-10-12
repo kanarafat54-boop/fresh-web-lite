@@ -66,7 +66,7 @@ const researchPersistenceBridge = read("src/server/research/persistSemanticResea
 if (!researchPersistenceBridge.includes('"research-claim-" + queryScope + "-" + hash(finding.id)') ||
     !researchPersistenceBridge.includes("const queryScope = hash(normalizeResearchQuery(result.query))") ||
     !researchPersistenceBridge.includes("function normalizeResearchQuery(value: string)") ||
-    !researchPersistenceBridge.includes('.replace(/\\\\s+/g, " ")')) {
+    !researchPersistenceBridge.includes('.replace(/\\s+/g, " ")')) {
   throw new Error("Persisted research identities must use canonicalized query scope to prevent inconsistent IDs and cross-query overwrites.");
 }
 if (!researchPersistenceBridge.includes("findingIdByClaimId.get(claim.id)")) {
