@@ -1,5 +1,4 @@
 import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
-import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 import { createClient } from "@supabase/supabase-js";
 import { persistFreshAIMedia } from "../../src/core/fresh-ai/FreshAIServerServices.js";
 
@@ -54,7 +53,5 @@ export async function POST(req: Request): Promise<Response> {
     return json({ error: error instanceof Error ? error.message : "Unable to upload file" }, 500);
   }
 }
-
-export default createVercelNodeHandler({ POST });
 
 export default createVercelNodeHandler({ POST });
