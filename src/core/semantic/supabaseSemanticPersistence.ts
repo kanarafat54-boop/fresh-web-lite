@@ -7,7 +7,7 @@ type PersistenceInput = Parameters<SemanticPersistence["persistResearchGraph"]>[
 /** Server-only adapter. Never import this module into browser components. */
 export function createSupabaseSemanticPersistence(): SemanticPersistence {
   const url = getServerEnv("SUPABASE_URL");
-  const serviceRoleKey = getServerEnv("SUPABASE_SECRET_KEY") || getServerEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const serviceRoleKey = getServerEnv("SUPABASE_SECRET_KEY_FRESHWEBLITE") || getServerEnv("SUPABASE_SECRET_KEY") || getServerEnv("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceRoleKey) throw new Error("Missing server Supabase environment variables.");
   const browserUrl = getServerEnv("VITE_SUPABASE_URL");
   if (browserUrl && new URL(browserUrl).hostname !== new URL(url).hostname) {
