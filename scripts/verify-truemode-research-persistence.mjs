@@ -61,6 +61,11 @@ if (!researchPersistence.includes('from "../../core/semantic/supabaseSemanticPer
   throw new Error("Research persistence must import the server-only Supabase adapter from the correct relative path.");
 }
 
+const researchApi = read("api/research/search.ts");
+if (!researchApi.includes("intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning") || !researchApi.includes("if (persistenceTimeout) clearTimeout(persistenceTimeout)")) {
+  throw new Error("Research API must only report persistence after a successful completed write and must clear its timeout.");
+}
+
 const researchOrchestrator = read("src/server/research/orchestrator.ts");
 const researchPersistenceBridge = read("src/server/research/persistSemanticResearchV2.ts");
 if (!researchPersistenceBridge.includes('"research-claim-" + queryScope + "-" + hash(finding.id)') ||
