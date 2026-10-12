@@ -66,6 +66,14 @@ if (!researchApi.includes("intelligencePersisted: !dryRun && Boolean(persistence
   throw new Error("Research API must only report persistence after a successful completed write and must clear its timeout.");
 }
 
+if (!researchApi.includes('typeof body.query === "string"') ||
+    !researchApi.includes("query.length > 2_000") ||
+    !researchApi.includes("Object.prototype.hasOwnProperty.call(MODE_CONFIG, requestedMode)") ||
+    !researchApi.includes("Number.isFinite(body.maxSources)") ||
+    !researchApi.includes("Array.isArray(body.context)")) {
+  throw new Error("Research API must validate query, mode, source limit, and context before invoking providers.");
+}
+
 const researchOrchestrator = read("src/server/research/orchestrator.ts");
 const researchPersistenceBridge = read("src/server/research/persistSemanticResearchV2.ts");
 if (!researchPersistenceBridge.includes('"research-claim-" + queryScope + "-" + hash(finding.id)') ||
