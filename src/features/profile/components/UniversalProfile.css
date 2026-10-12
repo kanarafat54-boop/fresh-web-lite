@@ -273,3 +273,14 @@ button.chip{cursor:pointer;font:inherit}
   .universal-profile{--up-muted:#e0e5ee;--up-border:rgba(255,255,255,.35)}
   .profile-badge,.live-dot,.profile-score,.profile-tabs button{border-color:currentColor}
 }
+
+
+/* Smart Profile accessibility: prevent profile details and actions from clipping at zoom. */
+.universal-profile, .universal-profile * { min-width: 0; }
+.universal-profile :is(h1,h2,h3,p,span,strong,small,label) { overflow-wrap: anywhere; }
+.universal-profile :is(button,a,input,select,textarea) { max-width: 100%; }
+.universal-profile :is(button,a,input,select,textarea) { min-height: 44px; }
+@media (max-width: 640px) {
+  .universal-profile { width: 100%; box-sizing: border-box; }
+  .universal-profile :is(.profile-header,.profile-actions,.profile-stats) { flex-wrap: wrap; }
+}
