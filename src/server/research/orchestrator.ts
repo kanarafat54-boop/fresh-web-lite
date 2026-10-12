@@ -1,5 +1,5 @@
-import type { ResearchClaim } from "../../src/core/research/contracts.js";
-import { compareClaims, type Claim } from "../../src/core/semantic/claimIntelligence.js";
+import type { ResearchClaim } from "../../core/research/contracts.js";
+import { compareClaims, type Claim } from "../../core/semantic/claimIntelligence.js";
 
 export type ResearchEvidence = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string };
 export type ResearchPass = { answer: string; sources: ResearchEvidence[] };
