@@ -120,7 +120,7 @@ export async function POST(req: Request): Promise<Response> {
       if (persistenceTimeout) clearTimeout(persistenceTimeout);
     }
     const warnings = [...(failures.length ? [`${failures.length} research pass(es) failed or timed out; Fresh returned the successfully completed evidence.`] : []), ...(persistenceWarning ? [persistenceWarning] : [])];
-    return json({ answer: synthesis.answer, sources: synthesis.sources, claims: synthesis.claims, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning, proof: { provenance: "internal", dimensionalReasoning: { enabled: true, dimensions: dimensions.length, maxDimension: 11 } } }, 200, { "x-truemode-run-id": runId });
+    return json({ answer: synthesis.answer, sources: synthesis.sources, claims: synthesis.claims, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning }, 200, { "x-truemode-run-id": runId });
   } catch (error) {
     console.error("Fresh Web Research error", { runId, error });
     return json({ error: error instanceof Error ? error.message : "Web research provider unavailable", runId }, 502);
