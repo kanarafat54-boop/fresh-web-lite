@@ -22,7 +22,7 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
   const sources = result.sources.map((source) => ({ id: `research-source-${hash(source.url)}`, provider: source.provider, name: source.title, url: source.url, metadata: { publishedAt: source.publishedAt } }));
   const sourceIdByUrl = new Map(sources.filter((s) => s.url).map((s) => [s.url as string, s.id]));
   const evidence: SemanticEvidence[] = result.sources.map((source, index) => ({
-    id: `research-evidence-${hash(`${result.query}:${source.url}:${index}`)}`,
+    id: `research-evidence-${hash(`${queryScope}:${source.url}:${index}`)}`,
     claim: source.snippet ?? source.title,
     sourceUrl: source.url,
     sourceTitle: source.title,
@@ -33,11 +33,12 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
     confidence: source.snippet ? 0.6 : 0.35,
   }));
 
-  const subjectEntityId = `research-subject-${hash(result.query)}`;
-  // Scope claim IDs to the normalized research query so unrelated searches cannot overwrite each other's claims.
+  const queryScope = hash(normalizeResearchQuery(result.query));
+  const subjectEntityId = `research-subject-${queryScope}`;
+  // Scope claim IDs to a canonicalized research query so casing/spacing variants do not create inconsistent identity.
   const findingIdByClaimId = new Map<string, string>();
   const claims: SemanticClaim[] = result.claims.map((finding) => {
-    const persistedId = "research-claim-" + hash(result.query) + "-" + hash(finding.id);
+    const persistedId = "research-claim-" + queryScope + "-" + hash(finding.id);
     findingIdByClaimId.set(persistedId, finding.id);
     return {
       id: persistedId,
@@ -121,6 +122,10 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
   await createSupabaseSemanticPersistence().persistResearchGraph({ entities, sources, claims, evidence, claimEvidence, relations, arbitrations, truthDecisions });
   logStage(runId, "research.persistence.supabase.complete", summary);
   return summary;
+}
+
+function normalizeResearchQuery(value: string): string {
+  return value.normalize("NFKC").toLocaleLowerCase().trim().replace(/\\s+/g, " ");
 }
 
 function hash(value: string): string {
