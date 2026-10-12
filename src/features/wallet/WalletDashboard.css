@@ -397,3 +397,34 @@ button.wallet-chip.active {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+
+/* Accessibility visibility pass: related money controls and status stay together. */
+.wallet-dashboard,.wallet-card,.wallet-hero,.wallet-grid,.wallet-separation,.wallet-rail-form{min-width:0}
+.wallet-hero{flex-wrap:wrap}
+.wallet-status{max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.4}
+.wallet-card-label,.wallet-eyebrow{font-size:.82rem;line-height:1.4;letter-spacing:.04em;opacity:1;color:var(--fresh-muted,#c5cad4)}
+.wallet-hero p,.wallet-card p,.wallet-buckets span,.wallet-method-card small,.wallet-rail-hint{font-size:.92rem;opacity:1;line-height:1.55}
+.wallet-chip,.wallet-rail-tabs button,.wallet-method-card,.wallet-rail-fields button{min-height:44px}
+.wallet-chip{white-space:normal;line-height:1.35}
+.wallet-rail-tabs{flex-wrap:wrap}
+.wallet-rail-tabs button{flex:1 1 140px}
+.wallet-rail-fields{width:100%;max-width:none}
+.wallet-rail-fields input,.wallet-rail-fields select,.wallet-rail-fields button{min-height:44px;max-width:100%}
+.wallet-method-card small,.wallet-method-card strong,.wallet-method-status{overflow-wrap:anywhere}
+.wallet-rail-history li{line-height:1.5;overflow-wrap:anywhere}
+.wallet-tx-list,.wallet-tx-list *{min-width:0;overflow-wrap:anywhere}
+@media(max-width:760px){
+  .wallet-hero{flex-direction:column;align-items:stretch}
+  .wallet-grid,.wallet-separation{grid-template-columns:minmax(0,1fr)}
+  .wallet-method-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+}
+@media(max-width:420px){
+  .wallet-dashboard{padding:12px}
+  .wallet-hero,.wallet-card{padding:14px;border-radius:16px}
+  .wallet-balance-card strong{font-size:clamp(1.25rem,7vw,1.8rem);overflow-wrap:anywhere}
+}
+@media(prefers-contrast:more){
+  .wallet-chip,.wallet-rail-tabs button,.wallet-method-card,.wallet-rail-fields input,.wallet-rail-fields select{border-color:currentColor}
+  .wallet-method-card small,.wallet-rail-hint,.wallet-buckets span{opacity:1}
+}
