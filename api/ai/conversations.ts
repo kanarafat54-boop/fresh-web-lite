@@ -1,3 +1,4 @@
+import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 import { createClient } from "@supabase/supabase-js";
 import { createFreshAIServerSupabase } from "../../src/core/fresh-ai/FreshAIServerServices.js";
 
@@ -155,3 +156,5 @@ export async function POST(req: Request): Promise<Response> {
     return json({ error: e instanceof Error ? e.message : "Unable to seal conversation" }, 500);
   }
 }
+
+export default createVercelNodeHandler({ GET, POST });
