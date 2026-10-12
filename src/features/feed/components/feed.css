@@ -81,3 +81,93 @@ color:white;
 font-weight:bold;
 
 }
+
+
+/* News / Posts feed — Fresh Web Lite dark + indigo visual language. */
+.module[data-discovery]{
+  color:#f4f4fb;
+  min-width:0;
+}
+.module[data-discovery]>h2{
+  margin:8px 0 16px;
+  font-size:clamp(1.2rem,3vw,1.65rem);
+  letter-spacing:-.035em;
+  text-transform:capitalize;
+}
+.module[data-discovery] .post-composer{
+  padding:15px;
+  border:1px solid rgba(167,157,255,.18);
+  border-radius:20px;
+  background:linear-gradient(145deg,rgba(25,25,41,.9),rgba(14,15,24,.94));
+  box-shadow:0 14px 36px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.035);
+  margin-bottom:18px;
+}
+.module[data-discovery] .note-input{
+  display:block;width:100%;min-height:94px;resize:vertical;box-sizing:border-box;
+  border:1px solid rgba(255,255,255,.1);border-radius:14px;
+  background:rgba(255,255,255,.035);color:#f7f7ff;padding:13px 14px;
+  font:inherit;line-height:1.55;
+}
+.module[data-discovery] .note-input:focus{
+  outline:2px solid rgba(139,124,255,.72);outline-offset:1px;border-color:transparent;
+}
+.module[data-discovery] .note-input::placeholder{color:#999bb0}
+.module[data-discovery] .composer-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+.module[data-discovery] .icon-btn-outline,
+.module[data-discovery] .add-note-btn{
+  min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border-radius:13px;cursor:pointer;
+}
+.module[data-discovery] .icon-btn-outline{
+  border:1px solid rgba(167,157,255,.22);background:rgba(139,124,255,.08);color:#d8d2ff;padding:10px 13px;
+}
+.module[data-discovery] .add-note-btn{
+  padding:10px 22px;border:0;background:linear-gradient(110deg,#635BFF,#8B5CF6);color:white;font:inherit;font-weight:750;
+  box-shadow:0 7px 20px rgba(99,91,255,.18);
+}
+.module[data-discovery] .add-note-btn:disabled{opacity:.55;cursor:wait}
+.module[data-discovery] .notes-list{list-style:none;padding:0;margin:0;display:grid;gap:13px}
+.module[data-discovery] .post-item{
+  min-width:0;padding:15px;border:1px solid rgba(167,157,255,.13);border-radius:20px;
+  background:linear-gradient(155deg,rgba(23,24,37,.88),rgba(14,15,23,.94));
+  box-shadow:0 12px 30px rgba(0,0,0,.14);
+  transition:border-color .18s ease,background .18s ease,box-shadow .18s ease;
+}
+.module[data-discovery] .post-item.active{border-color:rgba(139,124,255,.38);background:linear-gradient(155deg,rgba(28,27,49,.92),rgba(14,15,23,.96))}
+.module[data-discovery] .post-header{display:flex;align-items:center;flex-wrap:wrap;gap:5px 9px;margin-bottom:10px}
+.module[data-discovery] .post-author{color:#f8f7ff;font-weight:750;cursor:pointer}
+.module[data-discovery] .post-username,.module[data-discovery] .post-time{color:#9c9eb2;font-size:.76rem}
+.module[data-discovery] .post-content{color:#e5e5ef;line-height:1.65;overflow-wrap:anywhere;white-space:pre-wrap}
+.module[data-discovery] .post-image,.module[data-discovery] .post-video{
+  display:block;width:100%;max-height:560px;object-fit:contain;border-radius:14px;background:#080910;margin-top:12px;
+}
+.module[data-discovery] .post-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:13px;padding-top:11px;border-top:1px solid rgba(255,255,255,.07)}
+.module[data-discovery] .post-actions button,
+.module[data-discovery] .post-actions [role=button]{
+  min-width:40px;min-height:40px;border-radius:12px;
+}
+.module[data-discovery] .post-actions button:focus-visible,
+.module[data-discovery] .post-header button:focus-visible,
+.module[data-discovery] .remove-image-btn:focus-visible{
+  outline:2px solid #A99DFF;outline-offset:2px;
+}
+.module[data-discovery] .empty-state{
+  padding:17px;border:1px dashed rgba(167,157,255,.22);border-radius:16px;
+  background:rgba(255,255,255,.02);color:#aeb0c4;line-height:1.55;
+}
+.module[data-discovery] .image-preview-wrap{margin-top:12px;position:relative}
+.module[data-discovery] .image-preview{display:block;max-width:100%;max-height:260px;object-fit:contain;border-radius:13px}
+.module[data-discovery] .remove-image-btn{margin-top:8px;border:1px solid rgba(255,255,255,.14);border-radius:10px;background:rgba(255,255,255,.05);color:#f4f4fb;padding:8px 12px}
+@media(max-width:600px){
+  .module[data-discovery]>h2{margin:5px 0 13px}
+  .module[data-discovery] .post-composer{padding:12px;border-radius:17px}
+  .module[data-discovery] .post-item{padding:12px;border-radius:17px}
+  .module[data-discovery] .post-header{gap:4px 7px}
+  .module[data-discovery] .post-content{font-size:.92rem;line-height:1.62}
+  .module[data-discovery] .post-image,.module[data-discovery] .post-video{max-height:430px;border-radius:12px}
+  .module[data-discovery] .post-actions{gap:5px}
+  .module[data-discovery] .post-actions button{min-height:42px}
+}
+@media(prefers-reduced-motion:reduce){
+  .module[data-discovery] .post-item{transition:none}
+}
