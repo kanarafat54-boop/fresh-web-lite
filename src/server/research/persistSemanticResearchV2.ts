@@ -125,7 +125,7 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
 }
 
 function normalizeResearchQuery(value: string): string {
-  return value.normalize("NFKC").toLocaleLowerCase().trim().replace(/\\s+/g, " ");
+  return value.normalize("NFKC").toLocaleLowerCase().trim().replace(/\s+/g, " ");
 }
 
 function hash(value: string): string {
