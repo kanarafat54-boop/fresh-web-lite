@@ -48,20 +48,18 @@ export function createVercelNodeHandler(handlers: HandlerMap) {
       const url = new URL(String(req.url || "/"), `${protocol}://${host}`).toString();
       let body: string | undefined;
       if (method !== "GET" && method !== "HEAD") {
-        if (typeof req.body === "string") body = req.body;
-        else if (req.body !== undefined) body = JSON.stringify(req.body);
-        else {
-          const chunks: Uint8Array[] = [];
-          for await (const chunk of req) {
-            chunks.push(typeof chunk === "string" ? new TextEncoder().encode(chunk) : chunk instanceof Uint8Array ? chunk : new TextEncoder().encode(String(chunk)));
-          }
-          const size = chunks.reduce((total, chunk) => total + chunk.byteLength, 0);
-          if (size) {
-            const combined = new Uint8Array(size);
-            let offset = 0;
-            for (const chunk of chunks) { combined.set(chunk, offset); offset += chunk.byteLength; }
-            body = new TextDecoder().decode(combined);
-          }
+        // Read the raw stream instead of touching Vercel's lazy req.body getter:
+        // that getter throws before our Web handler can return its own 400 for malformed JSON.
+        const chunks: Uint8Array[] = [];
+        for await (const chunk of req) {
+          chunks.push(typeof chunk === "string" ? new TextEncoder().encode(chunk) : chunk instanceof Uint8Array ? chunk : new TextEncoder().encode(String(chunk)));
+        }
+        const size = chunks.reduce((total, chunk) => total + chunk.byteLength, 0);
+        if (size) {
+          const combined = new Uint8Array(size);
+          let offset = 0;
+          for (const chunk of chunks) { combined.set(chunk, offset); offset += chunk.byteLength; }
+          body = new TextDecoder().decode(combined);
         }
       }
 
