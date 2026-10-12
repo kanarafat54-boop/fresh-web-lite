@@ -131,3 +131,50 @@ export async function POST(req: Request): Promise<Response> {
     return json({ error: error instanceof Error ? error.message : "Web research provider unavailable", runId }, 502);
   } finally { logStage(runId, "research.request.complete", { durationMs: elapsed(requestStarted) }); }
 }
+
+
+// Vercel's Node.js Functions runtime expects a default Node request handler.
+// Keep the Web Request/Response implementation above, adapting it at the runtime boundary.
+export default async function handler(req: any, res: any): Promise<void> {
+  try {
+    const method = String(req.method || "GET").toUpperCase();
+    const headers = new Headers();
+    for (const [name, value] of Object.entries(req.headers || {}) as Array<[string, unknown]>) {
+      if (typeof value === "string") headers.set(name, value);
+      else if (Array.isArray(value)) headers.set(name, value.map(String).join(", "));
+    }
+    const host = headers.get("host") || "localhost";
+    const url = new URL(String(req.url || "/api/research/search"), `https://${host}`).toString();
+    let body: string | undefined;
+    if (method !== "GET" && method !== "HEAD") {
+      if (typeof req.body === "string") body = req.body;
+      else if (req.body !== undefined) body = JSON.stringify(req.body);
+      else {
+        const chunks: Uint8Array[] = [];
+        for await (const chunk of req) {
+          chunks.push(typeof chunk === "string" ? new TextEncoder().encode(chunk) : chunk instanceof Uint8Array ? chunk : new TextEncoder().encode(String(chunk)));
+        }
+        const size = chunks.reduce((total, chunk) => total + chunk.byteLength, 0);
+        if (size) {
+          const combined = new Uint8Array(size);
+          let offset = 0;
+          for (const chunk of chunks) { combined.set(chunk, offset); offset += chunk.byteLength; }
+          body = new TextDecoder().decode(combined);
+        }
+      }
+    }
+    const request = method === "POST"
+      ? new Request(url, { method, headers, body })
+      : new Request(url, { method: "GET", headers });
+    const response = method === "POST" ? await POST(request) : GET();
+    res.statusCode = response.status;
+    response.headers.forEach((value, name) => res.setHeader(name, value));
+    res.end(await response.text());
+  } catch (error) {
+    console.error("Research API adapter failed", error);
+    res.statusCode = 500;
+    res.setHeader("content-type", "application/json; charset=utf-8");
+    res.setHeader("cache-control", "no-store");
+    res.end(JSON.stringify({ error: "Research service failed to initialize or handle the request." }));
+  }
+}
