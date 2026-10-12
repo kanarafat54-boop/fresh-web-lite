@@ -9,6 +9,8 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
   const url = getServerEnv("SUPABASE_URL");
   const serviceRoleKey = getServerEnv("SUPABASE_SECRET_KEY") || getServerEnv("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceRoleKey) throw new Error("Missing server Supabase environment variables.");
+  // Log only the destination hostname, never credentials or the full URL.
+  console.info("Fresh Intelligence persistence target", { host: new URL(url).hostname });
 
   const client = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
