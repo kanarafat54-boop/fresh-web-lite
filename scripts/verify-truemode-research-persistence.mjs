@@ -62,6 +62,13 @@ if (!researchPersistence.includes('from "../../core/semantic/supabaseSemanticPer
 }
 
 const researchOrchestrator = read("src/server/research/orchestrator.ts");
+const researchPersistenceBridge = read("src/server/research/persistSemanticResearchV2.ts");
+if (!researchPersistenceBridge.includes('"research-claim-" + hash(result.query) + "-" + hash(finding.id)')) {
+  throw new Error("Persisted claim IDs must be scoped to a research query to prevent cross-query overwrites.");
+}
+if (!researchPersistenceBridge.includes("findingIdByClaimId.get(claim.id)")) {
+  throw new Error("Claim evidence lookup must preserve source mapping after query-scoped claim IDs are assigned.");
+}
 if (researchOrchestrator.includes('"../../src/core/')) {
   throw new Error("Research orchestrator contains invalid src/src relative imports.");
 }
