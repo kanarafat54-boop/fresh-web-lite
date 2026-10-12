@@ -62,6 +62,10 @@ if (!researchPersistence.includes('from "../../core/semantic/supabaseSemanticPer
 }
 
 const researchApi = read("api/research/search.ts");
+if (researchApi.includes("proof: { provenance:") || researchApi.includes("maxDimension: 11")) {
+  throw new Error("Public research API must not expose internal reasoning architecture metadata.");
+}
+
 if (!researchApi.includes("intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning") || !researchApi.includes("if (persistenceTimeout) clearTimeout(persistenceTimeout)")) {
   throw new Error("Research API must only report persistence after a successful completed write and must clear its timeout.");
 }
