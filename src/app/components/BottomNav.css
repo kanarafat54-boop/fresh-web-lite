@@ -140,3 +140,19 @@
   .fresh-nav-item{color:#f5f7fa}
   .fresh-nav-label{font-weight:800}
 }
+
+
+/* Platform-wide visibility pass: navigation remains legible at phone widths and zoom. */
+.fresh-bottom-nav { max-width: calc(100vw - 12px); }
+.fresh-bottom-nav-scroll { grid-auto-columns: max-content; justify-content: stretch; }
+.fresh-nav-item { min-width: 76px; min-height: 60px; }
+.fresh-nav-label { font-size: .78rem; line-height: 1.25; overflow-wrap: normal; }
+@media (max-width: 520px) {
+  .fresh-bottom-nav-scroll { grid-auto-columns: minmax(76px, 1fr); }
+  .fresh-nav-item { min-width: 76px; min-height: 60px; }
+  .fresh-nav-label { font-size: .75rem; }
+}
+@media (prefers-contrast: more) {
+  .fresh-nav-item { border-color: currentColor; }
+  .fresh-nav-item.active { outline: 2px solid currentColor; outline-offset: -2px; }
+}

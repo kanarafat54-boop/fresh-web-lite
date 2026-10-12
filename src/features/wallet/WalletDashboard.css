@@ -428,3 +428,17 @@ button.wallet-chip.active {
   .wallet-chip,.wallet-rail-tabs button,.wallet-method-card,.wallet-rail-fields input,.wallet-rail-fields select{border-color:currentColor}
   .wallet-method-card small,.wallet-rail-hint,.wallet-buckets span{opacity:1}
 }
+
+
+/* Accessible wallet layout: related figures, labels and actions stay together on narrow screens. */
+.wallet-dashboard, .wallet-hero, .wallet-card { min-width: 0; }
+.wallet-dashboard { width: 100%; box-sizing: border-box; }
+.wallet-hero { flex-wrap: wrap; }
+.wallet-eyebrow, .wallet-card-label { font-size: .85rem; line-height: 1.45; opacity: .9; }
+.wallet-dashboard button, .wallet-dashboard a, .wallet-dashboard input, .wallet-dashboard select { min-height: 44px; }
+.wallet-dashboard :is(h1,h2,h3,p,span,strong,small,label) { overflow-wrap: anywhere; }
+@media (max-width: 520px) {
+  .wallet-dashboard { gap: .85rem; padding: 1rem; }
+  .wallet-hero, .wallet-card { border-radius: 16px; }
+  .wallet-hero { flex-direction: column; align-items: stretch; }
+}
