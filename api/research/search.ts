@@ -72,12 +72,23 @@ export async function POST(req: Request): Promise<Response> {
   if (!apiKey) return json({ error: "Web research is not configured. Set TAVILY_API_KEY on the server.", runId }, 503);
   let body: SearchRequest;
   try { body = await req.json() as SearchRequest; } catch { return json({ error: "Invalid JSON body", runId }, 400); }
-  const query = body.query?.trim();
+  const query = typeof body.query === "string" ? body.query.trim() : "";
   if (!query) return json({ error: "query is required", runId }, 400);
-  const mode = body.mode ?? "global";
+  if (query.length > 2_000) return json({ error: "query must be 2000 characters or fewer", runId }, 400);
+  const requestedMode: unknown = body.mode ?? "global";
+  if (typeof requestedMode !== "string" || !Object.prototype.hasOwnProperty.call(MODE_CONFIG, requestedMode)) {
+    return json({ error: "Unsupported research mode", runId }, 400);
+  }
+  const mode = requestedMode as ResearchMode;
   const modeConfig = MODE_CONFIG[mode];
-  const maxResults = Math.min(Math.max(body.maxSources ?? (mode === "deep" || mode === "global" ? 10 : 8), 1), 16);
-  const context = (body.context ?? []).filter(Boolean).slice(0, 8);
+  const defaultMaxSources = mode === "deep" || mode === "global" ? 10 : 8;
+  const requestedMaxSources = typeof body.maxSources === "number" && Number.isFinite(body.maxSources)
+    ? Math.trunc(body.maxSources)
+    : defaultMaxSources;
+  const maxResults = Math.min(Math.max(requestedMaxSources, 1), 16);
+  const context = Array.isArray(body.context)
+    ? body.context.filter((item): item is string => typeof item === "string" && Boolean(item.trim())).slice(0, 8).map((item) => item.trim())
+    : [];
   const enrichedQuery = `${modeConfig.prefix ? `${modeConfig.prefix}\n` : ""}${query}${context.length ? `\nContext:\n${context.join("\n")}` : ""}`;
   try {
     const queries = mode === "deep" || mode === "global" ? [enrichedQuery, `${enrichedQuery}\nSeek independent sources and evidence that can confirm or challenge the main findings.`] : [enrichedQuery];
