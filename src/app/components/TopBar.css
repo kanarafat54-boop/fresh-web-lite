@@ -31,3 +31,26 @@
   .fresh-universal-topbar { border-bottom-width: 2px; }
   .fresh-universal-actions button, .fresh-universal-menu { border: 1px solid currentColor; }
 }
+
+
+/* Mobile toolbar: retain Search and Notifications instead of hiding key destinations. */
+.fresh-mobile-search-action { display: none !important; }
+@media (max-width: 900px) {
+  .fresh-universal-topbar {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+  .fresh-universal-brand { gap: 6px; }
+  .fresh-universal-menu,
+  .fresh-universal-logo { width: 34px; height: 34px; }
+  .fresh-universal-actions { min-width: 0; gap: 1px; }
+  .fresh-universal-actions button { width: 34px; height: 38px; }
+  .fresh-mobile-search-action { display: grid !important; }
+  .fresh-universal-actions button:nth-child(4) { display: grid; }
+}
+@media (max-width: 520px) {
+  .fresh-universal-topbar { gap: 3px; }
+  .fresh-universal-actions button { width: 31px; height: 36px; }
+  .fresh-universal-actions { gap: 0; }
+  .fresh-universal-actions button svg { width: 18px; height: 18px; }
+}

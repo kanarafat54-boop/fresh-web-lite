@@ -69,6 +69,9 @@ export default function TopBar() {
         </button>
       </div>
       <nav className="fresh-universal-actions" aria-label="Quick actions">
+        <button className="fresh-mobile-search-action" type="button" onClick={openSearch} aria-label="Search Fresh" title="Search Fresh">
+          <SearchIcon size={19} />
+        </button>
         <button type="button" onClick={openCreate} aria-label="Create" title="Create">
           <span>＋</span>
         </button>
