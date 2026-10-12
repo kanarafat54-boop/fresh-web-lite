@@ -47,6 +47,8 @@ jobs:
         run: npm run test:fresh-phases-15-24
       - name: Fresh Experience visible-product contract
         run: npm run test:fresh-experience-24
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
       - name: Build
         run: npm run build
       - name: Lint
