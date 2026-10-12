@@ -72,12 +72,23 @@ export async function POST(req: Request): Promise<Response> {
   if (!apiKey) return json({ error: "Web research is not configured. Set TAVILY_API_KEY on the server.", runId }, 503);
   let body: SearchRequest;
   try { body = await req.json() as SearchRequest; } catch { return json({ error: "Invalid JSON body", runId }, 400); }
-  const query = body.query?.trim();
+  const query = typeof body.query === "string" ? body.query.trim() : "";
   if (!query) return json({ error: "query is required", runId }, 400);
-  const mode = body.mode ?? "global";
+  if (query.length > 2_000) return json({ error: "query must be 2000 characters or fewer", runId }, 400);
+  const requestedMode: unknown = body.mode ?? "global";
+  if (typeof requestedMode !== "string" || !Object.prototype.hasOwnProperty.call(MODE_CONFIG, requestedMode)) {
+    return json({ error: "Unsupported research mode", runId }, 400);
+  }
+  const mode = requestedMode as ResearchMode;
   const modeConfig = MODE_CONFIG[mode];
-  const maxResults = Math.min(Math.max(body.maxSources ?? (mode === "deep" || mode === "global" ? 10 : 8), 1), 16);
-  const context = (body.context ?? []).filter(Boolean).slice(0, 8);
+  const defaultMaxSources = mode === "deep" || mode === "global" ? 10 : 8;
+  const requestedMaxSources = typeof body.maxSources === "number" && Number.isFinite(body.maxSources)
+    ? Math.trunc(body.maxSources)
+    : defaultMaxSources;
+  const maxResults = Math.min(Math.max(requestedMaxSources, 1), 16);
+  const context = Array.isArray(body.context)
+    ? body.context.filter((item): item is string => typeof item === "string" && Boolean(item.trim())).slice(0, 8).map((item) => item.trim())
+    : [];
   const enrichedQuery = `${modeConfig.prefix ? `${modeConfig.prefix}\n` : ""}${query}${context.length ? `\nContext:\n${context.join("\n")}` : ""}`;
   try {
     const queries = mode === "deep" || mode === "global" ? [enrichedQuery, `${enrichedQuery}\nSeek independent sources and evidence that can confirm or challenge the main findings.`] : [enrichedQuery];
@@ -94,19 +105,22 @@ export async function POST(req: Request): Promise<Response> {
     let persistenceWarning: string | undefined;
     let persistence: Awaited<ReturnType<typeof persistSemanticResearch>> | undefined;
     const persistenceStarted = Date.now();
+    let persistenceTimeout: ReturnType<typeof setTimeout> | undefined;
     logStage(runId, "research.persistence.start", { dryRun });
     try {
       const persistencePromise = persistSemanticResearch(researchResult, { dryRun, runId });
-      const timeoutPromise = new Promise<never>((_, reject) => { setTimeout(() => reject(new Error("Fresh Intelligence persistence timed out")), 8_000); });
+      const timeoutPromise = new Promise<never>((_, reject) => { persistenceTimeout = setTimeout(() => reject(new Error("Fresh Intelligence persistence timed out")), 8_000); });
       persistence = await Promise.race([persistencePromise, timeoutPromise]);
       logStage(runId, "research.persistence.complete", { durationMs: elapsed(persistenceStarted), ...persistence });
     } catch (error) {
       console.error("Fresh Intelligence persistence error", { runId, error });
       persistenceWarning = "Research completed, but the Fresh Intelligence memory layer could not persist this run.";
       logStage(runId, "research.persistence.error", { durationMs: elapsed(persistenceStarted), error: error instanceof Error ? error.message : "unknown" });
+    } finally {
+      if (persistenceTimeout) clearTimeout(persistenceTimeout);
     }
     const warnings = [...(failures.length ? [`${failures.length} research pass(es) failed or timed out; Fresh returned the successfully completed evidence.`] : []), ...(persistenceWarning ? [persistenceWarning] : [])];
-    return json({ answer: synthesis.answer, sources: synthesis.sources, claims: synthesis.claims, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && !persistenceWarning, proof: { provenance: "internal", dimensionalReasoning: { enabled: true, dimensions: dimensions.length, maxDimension: 11 } } }, 200, { "x-truemode-run-id": runId });
+    return json({ answer: synthesis.answer, sources: synthesis.sources, claims: synthesis.claims, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning }, 200, { "x-truemode-run-id": runId });
   } catch (error) {
     console.error("Fresh Web Research error", { runId, error });
     return json({ error: error instanceof Error ? error.message : "Web research provider unavailable", runId }, 502);

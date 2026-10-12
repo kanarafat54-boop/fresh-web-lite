@@ -54,8 +54,50 @@ const truthDecisionIndex = aiGateway.indexOf("const blockedTruth=truthDecisions.
 const executionIndex = aiGateway.indexOf("this.kernel.execute", truthDecisionIndex);
 if (truthDecisionIndex < 0 || executionIndex < 0 || truthDecisionIndex > executionIndex) throw new Error("TRUEMODE execution gate must run before any plan execution.");
 
-if (researchPersistence.includes("from \"../../src/core/semantic/supabaseSemanticPersistence\"") && !researchPersistence.includes("from \"../../src/core/semantic/supabaseSemanticPersistence.js\"")) {
-  throw new Error("Server persistence import should use the ESM .js contract used by the API layer.");
+if (researchPersistence.includes('"../../src/core/')) {
+  throw new Error("Research persistence contains invalid src/src relative imports.");
+}
+if (!researchPersistence.includes('from "../../core/semantic/supabaseSemanticPersistence.js"')) {
+  throw new Error("Research persistence must import the server-only Supabase adapter from the correct relative path.");
+}
+
+const researchApi = read("api/research/search.ts");
+if (researchApi.includes("proof: { provenance:") || researchApi.includes("maxDimension: 11")) {
+  throw new Error("Public research API must not expose internal reasoning architecture metadata.");
+}
+
+if (!researchApi.includes("intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning") || !researchApi.includes("if (persistenceTimeout) clearTimeout(persistenceTimeout)")) {
+  throw new Error("Research API must only report persistence after a successful completed write and must clear its timeout.");
+}
+
+if (!researchApi.includes('typeof body.query === "string"') ||
+    !researchApi.includes("query.length > 2_000") ||
+    !researchApi.includes("Object.prototype.hasOwnProperty.call(MODE_CONFIG, requestedMode)") ||
+    !researchApi.includes("Number.isFinite(body.maxSources)") ||
+    !researchApi.includes("Array.isArray(body.context)")) {
+  throw new Error("Research API must validate query, mode, source limit, and context before invoking providers.");
+}
+
+const researchOrchestrator = read("src/server/research/orchestrator.ts");
+const researchPersistenceBridge = read("src/server/research/persistSemanticResearchV2.ts");
+if (!researchPersistenceBridge.includes('"research-claim-" + queryScope + "-" + hash(finding.id)') ||
+    !researchPersistenceBridge.includes("const queryScope = hash(normalizeResearchQuery(result.query))") ||
+    !researchPersistenceBridge.includes("function normalizeResearchQuery(value: string)") ||
+    !researchPersistenceBridge.includes('.replace(/\\s+/g, " ")')) {
+  throw new Error("Persisted research identities must use canonicalized query scope to prevent inconsistent IDs and cross-query overwrites.");
+}
+if (!researchPersistenceBridge.includes("findingIdByClaimId.get(claim.id)")) {
+  throw new Error("Claim evidence lookup must preserve source mapping after query-scoped claim IDs are assigned.");
+}
+if (researchOrchestrator.includes('"../../src/core/')) {
+  throw new Error("Research orchestrator contains invalid src/src relative imports.");
+}
+if (!researchOrchestrator.includes('from "../../core/research/contracts.js"') ||
+    !researchOrchestrator.includes('from "../../core/semantic/claimIntelligence.js"')) {
+  throw new Error("Research orchestrator must import core modules using correct relative paths.");
+}
+if (!persistence.includes("observed_at: observedAt")) {
+  throw new Error("Claim relation persistence must include the observed_at timestamp.");
 }
 
 console.log("TRUEMODE research → truth decision → Supabase contract: PASS");

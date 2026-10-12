@@ -1,12 +1,12 @@
-import { createSupabaseSemanticPersistence } from "../../src/core/semantic/supabaseSemanticPersistence.js";
-import { assessEvidenceStance } from "../../src/core/semantic/evidenceStance.js";
-import { assessClaimConfidence } from "../../src/core/semantic/claimConfidence.js";
-import { arbitrateClaimSet } from "../../src/core/semantic/beliefArbitration.js";
-import { compareClaims, type Claim } from "../../src/core/semantic/claimIntelligence.js";
-import { decideTruthBatch } from "../../src/core/semantic/truthDecisionOrchestrator.js";
-import type { SemanticClaim, SemanticEvidence } from "../../src/core/semantic/types.js";
-import type { ProvenanceNode } from "../../src/core/semantic/sourceProvenance.js";
-import type { ResearchResult } from "../../src/core/research/contracts.js";
+import { createSupabaseSemanticPersistence } from "../../core/semantic/supabaseSemanticPersistence.js";
+import { assessEvidenceStance } from "../../core/semantic/evidenceStance.js";
+import { assessClaimConfidence } from "../../core/semantic/claimConfidence.js";
+import { arbitrateClaimSet } from "../../core/semantic/beliefArbitration.js";
+import { compareClaims, type Claim } from "../../core/semantic/claimIntelligence.js";
+import { decideTruthBatch } from "../../core/semantic/truthDecisionOrchestrator.js";
+import type { SemanticClaim, SemanticEvidence } from "../../core/semantic/types.js";
+import type { ProvenanceNode } from "../../core/semantic/sourceProvenance.js";
+import type { ResearchResult } from "../../core/research/contracts.js";
 
 type PersistenceSummary = { entities: number; sources: number; claims: number; evidence: number; claimEvidence: number; relations: number; arbitrations: number; truthDecisions: number; actionableTruthDecisions: number; dryRun: boolean };
 type PersistenceOptions = { dryRun?: boolean; runId?: string };
@@ -19,10 +19,11 @@ function logStage(runId: string | undefined, stage: string, details: Record<stri
 export async function persistSemanticResearch(result: ResearchResult, options: PersistenceOptions = {}): Promise<PersistenceSummary> {
   const runId = options.runId;
   const researchedAt = result.researchedAt;
+  const queryScope = hash(normalizeResearchQuery(result.query));
   const sources = result.sources.map((source) => ({ id: `research-source-${hash(source.url)}`, provider: source.provider, name: source.title, url: source.url, metadata: { publishedAt: source.publishedAt } }));
   const sourceIdByUrl = new Map(sources.filter((s) => s.url).map((s) => [s.url as string, s.id]));
   const evidence: SemanticEvidence[] = result.sources.map((source, index) => ({
-    id: `research-evidence-${hash(`${result.query}:${source.url}:${index}`)}`,
+    id: `research-evidence-${hash(`${queryScope}:${source.url}:${index}`)}`,
     claim: source.snippet ?? source.title,
     sourceUrl: source.url,
     sourceTitle: source.title,
@@ -33,24 +34,31 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
     confidence: source.snippet ? 0.6 : 0.35,
   }));
 
-  const subjectEntityId = `research-subject-${hash(result.query)}`;
-  const claims: SemanticClaim[] = result.claims.map((finding) => ({
-    id: finding.id,
-    subjectEntityId,
-    predicate: "research_finding",
-    object: finding.text,
-    normalizedText: finding.text.toLocaleLowerCase().normalize("NFKC").trim(),
-    status: finding.status === "conflicted" ? "contested" : finding.status === "supported" ? "supported" : "uncertain",
-    confidence: finding.confidence,
-    firstObservedAt: researchedAt,
-    lastObservedAt: researchedAt,
-    evidenceIds: [],
-    counterEvidenceIds: [],
-  }));
+  const subjectEntityId = `research-subject-${queryScope}`;
+  // Scope claim IDs to a canonicalized research query so casing/spacing variants do not create inconsistent identity.
+  const findingIdByClaimId = new Map<string, string>();
+  const claims: SemanticClaim[] = result.claims.map((finding) => {
+    const persistedId = "research-claim-" + queryScope + "-" + hash(finding.id);
+    findingIdByClaimId.set(persistedId, finding.id);
+    return {
+      id: persistedId,
+      subjectEntityId,
+      predicate: "research_finding",
+      object: finding.text,
+      normalizedText: finding.text.toLocaleLowerCase().normalize("NFKC").trim(),
+      status: finding.status === "conflicted" ? "contested" : finding.status === "supported" ? "supported" : "uncertain",
+      confidence: finding.confidence,
+      firstObservedAt: researchedAt,
+      lastObservedAt: researchedAt,
+      evidenceIds: [],
+      counterEvidenceIds: [],
+    };
+  });
 
   const evidenceByUrl = new Map(result.sources.map((source, index) => [source.url, evidence[index]]));
   for (const claim of claims) {
-    const related = result.claims.find((finding) => finding.id === claim.id)?.sourceUrls.map((url) => evidenceByUrl.get(url)).filter((item): item is SemanticEvidence => Boolean(item)) ?? [];
+    const findingId = findingIdByClaimId.get(claim.id);
+    const related = result.claims.find((finding) => finding.id === findingId)?.sourceUrls.map((url) => evidenceByUrl.get(url)).filter((item): item is SemanticEvidence => Boolean(item)) ?? [];
     const claimModel: Claim = { id: claim.id, subjectEntityId, predicate: claim.predicate, object: String(claim.object), statement: String(claim.object), normalizedStatement: claim.normalizedText, observedAt: researchedAt, confidence: claim.confidence };
     const stances = related.map((item) => assessEvidenceStance(claimModel, item));
     claim.evidenceIds = stances.filter((s) => s.stance === "supports").map((s) => s.evidenceId);
@@ -114,6 +122,10 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
   await createSupabaseSemanticPersistence().persistResearchGraph({ entities, sources, claims, evidence, claimEvidence, relations, arbitrations, truthDecisions });
   logStage(runId, "research.persistence.supabase.complete", summary);
   return summary;
+}
+
+function normalizeResearchQuery(value: string): string {
+  return value.normalize("NFKC").toLocaleLowerCase().trim().replace(/\s+/g, " ");
 }
 
 function hash(value: string): string {
