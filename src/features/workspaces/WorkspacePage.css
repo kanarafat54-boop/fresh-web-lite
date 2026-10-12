@@ -133,3 +133,19 @@
   text-align: center;
   padding: 24px 0;
 }
+
+
+/* Workspace readability: preserve content relationships and allow zoom/reflow. */
+.workspace-page, .workspace-card, .workspace-list li { min-width: 0; }
+.workspace-page :is(h1,h2,h3,p,li,span,strong,small) { overflow-wrap: anywhere; }
+.workspace-eyebrow { font-size: .8rem; line-height: 1.4; }
+.workspace-hero h1 { font-size: clamp(1.5rem, 4vw, 2.1rem); line-height: 1.2; }
+.workspace-hero p, .workspace-card p, .workspace-list li p { font-size: .95rem; line-height: 1.55; }
+.workspace-card h3, .workspace-list li h3 { font-size: 1rem; line-height: 1.35; }
+.workspace-pill, .workspace-badge { font-size: .8rem; line-height: 1.35; padding: 4px 9px; }
+.workspace-page :is(button,a,input,select,textarea) { min-height: 44px; max-width: 100%; }
+@media (max-width: 640px) {
+  .workspace-page { padding: 14px; gap: 14px; }
+  .workspace-grid { grid-template-columns: minmax(0, 1fr); }
+  .workspace-card, .workspace-list li { padding: 14px; }
+}
