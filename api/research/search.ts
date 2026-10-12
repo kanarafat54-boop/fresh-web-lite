@@ -7,7 +7,7 @@ type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "busines
 type SearchRequest = { query?: string; maxSources?: number; context?: string[]; mode?: ResearchMode };
 type TavilyResult = { title?: string; url?: string; content?: string; published_date?: string };
 type SourceKind = "web" | "news" | "video" | "image" | "music";
-export const config = { maxDuration: 60 };
+export const config = { maxDuration: 60, api: { bodyParser: false } };
 
 const MODE_CONFIG: Record<ResearchMode, { searchDepth: "basic" | "advanced"; topic: "general" | "news"; prefix?: string }> = {
   quick: { searchDepth: "basic", topic: "general" },
