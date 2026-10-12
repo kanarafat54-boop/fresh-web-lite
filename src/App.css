@@ -173,3 +173,25 @@ body { background: var(--bg); color: var(--text); margin: 0; font-family: var(--
 :where(button, [role="button"]) {
   min-height: var(--fresh-control-min);
 }
+
+
+/* Visibility pass: keep content reachable under zoom and on narrow screens. */
+.app-content,.app-main,.app-body{min-width:0;overflow-wrap:anywhere}
+.app-content{scroll-padding-block:1rem;padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+.app-main{padding-inline:clamp(12px,2.5vw,24px)}
+.app-nav{padding-bottom:max(6px,env(safe-area-inset-bottom))}
+.nav-btn{min-height:44px;line-height:1.25;white-space:normal;overflow-wrap:anywhere}
+:where(.app-content, .app-main) img,
+:where(.app-content, .app-main) video,
+:where(.app-content, .app-main) iframe{max-width:100%}
+@media(max-width:520px){
+  .app-header{padding:16px 14px 12px}
+  .app-main{padding-inline:12px}
+  .fresh-flow-header h1{font-size:clamp(1.35rem,5vw,1.8rem);line-height:1.2}
+  .fresh-flow-header p{font-size:clamp(.9rem,3.6vw,1rem)}
+  .home-discovery-note strong{font-size:.9rem}
+  .home-discovery-note p{font-size:.85rem}
+}
+@media(hover:none){
+  .nav-btn,.fresh-nav-item{touch-action:manipulation}
+}
