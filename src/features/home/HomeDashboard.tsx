@@ -1,4 +1,4 @@
-import { FilmIcon, SearchIcon, AIIcon, PlusIcon } from "../../components/Icons";
+import { FilmIcon, SearchIcon, AIIcon, PlusIcon, WalletIcon, ProfileIcon } from "../../components/Icons";
 import UniversalCommandBar from "./components/UniversalCommandBar";
 import { FeatureRegistry } from "../../app/registry/FeatureRegistry";
 import { useLayout } from "../../app/contexts/useLayout";
@@ -17,8 +17,8 @@ const actions = [
   { id: "create", label: "Create", description: "Make a post, video or project.", icon: PlusIcon, route: "studio" },
   { id: "work", label: "Work", description: "Open your tasks and workspaces.", icon: AIIcon, route: "work" },
   { id: "explore", label: "Explore", description: "Find tools and connected ecosystems.", icon: SearchIcon, route: "discovery" },
-  { id: "wallet", label: "Wallet", description: "View your wallet and payment tools.", icon: SearchIcon, route: "wallet" },
-  { id: "profile", label: "Profile & settings", description: "Manage your identity and preferences.", icon: AIIcon, route: "profile" },
+  { id: "wallet", label: "Wallet", description: "View your wallet and payment tools.", icon: WalletIcon, route: "wallet" },
+  { id: "profile", label: "Profile & settings", description: "Manage your identity and preferences.", icon: ProfileIcon, route: "profile" },
 ];
 
 function openAction(route: string, isAuthenticated: boolean, setActiveRoute: (route: string) => void) {
