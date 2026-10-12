@@ -44,7 +44,8 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
         if (error) throw error;
       }
       if (input.relations.length) {
-        const rows = input.relations.map((relation) => ({ left_claim_id: relation.leftClaimId, right_claim_id: relation.rightClaimId, relation: relation.relation, confidence: relation.confidence, rationale: relation.rationale ?? null }));
+        const observedAt = new Date().toISOString();
+        const rows = input.relations.map((relation) => ({ left_claim_id: relation.leftClaimId, right_claim_id: relation.rightClaimId, relation: relation.relation, confidence: relation.confidence, rationale: relation.rationale ?? null, observed_at: observedAt }));
         const { error } = await client.from("fresh_intelligence_claim_relations").upsert(rows, { onConflict: "left_claim_id,right_claim_id,relation" });
         if (error) throw error;
       }
