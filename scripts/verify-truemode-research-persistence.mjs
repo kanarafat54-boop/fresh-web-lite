@@ -61,6 +61,18 @@ if (!researchPersistence.includes('from "../../core/semantic/supabaseSemanticPer
   throw new Error("Research persistence must import the server-only Supabase adapter from the correct relative path.");
 }
 
+const researchOrchestrator = read("src/server/research/orchestrator.ts");
+if (researchOrchestrator.includes('"../../src/core/')) {
+  throw new Error("Research orchestrator contains invalid src/src relative imports.");
+}
+if (!researchOrchestrator.includes('from "../../core/research/contracts.js"') ||
+    !researchOrchestrator.includes('from "../../core/semantic/claimIntelligence.js"')) {
+  throw new Error("Research orchestrator must import core modules using correct relative paths.");
+}
+if (!persistence.includes("observed_at: observedAt")) {
+  throw new Error("Claim relation persistence must include the observed_at timestamp.");
+}
+
 console.log("TRUEMODE research → truth decision → Supabase contract: PASS");
 console.log("Claims, evidence, independence, provenance, confidence calibration, temporal truth, decision boundary, and persistence wiring are present.");
 
