@@ -9,3 +9,25 @@
 /* Premium shell polish */
 .fresh-universal-topbar{box-shadow:0 1px 0 var(--fresh-border),0 18px 55px rgba(0,0,0,.08)}.fresh-universal-search{box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 8px 30px rgba(0,0,0,.08);transition:border-color .2s,transform .2s,box-shadow .2s}.fresh-universal-search:hover{transform:translateY(-1px);box-shadow:0 12px 36px rgba(0,0,0,.14)}.fresh-universal-actions button{transition:background .18s,color .18s,transform .18s}.fresh-universal-actions button:active{transform:scale(.92)}
 .fresh-theme-switch{display:flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--fresh-border);border-radius:999px;background:color-mix(in srgb,var(--fresh-surface) 88%,transparent);box-shadow:0 8px 24px rgba(0,0,0,.08);backdrop-filter:blur(16px)}.fresh-theme-switch button{width:30px!important;height:30px!important;border:0;border-radius:999px!important;background:transparent!important;color:var(--fresh-muted)!important;font-size:14px!important}.fresh-theme-switch button.is-active{background:var(--fresh-text)!important;color:var(--fresh-bg)!important;box-shadow:0 3px 10px rgba(0,0,0,.12)}.fresh-theme-switch button:focus-visible{outline:2px solid var(--fresh-accent);outline-offset:2px}@media(max-width:900px){.fresh-theme-switch{order:2}.fresh-theme-switch button{width:29px!important;height:29px!important}.fresh-universal-actions{order:3}}@media(max-width:520px){.fresh-theme-switch{display:none}}
+
+
+/* Zoom/mobile visibility: don't let action buttons collapse below comfortable targets. */
+.fresh-universal-actions { flex-wrap: wrap; }
+.fresh-universal-actions button,
+.fresh-universal-menu { min-width: 44px; min-height: 44px; }
+.fresh-universal-brand-copy strong { font-size: 1rem; }
+.fresh-universal-brand-copy span { font-size: .75rem; line-height: 1.3; }
+.fresh-universal-search { min-height: 44px; }
+@media (max-width: 900px) {
+  .fresh-universal-topbar { min-height: 60px; height: auto; }
+  .fresh-universal-actions button { min-width: 44px; min-height: 44px; }
+}
+@media (max-width: 520px) {
+  .fresh-universal-topbar { gap: 4px; }
+  .fresh-universal-actions { gap: 2px; }
+  .fresh-universal-actions button { width: 44px; height: 44px; }
+}
+@media (prefers-contrast: more) {
+  .fresh-universal-topbar { border-bottom-width: 2px; }
+  .fresh-universal-actions button, .fresh-universal-menu { border: 1px solid currentColor; }
+}
