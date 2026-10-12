@@ -10,7 +10,7 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
   const serviceRoleKey = getServerEnv("SUPABASE_SECRET_KEY") || getServerEnv("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceRoleKey) throw new Error("Missing server Supabase environment variables.");
   // Safe diagnostics only: log host/project references, never credentials or full URLs.
-  const keyMetadata = (value: string | null): { present: boolean; kind?: string; projectRef?: string; role?: string } => {
+  const keyMetadata = (value: string | null | undefined): { present: boolean; kind?: string; projectRef?: string; role?: string } => {
     if (!value) return { present: false };
     const parts = value.split(".");
     if (parts.length === 3) {
@@ -21,7 +21,7 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
     }
     return { present: true, kind: value.startsWith("sb_secret_") ? "supabase-secret" : "opaque" };
   };
-  const hostOf = (value: string | null) => { try { return value ? new URL(value).hostname : null; } catch { return null; } };
+  const hostOf = (value: string | null | undefined) => { try { return value ? new URL(value).hostname : null; } catch { return null; } };
   console.info("Fresh Intelligence persistence target", {
     host: new URL(url).hostname,
     browserHost: hostOf(getServerEnv("VITE_SUPABASE_URL")),
