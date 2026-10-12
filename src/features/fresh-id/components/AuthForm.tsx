@@ -99,7 +99,7 @@ export function AuthForm() {
     return (
       <div className="auth-form">
         <h3>Reset your password</h3>
-        <input className="auth-input" placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <label className="auth-field"><span className="auth-field-label">Email address</span><input className="auth-input" name="email" autoComplete="email" aria-label="Email address" placeholder="you@example.com" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
         {error && <p className="auth-error">{error}</p>}
         {message && <p className="auth-message">{message}</p>}
         <button className="auth-submit-btn" onClick={() => void requestPasswordReset(email)} disabled={loading}>
@@ -114,7 +114,7 @@ export function AuthForm() {
     return (
       <div className="auth-form">
         <h3>Choose a new password</h3>
-        <input className="auth-input" placeholder="New password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+        <label className="auth-field"><span className="auth-field-label">New password</span><input className="auth-input" name="new-password" autoComplete="new-password" aria-label="New password" placeholder="Choose a new password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} /></label>
         {error && <p className="auth-error">{error}</p>}
         {message && <p className="auth-message">{message}</p>}
         <button className="auth-submit-btn" onClick={() => void updatePassword(newPassword)} disabled={loading}>
@@ -133,13 +133,13 @@ export function AuthForm() {
 
       {mode === "register" && (
         <>
-          <input className="auth-input" placeholder="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-          <input className="auth-input" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+          <label className="auth-field"><span className="auth-field-label">Full name</span><input className="auth-input" name="name" autoComplete="name" aria-label="Full name" placeholder="Your full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required /></label>
+          <label className="auth-field"><span className="auth-field-label">Username</span><input className="auth-input" name="username" autoComplete="username" aria-label="Username" placeholder="Choose a username" value={username} onChange={(e) => setUsername(e.target.value)} required /></label>
         </>
       )}
 
-      <input className="auth-input" placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-      <input className="auth-input" placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+      <label className="auth-field"><span className="auth-field-label">Email address</span><input className="auth-input" name="email" autoComplete="email" aria-label="Email address" placeholder="you@example.com" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
+      <label className="auth-field"><span className="auth-field-label">Password</span><input className="auth-input" name="password" autoComplete={mode === "login" ? "current-password" : "new-password"} aria-label="Password" placeholder={mode === "login" ? "Enter your password" : "Create a password"} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "register" ? 8 : undefined} /></label>
 
       {error && <p className="auth-error">{error}</p>}
       {signupError && <p className="auth-error">{signupError}</p>}
@@ -176,7 +176,7 @@ export function AuthForm() {
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.05 12.53c-.02-2.2 1.8-3.27 1.88-3.32-1.03-1.5-2.64-1.71-3.2-1.73-1.35-.14-2.66.8-3.34.8-.69 0-1.75-.78-2.87-.76-1.47.02-2.82.85-3.57 2.17-1.53 2.66-.39 6.57 1.1 8.72.73 1.05 1.59 2.23 2.72 2.19 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.71.71 2.86.69 1.18-.02 1.92-1.07 2.65-2.12.84-1.22 1.19-2.4 1.21-2.46-.03-.01-2.32-.89-2.34-3.47ZM14.86 6.05c.61-.74 1.02-1.77.91-2.8-.88.04-1.95.59-2.58 1.32-.56.65-1.06 1.69-.92 2.68.98.08 1.98-.5 2.59-1.2Z"/></svg>
                   ) : provider.symbol}
                 </span>
-                <span className="sr-only">{provider.label}</span>
+                <span className="auth-social-label">{provider.label}</span>
               </button>
             ))}
           </div>
