@@ -247,3 +247,29 @@ button.chip{cursor:pointer;font:inherit}
   .professional-add{grid-template-columns:1fr}
   .professional-portfolio article{align-items:flex-start}
 }
+
+
+/* Accessibility visibility pass: do not hide useful profile context on small screens. */
+.universal-profile,.profile-hero,.profile-card,.profile-grid,.profile-identity-row,.profile-name-block{min-width:0}
+.profile-title-line h1{font-size:clamp(1.25rem,4vw,1.8rem);line-height:1.25;overflow-wrap:anywhere}
+.profile-bio,.profile-name-block p,.smart-card>p,.muted{color:#d2d7e0;opacity:1;line-height:1.65;overflow-wrap:anywhere}
+.profile-tabs{flex-wrap:wrap;overflow:visible}
+.profile-tabs button,.profile-media-button,.profile-ai-button,.profile-primary-actions button,.privacy-controls button,.intro-actions button{min-height:44px;font-size:.9rem}
+.smart-metrics span,.insight-grid span,.insight-grid div small,.activity-row time,.activity-kind,.theme-more,.eyebrow{font-size:.78rem;opacity:1;line-height:1.4}
+.activity-row p,.connection-row p{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.45;opacity:1}
+.activity-row time{display:block;white-space:normal;color:var(--up-muted)}
+.profile-link-row span{font-size:.75rem;opacity:1}
+.profile-link-row strong{font-size:.92rem;overflow-wrap:anywhere}
+.intro-edit-grid label,.governance-grid p{font-size:.9rem;line-height:1.5}
+.intro-edit-grid input,.intro-edit-grid textarea{min-height:44px}
+@media(max-width:700px){
+  .profile-identity-row{align-items:flex-start;flex-wrap:wrap;margin-top:-36px}
+  .profile-name-block{flex:1 1 180px;padding-top:10px}
+  .profile-stats{gap:12px}
+  .smart-metrics,.insight-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,130px),1fr))}
+  .ecosystem-subprofile-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
+}
+@media(prefers-contrast:more){
+  .universal-profile{--up-muted:#e0e5ee;--up-border:rgba(255,255,255,.35)}
+  .profile-badge,.live-dot,.profile-score,.profile-tabs button{border-color:currentColor}
+}
