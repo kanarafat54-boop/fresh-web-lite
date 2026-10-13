@@ -73,7 +73,8 @@ export default function FreshIdAuthDashboard() {
   const layerIndex = layers.indexOf(layer);
 
   useEffect(() => {
-    setAuthView("form");
+    // Preserve the password-reset view when Supabase redirects back with a recovery token.
+    if (!window.location.hash.includes("type=recovery")) setAuthView("form");
   }, [setAuthView]);
 
   useEffect(() => {
