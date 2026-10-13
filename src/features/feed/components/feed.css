@@ -171,3 +171,29 @@ font-weight:bold;
 @media(prefers-reduced-motion:reduce){
   .module[data-discovery] .post-item{transition:none}
 }
+
+
+/* Interaction clarity pass: visible labels and comfortable touch targets. */
+.module[data-discovery] .post-author {
+  display:inline-flex; align-items:center; min-height:36px; padding:4px 0;
+  border:0; background:transparent; font:inherit; font-weight:750; text-align:left;
+}
+.module[data-discovery] .post-actions { align-items:center; gap:8px; }
+.module[data-discovery] .post-actions button,
+.module[data-discovery] .post-actions [role=button] {
+  min-height:44px; min-width:44px; padding:8px 11px;
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  border:1px solid rgba(167,157,255,.16); background:rgba(255,255,255,.035);
+  color:#f4f4fb; font:inherit; font-size:13px;
+}
+.module[data-discovery] .post-actions button:disabled { opacity:.48; cursor:not-allowed; }
+.module[data-discovery] .post-actions .liked { border-color:rgba(45,212,191,.42); background:rgba(45,212,191,.1); color:#99f6e4; }
+.module[data-discovery] .post-action-label { font-size:12px; }
+.module[data-discovery] .post-content { margin:8px 0 10px; }
+.module[data-discovery] .post-image,
+.module[data-discovery] .post-video { max-height:min(560px,70vh); }
+@media(max-width:420px) {
+  .module[data-discovery] .post-actions { gap:6px; }
+  .module[data-discovery] .post-actions button { flex:1 1 auto; padding:8px; }
+  .module[data-discovery] .post-action-label { font-size:11px; }
+}
