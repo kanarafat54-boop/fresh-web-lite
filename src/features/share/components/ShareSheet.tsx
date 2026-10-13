@@ -1,7 +1,6 @@
 /**
  * Fresh Web Lite
  * Share Sheet — device share, copy link, QR code
- * Note: links currently point to the app root (no per-item routing yet)
  */
 
 import { useState } from "react";
@@ -10,13 +9,16 @@ import { LinkIcon, QrIcon, CheckIcon, CloseIcon, ShareIcon } from "../../../comp
 interface ShareSheetProps {
   title: string;
   onClose: () => void;
+  postId: string;
 }
 
-export function ShareSheet({ title, onClose }: ShareSheetProps) {
+export function ShareSheet({ title, postId, onClose }: ShareSheetProps) {
   const [copied, setCopied] = useState(false);
   const [showQr, setShowQr] = useState(false);
 
-  const shareUrl = window.location.origin + window.location.pathname;
+  const shareLocation = new URL(window.location.href);
+  shareLocation.searchParams.set("post", postId);
+  const shareUrl = shareLocation.toString();
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(shareUrl)}`;
 
   async function copyLink() {
@@ -50,7 +52,7 @@ export function ShareSheet({ title, onClose }: ShareSheetProps) {
         {showQr ? (
           <div className="qr-wrap">
             <img src={qrImageUrl} alt="QR code" className="qr-image" />
-            <p className="empty-state">Scan to open Fresh Web Lite</p>
+            <p className="empty-state">Scan to open this post in Fresh Web Lite</p>
             <button className="icon-btn-outline" onClick={() => setShowQr(false)}>Back</button>
           </div>
         ) : (
@@ -73,7 +75,7 @@ export function ShareSheet({ title, onClose }: ShareSheetProps) {
         )}
 
         <p className="empty-state" style={{ fontSize: "0.75rem" }}>
-          Links currently open the app — per-post deep links are coming soon.
+          This link opens this post in Fresh Web Lite.
         </p>
       </div>
     </div>
