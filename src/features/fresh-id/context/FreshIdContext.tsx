@@ -337,14 +337,24 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: { username, full_name: fullName },
-      },
-    });
+    let data: Awaited<ReturnType<typeof supabase.auth.signUp>>["data"];
+    let signUpError: Awaited<ReturnType<typeof supabase.auth.signUp>>["error"];
+    try {
+      const result = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: { username, full_name: fullName },
+        },
+      });
+      data = result.data;
+      signUpError = result.error;
+    } catch {
+      setError("We couldn't reach the account service. Check your connection and try again.");
+      setLoading(false);
+      return;
+    }
 
     if (signUpError || !data.user) {
       setError(signUpError?.message ?? "Registration failed. Please try again.");
@@ -377,7 +387,17 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    let data: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>["data"];
+    let signInError: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>["error"];
+    try {
+      const result = await supabase.auth.signInWithPassword({ email, password });
+      data = result.data;
+      signInError = result.error;
+    } catch {
+      setError("We couldn't reach the sign-in service. Check your connection and try again.");
+      setLoading(false);
+      return;
+    }
 
     if (signInError || !data.user) {
       setError(signInError?.message.toLowerCase().includes("email not confirmed") ? "Please confirm your email before logging in. Check your inbox for the link." : "Incorrect email or password.");
@@ -398,7 +418,17 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
 
     setLoading(true);
-    const { data, error: passkeyError } = await supabase.auth.signInWithPasskey();
+    let data: Awaited<ReturnType<typeof supabase.auth.signInWithPasskey>>["data"];
+    let passkeyError: Awaited<ReturnType<typeof supabase.auth.signInWithPasskey>>["error"];
+    try {
+      const result = await supabase.auth.signInWithPasskey();
+      data = result.data;
+      passkeyError = result.error;
+    } catch {
+      setError("Biometric sign-in couldn't reach the account service. Check your connection and try again.");
+      setLoading(false);
+      return;
+    }
 
     if (passkeyError || !data.user) {
       setError(passkeyErrorMessage(passkeyError, "sign-in"));
@@ -487,7 +517,15 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+    let resetError: Awaited<ReturnType<typeof supabase.auth.resetPasswordForEmail>>["error"];
+    try {
+      const result = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+      resetError = result.error;
+    } catch {
+      setError("We couldn't reach the password-reset service. Check your connection and try again.");
+      setLoading(false);
+      return;
+    }
     if (resetError) {
       setError("Something went wrong sending the reset email. Please try again.");
       setLoading(false);
@@ -506,7 +544,15 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
-    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+    let updateError: Awaited<ReturnType<typeof supabase.auth.updateUser>>["error"];
+    try {
+      const result = await supabase.auth.updateUser({ password: newPassword });
+      updateError = result.error;
+    } catch {
+      setError("We couldn't reach the password service. Check your connection and try again.");
+      setLoading(false);
+      return;
+    }
     if (updateError) {
       setError("Something went wrong updating your password. Please try again.");
       setLoading(false);
