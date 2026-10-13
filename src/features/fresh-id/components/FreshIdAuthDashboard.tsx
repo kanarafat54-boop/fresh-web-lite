@@ -287,13 +287,7 @@ export default function FreshIdAuthDashboard() {
                 <p className="fresh-id-overline">02 · ACCOUNT</p>
                 <h1 id="fresh-auth-title">Your identity.<br /><em>Your way into Fresh.</em></h1>
                 <p>One focused gateway. Sign in, create your Fresh ID, then the identity surface gets out of your way.</p>
-                <div className="fresh-id-provider-constellation" aria-hidden="true">
-                  <span className="provider-symbol google">G</span>
-                  <span className="provider-symbol apple">●</span>
-                  <span className="provider-symbol facebook">f</span>
-                  <span className="provider-symbol x">𝕏</span>
-                </div>
-                <small>Connected identity providers appear as symbols, not oversized labels.</small>
+
               </div>
               <div className="fresh-id-form-stage">
                 <AuthForm />
@@ -407,11 +401,24 @@ export default function FreshIdAuthDashboard() {
         )}
       </div>
 
-      {!standaloneAuth && <div className="fresh-id-gateway-bottom">
+      <div className="fresh-id-gateway-bottom">
         <button type="button" className="fresh-id-nav-arrow" onClick={back} disabled={layerIndex === 0} aria-label="Previous layer">←</button>
-        <span>Swipe sideways to move through layers</span>
+        <div className="fresh-id-pagination" role="group" aria-label="Choose a Fresh ID screen">
+          {journeySteps.map((step, index) => (
+            <button
+              key={step.id}
+              type="button"
+              className={index === layerIndex ? "fresh-id-page-dot active" : "fresh-id-page-dot"}
+              onClick={() => go(step.id)}
+              aria-label={step.title}
+              aria-current={index === layerIndex ? "step" : undefined}
+              title={step.title}
+            ><span /></button>
+          ))}
+        </div>
+        <span className="fresh-id-gateway-hint">Swipe or choose a dot</span>
         <button type="button" className="fresh-id-nav-arrow" onClick={advance} disabled={layerIndex === layers.length - 1} aria-label="Next layer">→</button>
-      </div>}
+      </div>
     </main>
   );
 }
