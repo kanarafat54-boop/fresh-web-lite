@@ -15,3 +15,46 @@
   .fresh-settings-actions { align-items: stretch; }
   .fresh-settings-actions button { flex: 1 1 160px; }
 }
+
+/* Fresh ID account controls: readable at phone widths and browser zoom. */
+.fresh-settings-section-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.fresh-settings-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:20px 0}
+.fresh-settings-fields label,.fresh-settings-inline-field{display:grid;gap:7px;font-weight:700;font-size:.95rem}
+.fresh-settings-fields input,.fresh-settings-fields select,.fresh-settings-inline-field select{width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--fresh-border);border-radius:12px;padding:12px;background:var(--fresh-surface-2);color:var(--fresh-text);font:inherit;min-height:46px}
+.fresh-settings-fields small,.fresh-settings-passkey small,.fresh-settings-switch-row small{display:block;color:var(--fresh-muted);font-weight:400;line-height:1.45}
+.fresh-settings-primary,.fresh-settings-notice button{border:1px solid transparent;border-radius:12px;padding:12px 16px;min-height:46px;background:var(--fresh-accent);color:#fff;font-weight:800;cursor:pointer}
+.fresh-settings-primary:disabled{opacity:.55;cursor:not-allowed}
+.fresh-settings-status{display:inline-flex;align-items:center;border:1px solid var(--fresh-border);border-radius:999px;padding:6px 10px;font-size:.78rem;font-weight:750;white-space:nowrap}
+.fresh-settings-status.good{border-color:color-mix(in srgb,#2fbf71 45%,var(--fresh-border));color:#39b878}
+.fresh-settings-security-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0}
+.fresh-settings-security-grid>div{min-width:0;display:grid;gap:7px;padding:14px;border:1px solid var(--fresh-border);border-radius:13px;background:var(--fresh-surface-2)}
+.fresh-settings-security-grid span{color:var(--fresh-muted);font-size:.83rem}
+.fresh-settings-security-grid strong{overflow-wrap:anywhere;font-size:.92rem}
+.fresh-settings-danger{border-color:color-mix(in srgb,#dc2626 50%,var(--fresh-border))!important;color:#dc2626!important}
+.fresh-settings-passkeys{margin-top:22px}
+.fresh-settings-passkeys h3{font-size:1rem;margin:0 0 10px}
+.fresh-settings-passkeys>p{color:var(--fresh-muted)}
+.fresh-settings-passkey,.fresh-settings-provider{display:flex;align-items:center;gap:12px;min-width:0;padding:12px 0;border-top:1px solid var(--fresh-border)}
+.fresh-settings-passkey>div{flex:1;min-width:0}
+.fresh-settings-passkey small{margin-top:4px}
+.fresh-settings-passkey button{border:1px solid var(--fresh-border);background:transparent;color:var(--fresh-text);border-radius:10px;padding:8px 12px;min-height:40px}
+.fresh-settings-provider-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;margin-top:14px}
+.fresh-settings-provider strong{flex:1;min-width:0}
+.fresh-settings-provider-mark{width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;border-radius:11px;background:var(--fresh-surface-2);font-weight:900}
+.fresh-settings-provider-mark.google{color:#4285f4}.fresh-settings-provider-mark.apple{color:var(--fresh-text)}.fresh-settings-provider-mark.meta{color:#0866ff}.fresh-settings-provider-mark.whatsapp{color:#25d366}.fresh-settings-provider-mark.telegram{color:#229ed9}.fresh-settings-provider-mark.tiktok{color:#fe2c55}
+.fresh-settings-inline-field{grid-template-columns:auto minmax(150px,220px);align-items:center;justify-content:space-between;margin-top:18px}
+.fresh-settings-switch-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 0;border-top:1px solid var(--fresh-border)}
+.fresh-settings-switch-row span{display:grid;gap:5px;min-width:0}
+.fresh-settings-switch-row input{width:22px;height:22px;flex:0 0 22px;accent-color:var(--fresh-accent)}
+.fresh-settings-notice{margin:0 0 16px;padding:18px;border:1px solid var(--fresh-border);border-radius:16px;background:var(--fresh-surface)}
+.fresh-settings-notice p{margin:8px 0 14px;color:var(--fresh-muted);line-height:1.5}
+.fresh-settings-feedback{padding:12px 14px;border-radius:12px;background:var(--fresh-surface-2);overflow-wrap:anywhere}
+.fresh-settings-feedback.error{color:#dc2626}
+.fresh-settings-footer{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:18px 0;color:var(--fresh-muted);font-size:.9rem}
+.fresh-settings-footer span{margin-right:auto}
+.fresh-settings-footer button{border:1px solid var(--fresh-border);border-radius:10px;padding:9px 12px;background:var(--fresh-surface);color:var(--fresh-text);min-height:42px}
+:root[data-text-size="large"] .fresh-settings-page{font-size:1.08rem}
+:root[data-text-size="larger"] .fresh-settings-page{font-size:1.18rem}
+.fresh-settings-page :is(button,input,select){font-size:inherit}
+.fresh-settings-page :is(button,input,select):focus-visible{outline:3px solid var(--fresh-accent);outline-offset:3px}
+@media(max-width:650px){.fresh-settings-fields{grid-template-columns:minmax(0,1fr)}.fresh-settings-security-grid{grid-template-columns:minmax(0,1fr)}.fresh-settings-provider-list{grid-template-columns:minmax(0,1fr)}.fresh-settings-section-heading{display:grid}.fresh-settings-inline-field{grid-template-columns:minmax(0,1fr)}.fresh-settings-footer{align-items:stretch;flex-direction:column}.fresh-settings-footer span{margin:0}.fresh-settings-passkey{align-items:flex-start}.fresh-settings-card{align-items:stretch}.fresh-settings-choice-row{display:grid;grid-template-columns:minmax(0,1fr)}}
