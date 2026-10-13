@@ -8,7 +8,7 @@ import GlobalSearchEntry from "./components/GlobalSearchEntry";
 import { FeatureRegistry } from "./registry/FeatureRegistry";
 import { useLayout } from "./contexts/useLayout";
 import { useFreshId } from "../features/fresh-id/context/FreshIdContext";
-import { isOnboardingDone, resolveEntryRoute } from "../features/product-journey/productJourney";
+import { resolveEntryRoute } from "../features/product-journey/productJourney";
 import FeatureLoader from "./services/featureLoader";
 import "./AppRouter.css";
 import FreshPlatformRuntimeBoundary from "../core/platform/FreshPlatformRuntimeBoundary";
