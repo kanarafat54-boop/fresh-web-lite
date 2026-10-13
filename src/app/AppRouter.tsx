@@ -58,6 +58,12 @@ export default function AppRouter() {
       return;
     }
 
+    const sharedPostId = new URLSearchParams(window.location.search).get("post");
+    if (sharedPostId) {
+      if (activeRoute !== "feed") setActiveRoute("feed");
+      return;
+    }
+
     if (isGatewayPath() || path !== "/") return;
 
     // Home is the default landing page after authentication. Onboarding remains
