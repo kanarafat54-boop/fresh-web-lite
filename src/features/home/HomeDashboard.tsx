@@ -133,7 +133,7 @@ export default function HomeDashboard() {
         <div className="fresh-home-section-heading">
           <div>
             <span>YOUR FEED</span>
-            <h2>What’s useful to you</h2>
+            <h2>Pick up where you left off</h2>
           </div>
           <button type="button" onClick={() => setActiveRoute("fresh-flow")}>Open Fresh Flow</button>
         </div>
