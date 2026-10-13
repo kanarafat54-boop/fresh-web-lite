@@ -50,8 +50,10 @@ export default function AppRouter() {
         // Leave the standalone gateway URL as well as its UI. Otherwise the
         // pathname keeps matching isGatewayPath() and the auth screen wins
         // even after the active workspace changes to Home.
-        window.history.replaceState({ freshRoute: "feed" }, "", "/");
-        if (activeRoute !== "feed") setActiveRoute("feed");
+        // A real navigation guarantees the standalone gateway unmounts even
+        // when the current workspace state is already Home or the URL was changed
+        // by another control. The persisted Supabase session is restored on load.
+        window.location.replace("/");
       }
       return;
     }
