@@ -36,6 +36,7 @@ export default function HomeDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [experienceMode, setExperienceMode] = useState<"simple" | "standard" | "advanced">("simple");
+  const [showGettingStarted, setShowGettingStarted] = useState(false);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("fresh-experience-mode");
@@ -101,6 +102,20 @@ export default function HomeDashboard() {
             <small>Get help, search or plan</small>
           </span>
         </button>
+      </section>
+
+      <section className="fresh-home-help" aria-label="Getting started help">
+        <button type="button" className="fresh-home-help-toggle" aria-expanded={showGettingStarted} onClick={() => setShowGettingStarted((open) => !open)}>
+          <span className="fresh-home-help-mark" aria-hidden="true">?</span>
+          <span><strong>Need help getting started?</strong><small>Simple steps for using Fresh</small></span>
+          <span className="fresh-home-help-chevron" aria-hidden="true">{showGettingStarted ? "−" : "+"}</span>
+        </button>
+        {showGettingStarted && <div className="fresh-home-help-content">
+          <p><strong>1. Choose a card.</strong> Each card opens a part of Fresh. The short line underneath explains what it does.</p>
+          <p><strong>2. Ask for help.</strong> Use “Ask Fresh AI” when you are unsure what to do or need help finding something.</p>
+          <p><strong>3. Make it easier to read.</strong> Open Profile &amp; settings to increase text size or choose a simpler home view.</p>
+          <button type="button" onClick={() => setActiveRoute(isAuthenticated ? "settings" : "auth-signin")}>{isAuthenticated ? "Open settings" : "Sign in to manage settings"}</button>
+        </div>}
       </section>
 
       {experienceMode !== "simple" && <section className="fresh-home-search" aria-label="Search Fresh">
