@@ -103,9 +103,9 @@ export default function HomeDashboard() {
         </button>
       </section>
 
-      <section className="fresh-home-search" aria-label="Search Fresh">
+      {experienceMode !== "simple" && <section className="fresh-home-search" aria-label="Search Fresh">
         <UniversalCommandBar onSearch={handleSearch} />
-      </section>
+      </section>}
 
       <section className="fresh-home-actions" aria-labelledby="fresh-home-actions-title">
         <div className="fresh-home-section-heading">
