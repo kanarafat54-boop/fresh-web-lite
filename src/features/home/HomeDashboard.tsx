@@ -111,11 +111,17 @@ export default function HomeDashboard() {
         <div className="fresh-home-section-heading">
           <div>
             <span>QUICK ACCESS</span>
-            <h2 id="fresh-home-actions-title">What do you want to do?</h2>\n            <p>{experienceMode === "simple" ? "Start with a few clear choices. You can show more whenever you need." : "Choose a place to get started."}</p>
+            <h2 id="fresh-home-actions-title">What do you want to do?</h2>
+            <p>{experienceMode === "simple" ? "Start with a few clear choices. You can show more whenever you need." : "Choose a place to get started."}</p>
           </div>
         </div>
+        <div className="fresh-home-experience-controls" role="group" aria-label="Choose home layout">
+          <span>Home view: <strong>{experienceMode === "simple" ? "Simple" : experienceMode === "standard" ? "Standard" : "Advanced"}</strong></span>
+          <button type="button" aria-pressed={experienceMode === "simple"} onClick={() => changeExperienceMode(experienceMode === "simple" ? "standard" : "simple")}>{experienceMode === "simple" ? "Show more features" : "Use simple view"}</button>
+          {experienceMode === "advanced" ? <button type="button" onClick={() => changeExperienceMode("standard")}>Use standard view</button> : experienceMode === "standard" ? <button type="button" onClick={() => changeExperienceMode("advanced")}>Show advanced</button> : null}
+        </div>
         <div className="fresh-home-action-grid">
-          {actions.map(({ id, label, description, icon: Icon, route }) => (
+          {visibleActions.map(({ id, label, description, icon: Icon, route }) => (
             <button key={id} type="button" className="fresh-home-action-card" onClick={() => openAction(route, isAuthenticated, setActiveRoute)}>
               <span className="fresh-home-action-icon"><Icon size={22} /></span>
               <span className="fresh-home-action-copy">
@@ -152,7 +158,7 @@ export default function HomeDashboard() {
           <button type="button" onClick={() => setActiveRoute("fresh-flow")}>Open Fresh Flow</button>
         </div>
         <FeedModule />
-      </section>
+      </section>}
     </div>
   );
 }
