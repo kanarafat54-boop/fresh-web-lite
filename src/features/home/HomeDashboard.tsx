@@ -37,6 +37,7 @@ export default function HomeDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [experienceMode, setExperienceMode] = useState<"simple" | "standard" | "advanced">("simple");
   const [showGettingStarted, setShowGettingStarted] = useState(false);
+  const [showMoreActions, setShowMoreActions] = useState(false);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("fresh-experience-mode");
@@ -50,9 +51,9 @@ export default function HomeDashboard() {
 
   const name = user?.fullName || user?.username || null;
   const greeting = isAuthenticated && name ? `Good to see you, ${name}` : isAuthenticated ? "Welcome back" : "Welcome to Fresh";
-  const visibleActions = experienceMode === "simple"
-    ? actions.filter((action) => ["flow", "create", "explore", "profile"].includes(action.id))
-    : actions;
+  const primaryActions = actions.filter((action) => ["flow", "create", "explore"].includes(action.id));
+  const additionalActions = actions.filter((action) => !["flow", "create", "explore"].includes(action.id));
+  const visibleActions = experienceMode === "simple" ? primaryActions : actions;
 
   const handleSearch = async (query: string, mode: SearchMode) => {
     setError(null);
@@ -104,10 +105,10 @@ export default function HomeDashboard() {
         </button>
       </section>
 
-      <section className="fresh-home-help" aria-label="Getting started help">
+      <section className={`fresh-home-help ${showGettingStarted ? "is-open" : ""}`} aria-label="Getting started help">
         <button type="button" className="fresh-home-help-toggle" aria-expanded={showGettingStarted} onClick={() => setShowGettingStarted((open) => !open)}>
           <span className="fresh-home-help-mark" aria-hidden="true">?</span>
-          <span><strong>Need help getting started?</strong><small>Simple steps for using Fresh</small></span>
+          <span><strong>Need help getting started?</strong><small>Only open this if you need it</small></span>
           <span className="fresh-home-help-chevron" aria-hidden="true">{showGettingStarted ? "−" : "+"}</span>
         </button>
         {showGettingStarted && <div className="fresh-home-help-content">
@@ -130,11 +131,6 @@ export default function HomeDashboard() {
             <p>{experienceMode === "simple" ? "Start with a few clear choices. You can show more whenever you need." : "Choose a place to get started."}</p>
           </div>
         </div>
-        <div className="fresh-home-experience-controls" role="group" aria-label="Choose home layout">
-          <span>Home view: <strong>{experienceMode === "simple" ? "Simple" : experienceMode === "standard" ? "Standard" : "Advanced"}</strong></span>
-          <button type="button" aria-pressed={experienceMode === "simple"} onClick={() => changeExperienceMode(experienceMode === "simple" ? "standard" : "simple")}>{experienceMode === "simple" ? "Show more features" : "Use simple view"}</button>
-          {experienceMode === "advanced" ? <button type="button" onClick={() => changeExperienceMode("standard")}>Use standard view</button> : experienceMode === "standard" ? <button type="button" onClick={() => changeExperienceMode("advanced")}>Show advanced</button> : null}
-        </div>
         <div className="fresh-home-action-grid">
           {visibleActions.map(({ id, label, description, icon: Icon, route }) => (
             <button key={id} type="button" className="fresh-home-action-card" onClick={() => openAction(route, isAuthenticated, setActiveRoute)}>
@@ -147,6 +143,24 @@ export default function HomeDashboard() {
             </button>
           ))}
         </div>
+        {experienceMode === "simple" && (
+          <div className="fresh-home-more-actions">
+            <button type="button" aria-expanded={showMoreActions} onClick={() => setShowMoreActions((open) => !open)}>
+              {showMoreActions ? "Show fewer options" : "More options"} <span aria-hidden="true">{showMoreActions ? "−" : "+"}</span>
+            </button>
+            {showMoreActions && (
+              <div className="fresh-home-action-grid fresh-home-extra-grid">
+                {additionalActions.map(({ id, label, description, icon: Icon, route }) => (
+                  <button key={id} type="button" className="fresh-home-action-card" onClick={() => openAction(route, isAuthenticated, setActiveRoute)}>
+                    <span className="fresh-home-action-icon"><Icon size={22} /></span>
+                    <span className="fresh-home-action-copy"><strong>{label}</strong><small>{description}</small></span>
+                    <b aria-hidden="true">›</b>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {loading && <div className="fresh-home-status" role="status">Fresh is working on that…</div>}
