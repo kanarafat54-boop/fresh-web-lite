@@ -4,6 +4,7 @@
  */
 
 import { useState } from "react";
+import { useLayout } from "../../../app/contexts/useLayout";
 import { useFreshId } from "../context/FreshIdContext";
 import { supabase } from "../../../lib/supabase";
 
@@ -23,7 +24,8 @@ export function AuthForm() {
     passkeySupported,
   } = useFreshId();
 
-  const initialMode = typeof window !== "undefined" && window.location.pathname.replace(/\/+$/, "") === "/auth/sign-up" ? "register" : "login";
+  const { activeRoute } = useLayout();
+  const initialMode = activeRoute === "auth-signup" || (typeof window !== "undefined" && window.location.pathname.replace(/\/+$/, "") === "/auth/sign-up") ? "register" : "login";
   const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
