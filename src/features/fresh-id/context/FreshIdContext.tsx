@@ -430,7 +430,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (passkeyError || !data.user) {
+    if (passkeyError || !data?.user) {
       setError(passkeyErrorMessage(passkeyError, "sign-in"));
       setLoading(false);
       return;
