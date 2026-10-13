@@ -60,3 +60,12 @@
 @media(max-width:650px){.fresh-settings-fields{grid-template-columns:minmax(0,1fr)}.fresh-settings-security-grid{grid-template-columns:minmax(0,1fr)}.fresh-settings-provider-list{grid-template-columns:minmax(0,1fr)}.fresh-settings-section-heading{display:grid}.fresh-settings-inline-field{grid-template-columns:minmax(0,1fr)}.fresh-settings-footer{align-items:stretch;flex-direction:column}.fresh-settings-footer span{margin:0}.fresh-settings-passkey{align-items:flex-start}.fresh-settings-card{align-items:stretch}.fresh-settings-choice-row{display:grid;grid-template-columns:minmax(0,1fr)}}
 
 .fresh-settings-card{display:grid!important;grid-template-columns:minmax(0,1fr);gap:16px}
+
+
+/* Experience modes: readable, wrap-friendly controls on narrow screens */
+.fresh-settings-help{margin:12px 0 0;color:var(--fresh-muted);font-size:.92rem;line-height:1.65}
+.fresh-settings-choice-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.fresh-settings-choice-row>button{min-width:0;min-height:76px;display:flex;align-items:center;justify-content:flex-start;gap:10px;text-align:left;white-space:normal;overflow-wrap:anywhere}
+.fresh-settings-choice-row>button span{display:grid;gap:4px;min-width:0}
+.fresh-settings-choice-row>button small{color:var(--fresh-muted);font-size:.82rem;font-weight:400;line-height:1.45}
+@media(max-width:560px){.fresh-settings-choice-row{grid-template-columns:minmax(0,1fr)}.fresh-settings-choice-row>button{min-height:64px}}
