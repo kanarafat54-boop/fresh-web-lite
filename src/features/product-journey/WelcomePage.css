@@ -175,3 +175,47 @@
 @media(prefers-reduced-motion:reduce){
   .fwl-welcome__primary,.fwl-welcome__secondary{transition:none}
 }
+
+
+/* Welcome is a user-controlled carousel: never auto-advances. */
+.fwl-welcome__eyebrow{
+  margin:0;
+  color:#A99DFF;
+  font-size:.7rem;
+  font-weight:800;
+  letter-spacing:.12em;
+  line-height:1.4;
+}
+.fwl-welcome__pagination{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 auto}
+.fwl-welcome__dot{
+  width:30px;height:30px;min-width:30px;padding:0;
+  display:grid;place-items:center;
+  border:1px solid transparent;border-radius:50%;
+  background:transparent;cursor:pointer;
+}
+.fwl-welcome__dot span{
+  width:7px;height:7px;display:block;border-radius:99px;
+  background:rgba(203,207,230,.42);
+  transition:width .16s ease,background .16s ease;
+}
+.fwl-welcome__dot.active span{width:22px;background:#A99DFF}
+.fwl-welcome__dot:focus-visible,.fwl-welcome__slide-arrow:focus-visible{outline:2px solid #A99DFF;outline-offset:2px}
+.fwl-welcome__slide-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:-7px;color:#A4A7BA;font-size:.75rem}
+.fwl-welcome__slide-arrow{
+  width:38px;height:38px;min-width:38px;border-radius:12px;
+  border:1px solid rgba(185,181,220,.2);background:rgba(255,255,255,.035);
+  color:#F4F3FF;font-size:1.1rem;cursor:pointer;
+}
+.fwl-welcome__slide-arrow:disabled{opacity:.28;cursor:not-allowed}
+.fwl-welcome__actions{margin-top:5px}
+.fwl-welcome__card{touch-action:pan-y}
+@media(max-width:480px){
+  .fwl-welcome__eyebrow{font-size:.64rem;letter-spacing:.09em}
+  .fwl-welcome__pagination{gap:4px}
+  .fwl-welcome__dot{width:26px;min-width:26px;height:28px}
+  .fwl-welcome__dot.active span{width:18px}
+  .fwl-welcome__slide-controls{font-size:.7rem}
+}
+@media(prefers-reduced-motion:reduce){
+  .fwl-welcome__dot span{transition:none}
+}
