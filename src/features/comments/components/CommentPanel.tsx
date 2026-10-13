@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
+import { useProfileNav } from "../../profile/context/ProfileNavContext";
 import { CloseIcon, SendIcon, MicIcon, VideoCameraIcon, StopIcon } from "../../../components/Icons";
 import type { CommentTargetType } from "../types/comment";
 import { validateInteractionAttachments } from "../../../core/interactions/FreshAttachmentValidation";
@@ -69,6 +70,7 @@ function inferKind(file: File): InteractionMediaKind {
 
 export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProps) {
   const { user, isGuest } = useFreshId();
+  const { openProfile } = useProfileNav();
   const table = TABLE_MAP[targetType];
   const column = COLUMN_MAP[targetType];
   const [comments, setComments] = useState<ViewRow[]>([]);
@@ -253,7 +255,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
       <div key={comment.id} style={{ marginLeft: depth * 20 }}>
         <div className="comment-item">
           <div className="comment-header">
-            <span className="post-author">{comment.authorName}</span>
+            <button type="button" className="comment-author-profile" onClick={() => openProfile(comment.author_id)} aria-label={`Open ${comment.authorName}'s profile`}>{comment.authorName}</button>
             <span className="post-username">@{comment.authorUsername}</span>
             <span className="post-time">{timeAgo(comment.created_at)}</span>
           </div>
