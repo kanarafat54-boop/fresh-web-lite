@@ -17,8 +17,14 @@ export default function WelcomeRoute() {
   }, []);
   return (
     <WelcomePage
-      onGetStarted={() => setActiveRoute("auth-signup")}
-      onSignIn={() => setActiveRoute("auth-signin")}
+      onGetStarted={() => {
+        window.history.replaceState({ freshRoute: "auth-signup" }, "", "/auth/sign-up");
+        setActiveRoute("auth-signup");
+      }}
+      onSignIn={() => {
+        window.history.replaceState({ freshRoute: "auth-signin" }, "", "/auth/sign-in");
+        setActiveRoute("auth-signin");
+      }}
     />
   );
 }
