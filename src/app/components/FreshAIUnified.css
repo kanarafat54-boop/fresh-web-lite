@@ -7,3 +7,60 @@
 
 .fresh-ai-unified-actions .fresh-ai-home-return{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:8px 12px;border:1px solid var(--fresh-ai-line);border-radius:12px;background:rgba(82,109,255,.09);color:inherit;font-size:14px;font-weight:700;white-space:nowrap}.fresh-ai-unified-actions .fresh-ai-home-return span{display:inline;font-size:13px;opacity:1}.fresh-ai-unified-actions .fresh-ai-home-return:hover{background:rgba(82,109,255,.18)}
 @media(max-width:420px){.fresh-ai-unified-shell header{padding:12px 10px}.fresh-ai-unified-brand{gap:8px}.fresh-ai-unified-brand small{display:none}.fresh-ai-unified-actions{gap:3px}.fresh-ai-unified-actions .fresh-ai-home-return{padding:7px 8px;min-height:44px}.fresh-ai-unified-actions .fresh-ai-home-return span{display:inline}}
+
+
+/* Compact Android and constrained-network layout. */
+.fresh-ai-unified-page{width:100%;min-width:0;padding:clamp(8px,2vw,22px)}
+.fresh-ai-unified-page .fresh-ai-unified-shell{min-width:0;width:100%;max-width:1240px}
+.fresh-ai-unified-shell header,.fresh-ai-unified-context,.fresh-ai-unified-composer{min-width:0}
+.fresh-ai-unified-brand,.fresh-ai-unified-actions,.fresh-ai-unified-context>*{min-width:0}
+.fresh-ai-unified-context{flex-wrap:wrap;overflow-wrap:anywhere}
+.fresh-ai-unified-messages{min-width:0;overscroll-behavior:contain}
+.fresh-ai-unified-evidence pre{max-width:100%;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+.fresh-ai-unified-image img,.fresh-ai-unified-evidence img{height:auto;max-width:100%;object-fit:contain}
+.fresh-ai-unified-composer form{min-width:0}
+.fresh-ai-unified-composer textarea{min-width:0;font-size:16px}
+.fresh-ai-mode-strip{max-width:100%;overscroll-behavior-x:contain}
+.fresh-ai-unified-status{line-height:1.5;overflow-wrap:anywhere}
+@media(max-width:520px){
+  .fresh-ai-unified-page{padding:0}
+  .fresh-ai-unified-page .fresh-ai-unified-shell{height:100vh;height:100dvh;max-height:100dvh}
+  .fresh-ai-unified-shell header{gap:8px;padding:10px 8px}
+  .fresh-ai-unified-brand{gap:7px}
+  .fresh-ai-unified-brand strong{font-size:14px}
+  .fresh-ai-unified-actions{gap:2px;flex-shrink:0}
+  .fresh-ai-unified-actions button{padding:6px;min-width:36px}
+  .fresh-ai-unified-actions .fresh-ai-home-return{gap:3px;padding:6px;min-width:44px}
+  .fresh-ai-unified-actions .fresh-ai-home-return span{display:inline}
+  .fresh-ai-unified-context{gap:5px;padding:8px 10px;font-size:11px}
+  .fresh-ai-unified-messages{padding:16px 10px}
+  .fresh-ai-unified-welcome{margin:5vh auto;padding:0 4px}
+  .fresh-ai-unified-welcome h2{font-size:clamp(22px,6vw,30px)}
+  .fresh-ai-unified-welcome p{font-size:14px}
+  .fresh-ai-suggestions{gap:7px;margin-top:16px}
+  .fresh-ai-suggestions button{max-width:100%;padding:9px 10px;font-size:13px}
+  .fresh-ai-unified-composer{padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
+  .fresh-ai-vault-bar{min-width:0;flex-wrap:wrap;gap:6px}
+  .fresh-ai-vault-bar input{flex:1 1 100%;width:100%;min-width:0}
+  .fresh-ai-vault-msg{width:100%;overflow-wrap:anywhere}
+  .fresh-ai-unified-composer form{gap:5px;padding:6px;border-radius:16px}
+  .fresh-ai-unified-composer form button{width:38px;height:38px;min-width:38px}
+  .fresh-ai-composer-tools{gap:6px}
+  .fresh-ai-composer-tools>span{white-space:normal;overflow-wrap:anywhere;line-height:1.4}
+  .fresh-ai-unified-status{font-size:10px}
+  .fresh-ai-constellation{left:8px;right:8px;bottom:150px;max-height:55%;overflow:auto;padding:10px}
+}
+@media(max-width:360px){
+  .fresh-ai-unified-shell header{padding-inline:6px}
+  .fresh-ai-unified-brand small{display:none}
+  .fresh-ai-unified-actions .fresh-ai-home-return span{display:none}
+  .fresh-ai-unified-actions .fresh-ai-home-return{width:38px;min-width:38px}
+  .fresh-ai-unified-messages{padding-inline:8px}
+  .fresh-ai-unified-composer{padding-inline:6px}
+  .fresh-ai-unified-composer form{gap:3px}
+  .fresh-ai-unified-composer form button{width:34px;height:36px;min-width:34px}
+}
+@media(prefers-reduced-data:reduce){
+  .fresh-ai-unified-shell,.fresh-ai-unified-overlay,.fresh-ai-unified-trigger,.fresh-ai-unified-composer form,.fresh-ai-constellation{backdrop-filter:none;-webkit-backdrop-filter:none}
+  .fresh-ai-unified-shell{box-shadow:none}
+}
