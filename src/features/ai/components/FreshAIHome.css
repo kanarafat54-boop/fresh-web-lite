@@ -55,3 +55,5 @@
   .fresh-ai-main .composer-box { grid-template-columns: minmax(0,1fr) 44px; }
   .fresh-ai-main .composer-box .composer-icon { display: none; }
 }
+
+.fresh-ai-main-header-actions .fresh-ai-return-home{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:700;border-color:var(--accent-2);background:var(--surface);color:var(--text)}.fresh-ai-main-header-actions .fresh-ai-return-home:hover{background:var(--bg);border-color:var(--accent)}
