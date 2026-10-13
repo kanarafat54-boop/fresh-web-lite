@@ -46,11 +46,18 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
     setLoading(true);
     setError(null);
 
-    const { data: postsData, error: postsError } = await supabase
+    const sharedPostId = typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("post")
+      : null;
+    let postsQuery = supabase
       .from("posts")
-      .select("id, author_id, content, image_url, video_url, like_count, comment_count, created_at")
-      .order("created_at", { ascending: false })
-      .limit(24);
+      .select("id, author_id, content, image_url, video_url, like_count, comment_count, created_at");
+    if (sharedPostId) {
+      postsQuery = postsQuery.eq("id", sharedPostId);
+    } else {
+      postsQuery = postsQuery.order("created_at", { ascending: false }).limit(24);
+    }
+    const { data: postsData, error: postsError } = await postsQuery;
 
     if (postsError) {
       setError(`Couldn't load the feed: ${postsError.message}`);
@@ -252,6 +259,13 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
     return `${Math.floor(hours / 24)}d ago`;
   }
 
+  useEffect(() => {
+    if (loading || typeof window === "undefined") return;
+    const sharedPostId = new URLSearchParams(window.location.search).get("post");
+    if (!sharedPostId) return;
+    document.getElementById(`post-${sharedPostId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [loading, posts]);
+
   const runtimeActiveId = runtimeState.activeId;
   const title = discoveryId ? `Feed · ${discoveryId.replace(/-/g, " ")}` : "Feed";
 
@@ -288,7 +302,7 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
 
       <ul className="notes-list">
         {posts.map((p) => (
-          <li key={p.id} className={`post-item ${runtimeActiveId === p.id ? "active" : ""}`} onMouseEnter={() => setRuntimeActive(p.id)}>
+          <li id={`post-${p.id}`} key={p.id} className={`post-item ${runtimeActiveId === p.id ? "active" : ""}`} onMouseEnter={() => setRuntimeActive(p.id)}>
             <div className="post-header">
               <button type="button" className="post-author" onClick={() => openProfile(p.authorId)} aria-label={`Open ${p.authorName}'s profile`}>{p.authorName}</button>
               <span className="post-username">@{p.authorUsername}</span>
@@ -304,7 +318,7 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
               <ReactionPicker myReaction={p.myReaction} count={p.likeCount} disabled={isGuest} onReact={(type) => reactToPost(p, type)} />
               <button type="button" className="like-btn" onClick={() => setOpenCommentsFor(p.id)} aria-label={`Open comments, ${p.commentCount} comments`} title="Comments"><CommentIcon size={18} /><span>{p.commentCount}</span></button>
               <button type="button" className={savedIds.has(p.id) ? "like-btn liked" : "like-btn"} onClick={() => toggleSave(p.id)} disabled={isGuest} aria-label={savedIds.has(p.id) ? "Remove saved post" : "Save post"} title={savedIds.has(p.id) ? "Saved" : "Save post"}><BookmarkIcon size={18} filled={savedIds.has(p.id)} /><span className="post-action-label">{savedIds.has(p.id) ? "Saved" : "Save"}</span></button>
-              <button type="button" className="like-btn" onClick={() => setShareTarget(p.content || "Check this out")} aria-label="Share post" title="Share post"><ShareIcon size={18} /><span className="post-action-label">Share</span></button>
+              <button type="button" className="like-btn" onClick={() => setShareTarget(p.id)} aria-label="Share post" title="Share post"><ShareIcon size={18} /><span className="post-action-label">Share</span></button>
             </div>
           </li>
         ))}
@@ -313,7 +327,7 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
       {openCommentsFor && (
         <CommentPanel targetType="post" targetId={openCommentsFor} onClose={() => { setOpenCommentsFor(null); void loadPosts(); }} />
       )}
-      {shareTarget && <ShareSheet title={shareTarget} onClose={() => setShareTarget(null)} />}
+      {shareTarget && <ShareSheet postId={shareTarget} title={posts.find((post) => post.id === shareTarget)?.content || "Check out this Fresh post"} onClose={() => setShareTarget(null)} />}
     </div>
   );
 }
