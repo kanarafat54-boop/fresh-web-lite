@@ -50,7 +50,7 @@ export function AuthForm() {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: oauthProvider,
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: new URL("/auth/sign-in", window.location.origin).toString(),
           queryParams: provider === "google" ? { access_type: "offline", prompt: "select_account" } : undefined,
         },
       });
