@@ -44,11 +44,6 @@ export default function HomeDashboard() {
     if (saved === "simple" || saved === "standard" || saved === "advanced") setExperienceMode(saved);
   }, []);
 
-  function changeExperienceMode(next: "simple" | "standard" | "advanced") {
-    setExperienceMode(next);
-    window.localStorage.setItem("fresh-experience-mode", next);
-  }
-
   const name = user?.fullName || user?.username || null;
   const greeting = isAuthenticated && name ? `Good to see you, ${name}` : isAuthenticated ? "Welcome back" : "Welcome to Fresh";
   const primaryActions = actions.filter((action) => ["flow", "create", "explore"].includes(action.id));
