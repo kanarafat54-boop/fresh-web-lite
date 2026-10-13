@@ -356,7 +356,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (signUpError || !data.user) {
+    if (signUpError || !data?.user) {
       setError(signUpError?.message ?? "Registration failed. Please try again.");
       setLoading(false);
       return;
