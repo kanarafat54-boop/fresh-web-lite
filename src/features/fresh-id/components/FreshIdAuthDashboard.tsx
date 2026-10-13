@@ -165,20 +165,16 @@ export default function FreshIdAuthDashboard() {
             : "Browser";
 
   function enterFresh() {
-    // Authentication completion and product onboarding are separate states.
-    // First-time authenticated users must complete onboarding before Home.
+    // Successful authentication should always enter the main Home surface.
+    // Onboarding remains available from the product and must not trap users
+    // between the independent Fresh ID gateway and the landing page.
     try {
       window.localStorage.setItem("fresh.id.onboarded", "1");
+      window.history.replaceState({ freshRoute: "feed" }, "", "/");
     } catch {
       // The main application still uses the authoritative auth session.
     }
-    let onboardingDone = false;
-    try {
-      onboardingDone = window.localStorage.getItem("fresh.journey.onboardingDone") === "true";
-    } catch {
-      /* ignore local preference errors */
-    }
-    setActiveRoute(onboardingDone ? "feed" : "onboarding");
+    setActiveRoute("feed");
   }
 
   return (
