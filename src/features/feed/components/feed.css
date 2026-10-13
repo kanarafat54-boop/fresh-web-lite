@@ -197,3 +197,17 @@ font-weight:bold;
   .module[data-discovery] .post-actions button { flex:1 1 auto; padding:8px; }
   .module[data-discovery] .post-action-label { font-size:11px; }
 }
+
+
+/* Comment author links share the same visible profile-navigation affordance as post authors. */
+.comment-author-profile {
+  display:inline-flex; align-items:center; min-height:36px; padding:2px 0;
+  border:0; background:transparent; color:inherit; font:inherit; font-weight:750;
+  text-align:left; cursor:pointer; border-radius:6px;
+}
+.comment-author-profile:hover { text-decoration:underline; text-underline-offset:3px; }
+.comment-author-profile:focus-visible { outline:2px solid #A99DFF; outline-offset:3px; }
+.fresh-profile-overlay .profile-view { max-width:100% !important; }
+@media(max-width:420px) {
+  .fresh-profile-overlay .profile-view { padding-bottom:24px !important; }
+}
