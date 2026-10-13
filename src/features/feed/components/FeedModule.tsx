@@ -211,15 +211,18 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
   async function reactToPost(post: Post, type: string) {
     if (!user || isGuest) return;
     setError(null);
-    let result;
+    let interactionError: string | null = null;
     if (post.myReaction === type) {
-      result = await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
+      const result = await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
+      interactionError = result.error?.message ?? null;
     } else if (post.myReaction) {
-      result = await supabase.from("post_likes").update({ reaction_type: type }).eq("post_id", post.id).eq("user_id", user.id);
+      const result = await supabase.from("post_likes").update({ reaction_type: type }).eq("post_id", post.id).eq("user_id", user.id);
+      interactionError = result.error?.message ?? null;
     } else {
-      result = await supabase.from("post_likes").insert({ post_id: post.id, user_id: user.id, reaction_type: type });
+      const result = await supabase.from("post_likes").insert({ post_id: post.id, user_id: user.id, reaction_type: type });
+      interactionError = result.error?.message ?? null;
     }
-    if (result.error) {
+    if (interactionError) {
       setError("Your reaction couldn't be saved. Please try again.");
       return;
     }
