@@ -21,6 +21,7 @@ export default function SettingsWorkspace() {
   const { setActiveRoute } = useLayout();
   const { user, isAuthenticated, isGuest, loading, error, message, updateUser, logout, requestPasswordReset, passkeySupported, registerPasskey, listPasskeys, removePasskey, session } = useFreshId();
   const [theme, setTheme] = useState<Theme>("dark");
+  const [experienceMode, setExperienceMode] = useState<"simple" | "standard" | "advanced">("simple");
   const [textSize, setTextSize] = useState("normal");
   const [emailUpdates, setEmailUpdates] = useState(true);
   const [fullName, setFullName] = useState("");
@@ -41,6 +42,8 @@ export default function SettingsWorkspace() {
     const size = window.localStorage.getItem("fresh-text-size");
     if (size === "large" || size === "larger") setTextSize(size);
     setPrivacy(getPrivacy());
+    const savedMode = window.localStorage.getItem("fresh-experience-mode");
+    if (savedMode === "simple" || savedMode === "standard" || savedMode === "advanced") setExperienceMode(savedMode);
   }, []);
 
   useEffect(() => {
@@ -57,6 +60,12 @@ export default function SettingsWorkspace() {
     void listPasskeys().then((items) => { if (!cancelled) setPasskeys(items); });
     return () => { cancelled = true; };
   }, [isAuthenticated, isGuest, listPasskeys]);
+
+  const changeExperienceMode = (next: "simple" | "standard" | "advanced") => {
+    setExperienceMode(next);
+    window.localStorage.setItem("fresh-experience-mode", next);
+    setStatus(`Home view changed to ${next}. You can change this any time.`);
+  };
 
   const changeTheme = (next: Theme) => {
     setTheme(next);
@@ -151,6 +160,8 @@ export default function SettingsWorkspace() {
     </section>
 
     <section className="fresh-settings-card"><div><h2>Connected accounts</h2><p>Only verified profile links are marked connected. New provider linking is not yet enabled here.</p></div><div className="fresh-settings-provider-list">{providers.map((p) => <div className="fresh-settings-provider" key={p.id}><span className={"fresh-settings-provider-mark " + p.id}>{p.label.slice(0,1)}</span><strong>{p.label}</strong><span className={p.connected ? "fresh-settings-status good" : "fresh-settings-status"}>{p.connected ? "Connected" : "Not linked"}</span></div>)}</div></section>
+
+    <section className="fresh-settings-card"><div><h2>How Fresh works for you</h2><p>Choose how much detail you want to see. You can change this at any time, and your other settings stay the same.</p></div><div className="fresh-settings-choice-row" role="group" aria-label="Experience level"><button type="button" className={experienceMode === "simple" ? "selected" : ""} onClick={() => changeExperienceMode("simple")} aria-pressed={experienceMode === "simple"}><span><strong>Simple</strong><small>Fewer choices and clearer steps</small></span></button><button type="button" className={experienceMode === "standard" ? "selected" : ""} onClick={() => changeExperienceMode("standard")} aria-pressed={experienceMode === "standard"}><span><strong>Standard</strong><small>More tools on your home screen</small></span></button><button type="button" className={experienceMode === "advanced" ? "selected" : ""} onClick={() => changeExperienceMode("advanced")} aria-pressed={experienceMode === "advanced"}><span><strong>Advanced</strong><small>More of the available controls</small></span></button></div><p className="fresh-settings-help">Simple mode does not remove your account or data. Use “Show more features” on Home whenever you need extra tools.</p></section>
 
     <section className="fresh-settings-card"><div><h2>Appearance and accessibility</h2><p>Make text easier to read and reduce visual strain.</p></div><div className="fresh-settings-choice-row"><button type="button" className={theme === "dark" ? "selected" : ""} onClick={() => changeTheme("dark")} aria-pressed={theme === "dark"}>◐ <span><strong>Dark</strong><small>Low-light appearance</small></span></button><button type="button" className={theme === "light" ? "selected" : ""} onClick={() => changeTheme("light")} aria-pressed={theme === "light"}>☼ <span><strong>Light</strong><small>Bright appearance</small></span></button></div><label className="fresh-settings-inline-field">Text size<select value={textSize} onChange={(e) => changeTextSize(e.target.value)}><option value="normal">Standard</option><option value="large">Large</option><option value="larger">Extra large</option></select></label></section>
 
