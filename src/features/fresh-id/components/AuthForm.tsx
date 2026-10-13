@@ -35,14 +35,15 @@ export function AuthForm() {
   const [signupError, setSignupError] = useState<string | null>(null);
   const [policyAccepted, setPolicyAccepted] = useState(false);
 
-  async function handleSocialSignIn(provider: "google" | "apple" | "facebook" | "x" | "instagram") {
+  async function handleSocialSignIn(provider: "google" | "apple" | "meta" | "x" | "whatsapp" | "telegram" | "tiktok") {
     setSocialError(null);
-    if (provider === "instagram") {
-      setSocialError("Instagram sign-in is not connected to this Fresh ID project yet. Use email or another enabled provider for now.");
+    if (provider === "whatsapp" || provider === "telegram" || provider === "tiktok") {
+      const labels = { whatsapp: "WhatsApp", telegram: "Telegram", tiktok: "TikTok" } as const;
+      setSocialError(labels[provider] + " sign-in is not connected yet. Its official authentication integration must be configured before this option can work.");
       return;
     }
     setSocialLoading(provider);
-    const oauthProvider = provider === "x" ? "twitter" : provider;
+    const oauthProvider = provider === "x" ? "twitter" : provider === "meta" ? "facebook" : provider;
     try {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: oauthProvider,
@@ -64,9 +65,11 @@ export function AuthForm() {
   const socialProviders = [
     { id: "google" as const, label: "Google", symbol: "G", className: "google", title: "Continue with Google" },
     { id: "apple" as const, label: "Apple", symbol: "●", className: "apple", title: "Continue with Apple" },
-    { id: "facebook" as const, label: "Facebook", symbol: "f", className: "facebook", title: "Continue with Facebook" },
+    { id: "meta" as const, label: "Meta", symbol: "∞", className: "meta", title: "Continue with Meta" },
     { id: "x" as const, label: "X", symbol: "𝕏", className: "x", title: "Continue with X" },
-    { id: "instagram" as const, label: "Instagram", symbol: "◎", className: "instagram", title: "Continue with Instagram" },
+    { id: "whatsapp" as const, label: "WhatsApp", symbol: "◔", className: "whatsapp", title: "Continue with WhatsApp" },
+    { id: "telegram" as const, label: "Telegram", symbol: "➤", className: "telegram", title: "Continue with Telegram" },
+    { id: "tiktok" as const, label: "TikTok", symbol: "♪", className: "tiktok", title: "Continue with TikTok" },
   ];
 
   async function handleRegister() {
@@ -186,7 +189,7 @@ export function AuthForm() {
                     <svg viewBox="0 0 48 48"><path fill="#4285F4" d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.4 9.4 0 0 1-4.1 6.2v5.1h6.6c3.9-3.6 6.1-8.8 6.1-15Z"/><path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.9l-6.6-5.1c-1.8 1.2-4.1 2-6.9 2-5.3 0-9.8-3.6-11.4-8.4H5.8v5.3A20 20 0 0 0 24 44Z"/><path fill="#FBBC05" d="M12.6 27.6a12 12 0 0 1 0-7.2v-5.3H5.8a20 20 0 0 0 0 17.8l6.8-5.3Z"/><path fill="#EA4335" d="M24 12c3 0 5.7 1 7.8 3.1l5.8-5.8C34.1 5.9 29.5 4 24 4A20 20 0 0 0 5.8 15.1l6.8 5.3C14.2 15.6 18.7 12 24 12Z"/></svg>
                   ) : provider.id === "apple" ? (
                     <svg viewBox="0 0 24 24"><path fill="currentColor" d="M17.05 12.53c-.02-2.2 1.8-3.27 1.88-3.32-1.03-1.5-2.64-1.71-3.2-1.73-1.35-.14-2.66.8-3.34.8-.69 0-1.75-.78-2.87-.76-1.47.02-2.82.85-3.57 2.17-1.53 2.66-.39 6.57 1.1 8.72.73 1.05 1.59 2.23 2.72 2.19 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.71.71 2.86.69 1.18-.02 1.92-1.07 2.65-2.12.84-1.22 1.19-2.4 1.21-2.46-.03-.01-2.32-.89-2.34-3.47ZM14.86 6.05c.61-.74 1.02-1.77.91-2.8-.88.04-1.95.59-2.58 1.32-.56.65-1.06 1.69-.92 2.68.98.08 1.98-.5 2.59-1.2Z"/></svg>
-                  ) : provider.id === "facebook" ? (
+                  ) : provider.id === "meta" ? (
                     <svg viewBox="0 0 24 24"><path fill="#1877F2" d="M24 12a12 12 0 1 0-13.875 11.85v-8.38H7.08V12h3.045V9.35c0-3.005 1.79-4.665 4.53-4.665 1.312 0 2.685.234 2.685.234v2.95h-1.512c-1.49 0-1.955.925-1.955 1.874V12h3.325l-.532 3.47h-2.793v8.38A12.002 12.002 0 0 0 24 12Z"/></svg>
                   ) : provider.id === "x" ? (
                     <svg viewBox="0 0 24 24"><path fill="currentColor" d="M18.9 2H22l-6.78 7.75L23.2 22h-6.25l-4.9-7.62L5.38 22H2.25l7.25-8.29L1.8 2h6.4l4.43 6.96L18.9 2Zm-1.1 17.9h1.73L7.27 4H5.42l12.38 15.9Z"/></svg>
