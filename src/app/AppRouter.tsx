@@ -8,7 +8,7 @@ import GlobalSearchEntry from "./components/GlobalSearchEntry";
 import { FeatureRegistry } from "./registry/FeatureRegistry";
 import { useLayout } from "./contexts/useLayout";
 import { useFreshId } from "../features/fresh-id/context/FreshIdContext";
-import { isOnboardingDone, resolveEntryRoute } from "../features/product-journey/productJourney";
+import { resolveEntryRoute } from "../features/product-journey/productJourney";
 import FeatureLoader from "./services/featureLoader";
 import "./AppRouter.css";
 import FreshPlatformRuntimeBoundary from "../core/platform/FreshPlatformRuntimeBoundary";
@@ -32,26 +32,35 @@ const gatewayFeatureId = (): string => {
 
 export default function AppRouter() {
   const { activeRoute, setActiveRoute } = useLayout();
-  const { isAuthenticated, isGuest, loading: authLoading } = useFreshId();
+  const { isAuthenticated, isGuest, loading: authLoading, authView } = useFreshId();
 
   // Canonical cold-start journey: unauthenticated users see Welcome first;
   // authenticated users who have not completed onboarding see Onboarding.
   // Explicit gateway routes always win and are never redirected by this gate.
   useEffect(() => {
-    if (authLoading || isGatewayPath() || typeof window === "undefined") return;
+    if (authLoading || typeof window === "undefined") return;
     const path = window.location.pathname.replace(/\/+$/, "") || "/";
-    if (path !== "/") return;
 
-    if (isAuthenticated && !isGuest && !isOnboardingDone()) {
-      if (activeRoute !== "onboarding") setActiveRoute("onboarding");
+    // Successful sign-in, sign-up with an active session, OAuth, and guest
+    // entry should leave the independent auth gateway and open the main Home.
+    // Keep password recovery on its dedicated reset-password screen.
+    if (path.startsWith("/auth/")) {
+      if (authView === "reset-password" || window.location.hash.includes("type=recovery")) return;
+      if ((isAuthenticated || isGuest) && (activeRoute !== "feed" || path !== "/")) {
+        setActiveRoute("feed");
+      }
       return;
     }
 
+    if (isGatewayPath() || path !== "/") return;
+
+    // Home is the default landing page after authentication. Onboarding remains
+    // available as an optional journey, but must not block the main product.
     if (!isAuthenticated && !isGuest) {
       const requiredRoute = resolveEntryRoute(false);
       if (activeRoute !== requiredRoute) setActiveRoute(requiredRoute);
     }
-  }, [activeRoute, authLoading, isAuthenticated, isGuest, setActiveRoute]);
+  }, [activeRoute, authLoading, authView, isAuthenticated, isGuest, setActiveRoute]);
   const freshFlowRoute = isFreshFlowRoute(activeRoute);
   const activeFeature = FeatureRegistry.getFeature(activeRoute);
   const freshFlowFeature = FeatureRegistry.getFeature("fresh-flow");
