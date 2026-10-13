@@ -26,6 +26,9 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
   const { user, isGuest } = useFreshId();
   const { openProfile } = useProfileNav();
   const [posts, setPosts] = useState<Post[]>([]);
+  const [sharedPostId, setSharedPostId] = useState<string | null>(() =>
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("post") : null,
+  );
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [draft, setDraft] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -40,15 +43,12 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
 
   useEffect(() => {
     void loadPosts();
-  }, [discoveryId, user?.id, isGuest]);
+  }, [discoveryId, user?.id, isGuest, sharedPostId]);
 
   async function loadPosts() {
     setLoading(true);
     setError(null);
 
-    const sharedPostId = typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("post")
-      : null;
     let postsQuery = supabase
       .from("posts")
       .select("id, author_id, content, image_url, video_url, like_count, comment_count, created_at");
@@ -153,6 +153,15 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
       safety: "approved",
     })), null, false);
     setLoading(false);
+  }
+
+  function showAllPosts() {
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("post");
+      window.history.replaceState(window.history.state, "", url.toString());
+    }
+    setSharedPostId(null);
   }
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -261,17 +270,19 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
 
   useEffect(() => {
     if (loading || typeof window === "undefined") return;
-    const sharedPostId = new URLSearchParams(window.location.search).get("post");
     if (!sharedPostId) return;
     document.getElementById(`post-${sharedPostId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [loading, posts]);
+  }, [loading, posts, sharedPostId]);
 
   const runtimeActiveId = runtimeState.activeId;
   const title = discoveryId ? `Feed · ${discoveryId.replace(/-/g, " ")}` : "Feed";
 
   return (
     <div className="module" data-discovery={discoveryId || undefined}>
-      <h2>{title}</h2>
+      <div className="feed-heading-row">
+        <h2>{sharedPostId ? "Shared post" : title}</h2>
+        {sharedPostId && <button type="button" className="add-note-btn" onClick={showAllPosts}>Back to all posts</button>}
+      </div>
       {isGuest && <p className="empty-state">Register a real account to post and react to content.</p>}
       {!isGuest && user && (
         <div className="post-composer">
@@ -296,7 +307,7 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
       {loading && <p className="empty-state">Loading feed...</p>}
       {!loading && posts.length === 0 && (
         <p className="empty-state">
-          {discoveryId ? `No posts for “${discoveryId.replace(/-/g, " ")}” yet.` : "No posts yet. Be the first."}
+          {sharedPostId ? "This post may be unavailable, deleted, or private." : discoveryId ? `No posts for “${discoveryId.replace(/-/g, " ")}” yet.` : "No posts yet. Be the first."}
         </p>
       )}
 
