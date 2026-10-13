@@ -58,7 +58,7 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
       .limit(24);
 
     if (postsError) {
-      setError(`Couldn't load ${title}: ${postsError.message}`);
+      setError(`Couldn't load ${title}. Check your connection and try again.`);
       setLoading(false);
       return;
     }
@@ -95,7 +95,7 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
         .select("id, full_name, username")
         .in("id", authorIds);
       if (profileError) {
-        setError(`Couldn't load media authors: ${profileError.message}`);
+        setError("Creator details could not be loaded. Please try again.");
         setLoading(false);
         return;
       }
@@ -174,7 +174,9 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
   }
 
   async function share(post: MediaPost) {
-    const url = post.videoUrl || post.imageUrl || window.location.href;
+    const shareLocation = new URL(window.location.href);
+    shareLocation.searchParams.set("post", post.id);
+    const url = shareLocation.toString();
     try {
       if (navigator.share) {
         await navigator.share({ title: post.content || title, text: post.content || title, url });
@@ -184,10 +186,11 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
         await navigator.clipboard.writeText(url);
         return;
       }
-      throw new Error("Sharing is not supported in this browser.");
+      setError("Sharing is unavailable in this browser. Open this post and copy its page address.");
+      return;
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
-      setError(error instanceof Error ? error.message : "Share failed. Retry.");
+      setError("Share link failed. Please try again.");
     }
   }
 
@@ -251,15 +254,15 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
 
       <div className="fresh-flow-media-live-state">
         <span className="fresh-flow-live-dot" />
-        <strong>Connected to Fresh data</strong>
+        <strong>{loading ? "Loading Fresh content" : error ? "Fresh content needs attention" : "Fresh content loaded"}</strong>
         <small>
           {posts.length} item{posts.length === 1 ? "" : "s"}
           {discoveryLabel ? ` · ${discoveryLabel}` : ""}
         </small>
       </div>
 
-      {loading && <div className="fresh-flow-media-status">Loading real Fresh content…</div>}
-      {error && <div className="fresh-flow-media-status error">{error}</div>}
+      {loading && <div className="fresh-flow-media-status" role="status">Loading Fresh content…</div>}
+      {error && <div className="fresh-flow-media-status error" role="alert"><span>{error}</span><button type="button" onClick={() => void loadMedia()} disabled={loading}>Try again</button></div>}
       {!loading && !error && posts.length === 0 && (
         <div className="fresh-flow-media-status">
           <strong>No {FILTER_LABELS[kind]} content{discoveryLabel ? ` for “${discoveryLabel}”` : ""} yet.</strong>
