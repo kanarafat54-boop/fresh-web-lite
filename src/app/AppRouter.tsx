@@ -54,11 +54,8 @@ export default function AppRouter() {
 
     if (isGatewayPath() || path !== "/") return;
 
-    if (isAuthenticated && !isGuest && !isOnboardingDone()) {
-      if (activeRoute !== "onboarding") setActiveRoute("onboarding");
-      return;
-    }
-
+    // Home is the default landing page after authentication. Onboarding remains
+    // available as an optional journey, but must not block the main product.
     if (!isAuthenticated && !isGuest) {
       const requiredRoute = resolveEntryRoute(false);
       if (activeRoute !== requiredRoute) setActiveRoute(requiredRoute);
