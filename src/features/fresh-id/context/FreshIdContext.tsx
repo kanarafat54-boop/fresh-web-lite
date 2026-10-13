@@ -142,7 +142,7 @@ interface FreshIdContextValue {
   removePasskey: (passkeyId: string) => Promise<void>;
   loginAsGuest: () => void;
   logout: () => Promise<void>;
-  updateUser: (patch: Partial<FreshUser>) => void;
+  updateUser: (patch: Partial<FreshUser>) => Promise<boolean>;
   requestPasswordReset: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
   session: FreshSessionState;
@@ -504,8 +504,38 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     setAuthView("form");
   }
 
-  function updateUser(patch: Partial<FreshUser>) {
-    setUser((previous) => previous ? { ...previous, ...patch, updatedAt: new Date().toISOString() } : previous);
+  async function updateUser(patch: Partial<FreshUser>): Promise<boolean> {
+    if (!user) return false;
+    const updatedAt = new Date().toISOString();
+    const nextUser: FreshUser = { ...user, ...patch, updatedAt };
+
+    if (!isGuest) {
+      const dbPatch: Record<string, unknown> = {};
+      if (patch.fullName !== undefined) dbPatch.full_name = patch.fullName;
+      if (patch.username !== undefined) dbPatch.username = patch.username;
+      if (patch.preferences !== undefined) dbPatch.preferences = patch.preferences;
+      if (Object.keys(dbPatch).length > 0) {
+        dbPatch.updated_at = updatedAt;
+        try {
+          const { error: saveError } = await supabase
+            .from("users")
+            .update(dbPatch)
+            .eq("id", user.id);
+          if (saveError) {
+            setError("Your changes could not be saved. Check your connection and account permissions.");
+            return false;
+          }
+        } catch {
+          setError("Your changes could not be saved. Check your connection and try again.");
+          return false;
+        }
+      }
+    }
+
+    setUser(nextUser);
+    setError(null);
+    setMessage(isGuest ? "Changes apply to this temporary guest session only." : "Your Fresh ID settings have been saved.");
+    return true;
   }
 
   async function requestPasswordReset(email: string) {
