@@ -185,6 +185,9 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         setSession({ expiresAt: null, lastRefreshedAt: new Date().toISOString(), accessLevel: "signed-out" });
         setLoading(false);
       }
+    }).catch(() => {
+      setError("We couldn't restore your Fresh ID session. Check your connection and reload the page.");
+      setLoading(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -257,6 +260,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
 
   async function loadUserProfile(authUser: User) {
     setLoading(true);
+    try {
     const { data, error: fetchError } = await supabase
       .from("users")
       .select("*")
@@ -324,8 +328,11 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     setIsGuest(false);
     setError(null);
     setLoading(false);
+    } catch {
+      setError("We couldn't finish loading your Fresh ID profile. Check your connection and try again.");
+      setLoading(false);
+    }
   }
-
   async function register(email: string, password: string, username: string, fullName: string) {
     setError(null);
     setMessage(null);
