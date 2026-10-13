@@ -568,3 +568,53 @@
   .auth-social-label { font-size: .78rem; }
 }
 :root[data-theme="light"] .auth-field-label { color: #111318; }
+
+
+/* Manual, accessible Fresh ID pagination and recognizable provider marks. */
+.fresh-id-gateway-bottom{
+  min-height:64px;
+  padding:8px clamp(16px,4vw,48px) max(10px,env(safe-area-inset-bottom));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:clamp(8px,2vw,18px);
+  box-sizing:border-box;
+  position:relative;
+  z-index:5;
+}
+.fresh-id-pagination{display:flex;align-items:center;justify-content:center;gap:7px}
+.fresh-id-page-dot{
+  width:28px;height:28px;min-width:28px;padding:0;
+  display:grid;place-items:center;
+  border:1px solid transparent;border-radius:50%;
+  background:transparent;cursor:pointer;
+}
+.fresh-id-page-dot span{
+  display:block;width:7px;height:7px;border-radius:50%;
+  background:rgba(220,224,240,.36);
+  transition:width .16s ease,background .16s ease,transform .16s ease;
+}
+.fresh-id-page-dot.active span{width:21px;border-radius:8px;background:#9B8CFF}
+.fresh-id-page-dot:focus-visible{outline:2px solid #A99DFF;outline-offset:2px}
+.fresh-id-gateway-hint{font-size:.72rem;opacity:.52;white-space:nowrap}
+.fresh-id-standalone-auth .fresh-id-gateway-bottom{padding-top:4px}
+.auth-social-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.auth-social-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:66px;height:auto;padding:8px 3px}
+.auth-social-symbol{display:grid;place-items:center;width:25px;height:25px;font-size:1rem}
+.auth-social-symbol svg{display:block;width:24px;height:24px;max-width:100%}
+.auth-social-btn.instagram .auth-social-label{font-size:.72rem}
+@media(max-width:760px){
+  .fresh-id-gateway-bottom{min-height:62px;gap:7px;padding-inline:12px}
+  .fresh-id-gateway-hint{display:none}
+  .fresh-id-pagination{gap:3px}
+  .fresh-id-page-dot{width:25px;min-width:25px;height:28px}
+  .fresh-id-page-dot span{width:6px;height:6px}
+  .fresh-id-page-dot.active span{width:18px}
+  .auth-social-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .auth-social-btn{min-height:62px}
+}
+@media(prefers-reduced-motion:reduce){
+  .fresh-id-page-dot span{transition:none}
+}
+:root[data-theme="light"] .fresh-id-page-dot span{background:rgba(17,19,24,.25)}
+:root[data-theme="light"] .fresh-id-page-dot.active span{background:#635BFF}
