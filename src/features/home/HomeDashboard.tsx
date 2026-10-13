@@ -97,7 +97,7 @@ export default function HomeDashboard() {
         <div className="fresh-home-section-heading">
           <div>
             <span>QUICK ACCESS</span>
-            <h2 id="fresh-home-actions-title">Where would you like to go?</h2>
+            <h2 id="fresh-home-actions-title">What do you want to do?</h2>
           </div>
         </div>
         <div className="fresh-home-action-grid">
