@@ -32,3 +32,45 @@
     transition-duration: .01ms !important;
   }
 }
+
+
+/* Small-screen + low-bandwidth compatibility layer.
+   Keep every surface inside the viewport, let text wrap, and avoid costly effects on touch devices. */
+*,*::before,*::after{box-sizing:border-box}
+html,body,#root,.app-shell-root{width:100%;max-width:100%;min-width:0}
+body{overflow-x:hidden}
+img,video,canvas,iframe,svg{max-width:100%}
+input,textarea,select,button{max-width:100%;min-width:0}
+.app-shell,.app-body,.app-content,.app-main,.home-dashboard,.fresh-ai-unified-page,.fresh-ai-unified-shell{min-width:0;max-width:100%}
+.app-content,.app-main,.home-dashboard,.fresh-ai-unified-messages{overflow-wrap:anywhere}
+.home-dashboard>*{min-width:0}
+.fresh-home-hero,.fresh-home-action-card,.fresh-home-continue-grid button,.fresh-home-section-heading{min-width:0}
+.fresh-home-action-card strong,.fresh-home-action-card small,.fresh-home-continue-grid strong,.fresh-home-continue-grid small{overflow-wrap:anywhere;word-break:normal}
+@media(max-width:520px){
+  .app-shell{width:100%;max-width:100%;height:100vh;height:100dvh}
+  .app-content{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+  .app-main{padding-inline:10px}
+  .home-dashboard{width:100%;gap:18px;padding-inline:0}
+  .fresh-home-hero{width:100%;padding:18px 14px;gap:14px}
+  .fresh-home-hero h1{font-size:clamp(1.45rem,7vw,1.9rem);overflow-wrap:anywhere}
+  .fresh-home-hero p{font-size:.94rem}
+  .fresh-home-action-grid,.fresh-home-continue-grid,.fresh-home-hub-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fresh-home-action-card{min-width:0;padding:12px;gap:8px}
+  .fresh-home-action-card strong{font-size:.9rem}
+  .fresh-home-action-card small{font-size:.78rem}
+}
+@media(max-width:360px){
+  .app-main{padding-inline:8px}
+  .fresh-home-action-grid,.fresh-home-continue-grid,.fresh-home-hub-grid{grid-template-columns:minmax(0,1fr)}
+  .fresh-home-action-card{display:grid;grid-template-columns:40px minmax(0,1fr);min-height:76px;align-items:center}
+  .fresh-home-action-icon{grid-column:auto;width:38px;height:38px}
+  .fresh-home-action-copy,.fresh-home-action-card span:nth-child(2){grid-column:auto;min-width:0}
+  .fresh-home-section-heading{flex-wrap:wrap;gap:8px}
+}
+@media(hover:none),(pointer:coarse){
+  .fresh-home-action-card:hover,.fresh-home-continue-grid button:hover,.fresh-home-hub-card:hover{transform:none}
+}
+@media(prefers-reduced-data:reduce){
+  body{background:var(--fresh-bg)}
+  .fresh-global-theme{backdrop-filter:none;-webkit-backdrop-filter:none}
+}
