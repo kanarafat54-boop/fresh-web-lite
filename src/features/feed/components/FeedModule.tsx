@@ -210,22 +210,31 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
 
   async function reactToPost(post: Post, type: string) {
     if (!user || isGuest) return;
+    setError(null);
+    let result;
     if (post.myReaction === type) {
-      await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
+      result = await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
     } else if (post.myReaction) {
-      await supabase.from("post_likes").update({ reaction_type: type }).eq("post_id", post.id).eq("user_id", user.id);
+      result = await supabase.from("post_likes").update({ reaction_type: type }).eq("post_id", post.id).eq("user_id", user.id);
     } else {
-      await supabase.from("post_likes").insert({ post_id: post.id, user_id: user.id, reaction_type: type });
+      result = await supabase.from("post_likes").insert({ post_id: post.id, user_id: user.id, reaction_type: type });
+    }
+    if (result.error) {
+      setError("Your reaction couldn't be saved. Please try again.");
+      return;
     }
     void loadPosts();
   }
 
   async function toggleSave(postId: string) {
     if (!user || isGuest) return;
-    if (savedIds.has(postId)) {
-      await supabase.from("saved_posts").delete().eq("post_id", postId).eq("user_id", user.id);
-    } else {
-      await supabase.from("saved_posts").insert({ post_id: postId, user_id: user.id });
+    setError(null);
+    const result = savedIds.has(postId)
+      ? await supabase.from("saved_posts").delete().eq("post_id", postId).eq("user_id", user.id)
+      : await supabase.from("saved_posts").insert({ post_id: postId, user_id: user.id });
+    if (result.error) {
+      setError("This post couldn't be saved. Please try again.");
+      return;
     }
     void loadPosts();
   }
