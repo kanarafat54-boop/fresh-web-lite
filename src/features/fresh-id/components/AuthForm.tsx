@@ -39,15 +39,20 @@ export function AuthForm() {
     setSocialError(null);
     setSocialLoading(provider);
     const oauthProvider = provider === "x" ? "twitter" : provider;
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: oauthProvider,
-      options: {
-        redirectTo: window.location.origin,
-        queryParams: provider === "google" ? { access_type: "offline", prompt: "select_account" } : undefined,
-      },
-    });
-    if (oauthError) {
-      setSocialError(oauthError.message);
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: oauthProvider,
+        options: {
+          redirectTo: window.location.origin,
+          queryParams: provider === "google" ? { access_type: "offline", prompt: "select_account" } : undefined,
+        },
+      });
+      if (oauthError) {
+        setSocialError(oauthError.message);
+        setSocialLoading(null);
+      }
+    } catch {
+      setSocialError("We couldn't reach the sign-in provider. Check your connection and try again.");
       setSocialLoading(null);
     }
   }
