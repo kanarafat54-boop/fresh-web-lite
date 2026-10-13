@@ -58,3 +58,5 @@
 .fresh-settings-page :is(button,input,select){font-size:inherit}
 .fresh-settings-page :is(button,input,select):focus-visible{outline:3px solid var(--fresh-accent);outline-offset:3px}
 @media(max-width:650px){.fresh-settings-fields{grid-template-columns:minmax(0,1fr)}.fresh-settings-security-grid{grid-template-columns:minmax(0,1fr)}.fresh-settings-provider-list{grid-template-columns:minmax(0,1fr)}.fresh-settings-section-heading{display:grid}.fresh-settings-inline-field{grid-template-columns:minmax(0,1fr)}.fresh-settings-footer{align-items:stretch;flex-direction:column}.fresh-settings-footer span{margin:0}.fresh-settings-passkey{align-items:flex-start}.fresh-settings-card{align-items:stretch}.fresh-settings-choice-row{display:grid;grid-template-columns:minmax(0,1fr)}}
+
+.fresh-settings-card{display:grid!important;grid-template-columns:minmax(0,1fr);gap:16px}
