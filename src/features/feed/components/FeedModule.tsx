@@ -278,7 +278,7 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
         {posts.map((p) => (
           <li key={p.id} className={`post-item ${runtimeActiveId === p.id ? "active" : ""}`} onMouseEnter={() => setRuntimeActive(p.id)}>
             <div className="post-header">
-              <span className="post-author" onClick={() => openProfile(p.authorId)} style={{ cursor: "pointer" }}>{p.authorName}</span>
+              <button type="button" className="post-author" onClick={() => openProfile(p.authorId)} aria-label={`Open ${p.authorName}'s profile`}>{p.authorName}</button>
               <span className="post-username">@{p.authorUsername}</span>
               <span className="post-time">{timeAgo(p.createdAt)}</span>
               <span style={{ marginLeft: "auto" }}><PostMenu targetType="post" targetId={p.id} onHide={() => setPosts((prev) => prev.filter((x) => x.id !== p.id))} /></span>
@@ -290,9 +290,9 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
             )}
             <div className="post-actions">
               <ReactionPicker myReaction={p.myReaction} count={p.likeCount} disabled={isGuest} onReact={(type) => reactToPost(p, type)} />
-              <button className="like-btn" onClick={() => setOpenCommentsFor(p.id)}><CommentIcon size={18} /> {p.commentCount}</button>
-              <button className={savedIds.has(p.id) ? "like-btn liked" : "like-btn"} onClick={() => toggleSave(p.id)} disabled={isGuest}><BookmarkIcon size={18} filled={savedIds.has(p.id)} /></button>
-              <button className="like-btn" onClick={() => setShareTarget(p.content || "Check this out")}><ShareIcon size={18} /></button>
+              <button type="button" className="like-btn" onClick={() => setOpenCommentsFor(p.id)} aria-label={`Open comments, ${p.commentCount} comments`} title="Comments"><CommentIcon size={18} /><span>{p.commentCount}</span></button>
+              <button type="button" className={savedIds.has(p.id) ? "like-btn liked" : "like-btn"} onClick={() => toggleSave(p.id)} disabled={isGuest} aria-label={savedIds.has(p.id) ? "Remove saved post" : "Save post"} title={savedIds.has(p.id) ? "Saved" : "Save post"}><BookmarkIcon size={18} filled={savedIds.has(p.id)} /><span className="post-action-label">{savedIds.has(p.id) ? "Saved" : "Save"}</span></button>
+              <button type="button" className="like-btn" onClick={() => setShareTarget(p.content || "Check this out")} aria-label="Share post" title="Share post"><ShareIcon size={18} /><span className="post-action-label">Share</span></button>
             </div>
           </li>
         ))}
