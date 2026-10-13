@@ -351,7 +351,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: new URL("/auth/sign-in", window.location.origin).toString(),
           data: { username, full_name: fullName },
         },
       });
@@ -556,7 +556,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
     let resetError: Awaited<ReturnType<typeof supabase.auth.resetPasswordForEmail>>["error"];
     try {
-      const result = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+      const result = await supabase.auth.resetPasswordForEmail(email, { redirectTo: new URL("/auth/sign-in", window.location.origin).toString() });
       resetError = result.error;
     } catch {
       setError("We couldn't reach the password-reset service. Check your connection and try again.");
