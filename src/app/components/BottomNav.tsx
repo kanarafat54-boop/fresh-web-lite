@@ -8,7 +8,7 @@ const primaryDestinations: BottomDestination[] = [
   { id: "feed", label: "Home", icon: HomeIcon },
   { id: "fresh-flow", label: "Flow", icon: FeedIcon },
   { id: "ai", label: "AI", icon: AIIcon },
-  { id: "discovery", label: "Explore", icon: SearchIcon },
+  { id: "discovery", label: "Ecosystems", icon: SearchIcon },
   { id: "profile", label: "Profile", icon: ProfileIcon },
 ];
 
