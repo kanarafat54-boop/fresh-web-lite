@@ -64,6 +64,7 @@ export default function SmartProfilePage() {
     imageUrl: "",
   });
   const [tab, setTab] = useState<Tab>("Overview");
+  const [showMoreProfileActions, setShowMoreProfileActions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -628,22 +629,28 @@ export default function SmartProfilePage() {
             )}
           </div>
         </div>
-        <div className="profile-primary-actions">
-          <button type="button" onClick={() => setEditing((value) => !value)}>
+        <div className="profile-primary-actions" aria-label="Profile actions">
+          <button type="button" className="profile-primary-action" onClick={() => setEditing((value) => !value)}>
             ✎ Edit profile
           </button>
-          <button type="button" onClick={() => setTab("Professional")}>
-            ▣ Professional
-          </button>
-          <button type="button" onClick={() => setTab("Account")}>
-            ⚿ Account
-          </button>
-          <button type="button" onClick={() => setActiveRoute("creator")}>
+          <button type="button" className="profile-primary-action" onClick={() => setActiveRoute("creator")}>
             ＋ Create
           </button>
-          <button type="button" onClick={() => void shareProfile()}>
-            ↗ Share
+          <button
+            type="button"
+            className="profile-more-actions-toggle"
+            aria-expanded={showMoreProfileActions}
+            onClick={() => setShowMoreProfileActions((value) => !value)}
+          >
+            {showMoreProfileActions ? "− Fewer options" : "＋ More options"}
           </button>
+          {showMoreProfileActions && (
+            <div className="profile-secondary-actions">
+              <button type="button" onClick={() => setTab("Professional")}>▣ Professional</button>
+              <button type="button" onClick={() => setTab("Account")}>⚿ Account & security</button>
+              <button type="button" onClick={() => void shareProfile()}>↗ Share profile</button>
+            </div>
+          )}
         </div>
         {profile.bio && <p className="profile-bio">{profile.bio}</p>}
         <div className="profile-stats">
