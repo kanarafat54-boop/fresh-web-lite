@@ -46,8 +46,12 @@ export default function AppRouter() {
     // Keep password recovery on its dedicated reset-password screen.
     if (path.startsWith("/auth/")) {
       if (authView === "reset-password" || window.location.hash.includes("type=recovery")) return;
-      if ((isAuthenticated || isGuest) && (activeRoute !== "feed" || path !== "/")) {
-        setActiveRoute("feed");
+      if (isAuthenticated || isGuest) {
+        // Leave the standalone gateway URL as well as its UI. Otherwise the
+        // pathname keeps matching isGatewayPath() and the auth screen wins
+        // even after the active workspace changes to Home.
+        window.history.replaceState({ freshRoute: "feed" }, "", "/");
+        if (activeRoute !== "feed") setActiveRoute("feed");
       }
       return;
     }
