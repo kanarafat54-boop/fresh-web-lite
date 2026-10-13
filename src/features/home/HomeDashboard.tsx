@@ -4,7 +4,7 @@ import { FeatureRegistry } from "../../app/registry/FeatureRegistry";
 import { useLayout } from "../../app/contexts/useLayout";
 import { runIntelligence, type IntelligenceResponse } from "../ai/intelligence";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FeedModule } from "../feed/components/FeedModule";
 import "./HomeDashboard.css";
 
@@ -35,9 +35,23 @@ export default function HomeDashboard() {
   const [result, setResult] = useState<IntelligenceResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [experienceMode, setExperienceMode] = useState<"simple" | "standard" | "advanced">("simple");
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("fresh-experience-mode");
+    if (saved === "simple" || saved === "standard" || saved === "advanced") setExperienceMode(saved);
+  }, []);
+
+  function changeExperienceMode(next: "simple" | "standard" | "advanced") {
+    setExperienceMode(next);
+    window.localStorage.setItem("fresh-experience-mode", next);
+  }
 
   const name = user?.fullName || user?.username || null;
   const greeting = isAuthenticated && name ? `Good to see you, ${name}` : isAuthenticated ? "Welcome back" : "Welcome to Fresh";
+  const visibleActions = experienceMode === "simple"
+    ? actions.filter((action) => ["flow", "create", "explore", "profile"].includes(action.id))
+    : actions;
 
   const handleSearch = async (query: string, mode: SearchMode) => {
     setError(null);
@@ -97,7 +111,7 @@ export default function HomeDashboard() {
         <div className="fresh-home-section-heading">
           <div>
             <span>QUICK ACCESS</span>
-            <h2 id="fresh-home-actions-title">What do you want to do?</h2>
+            <h2 id="fresh-home-actions-title">What do you want to do?</h2>\n            <p>{experienceMode === "simple" ? "Start with a few clear choices. You can show more whenever you need." : "Choose a place to get started."}</p>
           </div>
         </div>
         <div className="fresh-home-action-grid">
@@ -129,7 +143,7 @@ export default function HomeDashboard() {
         </section>
       )}
 
-      <section className="fresh-home-feed" aria-label="Your Fresh feed">
+      {experienceMode !== "simple" && <section className="fresh-home-feed" aria-label="Your Fresh feed">
         <div className="fresh-home-section-heading">
           <div>
             <span>YOUR FEED</span>
