@@ -9,7 +9,7 @@ const required = [
     [/drop policy if exists "fresh message sender"/i, "old broad message policy is removed"],
   ]],
   ["src/features/workspaces/connectionService.ts", [
-    [/existing\\?\.status === "accepted" \\|\\| existing\\?\.status === "pending"/i, "request sending is idempotent for accepted/pending connections"],
+    [/existing\?\.status === "accepted" \|\| existing\?\.status === "pending"/i, "request sending is idempotent for accepted/pending connections"],
   ]],
   ["supabase/migrations/20261014195500_harden_connection_request_transitions.sql", [
     [/revoke all privileges on table public\.connection_requests from public, anon, authenticated/i, "connection request browser grants are revoked"],
