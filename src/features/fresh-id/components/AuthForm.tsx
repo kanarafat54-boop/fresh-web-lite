@@ -136,7 +136,17 @@ export function AuthForm() {
           Your Fresh Web Lite account was created. Check your email to confirm it,
           then return here and log in.
         </p>
-        <button className="auth-tab" onClick={() => setAuthView("form")}>
+        <button
+          className="auth-tab"
+          onClick={() => {
+            setMode("login");
+            setSignupError(null);
+            setAuthView("form");
+            if (window.location.pathname !== "/auth/sign-in") {
+              window.history.replaceState({ freshRoute: "auth-signin" }, "", "/auth/sign-in");
+            }
+          }}
+        >
           Back to Log In
         </button>
         <button className="guest-btn" onClick={loginAsGuest}>
