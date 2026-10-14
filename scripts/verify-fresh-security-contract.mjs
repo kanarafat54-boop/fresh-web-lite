@@ -24,6 +24,13 @@ const required = [
 const migration = path.join(root, "supabase/migrations/20260929_security_hardening.sql");
 required.push(["Security hardening migration is committed", fs.existsSync(migration)]);
 
+const roleMigration = fs.readFileSync(path.join(root, "supabase/migrations/20261014104450_identity_enforce_server_managed_roles.sql"), "utf8");
+required.push(["Client inserts cannot assign privileged roles", roleMigration.includes("new.role := 'user'") && roleMigration.includes("new.verified := false")]);
+required.push(["Client updates cannot change roles or verification", roleMigration.includes("role can only be changed by the platform") && roleMigration.includes("verified can only be changed by the platform")]);
+
+const subscriptionMigration = fs.readFileSync(path.join(root, "supabase/migrations/20261014104622_identity_lock_server_managed_subscription.sql"), "utf8");
+required.push(["Subscription entitlements are server-managed", subscriptionMigration.includes("new.subscription is distinct from old.subscription") && subscriptionMigration.includes("subscription can only be changed by the platform")]);
+
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
   console.error("Fresh security contract failed:");
