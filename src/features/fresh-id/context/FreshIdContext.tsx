@@ -14,6 +14,7 @@ import type { User } from "@supabase/supabase-js";
 
 import { supabase } from "../../../lib/supabase";
 import type { FreshUser, LinkedAccount } from "../types/user";
+import { validateDateOfBirth } from "../utils/dateOfBirth";
 
 type Passkey = {
   id: string;
@@ -426,10 +427,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     if (
       password.length < 12 ||
       !/^[a-z0-9_]{3,24}$/.test(username) ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(profile.dateOfBirth) ||
-      Number.isNaN(birthDate.getTime()) ||
-      birthDate.toISOString().slice(0, 10) !== profile.dateOfBirth ||
-      birthDate > ageCutoff
+      validateDateOfBirth(profile.dateOfBirth) !== null
     ) {
       setError("Check your username, date of birth, minimum age, and password requirements.");
       setLoading(false);
