@@ -29,7 +29,17 @@ required.push(["Client inserts cannot assign privileged roles", roleMigration.in
 required.push(["Client updates cannot change roles or verification", roleMigration.includes("role can only be changed by the platform") && roleMigration.includes("verified can only be changed by the platform")]);
 
 const subscriptionMigration = fs.readFileSync(path.join(root, "supabase/migrations/20261014104622_identity_lock_server_managed_subscription.sql"), "utf8");
+const profileBoundaryMigration = fs.readFileSync(path.join(root, "supabase/migrations/20261014124500_fresh_id_profile_column_boundary.sql"), "utf8");
+
 required.push(["Subscription entitlements are server-managed", subscriptionMigration.includes("new.subscription is distinct from old.subscription") && subscriptionMigration.includes("subscription can only be changed by the platform")]);
+required.push(["Profile table writes are restricted to editable columns", profileBoundaryMigration.includes("revoke insert, update on table public.users from public, anon, authenticated") && profileBoundaryMigration.includes("grant insert (id, username, email, full_name, preferences) on table public.users to authenticated") && profileBoundaryMigration.includes("grant update (username, full_name, preferences, updated_at) on table public.users to authenticated")]);
+required.push(["Profile insert cannot assign server-managed values", profileBoundaryMigration.includes("new.subscription := jsonb_build_object") && profileBoundaryMigration.includes("new.linked_accounts := '[]'::jsonb") && profileBoundaryMigration.includes("new.email := v_jwt_email")]);
+required.push(["Browser profile provision sends only editable columns", freshId.includes('supabase.from("users").insert({') && !freshId.includes('update({ linked_accounts: nextLinkedAccounts })'));
+const profileInsertStart = freshId.indexOf('supabase.from("users").insert({');
+const profileInsertEnd = freshId.indexOf("});", profileInsertStart);
+const profileInsert = freshId.slice(profileInsertStart, profileInsertEnd);
+required.push(["Browser cannot request privileged profile fields during provisioning", !["role:", "verified:", "identity:", "stats:", "security:", "subscription:", "linked_accounts:"].some((field) => profileInsert.includes(field))]);
+required.push(["Profile update API is typed to editable fields only", freshId.includes('type EditableProfilePatch = Pick<Partial<FreshUser>, "fullName" | "username" | "preferences">') && freshId.includes("updateUser(patch: EditableProfilePatch)"));
 
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
