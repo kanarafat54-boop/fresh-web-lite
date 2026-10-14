@@ -107,6 +107,21 @@ No provider has been selected or configured. A send-only API is insufficient; th
 | Privacy | Mail content does not appear in ordinary logs; export/deletion and retention behavior are documented |
 | Deployment | Preview/production SHA, build status, smoke-test result, and rollback target recorded |
 
-## 7. Phase 0 exit status
+## 7. Read-only domain availability and renewal check
+
+A read-only registrar lookup on 2026-10-14 returned these results. Availability and prices can change; this check did not reserve or purchase anything.
+
+| Domain candidate | Lookup result | First year | Renewal shown | Assessment |
+|---|---:|---:|---:|---|
+| `freshwebmail.com` | Available | $11.25 | $11.25/year | Best current cost predictability of this shortlist; still a long brand name |
+| `freshflowmail.com` | Available | $11.25 | $11.25/year | Same quoted price; aligns with Fresh Flow branding |
+| `freshmail.email` | Available | $9.99 | $28.13/year | Lower first-year price but substantially higher renewal |
+| `freshweb.email` | Available | $9.99 | $28.13/year | Same renewal concern |
+| `freshmail.app` | Unavailable | — | — | Not an option from this lookup |
+| `freshmail.ug` | Unavailable | — | — | Not an option from this lookup |
+
+**Recommendation for approval, not purchase:** shortlist `freshwebmail.com` and `freshflowmail.com` for brand/domain fit and stable quoted renewal. Do not buy either until you approve the exact name and recurring cost. The domain must then be connected to the chosen inbound/outbound provider and authenticated with its required DNS records.
+
+## 8. Phase 0 exit status
 
 **Not complete yet.** This report captures the verified baseline and blockers. Remaining items are the real signup journey, a complete review of server routes and storage policies, identity recovery/redirect verification, and a tested provider/domain cost decision. No production mail capability should be claimed until the external send-and-reply acceptance test passes.
