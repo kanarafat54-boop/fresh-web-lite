@@ -16,6 +16,8 @@ const required = [
   ]],
   ["src/features/workspaces/connectionService.ts", [
     [/existing\?\.status === "accepted" \|\| existing\?\.status === "pending"/i, "request sending is idempotent for accepted/pending connections"],
+    [/\.update\(\{ status: "pending" \}\)[\s\S]*?\.in\("status", \["declined", "cancelled"\]\)/i, "re-sending a declined/cancelled request updates only its status"],
+    [/error\?\.code === "23505"[\s\S]*?concurrentLookupError/i, "concurrent duplicate request creation recovers by reading the winning row"],
   ]],
   ["supabase/migrations/20261014195500_harden_connection_request_transitions.sql", [
     [/revoke all privileges on table public\.connection_requests from public, anon, authenticated/i, "connection request browser grants are revoked"],
