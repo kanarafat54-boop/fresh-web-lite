@@ -23,7 +23,7 @@ const required = [
     [/\.update\(\{ status: "pending" \}\)[\s\S]*?\.in\("status", \["declined", "cancelled"\]\)/i, "re-sending a declined/cancelled request updates only its status"],
     [/error\?\.code === "23505"[\s\S]*?concurrentLookupError/i, "concurrent duplicate request creation recovers by reading the winning row"],
   ]],
-  ["supabase/migrations/20261014195500_harden_connection_request_transitions.sql", [
+  ["supabase/migrations/20261014194000_harden_connection_request_transitions.sql", [
     [/alter table public\.connection_requests enable row level security/i, "RLS is explicitly enabled for connection requests"],
     [/revoke all privileges on table public\.connection_requests from public, anon, authenticated/i, "connection request browser grants are revoked"],
     [/grant update \(status\) on table public\.connection_requests to authenticated/i, "only status has browser UPDATE privilege"],
