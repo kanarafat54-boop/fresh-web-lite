@@ -8,6 +8,12 @@ const required = [
     [/create policy "fresh message owner insert"[\s\S]*?with check[\s\S]*?t\.owner_id = \(select auth\.uid\(\)\)/i, "messages can only be inserted into the owner's thread"],
     [/drop policy if exists "fresh message sender"/i, "old broad message policy is removed"],
   ]],
+  ["supabase/migrations/20261014200500_harden_ecosystem_profile_grants.sql", [
+    [/revoke all privileges on table public\\.ecosystem_profiles from public, anon, authenticated/i, "ecosystem profile browser grants are reset"],
+    [/grant select on table public\\.ecosystem_profiles to anon/i, "public enabled-profile reads remain available"],
+    [/grant select, insert, update on table public\\.ecosystem_profiles to authenticated/i, "signed-in profile operations are explicit"],
+    [/drop policy if exists "users can update their ecosystem profiles"/i, "duplicate ecosystem profile update policy is removed"],
+  ]],
   ["src/features/workspaces/connectionService.ts", [
     [/existing\?\.status === "accepted" \|\| existing\?\.status === "pending"/i, "request sending is idempotent for accepted/pending connections"],
   ]],
