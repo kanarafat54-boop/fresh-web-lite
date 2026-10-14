@@ -17,6 +17,8 @@ grant select on table public.direct_messages to authenticated;
 grant insert (sender_id, recipient_id, body) on table public.direct_messages to authenticated;
 grant update (read_at) on table public.direct_messages to authenticated;
 
+-- Requires 20261014194000_harden_connection_request_transitions.sql to run first:
+-- otherwise a requester could create an `accepted` connection row during rollout.
 -- Ensure only a genuinely authenticated user can use the direct-message insert policy.
 drop policy if exists "direct messages sender insert" on public.direct_messages;
 create policy "direct messages sender insert"
