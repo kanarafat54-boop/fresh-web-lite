@@ -2,7 +2,7 @@
 -- Run after applying the Phase 0 messaging migrations with: supabase test db
 
 begin;
-select plan(27);
+select plan(34);
 
 select ok((select relrowsecurity from pg_class where oid = 'public.direct_messages'::regclass),
   'RLS is enabled on direct messages');
@@ -67,6 +67,40 @@ select ok(has_table_privilege('authenticated', 'public.ecosystem_profiles', 'UPD
   'authenticated can update owner-scoped ecosystem profiles');
 select ok(not has_table_privilege('authenticated', 'public.ecosystem_profiles', 'DELETE'),
   'authenticated cannot delete ecosystem profiles through the browser');
+
+
+-- Schema-parity checks against the production tables inspected for this fixture.
+select ok(exists (
+  select 1 from information_schema.columns
+  where table_schema = 'public' and table_name = 'connection_requests' and column_name = 'updated_at'
+), 'connection requests fixture includes the production updated_at column');
+select ok(exists (
+  select 1 from information_schema.columns
+  where table_schema = 'public' and table_name = 'fresh_communication_threads' and column_name = 'updated_at'
+), 'Fresh Communication threads include updated_at for owner ordering');
+select ok(exists (
+  select 1 from information_schema.columns
+  where table_schema = 'public' and table_name = 'ecosystem_profiles' and column_name = 'fresh_id'
+) and not exists (
+  select 1 from information_schema.columns
+  where table_schema = 'public' and table_name = 'ecosystem_profiles' and column_name = 'owner_id'
+), 'ecosystem profiles use the production fresh_id ownership column');
+select is((
+  select count(*)::integer from pg_policies
+  where schemaname = 'public' and tablename = 'connection_requests'
+    and cmd = 'SELECT'
+), 1, 'duplicate connection-request read policies are removed');
+select ok(not exists (
+  select 1 from pg_policies
+  where schemaname = 'public' and tablename = 'ecosystem_profiles'
+    and policyname in ('users can create their ecosystem profiles',
+                       'users can update their ecosystem profiles',
+                       'users can delete their ecosystem profiles')
+), 'duplicate legacy ecosystem profile policies are removed');
+select ok(not has_table_privilege('authenticated', 'public.connection_requests', 'TRUNCATE'),
+  'authenticated users cannot truncate connection requests');
+select ok(has_table_privilege('service_role', 'public.direct_messages', 'SELECT'),
+  'service_role retains direct-message access');
 
 select * from finish();
 rollback;
