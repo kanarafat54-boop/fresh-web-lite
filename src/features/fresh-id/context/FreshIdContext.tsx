@@ -459,7 +459,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
 
     await loadUserProfile(data.user);
-    await clearTemporarySignupMetadata(data.user.id);
+    await clearTemporarySignupMetadata(data.user);
   }
 
   async function loginWithPasskey() {
