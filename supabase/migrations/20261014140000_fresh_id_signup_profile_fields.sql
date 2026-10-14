@@ -11,6 +11,35 @@ create table if not exists public.fresh_id_private_profiles (
   updated_at timestamptz not null default now()
 );
 
+create or replace function public.guard_fresh_id_private_profile_audit()
+returns trigger
+language plpgsql
+set search_path to ''
+as $function$
+begin
+  if tg_op = 'INSERT' then
+    if new.signup_consent_version is not null then
+      if new.signup_consent_version <> '2026-10-14' then
+        raise exception 'Unsupported Fresh ID consent version';
+      end if;
+      new.signup_consent_at := now();
+    else
+      new.signup_consent_at := null;
+    end if;
+  elsif new.signup_consent_version is distinct from old.signup_consent_version
+     or new.signup_consent_at is distinct from old.signup_consent_at then
+    raise exception 'Fresh ID signup consent audit fields cannot be edited';
+  end if;
+  new.updated_at := now();
+  return new;
+end;
+$function$;
+
+drop trigger if exists fresh_id_private_profile_audit_guard on public.fresh_id_private_profiles;
+create trigger fresh_id_private_profile_audit_guard
+  before insert or update on public.fresh_id_private_profiles
+  for each row execute function public.guard_fresh_id_private_profile_audit();
+
 alter table public.fresh_id_private_profiles enable row level security;
 revoke all on table public.fresh_id_private_profiles from public, anon;
 revoke all on table public.fresh_id_private_profiles from authenticated;
