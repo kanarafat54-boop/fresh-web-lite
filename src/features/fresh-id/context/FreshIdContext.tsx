@@ -245,11 +245,12 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     return true;
   }
 
-  async function clearTemporarySignupMetadata(userId: string) {
+  async function clearTemporarySignupMetadata(authUser: User) {
+    if (typeof authUser.user_metadata?.date_of_birth !== "string") return;
     const { data: privateProfile, error: privateProfileError } = await supabase
       .from("fresh_id_private_profiles")
       .select("user_id")
-      .eq("user_id", userId)
+      .eq("user_id", authUser.id)
       .maybeSingle();
     if (privateProfileError || !privateProfile) return;
 
@@ -425,7 +426,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
 
     await loadUserProfile(data.user);
-    await clearTemporarySignupMetadata(data.user.id);
+    await clearTemporarySignupMetadata(data.user);
   }
 
   async function login(email: string, password: string) {
