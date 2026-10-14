@@ -2,11 +2,11 @@
 -- must not be exposed through the general public profile table.
 create table if not exists public.fresh_id_private_profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  date_of_birth date,
+  date_of_birth date not null,
   country text,
   gender text check (gender is null or gender in ('woman', 'man', 'non_binary', 'self_described')),
-  signup_consent_version text,
-  signup_consent_at timestamptz,
+  signup_consent_version text not null,
+  signup_consent_at timestamptz not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -20,6 +20,9 @@ begin
   if tg_op = 'INSERT' then
     if new.date_of_birth is not null and new.date_of_birth > (current_date - interval '13 years')::date then
       raise exception 'Fresh ID requires the minimum age of 13';
+    end if;
+    if new.signup_consent_version is null then
+      raise exception 'Fresh ID signup consent is required';
     end if;
     if new.signup_consent_version is not null then
       if new.signup_consent_version <> '2026-10-14' then
