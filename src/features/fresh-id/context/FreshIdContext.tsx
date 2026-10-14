@@ -211,7 +211,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
 
   async function persistPrivateSignupProfile(authUser: User): Promise<boolean> {
     const metadata = authUser.user_metadata ?? {};
-    if (typeof metadata.date_of_birth !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(metadata.date_of_birth)) return true;
+    if (typeof metadata.date_of_birth !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(metadata.date_of_birth)) return true;
     const { error: privateProfileError } = await supabase.from("fresh_id_private_profiles").upsert({
       user_id: authUser.id,
       date_of_birth: metadata.date_of_birth,
@@ -254,7 +254,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         const { data: existing } = await supabase.from("users").select("id").eq("id", authUser.id).maybeSingle();
         if (existing) return persistPrivateSignupProfile(authUser);
       }
-      setError("Your sign-in succeeded, but Fresh ID could not create your profile. Please try again.");
+      setError(insertError.code === "23505" ? "That username is already taken. Choose another username and try again." : "Your sign-in succeeded, but Fresh ID could not create your profile. Please try again.");
       return false;
     }
 
@@ -333,8 +333,18 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (password.length < 12 || !/^[a-z0-9_]{3,24}$/.test(username) || !/^\d{4}-\d{2}-\d{2}$/.test(profile.dateOfBirth)) {
-      setError("Check your username, date of birth, and password requirements.");
+    const birthDate = new Date(`${profile.dateOfBirth}T00:00:00.000Z`);
+    const ageCutoff = new Date();
+    ageCutoff.setUTCFullYear(ageCutoff.getUTCFullYear() - 13);
+    if (
+      password.length < 12 ||
+      !/^[a-z0-9_]{3,24}$/.test(username) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(profile.dateOfBirth) ||
+      Number.isNaN(birthDate.getTime()) ||
+      birthDate.toISOString().slice(0, 10) !== profile.dateOfBirth ||
+      birthDate > ageCutoff
+    ) {
+      setError("Check your username, date of birth, minimum age, and password requirements.");
       setLoading(false);
       return;
     }
