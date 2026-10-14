@@ -212,16 +212,33 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
   async function persistPrivateSignupProfile(authUser: User): Promise<boolean> {
     const metadata = authUser.user_metadata ?? {};
     if (typeof metadata.date_of_birth !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(metadata.date_of_birth)) return true;
-    const { error: privateProfileError } = await supabase.from("fresh_id_private_profiles").upsert({
-      user_id: authUser.id,
+
+    const privateFields = {
       date_of_birth: metadata.date_of_birth,
       country: typeof metadata.country === "string" ? metadata.country : null,
       gender: typeof metadata.gender === "string" ? metadata.gender : null,
-      signup_consent_version: typeof metadata.signup_consent_version === "string" ? metadata.signup_consent_version : null,
-      signup_consent_at: typeof metadata.signup_consent_at === "string" ? metadata.signup_consent_at : null,
       updated_at: new Date().toISOString(),
-    }, { onConflict: "user_id" });
-    if (privateProfileError) {
+    };
+    const { data: existing, error: lookupError } = await supabase
+      .from("fresh_id_private_profiles")
+      .select("user_id")
+      .eq("user_id", authUser.id)
+      .maybeSingle();
+
+    if (lookupError) {
+      setError("We couldn't verify your private signup profile. Please try again.");
+      return false;
+    }
+
+    const saveResult = existing
+      ? await supabase.from("fresh_id_private_profiles").update(privateFields).eq("user_id", authUser.id)
+      : await supabase.from("fresh_id_private_profiles").insert({
+          user_id: authUser.id,
+          ...privateFields,
+          signup_consent_version: typeof metadata.signup_consent_version === "string" ? metadata.signup_consent_version : null,
+        });
+
+    if (saveResult.error) {
       setError("Your account was created, but your private signup details could not be saved. Please retry after signing in.");
       return false;
     }
