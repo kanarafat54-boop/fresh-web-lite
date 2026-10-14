@@ -2,6 +2,8 @@
 -- The app only updates status for cancellation or recipient response. Lock the
 -- identity columns at the privilege layer and use separate state-transition policies.
 
+alter table public.connection_requests enable row level security;
+
 revoke all privileges on table public.connection_requests from public, anon, authenticated;
 
 grant select on table public.connection_requests to authenticated;
