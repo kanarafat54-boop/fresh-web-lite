@@ -26,6 +26,7 @@
 ### Messaging and connection authorization
 - Live tables `direct_messages`, `connection_requests`, `fresh_communication_threads`, and `fresh_communication_messages` exist.
 - At inspection, Fresh Communication thread/message tables had zero rows.
+- A second read-only verification after the proposed fixes were committed confirmed that production remains unchanged: 0 of the 3 Phase 0 security migrations are applied; 4 duplicate connection-request policies remain; 12 `anon` table grants remain across the three messaging tables; and 3 `anon` write grants remain on `ecosystem_profiles`. These are still open production findings—not fixed until a controlled migration is applied and re-verified.
 - Broad `anon` grants existed on the messaging tables. RLS was enabled but did not revoke these SQL privileges.
 - The live connection-request table had duplicate permissive SELECT/UPDATE policies. The update policies allowed either participant to change a row's status, which meant the requester could attempt to self-accept a request.
 - Live `ecosystem_profiles` also had broad `anon` table privileges despite a policy intended to expose only enabled profiles publicly. The proposed migration keeps public SELECT for enabled profiles, removes anonymous writes and narrows signed-in operations; duplicate owner write policies are cleaned up.
