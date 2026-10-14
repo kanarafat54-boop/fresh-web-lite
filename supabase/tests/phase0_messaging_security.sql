@@ -2,7 +2,18 @@
 -- Run after applying the Phase 0 messaging migrations with: supabase test db
 
 begin;
-select plan(22);
+select plan(27);
+
+select ok((select relrowsecurity from pg_class where oid = 'public.direct_messages'::regclass),
+  'RLS is enabled on direct messages');
+select ok((select relrowsecurity from pg_class where oid = 'public.connection_requests'::regclass),
+  'RLS is enabled on connection requests');
+select ok((select relrowsecurity from pg_class where oid = 'public.fresh_communication_threads'::regclass),
+  'RLS is enabled on Fresh Communication threads');
+select ok((select relrowsecurity from pg_class where oid = 'public.fresh_communication_messages'::regclass),
+  'RLS is enabled on Fresh Communication messages');
+select ok((select relrowsecurity from pg_class where oid = 'public.ecosystem_profiles'::regclass),
+  'RLS is enabled on ecosystem profiles');
 
 select ok(not has_table_privilege('anon', 'public.direct_messages', 'SELECT'),
   'anon cannot read direct messages');
