@@ -39,7 +39,7 @@
 - Resend remains a candidate, not a selected/configured provider. Inbound capability reference: https://resend.com/features/inbound.
 
 ### Release and advisor state
-- PR #56 CI was still running at the last recorded poll; a Vercel preview had previously reached READY for an earlier commit in that PR, but the latest commit must be rechecked.
+- PR #56 latest recorded head `e64f3e8d`: Fresh Web Lite build gate, Fresh AI integrity, Fresh Shorts Production Gate, TRUEMODE Chain Verification and Fresh AI training contracts all passed; Vercel and Netlify previews report success, and Vercel deployment is READY. This verifies source/build contracts only—not live DB migration behavior.
 - Supabase security advisor reported 10 RLS-enabled tables with no policies and leaked-password protection disabled. These require table-by-table review; no blanket policy creation.
 - Supabase performance advisor reported 89 RLS initialization-plan warnings and 19 multiple-permissive-policy findings. Fixes should be scoped, measured and regression-tested rather than applied as broad find/replace edits.
 
