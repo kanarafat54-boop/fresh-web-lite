@@ -1,4 +1,5 @@
 -- Restrict Fresh ID browser writes to the profile fields users are allowed to edit.
+-- Verification and KYC markers inside identity remain platform-managed.
 -- Service-role/platform operations retain the existing trusted write path.
 
 create or replace function public.protect_users_privileged_columns()
@@ -48,7 +49,8 @@ begin
       or new.role is distinct from old.role
       or new.verified is distinct from old.verified
       or new.presence is distinct from old.presence
-      or new.identity is distinct from old.identity
+      or (new.identity -> 'verificationLevel') is distinct from (old.identity -> 'verificationLevel')
+      or (new.identity -> 'kycStatus') is distinct from (old.identity -> 'kycStatus')
       or new.stats is distinct from old.stats
       or new.security is distinct from old.security
       or new.subscription is distinct from old.subscription
@@ -68,6 +70,6 @@ $function$;
 -- required by the Fresh ID signup and profile-edit flows.
 revoke insert, update on table public.users from public, anon, authenticated;
 grant insert (id, username, email, full_name, preferences) on table public.users to authenticated;
-grant update (username, full_name, preferences, updated_at) on table public.users to authenticated;
+grant update (username, full_name, preferences, identity, updated_at) on table public.users to authenticated;
 
 notify pgrst, 'reload schema';
