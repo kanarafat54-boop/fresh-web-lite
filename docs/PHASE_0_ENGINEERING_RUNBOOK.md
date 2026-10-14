@@ -16,7 +16,7 @@
 ## Verified baseline
 
 ### Fresh ID
-- PR #51 (`feat/fresh-id-complete-signup`) remains a draft and is not merged.
+- PR #51 (`feat/fresh-id-complete-signup`) remains a draft and is not merged. Its current head `bea83f9f` has successful Vercel and Netlify preview checks and all five GitHub workflow runs completed successfully; this is CI evidence, not a real email-confirmation signup test.
 - Migration `20261014132351_fresh_id_signup_profile_fields` is recorded as applied in Supabase.
 - `fresh_id_private_profiles` has owner-scoped SELECT/INSERT/UPDATE policies.
 - Still required: a dedicated real signup journey including confirmation email, duplicate username, password mismatch, session restoration, and post-login/landing-page navigation.
@@ -39,7 +39,8 @@
 - Resend remains a candidate, not a selected/configured provider. Inbound capability reference: https://resend.com/features/inbound.
 
 ### Release and advisor state
-- PR #56 latest recorded head `e64f3e8d`: Fresh Web Lite build gate, Fresh AI integrity, Fresh Shorts Production Gate, TRUEMODE Chain Verification and Fresh AI training contracts all passed; Vercel and Netlify previews report success, and Vercel deployment is READY. This verifies source/build contracts only—not live DB migration behavior.
+- PR #56 current head `fd4e99ec`: Fresh Web Lite build gate, Fresh AI integrity, Fresh Shorts Production Gate, TRUEMODE Chain Verification and Fresh AI training contracts all passed. The build gate explicitly passed the Phase 0 security contract, typecheck, build and lint; Vercel and Netlify previews report success, and the latest Vercel deployment is READY. This verifies source/build contracts only—not live DB migration behavior.
+- Live project health reports `ACTIVE_HEALTHY`; Supabase branch metadata separately reports the default `main` branch as `MIGRATIONS_FAILED`, while the actual migration ledger contains the expected recent applied migrations through `20261014132351`. Treat this as a metadata/status discrepancy to investigate, not proof that the new Phase 0 migrations were applied. They are absent from the live migration ledger and live grants/policies remain unchanged.
 - Supabase security advisor reported 10 RLS-enabled tables with no policies and leaked-password protection disabled. These require table-by-table review; no blanket policy creation.
 - Supabase performance advisor reported 89 RLS initialization-plan warnings and 19 multiple-permissive-policy findings. Fixes should be scoped, measured and regression-tested rather than applied as broad find/replace edits.
 
@@ -59,7 +60,7 @@ Link: https://github.com/kanarafat54-boop/fresh-web-lite/pull/56
 ## Execution sequence
 
 ### Gate 0A — source and CI
-- [ ] Latest PR #56 commit has successful build, lint, and contract checks.
+- [x] Current PR #56 head has successful build, lint, and Phase 0 source-contract checks.
 - [ ] SQL migration reviewed for every privilege/policy change.
 - [ ] pgTAP catalog test passes against a disposable/staging database with the migrations applied.
 
