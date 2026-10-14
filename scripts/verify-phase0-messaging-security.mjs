@@ -9,9 +9,9 @@ const required = [
     [/drop policy if exists "fresh message sender"/i, "old broad message policy is removed"],
   ]],
   ["supabase/migrations/20261014200500_harden_ecosystem_profile_grants.sql", [
-    [/revoke all privileges on table public\\.ecosystem_profiles from public, anon, authenticated/i, "ecosystem profile browser grants are reset"],
-    [/grant select on table public\\.ecosystem_profiles to anon/i, "public enabled-profile reads remain available"],
-    [/grant select, insert, update on table public\\.ecosystem_profiles to authenticated/i, "signed-in profile operations are explicit"],
+    [/revoke all privileges on table public\.ecosystem_profiles from public, anon, authenticated/i, "ecosystem profile browser grants are reset"],
+    [/grant select on table public\.ecosystem_profiles to anon/i, "public enabled-profile reads remain available"],
+    [/grant select, insert, update on table public\.ecosystem_profiles to authenticated/i, "signed-in profile operations are explicit"],
     [/drop policy if exists "users can update their ecosystem profiles"/i, "duplicate ecosystem profile update policy is removed"],
   ]],
   ["src/features/workspaces/connectionService.ts", [
