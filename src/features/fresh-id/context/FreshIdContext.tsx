@@ -421,9 +421,6 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const birthDate = new Date(`${profile.dateOfBirth}T00:00:00.000Z`);
-    const ageCutoff = new Date();
-    ageCutoff.setUTCFullYear(ageCutoff.getUTCFullYear() - 13);
     if (
       password.length < 12 ||
       !/^[a-z0-9_]{3,24}$/.test(username) ||
