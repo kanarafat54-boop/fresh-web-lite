@@ -1,0 +1,33 @@
+name: TRUEMODE Chain Verification
+
+on:
+  push:
+    branches:
+      - main
+      - engineering/truemode-chain-verification
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Build and verify research-to-truth contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Build production bundle
+        run: npm run build
+      - name: Verify TRUEMODE research persistence contract
+        run: npm run test:truemode-chain
