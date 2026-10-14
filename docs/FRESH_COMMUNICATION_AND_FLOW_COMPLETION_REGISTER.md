@@ -164,3 +164,87 @@ These requirements apply to every capability above:
 ## 8. Explicitly not done by this register
 
 This document does not itself implement any runtime feature, apply a database migration, change authentication settings, configure a provider, send email, create a domain, or verify physical-device behavior. Those actions require separate changes and evidence.
+
+
+## 9. Fresh Live — flagship ambition and competitive acceptance
+
+**Product ambition:** Fresh Live should aim to outperform the experience of comparable products such as TikTok LIVE, YouTube Live and BIGO LIVE across defined user outcomes. “30×” is a strategic ambition, not a current performance claim. We must measure each dimension, publish no superiority claim without evidence, and never use manipulative engagement or unsafe monetization to chase growth.
+
+Competitive reference points include real-time creator/audience interaction and LIVE gifts/effects/multi-guest tools, YouTube live chat/polls and replay, and BIGO's multi-guest rooms, audio rooms and creator battles. These are baseline expectations to study—not features to copy blindly. Sources: TikTok LIVE support (https://support.tiktok.com/en/live-gifts-wallet/tiktok-live/what-is-tiktok-live), YouTube live chat help (https://support.google.com/youtube/answer/15268877), BIGO LIVE feature guide (https://www.bigo.tv/news-events/use-bigo-live).
+
+### FLOW-27 — Fresh Voice Rooms / social audio
+- Audio-only public, private and community rooms; host/co-host/speaker/listener roles; request-to-speak queue; mute/remove/block/report; room rules and moderation; reconnect; background audio where the platform permits; captions/transcription where feasible; optional recording only with explicit disclosure and consent.
+- Acceptance: host creates a room, invites a speaker, accepts/declines a listener request, moderator removes an abusive participant, reconnect preserves room state, and unauthorized users cannot control the room.
+- Status: Not implemented as a complete production service.
+
+### FLOW-28 — Stories & Moments
+- Temporary photo/text/video posts with explicit expiry, audience selector, privacy and reply controls, mentions, stickers/polls/questions where supported, optional highlights and safe sharing into Fresh Communication.
+- Acceptance: publish → audience visibility → view/reply/react → expiry → verify no longer appears in normal surfaces; privacy and block rules apply across direct links and search.
+- Status: Not implemented as a complete production journey.
+
+### FLOW-29 — Music & Audio catalog
+- Artist/creator pages, track and episode metadata, playlists/queues, search, audio-first playback, background/resume where supported, captions/lyrics only when rights allow, and licensed/original audio labels.
+- Acceptance: every playable asset has a rights/source record; unsupported or unavailable content explains why; playback state survives navigation; rights revocation can disable affected distribution.
+- Dependency: licensing and territory rights; do not assume a popular song can be streamed or reused.
+- Status: Not implemented as a licensed catalog.
+
+### FLOW-30 — Gaming & Interactive Media
+- Game streams, approved screen capture/broadcast, community tournaments, quizzes, live voting, challenges, leaderboards and interactive overlays; integrations must be scoped and revocable.
+- Acceptance: creator verifies broadcast permission, interactions are rate-limited and auditable, scores have a defined source, cheating/report flows exist, and unsupported devices have an honest fallback.
+- Status: Not implemented as a complete production capability.
+
+### FLOW-31 — Fresh Market & Live Shopping
+- Product demos during a live, seller/store profiles, product cards, catalog/stock links, clearly disclosed sponsored/affiliate content, offer expiry, order handoff and buyer support.
+- Acceptance: product/price/stock source is current; seller identity and offer terms are visible; checkout only activates when a real compliant payment/order provider is configured; receipts, refunds and disputes have auditable states.
+- Dependencies: payment provider, consumer protection, tax/commerce obligations and seller verification. Never simulate a successful payment or order.
+- Status: Deferred pending compliance/provider decision.
+
+### FLOW-32 — Events & Challenges
+- Scheduled lives, registration/RSVP, reminders, time-zone-safe start times, premieres, workshops/webinars, community challenges, team entries, replay links and accessible event information.
+- Acceptance: create → discover → RSVP → reminder → join → complete/cancel → replay or outcome; cancellation and time-zone changes are communicated correctly.
+- Status: Not implemented as a complete journey.
+
+### FLOW-33 — Camera, Effects & Creation Studio
+- Mobile camera entry where supported, drafts, trim/crop, covers, captions, audio levels, safe effects, templates, clip extraction from eligible long videos/lives/podcasts, and permission-based remix/duet/side-by-side creation.
+- Acceptance: draft survives app navigation, upload failure can resume, accessibility/captions are supported, effects do not block basic capture on low-memory devices, and source/creator permissions are enforced.
+- Status: Partial concepts only; device-level proof required.
+
+### FLOW-34 — Live modes, co-streaming and replay lifecycle
+- Distinct modes: (1) Live Broadcast, (2) Live Audio Room, (3) Live Interactive Session. Shared scheduling, invites, notification, room policy, moderation, stream health, replay policy and analytics; mode-specific media transport and controls.
+- Co-host/guest seats, request/accept/revoke consent, moderator roles, audience Q&A/polls/reactions, clips, scheduled countdowns, replay choice and creator dashboard. Screen share and external encoder support are separate capabilities and must be marked unsupported until tested.
+- Acceptance: scheduled and immediate start; permission prompt and device check; healthy ingest/playback; chat/polls respect permissions; host can mute/remove/end; reconnect recovers or reports failure; replay follows creator and participant consent; metrics reconcile with server-side events.
+- Status: Not implemented; real-time media provider and cost profile not selected.
+
+## 10. The Fresh Live “30×” scorecard
+
+Use this as an engineering scorecard, not advertising copy. Capture a baseline from representative competing experiences and Fresh Live prototypes, define the same test conditions, then measure improvements per release.
+
+1. **Time to first live:** setup clarity, device check and time from intent to a healthy stream.
+2. **Low-bandwidth resilience:** startup success, rebuffering, audio continuity, adaptive quality, reconnect success and data consumption on constrained mobile networks.
+3. **Affordable-device performance:** memory/CPU, battery/heat, crash rate, camera availability and usability on entry-level Android hardware.
+4. **Interaction quality:** chat/poll latency, guest join success, moderation action latency and accessibility of controls.
+5. **Creator reliability:** stream health visibility, recoverable errors, replay correctness, clip creation and transparent analytics.
+6. **Discovery quality:** relevance, diversity, language/local relevance, new-creator exposure and user control over recommendations.
+7. **Creator economics:** transparent fees, payout eligibility, settlement traceability, dispute/refund handling and fraud prevention—only after provider and legal readiness.
+8. **Safety and trust:** report/block effectiveness, time to action, spam/raid controls, impersonation prevention, age-appropriate access and appeal process.
+9. **Accessibility:** captions, readable layout, screen-reader support, reduced motion, touch targets, keyboard access and audio-only participation.
+10. **Creator-to-community continuity:** scheduling, reminders, followers, clips, replay, events and conversation without forcing users to rebuild audiences across disconnected products.
+11. **Privacy and control:** clear audience/recording consent, minimal data collection, granular room permissions and reliable deletion/retention behavior.
+12. **Operational excellence:** incident detection, rollback, provider health, observability, cost per viewer-hour and honest service status.
+
+For each metric, record definition, baseline, sample size, device/network conditions, target, observed result, date and commit. Never multiply incomparable scores into a made-up “30×” figure. A feature is not a win if it improves watch time by undermining user wellbeing, safety, privacy or creator fairness.
+
+## 11. Fresh Live release gates and dependencies
+
+- **Live Gate 1 — design and provider decision:** define broadcast architecture, regions, latency target, ingest/playback support, mobile web limitations, concurrent viewer model, storage/egress costs and fallback strategy. No provider is selected until pricing and budget are reviewed.
+- **Live Gate 2 — secure private test:** authenticated creator starts a test stream; invited viewer watches; chat is authorized; stream can be ended; failures are visible; no monetization.
+- **Live Gate 3 — safety and reliability:** moderation, reports, rate limits, age/access rules, consent for guests/recording, reconnect, load tests and incident controls.
+- **Live Gate 4 — creator beta:** scheduling, notifications, analytics, replay/clip workflows, accessible UI and low-end Android/network tests.
+- **Live Gate 5 — monetization or commerce:** only after eligibility, payment provider, fee disclosures, ledger invariants, refunds/disputes, fraud controls and jurisdictional requirements pass.
+- **Live Gate 6 — production scale:** load and cost budgets, SLOs, abuse drills, rollback, support playbooks, regional availability and measured performance versus baselines.
+
+Live video/audio infrastructure, music rights, creator payouts and commerce can introduce material recurring costs. Keep early testing small and budget-controlled; do not start a paid service, purchase a domain, or promise payouts without explicit approval.
+
+## 12. Fresh Flow expansion status
+
+The original FLOW-01 through FLOW-26 register remains intact. FLOW-27 through FLOW-34 extend it; they do not replace the original six Flow destinations or imply that the new capabilities exist today. Current truthful state: **scope registered; runtime implementation and production verification remain outstanding** for the newly added capabilities.
