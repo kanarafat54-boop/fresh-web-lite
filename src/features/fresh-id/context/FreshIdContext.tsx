@@ -200,6 +200,10 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         setSession({ expiresAt: session.expires_at ?? null, lastRefreshedAt: new Date().toISOString(), accessLevel: "authenticated" });
         await loadUserProfile(session.user);
+        // Email-confirmation redirects can establish a session without passing
+        // through the explicit login() path. Clean temporary signup metadata
+        // here as well, after private-profile persistence has been attempted.
+        await clearTemporarySignupMetadata(session.user);
       } else if (!isGuest) {
         setSession({ expiresAt: null, lastRefreshedAt: new Date().toISOString(), accessLevel: "signed-out" });
         setUser(null);
