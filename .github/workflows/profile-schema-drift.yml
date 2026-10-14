@@ -1,0 +1,60 @@
+name: Profile runtime schema drift checks
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/features/profile/**"
+      - "supabase/migrations/**"
+      - "supabase/tests/profile_schema_drift*"
+      - "scripts/verify-profile-runtime-schema.mjs"
+      - ".github/workflows/profile-schema-drift.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  profile-schema-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check application queries against the inspected live schema
+        run: node scripts/verify-profile-runtime-schema.mjs
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+
+      - name: Reproduce the prior feed-mode constraint
+        run: psql --set ON_ERROR_STOP=1 --file supabase/tests/profile_schema_drift_fixture.sql
+
+      - name: Apply feed-mode compatibility migration
+        run: psql --set ON_ERROR_STOP=1 --file supabase/migrations/20261014210000_allow_fresh_picks_feed_mode.sql
+
+      - name: Verify Fresh Flow default feed modes
+        run: psql --set ON_ERROR_STOP=1 --file supabase/tests/profile_schema_drift.sql
