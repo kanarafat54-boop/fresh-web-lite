@@ -2,7 +2,7 @@
 -- Run after applying the Phase 0 messaging migrations with: supabase test db
 
 begin;
-select plan(17);
+select plan(22);
 
 select ok(not has_table_privilege('anon', 'public.direct_messages', 'SELECT'),
   'anon cannot read direct messages');
@@ -45,6 +45,17 @@ select ok(not exists (
   where schemaname = 'public' and tablename = 'fresh_communication_messages'
     and policyname = 'fresh message sender'
 ), 'old broad sender ALL policy is removed');
+
+select ok(has_table_privilege('anon', 'public.ecosystem_profiles', 'SELECT'),
+  'anon can read enabled ecosystem profiles');
+select ok(not has_table_privilege('anon', 'public.ecosystem_profiles', 'INSERT'),
+  'anon cannot create ecosystem profiles');
+select ok(has_table_privilege('authenticated', 'public.ecosystem_profiles', 'INSERT'),
+  'authenticated can create owner-scoped ecosystem profiles');
+select ok(has_table_privilege('authenticated', 'public.ecosystem_profiles', 'UPDATE'),
+  'authenticated can update owner-scoped ecosystem profiles');
+select ok(not has_table_privilege('authenticated', 'public.ecosystem_profiles', 'DELETE'),
+  'authenticated cannot delete ecosystem profiles through the browser');
 
 select * from finish();
 rollback;
