@@ -119,7 +119,8 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
   logStage(runId, "research.persistence.prepared", summary);
   if (options.dryRun) return summary;
 
-  await createSupabaseSemanticPersistence().persistResearchGraph({ entities, sources, claims, evidence, claimEvidence, relations, arbitrations, truthDecisions });
+  const batchKey = `research-batch-${queryScope}-${researchedAt}`;
+  await createSupabaseSemanticPersistence().persistResearchGraph({ batchKey, entities, sources, claims, evidence, claimEvidence, relations, arbitrations, truthDecisions });
   logStage(runId, "research.persistence.supabase.complete", summary);
   return summary;
 }

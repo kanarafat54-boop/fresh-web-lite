@@ -3,6 +3,8 @@ import type { TruthDecision } from "./truthDecisionOrchestrator";
 
 export interface SemanticPersistence {
   persistResearchGraph(input: {
+    /** Stable per-research-run key used to make database retries idempotent. */
+    batchKey: string;
     entities: Array<{ id: string; entityType: string; label: string; attributes?: unknown }>;
     sources: Array<{ id: string; provider: string; name?: string; url?: string; reliability?: number; metadata?: unknown }>;
     claims: SemanticClaim[];

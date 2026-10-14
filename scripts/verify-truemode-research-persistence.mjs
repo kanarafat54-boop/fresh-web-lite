@@ -8,6 +8,7 @@ const calibration = read("src/core/semantic/confidenceCalibration.ts");
 const temporal = read("src/core/semantic/temporalTruth.ts");
 const persistenceContract = read("src/core/semantic/semanticPersistence.ts");
 const persistence = read("src/core/semantic/supabaseSemanticPersistence.ts");
+const atomicMigration = read("supabase/migrations/20261014150000_atomic_truemode_research_persistence.sql");
 const researchPersistence = read("src/server/research/persistSemanticResearchV2.ts");
 const researchRoute = read("api/research/search.ts");
 const truthMigration = read("supabase/migrations/20260906100752_fresh_intelligence_truth_decisions.sql");
@@ -27,7 +28,10 @@ const required = [
   [calibration, "compareClaims", "Confidence calibration must account for related/contradictory claims."],
   [temporal, "validTo", "Temporal truth must support validity windows."],
   [persistenceContract, "truthDecisions: TruthDecision[]", "Persistence contract must carry truth decisions."],
-  [persistence, "fresh_intelligence_truth_decisions", "Supabase adapter must persist truth decisions."],
+  [persistence, "persist_fresh_intelligence_research_graph", "Supabase adapter must use the atomic research RPC."],
+  [persistence, "p_batch_key: input.batchKey", "Supabase persistence must pass an idempotency key."],
+  [atomicMigration, "create or replace function public.persist_fresh_intelligence_research_graph", "Database migration must provide the atomic persistence function."],
+  [atomicMigration, "fresh_intelligence_persistence_batches", "Database migration must persist batch idempotency keys."],
   [persistence, "SUPABASE_SERVICE_ROLE_KEY", "Supabase persistence must remain server-only."],
   [researchPersistence, "decideTruthBatch", "Research persistence must cross the truth decision boundary."],
   [researchPersistence, "const provenanceNodes: ProvenanceNode[]", "Research persistence must build provenance nodes from persisted sources."],
