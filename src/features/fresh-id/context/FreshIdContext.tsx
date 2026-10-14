@@ -364,7 +364,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
 
     if (signUpError || !data?.user) {
-      setError(signUpError?.message ?? "Registration failed. Please try again.");
+      setError("Fresh ID couldn't create your account. Check the details and try again.");
       setLoading(false);
       return;
     }
