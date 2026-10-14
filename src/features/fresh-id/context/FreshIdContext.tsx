@@ -305,6 +305,11 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const privateSaved = await persistPrivateSignupProfile(authUser);
+    if (!privateSaved) {
+      setLoading(false);
+      return;
+    }
     const currentUser = dbRowToFreshUser(data as Record<string, unknown>);
     const privateProfile = await supabase.from("fresh_id_private_profiles").select("date_of_birth,country,gender").eq("user_id", authUser.id).maybeSingle();
 
