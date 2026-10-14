@@ -50,14 +50,44 @@ export async function sendConnectionRequest(recipientId: string): Promise<Connec
     return existing as ConnectionRequest;
   }
 
+  // A previously declined/cancelled request may be re-sent. Update only the
+  // status column first; the Phase 0 grant intentionally forbids rewriting
+  // requester_id/recipient_id through an upsert conflict-update path.
+  if (existing) {
+    const { data: restored, error: restoreError } = await supabase
+      .from("connection_requests")
+      .update({ status: "pending" })
+      .eq("requester_id", requesterId)
+      .eq("recipient_id", recipientId)
+      .in("status", ["declined", "cancelled"])
+      .select(columns)
+      .maybeSingle();
+
+    if (restoreError) throw restoreError;
+    if (restored) return restored as ConnectionRequest;
+  }
+
   const { data, error } = await supabase
     .from("connection_requests")
-    .upsert(
-      { requester_id: requesterId, recipient_id: recipientId, status: "pending" },
-      { onConflict: "requester_id,recipient_id" },
-    )
+    .insert({ requester_id: requesterId, recipient_id: recipientId, status: "pending" })
     .select(columns)
     .single();
+
+  // If two tabs send the same request concurrently, recover from the unique
+  // constraint by reading the winning row instead of surfacing a false failure.
+  if (error?.code === "23505") {
+    const { data: concurrent, error: concurrentLookupError } = await supabase
+      .from("connection_requests")
+      .select(columns)
+      .eq("requester_id", requesterId)
+      .eq("recipient_id", recipientId)
+      .maybeSingle();
+
+    if (concurrentLookupError) throw concurrentLookupError;
+    if (concurrent && (concurrent.status === "accepted" || concurrent.status === "pending")) {
+      return concurrent as ConnectionRequest;
+    }
+  }
 
   if (error) throw error;
   return data as ConnectionRequest;
