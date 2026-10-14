@@ -42,6 +42,7 @@ const profileInsertEnd = freshId.indexOf("});", profileInsertStart);
 const profileInsert = freshId.slice(profileInsertStart, profileInsertEnd);
 required.push(["Browser cannot request privileged profile fields during provisioning", !["role:", "verified:", "identity:", "stats:", "security:", "subscription:", "linked_accounts:"].some((field) => profileInsert.includes(field))]);
 required.push(["Profile update API is typed to editable fields only", freshId.includes('type EditableProfilePatch = Pick<Partial<FreshUser>, "fullName" | "username" | "preferences">') && freshId.includes("updateUser(patch: EditableProfilePatch)")]);
+required.push(["Concurrent private-profile creation recovers only when this user's row exists", freshId.includes('saveResult.error.code === "23505"') && freshId.includes('racedProfile?.user_id === authUser.id')]);
 
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
