@@ -1,30 +1,35 @@
--- Fresh ID registration profile fields.
--- Birth date is private account data; expose it only through the owner's profile policies.
-alter table public.users
-  add column if not exists date_of_birth date,
-  add column if not exists country text,
-  add column if not exists gender text,
-  add column if not exists signup_consent_version text,
-  add column if not exists signup_consent_at timestamptz;
+-- Private Fresh ID signup details. Date of birth, gender, country, and consent
+-- must not be exposed through the general public profile table.
+create table if not exists public.fresh_id_private_profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  date_of_birth date,
+  country text,
+  gender text check (gender is null or gender in ('woman', 'man', 'non_binary', 'self_described')),
+  signup_consent_version text,
+  signup_consent_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
 
-alter table public.users
-  drop constraint if exists users_gender_check;
-alter table public.users
-  add constraint users_gender_check
-  check (gender is null or gender in ('woman', 'man', 'non_binary', 'self_described'));
+alter table public.fresh_id_private_profiles enable row level security;
+revoke all on table public.fresh_id_private_profiles from public, anon;
+revoke all on table public.fresh_id_private_profiles from authenticated;
+grant select, insert, update on table public.fresh_id_private_profiles to authenticated;
 
--- Extend the explicit least-privilege signup insert grant from the existing
--- Fresh ID profile-column boundary migration.
-revoke insert, update on table public.users from public, anon, authenticated;
-grant insert (id, username, email, full_name, preferences, date_of_birth, country, gender, signup_consent_version, signup_consent_at)
-  on table public.users to authenticated;
-grant update (username, full_name, preferences, identity, updated_at)
-  on table public.users to authenticated;
+drop policy if exists "Users can read their own Fresh ID private profile" on public.fresh_id_private_profiles;
+create policy "Users can read their own Fresh ID private profile"
+  on public.fresh_id_private_profiles for select to authenticated
+  using (auth.uid() = user_id);
 
--- The entered username is the public handle, so enforce case-insensitive uniqueness.
--- Existing duplicate values must be reconciled before this migration can be applied.
-create unique index if not exists users_username_lower_unique
-  on public.users (lower(username))
-  where username is not null and btrim(username) <> '';
+drop policy if exists "Users can create their own Fresh ID private profile" on public.fresh_id_private_profiles;
+create policy "Users can create their own Fresh ID private profile"
+  on public.fresh_id_private_profiles for insert to authenticated
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can update their own Fresh ID private profile" on public.fresh_id_private_profiles;
+create policy "Users can update their own Fresh ID private profile"
+  on public.fresh_id_private_profiles for update to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 notify pgrst, 'reload schema';
