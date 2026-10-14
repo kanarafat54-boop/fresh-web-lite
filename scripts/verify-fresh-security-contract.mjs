@@ -52,6 +52,10 @@ required.push(["Signup requires privacy/terms consent", authForm.includes("if (!
 required.push(["Signup confirmation redirects to the sign-in route", freshId.includes('emailRedirectTo: new URL("/auth/sign-in", window.location.origin).toString()')]);
 required.push(["Temporary DOB metadata is cleared only after private profile exists", freshId.includes('if (privateProfileError || !privateProfile) return;') && freshId.includes('date_of_birth: null')]);
 required.push(["Successful auth leaves the standalone gateway for Home", router.includes('window.location.replace("/")')]);
+required.push(["Signup form uses timezone-safe date-only validation", authForm.includes("validateDateOfBirth(dateOfBirth)") && !authForm.includes("birthDate.toISOString().slice(0, 10) !== dateOfBirth")]);
+required.push(["Signup date picker uses the shared UTC date bound", authForm.includes("max={formatUtcDateInputValue()}")]);
+required.push(["Auth context reuses the same date-of-birth validator", freshId.includes("validateDateOfBirth(profile.dateOfBirth)") && !freshId.includes("const birthDate = new Date(`${profile.dateOfBirth}T00:00:00.000Z`)")]);
+required.push(["Date-of-birth unit tests are included in the package scripts", packageJson.scripts["test:fresh-id-date-of-birth"] === "node --experimental-strip-types scripts/test-fresh-id-date-of-birth.mjs"]);
 
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
