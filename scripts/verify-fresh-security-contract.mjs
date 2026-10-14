@@ -30,9 +30,11 @@ required.push(["Client updates cannot change roles or verification", roleMigrati
 
 const subscriptionMigration = fs.readFileSync(path.join(root, "supabase/migrations/20261014104622_identity_lock_server_managed_subscription.sql"), "utf8");
 const profileBoundaryMigration = fs.readFileSync(path.join(root, "supabase/migrations/20261014125108_fresh_id_profile_column_boundary.sql"), "utf8");
+const userGrantsMigration = fs.readFileSync(path.join(root, "supabase/migrations/20261014125332_revoke_unneeded_fresh_id_user_grants.sql"), "utf8");
 
 required.push(["Subscription entitlements are server-managed", subscriptionMigration.includes("new.subscription is distinct from old.subscription") && subscriptionMigration.includes("subscription can only be changed by the platform")]);
 required.push(["Profile table writes are restricted to editable columns", profileBoundaryMigration.includes("revoke insert, update on table public.users from public, anon, authenticated") && profileBoundaryMigration.includes("grant insert (id, username, email, full_name, preferences) on table public.users to authenticated") && profileBoundaryMigration.includes("grant update (username, full_name, preferences, identity, updated_at) on table public.users to authenticated")]);
+required.push(["Browser roles lack unused users-table privileges", userGrantsMigration.includes("revoke delete, truncate, references, trigger on table public.users from public, anon, authenticated") && userGrantsMigration.includes("revoke select on table public.users from public, anon")]);
 required.push(["Profile insert cannot assign server-managed values", profileBoundaryMigration.includes("new.subscription := jsonb_build_object") && profileBoundaryMigration.includes("new.linked_accounts := '[]'::jsonb") && profileBoundaryMigration.includes("new.email := v_jwt_email") && profileBoundaryMigration.includes("new.identity -> 'kycStatus'")]);
 required.push(["Browser profile provision sends only editable columns", freshId.includes('supabase.from("users").insert({') && !freshId.includes('update({ linked_accounts: nextLinkedAccounts })')]);
 const profileInsertStart = freshId.indexOf('supabase.from("users").insert({');
