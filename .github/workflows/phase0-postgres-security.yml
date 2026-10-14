@@ -1,0 +1,67 @@
+name: Phase 0 isolated PostgreSQL security tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+      - ".github/workflows/phase0-postgres-security.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase0-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+
+      - name: Install pgTAP into disposable database container
+        run: |
+          container_id="$(docker ps -q --filter ancestor=postgres:15 | head -n 1)"
+          test -n "$container_id"
+          docker exec "$container_id" bash -lc "apt-get update && apt-get install --yes postgresql-15-pgtap"
+
+      - name: Create disposable baseline schema
+        run: psql --set ON_ERROR_STOP=1 --file supabase/tests/phase0_postgres_fixture.sql
+
+      - name: Apply Phase 0 migrations in dependency order
+        run: |
+          psql --set ON_ERROR_STOP=1 --file supabase/migrations/20261014194000_harden_connection_request_transitions.sql
+          psql --set ON_ERROR_STOP=1 --file supabase/migrations/20261014194500_harden_phase0_messaging_access.sql
+          psql --set ON_ERROR_STOP=1 --file supabase/migrations/20261014200500_harden_ecosystem_profile_grants.sql
+
+      - name: Run pgTAP catalog assertions
+        run: |
+          psql --set ON_ERROR_STOP=1 --command "CREATE EXTENSION IF NOT EXISTS pgtap"
+          psql --set ON_ERROR_STOP=1 --file supabase/tests/phase0_messaging_security.sql
