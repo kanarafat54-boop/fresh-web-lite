@@ -138,7 +138,7 @@ interface FreshIdContextValue {
   authView: AuthView;
   passkeySupported: boolean;
   setAuthView: (view: AuthView) => void;
-  register: (email: string, password: string, username: string, fullName: string) => Promise<void>;
+  register: (email: string, password: string, username: string, fullName: string, profile: { dateOfBirth: string; country: string; gender: string; consentVersion: string }) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginWithPasskey: () => Promise<void>;
   registerPasskey: () => Promise<Passkey | null>;
@@ -220,7 +220,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       .toLowerCase()
       .replace(/[^a-z0-9_]/g, "")
       .slice(0, 24) || "user";
-    const username = `${baseUsername}_${authUser.id.slice(0, 8)}`;
+    const username = String(metadata.username ?? `${baseUsername}_${authUser.id.slice(0, 8)}`).toLowerCase();
     const fullName = String(metadata.full_name ?? metadata.name ?? baseUsername);
 
     const { error: insertError } = await supabase.from("users").insert({
@@ -228,6 +228,11 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       username,
       email,
       full_name: fullName,
+      date_of_birth: typeof metadata.date_of_birth === "string" ? metadata.date_of_birth : null,
+      country: typeof metadata.country === "string" ? metadata.country : null,
+      gender: typeof metadata.gender === "string" ? metadata.gender : null,
+      signup_consent_version: typeof metadata.signup_consent_version === "string" ? metadata.signup_consent_version : null,
+      signup_consent_at: typeof metadata.signup_consent_at === "string" ? metadata.signup_consent_at : null,
       preferences: defaults.preferences,
     });
 
@@ -299,7 +304,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   }
-  async function register(email: string, password: string, username: string, fullName: string) {
+  async function register(email: string, password: string, username: string, fullName: string, profile: { dateOfBirth: string; country: string; gender: string; consentVersion: string }) {
     setError(null);
     setMessage(null);
     setLoading(true);
@@ -310,7 +315,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    let data: Awaited<ReturnType<typeof supabase.auth.signUp>>["data"];
+    if (password.length < 12 || !/^[a-z0-9_]{3,24}$/.test(username) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(profile.dateOfBirth)) {\n      setError("Check your username, date of birth, and password requirements.");\n      setLoading(false);\n      return;\n    }\n\n    let data: Awaited<ReturnType<typeof supabase.auth.signUp>>["data"];
     let signUpError: Awaited<ReturnType<typeof supabase.auth.signUp>>["error"];
     try {
       const result = await supabase.auth.signUp({
@@ -318,7 +323,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         password,
         options: {
           emailRedirectTo: new URL("/auth/sign-in", window.location.origin).toString(),
-          data: { username, full_name: fullName },
+          data: { username, full_name: fullName, date_of_birth: profile.dateOfBirth, country: profile.country || null, gender: profile.gender || null, signup_consent_version: profile.consentVersion, signup_consent_at: new Date().toISOString() },
         },
       });
       data = result.data;
