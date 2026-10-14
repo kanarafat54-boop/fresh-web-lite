@@ -113,7 +113,7 @@ export function AuthForm() {
       return;
     }
 
-    await register(email.trim(), password, username.trim(), fullName.trim(), {
+    await register(email.trim(), password, username.trim().toLowerCase(), fullName.trim(), {
       dateOfBirth,
       country: country.trim(),
       gender,
