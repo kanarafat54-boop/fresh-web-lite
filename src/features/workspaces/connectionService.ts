@@ -51,6 +51,7 @@ export async function sendConnectionRequest(recipientId: string): Promise<Connec
   }
 
   const { data, error } = await supabase
+    .from("connection_requests")
     .upsert(
       { requester_id: requesterId, recipient_id: recipientId, status: "pending" },
       { onConflict: "requester_id,recipient_id" },
