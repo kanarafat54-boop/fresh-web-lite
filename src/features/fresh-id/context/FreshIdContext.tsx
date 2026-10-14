@@ -219,15 +219,6 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       .slice(0, 24) || "user";
     const username = `${baseUsername}_${authUser.id.slice(0, 8)}`;
     const fullName = String(metadata.full_name ?? metadata.name ?? baseUsername);
-    const googleIdentity = authUser.identities?.find((identity) => identity.provider === "google");
-    const provider = authUser.app_metadata?.provider;
-    const linkedAccounts: LinkedAccount[] = provider === "google"
-      ? [{
-          provider: "google",
-          providerId: googleIdentity?.id ?? authUser.id,
-          linkedAt: new Date().toISOString(),
-        }]
-      : defaults.linkedAccounts;
 
     const { error: insertError } = await supabase.from("users").insert({
       id: authUser.id,
