@@ -27,6 +27,7 @@
 - At inspection, Fresh Communication thread/message tables had zero rows.
 - Broad `anon` grants existed on the messaging tables. RLS was enabled but did not revoke these SQL privileges.
 - The live connection-request table had duplicate permissive SELECT/UPDATE policies. The update policies allowed either participant to change a row's status, which meant the requester could attempt to self-accept a request.
+- Live `ecosystem_profiles` also had broad `anon` table privileges despite a policy intended to expose only enabled profiles publicly. The proposed migration keeps public SELECT for enabled profiles, removes anonymous writes and narrows signed-in operations; duplicate owner write policies are cleaned up.
 - The current schema models Fresh Communication threads as owner-only; it does not yet have a participants/membership table. The proposed migration intentionally preserves that model instead of inventing group membership.
 - PR #56 proposes least-privilege grants, separate owner-only message policies, recipient-only acceptance/decline, and tests. It is not production-applied.
 
