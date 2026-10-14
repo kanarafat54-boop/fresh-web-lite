@@ -32,4 +32,22 @@ create policy "Users can update their own Fresh ID private profile"
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+-- Case-insensitive uniqueness for public handles. If legacy duplicate handles exist,
+-- reconcile them before applying this migration rather than silently renaming users.
+do $
+begin
+  if exists (
+    select 1 from public.users
+    where username is not null and btrim(username) <> ''
+    group by lower(username)
+    having count(*) > 1
+  ) then
+    raise exception 'Duplicate Fresh ID usernames exist; reconcile them before applying this migration';
+  end if;
+end $;
+
+create unique index if not exists users_username_lower_unique
+  on public.users (lower(username))
+  where username is not null and btrim(username) <> '';
+
 notify pgrst, 'reload schema';
