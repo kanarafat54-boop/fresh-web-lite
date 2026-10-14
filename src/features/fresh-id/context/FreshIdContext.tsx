@@ -214,7 +214,6 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     if (typeof metadata.date_of_birth !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(metadata.date_of_birth)) return true;
 
     const privateFields = {
-      date_of_birth: metadata.date_of_birth,
       country: typeof metadata.country === "string" ? metadata.country : null,
       gender: typeof metadata.gender === "string" ? metadata.gender : null,
       updated_at: new Date().toISOString(),
@@ -234,6 +233,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       ? await supabase.from("fresh_id_private_profiles").update(privateFields).eq("user_id", authUser.id)
       : await supabase.from("fresh_id_private_profiles").insert({
           user_id: authUser.id,
+          date_of_birth: metadata.date_of_birth,
           ...privateFields,
           signup_consent_version: typeof metadata.signup_consent_version === "string" ? metadata.signup_consent_version : null,
         });
