@@ -34,7 +34,7 @@ const profileBoundaryMigration = fs.readFileSync(path.join(root, "supabase/migra
 required.push(["Subscription entitlements are server-managed", subscriptionMigration.includes("new.subscription is distinct from old.subscription") && subscriptionMigration.includes("subscription can only be changed by the platform")]);
 required.push(["Profile table writes are restricted to editable columns", profileBoundaryMigration.includes("revoke insert, update on table public.users from public, anon, authenticated") && profileBoundaryMigration.includes("grant insert (id, username, email, full_name, preferences) on table public.users to authenticated") && profileBoundaryMigration.includes("grant update (username, full_name, preferences, updated_at) on table public.users to authenticated")]);
 required.push(["Profile insert cannot assign server-managed values", profileBoundaryMigration.includes("new.subscription := jsonb_build_object") && profileBoundaryMigration.includes("new.linked_accounts := '[]'::jsonb") && profileBoundaryMigration.includes("new.email := v_jwt_email")]);
-required.push(["Browser profile provision sends only editable columns", freshId.includes('supabase.from("users").insert({') && !freshId.includes('update({ linked_accounts: nextLinkedAccounts })'));
+required.push(["Browser profile provision sends only editable columns", freshId.includes('supabase.from("users").insert({') && !freshId.includes('update({ linked_accounts: nextLinkedAccounts })')]);
 const profileInsertStart = freshId.indexOf('supabase.from("users").insert({');
 const profileInsertEnd = freshId.indexOf("});", profileInsertStart);
 const profileInsert = freshId.slice(profileInsertStart, profileInsertEnd);
