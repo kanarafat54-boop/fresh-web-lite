@@ -87,6 +87,7 @@ function createMockUser(): FreshUser {
 }
 
 type AuthView = "form" | "check-email" | "reset-password" | "forgot-password";
+type EditableProfilePatch = Pick<Partial<FreshUser>, "fullName" | "username" | "preferences">;
 
 export type FreshSessionState = {
   expiresAt: number | null;
@@ -142,7 +143,7 @@ interface FreshIdContextValue {
   removePasskey: (passkeyId: string) => Promise<void>;
   loginAsGuest: () => void;
   logout: () => Promise<void>;
-  updateUser: (patch: Partial<FreshUser>) => Promise<boolean>;
+  updateUser: (patch: EditableProfilePatch) => Promise<boolean>;
   requestPasswordReset: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
   session: FreshSessionState;
@@ -218,30 +219,13 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       .slice(0, 24) || "user";
     const username = `${baseUsername}_${authUser.id.slice(0, 8)}`;
     const fullName = String(metadata.full_name ?? metadata.name ?? baseUsername);
-    const googleIdentity = authUser.identities?.find((identity) => identity.provider === "google");
-    const provider = authUser.app_metadata?.provider;
-    const linkedAccounts: LinkedAccount[] = provider === "google"
-      ? [{
-          provider: "google",
-          providerId: googleIdentity?.id ?? authUser.id,
-          linkedAt: new Date().toISOString(),
-        }]
-      : defaults.linkedAccounts;
 
     const { error: insertError } = await supabase.from("users").insert({
       id: authUser.id,
       username,
       email,
       full_name: fullName,
-      role: "user",
-      verified: Boolean(authUser.email_confirmed_at),
-      presence: "online",
-      identity: defaults.identity,
       preferences: defaults.preferences,
-      stats: defaults.stats,
-      security: defaults.security,
-      subscription: defaults.subscription,
-      linked_accounts: linkedAccounts,
     });
 
     if (insertError) {
@@ -302,27 +286,6 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
 
     const currentUser = dbRowToFreshUser(data as Record<string, unknown>);
-    const provider = authUser.app_metadata?.provider;
-    if (provider === "google") {
-      const googleIdentity = authUser.identities?.find((identity) => identity.provider === "google");
-      const linked = currentUser.linkedAccounts ?? [];
-      const alreadyLinked = linked.some((account) => account.provider === "google");
-      if (!alreadyLinked) {
-        const nextLinkedAccounts: LinkedAccount[] = [
-          ...linked,
-          {
-            provider: "google",
-            providerId: googleIdentity?.id ?? authUser.id,
-            linkedAt: new Date().toISOString(),
-          },
-        ];
-        const { error: linkError } = await supabase
-          .from("users")
-          .update({ linked_accounts: nextLinkedAccounts })
-          .eq("id", authUser.id);
-        if (!linkError) currentUser.linkedAccounts = nextLinkedAccounts;
-      }
-    }
 
     setUser(currentUser);
     setIsGuest(false);
@@ -525,7 +488,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     setAuthView("form");
   }
 
-  async function updateUser(patch: Partial<FreshUser>): Promise<boolean> {
+  async function updateUser(patch: EditableProfilePatch): Promise<boolean> {
     if (!user) return false;
     const updatedAt = new Date().toISOString();
     const nextUser: FreshUser = { ...user, ...patch, updatedAt };

@@ -373,9 +373,6 @@ export default function SmartProfilePage() {
       updateUser({
         fullName: profile.displayName.trim(),
         username: profile.username.trim().toLowerCase(),
-        bio: professional.bio.trim(),
-        location: professional.location.trim(),
-        websiteUrl: professional.website.trim(),
       });
       setEditing(false);
       setMessage("Professional profile saved to Fresh ID.");
