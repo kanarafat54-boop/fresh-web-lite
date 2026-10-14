@@ -125,3 +125,43 @@ A read-only registrar lookup on 2026-10-14 returned these results. Availability 
 ## 8. Phase 0 exit status
 
 **Not complete yet.** This report captures the verified baseline and blockers. Remaining items are the real signup journey, a complete review of server routes and storage policies, identity recovery/redirect verification, and a tested provider/domain cost decision. No production mail capability should be claimed until the external send-and-reply acceptance test passes.
+
+
+## Integration fit addendum — where this belongs
+
+The repository already has a broader communication architecture and completion register. Fresh Identity + Fresh Mail should be implemented within that plan, not as a disconnected fourth communication product or as a new generic message table.
+
+### Product placement
+
+- **Fresh ID is the identity foundation**, not a standalone mailbox. Reuse Supabase Auth and the existing Fresh ID context for account/session identity; keep username, verified login email, private signup attributes, and any future Fresh Mail address as distinct concepts.
+- **Fresh Communication is the user-facing home for Fresh Mail.** PR #54 proposes one Communication shell and unified inbox across internal chat, external email, notifications, files, and optional AI assistance. Fresh Mail should appear as a channel/view inside that surface rather than compete with a separate top-level communication destination.
+- **Fresh Flow is a downstream work destination, not a mail transport.** Approved messages may later create tasks, reminders, saved references, or creator/work items, but those are explicit integrations and must not copy private message bodies into unrelated stores by default.
+- **Fresh AI is an optional assistant layer.** It can summarize, classify, translate, draft, or extract tasks from a message only within the user's consent and permission scope. It must not silently send, forward, delete, or share private content.
+- **Admin is an operations plane.** Admin visibility should cover provider health, queue age, delivery/bounce/complaint counts, quota/abuse events, and redacted correlation IDs. Routine administrators should not have default access to message bodies or attachments.
+
+### Architecture boundaries
+
+1. **Keep internal chat and external email separate.** The existing `direct_messages`, `fresh_communication_threads`, and `fresh_communication_messages` tables are not mailboxes. Do not retrofit SMTP/API email into them. External email needs dedicated mailbox/message/recipient/attachment/delivery-event records, provider IDs, inbound webhook receipts, idempotency, and durable outbound jobs.
+2. **Reuse the existing application seams.** The app is React + Vite; `FeatureRegistry` is the navigation/feature registration seam, `CommunicationWorkspace` is the existing communication entry, and Vercel `/api/*` routes are the server boundary. Before adding a mail UI or route, inspect the current Communication workspace and existing server/API conventions; do not create a second navigation system.
+3. **Use a provider adapter behind server routes.** Browser code must never receive mail-provider credentials. All send, inbound webhook, mailbox provisioning, attachment retrieval, and provider-event handling must validate identity/ownership server-side and return truthful queued/sent/delivered/failed/bounced states.
+4. **Store mail in a purpose-built private data model.** Choose a private schema or explicitly secured exposed schema after reviewing grants, RLS, storage policies, and retention. A combined inbox may index source metadata, but the index is never the authority for access.
+5. **Keep domain ownership separate from app hosting.** `fresh-web-lite.vercel.app` is the initial web origin, not an owned mail domain. For the first proof, use a provider-supported sandbox/test recipient and prove external send/receive/reply. Defer public branded mailbox provisioning and domain purchase until a provider, full costs, data handling, and DNS ownership are approved. Do not display `@fresh-web-lite.vercel.app` as a working mailbox.
+6. **Make integrations optional and revocable.** Email-to-task/calendar/search integrations need explicit user choice, scoped permissions, visible source links, and revocation. Do not grant broad cross-table access to create a unified inbox.
+
+### Existing work to coordinate — avoid duplicate implementation
+
+- [PR #51 — Fresh ID signup validation/private profile](https://github.com/kanarafat54-boop/fresh-web-lite/pull/51): draft; needs real dedicated-account confirmation, duplicate-username, recovery/session, and post-login navigation E2E before merge.
+- [PR #52 — Fresh Identity + Fresh Mail blueprint](https://github.com/kanarafat54-boop/fresh-web-lite/pull/52): planning baseline; keep domain/provider choices conditional on proof and approval.
+- [PR #54 — Unified Fresh Communication architecture](https://github.com/kanarafat54-boop/fresh-web-lite/pull/54) and [PR #55 — Communication + Fresh Flow completion register](https://github.com/kanarafat54-boop/fresh-web-lite/pull/55): use these as the product placement and acceptance source of truth; align status vocabulary rather than creating another feature checklist.
+- [PR #56 — Phase 0 messaging access hardening](https://github.com/kanarafat54-boop/fresh-web-lite/pull/56): draft security work. Its source-contract/pgTAP additions are useful, but they do not replace staging application, two-account negative tests, live grant/policy re-query, or post-migration advisor review. Do not apply its migrations to production merely because preview checks are green.
+
+### Updated dependency order
+
+1. **Identity journey:** review PR #51 against the actual mainline, verify email confirmation/session restore/recovery/landing navigation with a dedicated test mailbox, and resolve Auth configuration warnings.
+2. **Messaging security:** review PR #56 migration SQL and tests; pass CI, staging pgTAP, two-account authorization tests, and live post-apply checks before promoting.
+3. **Provider proof:** compare receiving-capable provider options using total cost, inbound support, retention, attachment behavior, webhook security, portability, and Uganda-relevant payment/account constraints. Use sandbox/test mode first; no domain purchase or paid provider activation without approval.
+4. **Mailbox backend:** create a provider-neutral adapter and dedicated mail records only after the proof; add ownership/RLS/grants, quotas, attachment limits, idempotency, bounce/complaint handling, retention, export, and deletion.
+5. **Communication UI:** add Mail as a channel inside the existing Communication shell, with mobile-readable inbox/compose/detail states, accessible controls, pagination, empty/loading/offline/error/retry states, and real delivery status.
+6. **Controlled integrations and launch:** connect AI/Flow only behind explicit permissions; run external send → inbound receive → inbox open → reply → failure/retry with evidence, then decide whether a branded domain is justified.
+
+**Phase 0 remains incomplete.** PRs, documents, static checks, and a ready preview are not production verification. No production mail service or public Fresh Mail address should be claimed until the end-to-end acceptance journey is proven.
