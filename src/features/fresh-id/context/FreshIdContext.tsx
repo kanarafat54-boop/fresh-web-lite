@@ -88,6 +88,7 @@ function createMockUser(): FreshUser {
 
 type AuthView = "form" | "check-email" | "reset-password" | "forgot-password";
 type EditableProfilePatch = Pick<Partial<FreshUser>, "fullName" | "username" | "preferences">;
+type ProfileProvisionResult = { ok: true; notice?: string } | { ok: false };
 
 export type FreshSessionState = {
   expiresAt: number | null;
@@ -283,7 +284,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function provisionUserProfile(authUser: User): Promise<boolean> {
+  async function provisionUserProfile(authUser: User): Promise<ProfileProvisionResult> {
     const defaults = defaultUserFields();
     const email = authUser.email ?? "";
     const metadata = authUser.user_metadata ?? {};
@@ -303,17 +304,48 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     });
 
     if (insertError) {
-      // Auth callbacks can race with the initial profile load. A duplicate
-      // primary key means the other callback already provisioned this profile.
+      // Auth callbacks can race with the initial profile load. Treat a duplicate
+      // primary key as success only when this exact authenticated user's row exists.
       if (insertError.code === "23505") {
         const { data: existing } = await supabase.from("users").select("id").eq("id", authUser.id).maybeSingle();
-        if (existing) return persistPrivateSignupProfile(authUser);
+        if (existing) {
+          return { ok: await persistPrivateSignupProfile(authUser) };
+        }
+
+        // The Auth account may already exist when a username claim loses a race.
+        // Provision a collision-resistant temporary handle rather than leaving a
+        // confirmed account permanently unable to finish its Fresh ID profile.
+        const fallbackUsername = `fresh_${authUser.id.replace(/-/g, "").slice(0, 18)}`;
+        const fallbackInsert = await supabase.from("users").insert({
+          id: authUser.id,
+          username: fallbackUsername,
+          email,
+          full_name: fullName,
+          preferences: defaults.preferences,
+        });
+        if (!fallbackInsert.error) {
+          const privateSaved = await persistPrivateSignupProfile(authUser);
+          if (!privateSaved) return { ok: false };
+          return {
+            ok: true,
+            notice: `Your requested username was unavailable, so Fresh ID assigned @${fallbackUsername} for now. You can change it in Profile.`,
+          };
+        }
+
+        // Another auth callback may have completed the profile while the fallback
+        // insert was in flight. Recover only if the user's own row now exists.
+        if (fallbackInsert.error.code === "23505") {
+          const { data: racedProfile } = await supabase.from("users").select("id").eq("id", authUser.id).maybeSingle();
+          if (racedProfile) return { ok: await persistPrivateSignupProfile(authUser) };
+        }
       }
-      setError(insertError.code === "23505" ? "That username is already taken. Choose another username and try again." : "Your sign-in succeeded, but Fresh ID could not create your profile. Please try again.");
-      return false;
+      setError(insertError.code === "23505"
+        ? "Fresh ID couldn't finish your profile because an account record conflicts. Please try signing in again or contact support."
+        : "Your sign-in succeeded, but Fresh ID could not create your profile. Please try again.");
+      return { ok: false };
     }
 
-    return persistPrivateSignupProfile(authUser);
+    return { ok: await persistPrivateSignupProfile(authUser) };
   }
 
   async function loadUserProfile(authUser: User) {
@@ -333,7 +365,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
 
     if (!data) {
       const created = await provisionUserProfile(authUser);
-      if (!created) {
+      if (!created.ok) {
         await supabase.auth.signOut();
         setLoading(false);
         return;
@@ -355,7 +387,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       setUser({ ...dbRowToFreshUser(createdProfile as Record<string, unknown>), dateOfBirth: privateProfile.data?.date_of_birth ? String(privateProfile.data.date_of_birth) : undefined, country: privateProfile.data?.country ? String(privateProfile.data.country) : undefined, gender: privateProfile.data?.gender ? String(privateProfile.data.gender) : undefined });
       setIsGuest(false);
       setError(null);
-      setMessage("Your Fresh ID account is connected.");
+      setMessage(created.notice ?? "Your Fresh ID account is connected.");
       setLoading(false);
       return;
     }
