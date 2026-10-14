@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useLayout } from "../../../app/contexts/useLayout";
 import { useFreshId } from "../context/FreshIdContext";
 import { supabase } from "../../../lib/supabase";
+import { formatUtcDateInputValue, validateDateOfBirth } from "../utils/dateOfBirth";
 
 export function AuthForm() {
   const {
@@ -97,14 +98,12 @@ export function AuthForm() {
       setSignupError("Your passwords do not match. Please check both fields.");
       return;
     }
-    const birthDate = new Date(`${dateOfBirth}T00:00:00`);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth) || Number.isNaN(birthDate.getTime()) || birthDate.toISOString().slice(0, 10) !== dateOfBirth || birthDate >= new Date()) {
+    const dateOfBirthError = validateDateOfBirth(dateOfBirth);
+    if (dateOfBirthError === "invalid" || dateOfBirthError === "not-past") {
       setSignupError("Enter a valid date of birth in the past.");
       return;
     }
-    const ageCutoff = new Date();
-    ageCutoff.setFullYear(ageCutoff.getFullYear() - 13);
-    if (birthDate > ageCutoff) {
+    if (dateOfBirthError === "underage") {
       setSignupError("You must be at least 13 to create a Fresh ID. Additional age rules may apply in your region.");
       return;
     }
@@ -204,7 +203,7 @@ export function AuthForm() {
       {mode === "register" && (
         <>
           <label className="auth-field"><span className="auth-field-label">Confirm password</span><input className="auth-input" name="confirm-password" autoComplete="new-password" aria-label="Confirm password" placeholder="Enter the same password again" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={12} /></label>
-          <label className="auth-field"><span className="auth-field-label">Date of birth (day / month / year)</span><input className="auth-input" name="date-of-birth" autoComplete="bday" aria-label="Date of birth, day month and year" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={new Date().toISOString().slice(0, 10)} /></label>
+          <label className="auth-field"><span className="auth-field-label">Date of birth (day / month / year)</span><input className="auth-input" name="date-of-birth" autoComplete="bday" aria-label="Date of birth, day month and year" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={formatUtcDateInputValue()} /></label>
           <label className="auth-field"><span className="auth-field-label">Country or region (optional)</span><input className="auth-input" name="country" autoComplete="country-name" aria-label="Country or region" placeholder="Your country or region" value={country} onChange={(e) => setCountry(e.target.value)} maxLength={100} /></label>
           <label className="auth-field"><span className="auth-field-label">Gender (optional)</span><select className="auth-input" name="gender" aria-label="Gender (optional)" value={gender} onChange={(e) => setGender(e.target.value)}><option value="">Prefer not to say</option><option value="woman">Woman</option><option value="man">Man</option><option value="non_binary">Non-binary</option><option value="self_described">I describe myself another way</option></select></label>
         </>
