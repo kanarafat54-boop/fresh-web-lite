@@ -58,9 +58,6 @@ function dbRowToFreshUser(row: Record<string, unknown>): FreshUser {
     username: String(row.username ?? ""),
     email: String(row.email ?? ""),
     fullName: String(row.full_name ?? ""),
-    dateOfBirth: row.date_of_birth ? String(row.date_of_birth) : undefined,
-    country: row.country ? String(row.country) : undefined,
-    gender: row.gender ? String(row.gender) : undefined,
     role: String(row.role ?? "user") as FreshUser["role"],
     verified: Boolean(row.verified),
     presence: String(row.presence ?? "offline") as FreshUser["presence"],
@@ -212,6 +209,25 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  async function persistPrivateSignupProfile(authUser: User): Promise<boolean> {
+    const metadata = authUser.user_metadata ?? {};
+    if (typeof metadata.date_of_birth !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(metadata.date_of_birth)) return true;
+    const { error: privateProfileError } = await supabase.from("fresh_id_private_profiles").upsert({
+      user_id: authUser.id,
+      date_of_birth: metadata.date_of_birth,
+      country: typeof metadata.country === "string" ? metadata.country : null,
+      gender: typeof metadata.gender === "string" ? metadata.gender : null,
+      signup_consent_version: typeof metadata.signup_consent_version === "string" ? metadata.signup_consent_version : null,
+      signup_consent_at: typeof metadata.signup_consent_at === "string" ? metadata.signup_consent_at : null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" });
+    if (privateProfileError) {
+      setError("Your account was created, but your private signup details could not be saved. Please retry after signing in.");
+      return false;
+    }
+    return true;
+  }
+
   async function provisionUserProfile(authUser: User): Promise<boolean> {
     const defaults = defaultUserFields();
     const email = authUser.email ?? "";
@@ -228,11 +244,6 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       username,
       email,
       full_name: fullName,
-      date_of_birth: typeof metadata.date_of_birth === "string" ? metadata.date_of_birth : null,
-      country: typeof metadata.country === "string" ? metadata.country : null,
-      gender: typeof metadata.gender === "string" ? metadata.gender : null,
-      signup_consent_version: typeof metadata.signup_consent_version === "string" ? metadata.signup_consent_version : null,
-      signup_consent_at: typeof metadata.signup_consent_at === "string" ? metadata.signup_consent_at : null,
       preferences: defaults.preferences,
     });
 
@@ -241,13 +252,13 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       // primary key means the other callback already provisioned this profile.
       if (insertError.code === "23505") {
         const { data: existing } = await supabase.from("users").select("id").eq("id", authUser.id).maybeSingle();
-        if (existing) return true;
+        if (existing) return persistPrivateSignupProfile(authUser);
       }
       setError("Your sign-in succeeded, but Fresh ID could not create your profile. Please try again.");
       return false;
     }
 
-    return true;
+    return persistPrivateSignupProfile(authUser);
   }
 
   async function loadUserProfile(authUser: User) {
@@ -285,7 +296,8 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setUser(dbRowToFreshUser(createdProfile as Record<string, unknown>));
+      const privateProfile = await supabase.from("fresh_id_private_profiles").select("date_of_birth,country,gender").eq("user_id", authUser.id).maybeSingle();
+      setUser({ ...dbRowToFreshUser(createdProfile as Record<string, unknown>), dateOfBirth: privateProfile.data?.date_of_birth ? String(privateProfile.data.date_of_birth) : undefined, country: privateProfile.data?.country ? String(privateProfile.data.country) : undefined, gender: privateProfile.data?.gender ? String(privateProfile.data.gender) : undefined });
       setIsGuest(false);
       setError(null);
       setMessage("Your Fresh ID account is connected.");
@@ -294,8 +306,9 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
 
     const currentUser = dbRowToFreshUser(data as Record<string, unknown>);
+    const privateProfile = await supabase.from("fresh_id_private_profiles").select("date_of_birth,country,gender").eq("user_id", authUser.id).maybeSingle();
 
-    setUser(currentUser);
+    setUser({ ...currentUser, dateOfBirth: privateProfile.data?.date_of_birth ? String(privateProfile.data.date_of_birth) : undefined, country: privateProfile.data?.country ? String(privateProfile.data.country) : undefined, gender: privateProfile.data?.gender ? String(privateProfile.data.gender) : undefined });
     setIsGuest(false);
     setError(null);
     setLoading(false);
