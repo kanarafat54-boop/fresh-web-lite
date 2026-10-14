@@ -21,4 +21,10 @@ grant insert (id, username, email, full_name, preferences, date_of_birth, countr
 grant update (username, full_name, preferences, identity, updated_at)
   on table public.users to authenticated;
 
+-- The entered username is the public handle, so enforce case-insensitive uniqueness.
+-- Existing duplicate values must be reconciled before this migration can be applied.
+create unique index if not exists users_username_lower_unique
+  on public.users (lower(username))
+  where username is not null and btrim(username) <> '';
+
 notify pgrst, 'reload schema';
