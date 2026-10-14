@@ -245,6 +245,28 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     return true;
   }
 
+  async function clearTemporarySignupMetadata(userId: string) {
+    const { data: privateProfile, error: privateProfileError } = await supabase
+      .from("fresh_id_private_profiles")
+      .select("user_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (privateProfileError || !privateProfile) return;
+
+    const { error: metadataError } = await supabase.auth.updateUser({
+      data: {
+        date_of_birth: null,
+        country: null,
+        gender: null,
+        signup_consent_version: null,
+        signup_consent_at: null,
+      },
+    });
+    if (metadataError) {
+      setMessage("Your private signup details are saved, but temporary account metadata could not be cleared yet.");
+    }
+  }
+
   async function provisionUserProfile(authUser: User): Promise<boolean> {
     const defaults = defaultUserFields();
     const email = authUser.email ?? "";
@@ -403,6 +425,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
 
     await loadUserProfile(data.user);
+    await clearTemporarySignupMetadata(data.user.id);
   }
 
   async function login(email: string, password: string) {
@@ -435,6 +458,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
 
     await loadUserProfile(data.user);
+    await clearTemporarySignupMetadata(data.user.id);
   }
 
   async function loginWithPasskey() {
