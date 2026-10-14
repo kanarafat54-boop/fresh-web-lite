@@ -119,9 +119,9 @@ function passkeyErrorMessage(error: { message?: string; code?: string } | null, 
       ? "Biometric registration was cancelled. No credential was added."
       : "Biometric sign-in was cancelled.";
   }
-  return message || (action === "register"
-    ? "Could not register this device for Fresh ID biometric sign-in."
-    : "Biometric sign-in failed. Please try again.");
+  return action === "register"
+    ? "Could not register this device for Fresh ID biometric sign-in. Please try again."
+    : "Biometric sign-in failed. Please try again.";
 }
 
 interface FreshIdContextValue {
@@ -461,36 +461,50 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
 
     setLoading(true);
-    const { data, error: passkeyError } = await supabase.auth.registerPasskey();
-    setLoading(false);
+    try {
+      const { data, error: passkeyError } = await supabase.auth.registerPasskey();
+      if (passkeyError || !data) {
+        setError(passkeyErrorMessage(passkeyError, "register"));
+        return null;
+      }
 
-    if (passkeyError || !data) {
-      setError(passkeyErrorMessage(passkeyError, "register"));
+      setMessage("This device is now registered for Fresh ID biometric sign-in.");
+      return data as Passkey;
+    } catch {
+      setError("Fresh ID couldn't register this device for biometric sign-in. Please try again.");
       return null;
+    } finally {
+      setLoading(false);
     }
-
-    setMessage("This device is now registered for Fresh ID biometric sign-in.");
-    return data as Passkey;
   }
 
   async function listPasskeys(): Promise<Passkey[]> {
     if (!user || isGuest) return [];
-    const { data, error: passkeyError } = await supabase.auth.passkey.list();
-    if (passkeyError) {
-      setError(passkeyErrorMessage(passkeyError, "register"));
+    try {
+      const { data, error: passkeyError } = await supabase.auth.passkey.list();
+      if (passkeyError) {
+        setError(passkeyErrorMessage(passkeyError, "register"));
+        return [];
+      }
+      return (data ?? []) as Passkey[];
+    } catch {
+      setError("Fresh ID couldn't load your biometric sign-in devices. Please try again.");
       return [];
     }
-    return (data ?? []) as Passkey[];
   }
 
   async function removePasskey(passkeyId: string) {
     if (!user || isGuest) return;
-    const { error: passkeyError } = await supabase.auth.passkey.delete({ passkeyId });
-    if (passkeyError) {
-      setError(passkeyError.message);
-      return;
+    try {
+      const { error: passkeyError } = await supabase.auth.passkey.delete({ passkeyId });
+      if (passkeyError) {
+        setError("Fresh ID couldn't remove that biometric sign-in device. Please try again.");
+        return;
+      }
+      setMessage("Biometric sign-in credential removed from this account.");
+    } catch {
+      setError("Fresh ID couldn't remove that biometric sign-in device. Please try again.");
     }
-    setMessage("Biometric sign-in credential removed from this account.");
   }
 
   function loginAsGuest() {
