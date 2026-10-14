@@ -6,7 +6,7 @@ const text = (value: unknown) => typeof value === "string" ? value : "";
 export async function loadProfileSuggestionCandidates(userId: string, limit = 40): Promise<ProfileSuggestionCandidate[]> {
   const { data: users, error } = await supabase
     .from("users")
-    .select("id,username,full_name,avatar,identity,stats")
+    .select("id,username,full_name,identity,stats")
     .neq("id", userId)
     .limit(limit);
 
@@ -19,7 +19,7 @@ export async function loadProfileSuggestionCandidates(userId: string, limit = 40
       id: String(row.id),
       displayName: text(row.full_name) || text(row.username) || "Fresh user",
       username: text(row.username),
-      avatar: text(row.avatar) || text(identity.avatar_url),
+      avatar: text(identity.avatar_url),
       interests: Array.isArray(identity.interests) ? identity.interests.map(String) : [],
       skills: Array.isArray(identity.skills) ? identity.skills.map(String) : [],
       occupation: text(identity.occupation),
