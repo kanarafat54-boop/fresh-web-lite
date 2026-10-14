@@ -5,6 +5,7 @@ const root = process.cwd();
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 const supabaseClient = fs.readFileSync(path.join(root, "src/lib/supabase.ts"), "utf8");
 const freshId = fs.readFileSync(path.join(root, "src/features/fresh-id/context/FreshIdContext.tsx"), "utf8");
+const authForm = fs.readFileSync(path.join(root, "src/features/fresh-id/components/AuthForm.tsx"), "utf8");
 const router = fs.readFileSync(path.join(root, "src/app/AppRouter.tsx"), "utf8");
 const workflow = fs.readFileSync(path.join(root, ".github/workflows/fresh-platform-build.yml"), "utf8");
 
@@ -44,6 +45,13 @@ required.push(["Browser cannot request privileged profile fields during provisio
 required.push(["Profile update API is typed to editable fields only", freshId.includes('type EditableProfilePatch = Pick<Partial<FreshUser>, "fullName" | "username" | "preferences">') && freshId.includes("updateUser(patch: EditableProfilePatch)")]);
 required.push(["Concurrent private-profile creation recovers only when this user's row exists", freshId.includes('saveResult.error.code === "23505"') && freshId.includes('racedProfile?.user_id === authUser.id')]);
 required.push(["Username claim collision has a recoverable unique fallback", freshId.includes('const fallbackUsername = `fresh_${authUser.id.replace(/-/g, "").slice(0, 18)}`') && freshId.includes('created.notice ?? "Your Fresh ID account is connected."')]);
+
+required.push(["Email-confirmation screen returns to login mode and canonical route", authForm.includes('setMode("login");') && authForm.includes('window.history.replaceState({ freshRoute: "auth-signin" }, "", "/auth/sign-in")')]);
+required.push(["Signup validates matching passwords before registration", authForm.includes("password !== confirmPassword")]);
+required.push(["Signup requires privacy/terms consent", authForm.includes("if (!policyAccepted)")]);
+required.push(["Signup confirmation redirects to the sign-in route", freshId.includes('emailRedirectTo: new URL("/auth/sign-in", window.location.origin).toString()')]);
+required.push(["Temporary DOB metadata is cleared only after private profile exists", freshId.includes('if (privateProfileError || !privateProfile) return;') && freshId.includes('date_of_birth: null')]);
+required.push(["Successful auth leaves the standalone gateway for Home", router.includes('window.location.replace("/")')]);
 
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
