@@ -2,6 +2,10 @@
 -- Fresh Communication currently has an owner-only thread model (no participant table).
 -- Do not imply multi-party membership until an explicit membership model exists.
 
+alter table public.direct_messages enable row level security;
+alter table public.fresh_communication_threads enable row level security;
+alter table public.fresh_communication_messages enable row level security;
+
 -- Remove default/broad browser grants first. Keep service_role grants intact.
 revoke all privileges on table public.direct_messages from public, anon, authenticated;
 revoke all privileges on table public.fresh_communication_threads from public, anon, authenticated;
