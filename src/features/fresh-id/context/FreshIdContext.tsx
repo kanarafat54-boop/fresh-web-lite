@@ -243,6 +243,17 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         });
 
     if (saveResult.error) {
+      // Auth-state restoration and the explicit signup/login path can both
+      // reach this insert for the same user. A unique-key race is successful
+      // only when the row now exists for this exact authenticated user.
+      if (saveResult.error.code === "23505") {
+        const { data: racedProfile, error: racedLookupError } = await supabase
+          .from("fresh_id_private_profiles")
+          .select("user_id")
+          .eq("user_id", authUser.id)
+          .maybeSingle();
+        if (!racedLookupError && racedProfile?.user_id === authUser.id) return true;
+      }
       setError("Your account was created, but your private signup details could not be saved. Please retry after signing in.");
       return false;
     }
