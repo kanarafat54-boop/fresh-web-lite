@@ -39,7 +39,7 @@ const profileInsertStart = freshId.indexOf('supabase.from("users").insert({');
 const profileInsertEnd = freshId.indexOf("});", profileInsertStart);
 const profileInsert = freshId.slice(profileInsertStart, profileInsertEnd);
 required.push(["Browser cannot request privileged profile fields during provisioning", !["role:", "verified:", "identity:", "stats:", "security:", "subscription:", "linked_accounts:"].some((field) => profileInsert.includes(field))]);
-required.push(["Profile update API is typed to editable fields only", freshId.includes('type EditableProfilePatch = Pick<Partial<FreshUser>, "fullName" | "username" | "preferences">') && freshId.includes("updateUser(patch: EditableProfilePatch)"));
+required.push(["Profile update API is typed to editable fields only", freshId.includes('type EditableProfilePatch = Pick<Partial<FreshUser>, "fullName" | "username" | "preferences">') && freshId.includes("updateUser(patch: EditableProfilePatch)")]);
 
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
