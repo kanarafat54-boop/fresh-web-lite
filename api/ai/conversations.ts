@@ -2,7 +2,10 @@ import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 import { createClient } from "@supabase/supabase-js";
 import { createFreshAIServerSupabase } from "../../src/core/fresh-ai/FreshAIServerServices.js";
 
-export const config = { maxDuration: 10 };
+// Conversation history performs auth validation plus bounded persistence reads/writes.
+// Keep this aligned with the AI API budget so a slow Supabase response does not
+// terminate the request at the old 10-second cap.
+export const config = { maxDuration: 30 };
 
 const json = (x: unknown, status = 200) =>
   Response.json(x, { status, headers: { "cache-control": "no-store" } });
