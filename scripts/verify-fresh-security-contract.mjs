@@ -29,7 +29,7 @@ required.push(["Client inserts cannot assign privileged roles", roleMigration.in
 required.push(["Client updates cannot change roles or verification", roleMigration.includes("role can only be changed by the platform") && roleMigration.includes("verified can only be changed by the platform")]);
 
 const subscriptionMigration = fs.readFileSync(path.join(root, "supabase/migrations/20261014104622_identity_lock_server_managed_subscription.sql"), "utf8");
-const profileBoundaryMigration = fs.readFileSync(path.join(root, "supabase/migrations/20261014124500_fresh_id_profile_column_boundary.sql"), "utf8");
+const profileBoundaryMigration = fs.readFileSync(path.join(root, "supabase/migrations/20261014125108_fresh_id_profile_column_boundary.sql"), "utf8");
 
 required.push(["Subscription entitlements are server-managed", subscriptionMigration.includes("new.subscription is distinct from old.subscription") && subscriptionMigration.includes("subscription can only be changed by the platform")]);
 required.push(["Profile table writes are restricted to editable columns", profileBoundaryMigration.includes("revoke insert, update on table public.users from public, anon, authenticated") && profileBoundaryMigration.includes("grant insert (id, username, email, full_name, preferences) on table public.users to authenticated") && profileBoundaryMigration.includes("grant update (username, full_name, preferences, identity, updated_at) on table public.users to authenticated")]);
