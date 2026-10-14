@@ -309,13 +309,19 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     setMessage(null);
     setLoading(true);
 
-    if (!email || !password || !username || !fullName) {
-      setError("Please fill in all fields.");
+    if (!email || !password || !username || !fullName || !profile?.dateOfBirth) {
+      setError("Please complete all required Fresh ID fields.");
       setLoading(false);
       return;
     }
 
-    if (password.length < 12 || !/^[a-z0-9_]{3,24}$/.test(username) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(profile.dateOfBirth)) {\n      setError("Check your username, date of birth, and password requirements.");\n      setLoading(false);\n      return;\n    }\n\n    let data: Awaited<ReturnType<typeof supabase.auth.signUp>>["data"];
+    if (password.length < 12 || !/^[a-z0-9_]{3,24}$/.test(username) || !/^\d{4}-\d{2}-\d{2}$/.test(profile.dateOfBirth)) {
+      setError("Check your username, date of birth, and password requirements.");
+      setLoading(false);
+      return;
+    }
+
+    let data: Awaited<ReturnType<typeof supabase.auth.signUp>>["data"];
     let signUpError: Awaited<ReturnType<typeof supabase.auth.signUp>>["error"];
     try {
       const result = await supabase.auth.signUp({
