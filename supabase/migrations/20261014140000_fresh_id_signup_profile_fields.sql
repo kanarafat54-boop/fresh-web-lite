@@ -18,6 +18,9 @@ set search_path to ''
 as $function$
 begin
   if tg_op = 'INSERT' then
+    if new.date_of_birth is not null and new.date_of_birth > (current_date - interval '13 years')::date then
+      raise exception 'Fresh ID requires the minimum age of 13';
+    end if;
     if new.signup_consent_version is not null then
       if new.signup_consent_version <> '2026-10-14' then
         raise exception 'Unsupported Fresh ID consent version';
@@ -26,6 +29,8 @@ begin
     else
       new.signup_consent_at := null;
     end if;
+  elsif new.date_of_birth is distinct from old.date_of_birth then
+    raise exception 'Fresh ID date of birth cannot be edited after account creation';
   elsif new.signup_consent_version is distinct from old.signup_consent_version
      or new.signup_consent_at is distinct from old.signup_consent_at then
     raise exception 'Fresh ID signup consent audit fields cannot be edited';
@@ -43,7 +48,8 @@ create trigger fresh_id_private_profile_audit_guard
 alter table public.fresh_id_private_profiles enable row level security;
 revoke all on table public.fresh_id_private_profiles from public, anon;
 revoke all on table public.fresh_id_private_profiles from authenticated;
-grant select, insert, update on table public.fresh_id_private_profiles to authenticated;
+grant select, insert on table public.fresh_id_private_profiles to authenticated;
+grant update (country, gender, updated_at) on table public.fresh_id_private_profiles to authenticated;
 
 drop policy if exists "Users can read their own Fresh ID private profile" on public.fresh_id_private_profiles;
 create policy "Users can read their own Fresh ID private profile"
