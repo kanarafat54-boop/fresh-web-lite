@@ -1,6 +1,8 @@
 -- Phase 0: tighten browser grants on ecosystem_profiles while preserving
 -- public reads for enabled profiles and owner-managed profile creation/updates.
 
+alter table public.ecosystem_profiles enable row level security;
+
 revoke all privileges on table public.ecosystem_profiles from public, anon, authenticated;
 
 -- Enabled ecosystem profiles are intentionally publicly discoverable.
