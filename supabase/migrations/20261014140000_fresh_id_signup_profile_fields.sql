@@ -34,7 +34,7 @@ create policy "Users can update their own Fresh ID private profile"
 
 -- Case-insensitive uniqueness for public handles. If legacy duplicate handles exist,
 -- reconcile them before applying this migration rather than silently renaming users.
-do $
+do $check$
 begin
   if exists (
     select 1 from public.users
@@ -44,7 +44,7 @@ begin
   ) then
     raise exception 'Duplicate Fresh ID usernames exist; reconcile them before applying this migration';
   end if;
-end $;
+end $check$;
 
 create unique index if not exists users_username_lower_unique
   on public.users (lower(username))
