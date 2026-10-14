@@ -35,13 +35,27 @@ export async function sendConnectionRequest(recipientId: string): Promise<Connec
   const requesterId = await getCurrentUserId();
   if (requesterId === recipientId) throw new Error("You cannot connect with yourself.");
 
-  const { data, error } = await supabase
+  const columns = "id, requester_id, recipient_id, status, created_at, updated_at";
+  const { data: existing, error: lookupError } = await supabase
     .from("connection_requests")
+    .select(columns)
+    .eq("requester_id", requesterId)
+    .eq("recipient_id", recipientId)
+    .maybeSingle();
+
+  if (lookupError) throw lookupError;
+  // An accepted connection is terminal from the requester's side. Returning it
+  // makes this operation idempotent without attempting a forbidden status reset.
+  if (existing?.status === "accepted" || existing?.status === "pending") {
+    return existing as ConnectionRequest;
+  }
+
+  const { data, error } = await supabase
     .upsert(
       { requester_id: requesterId, recipient_id: recipientId, status: "pending" },
       { onConflict: "requester_id,recipient_id" },
     )
-    .select("id, requester_id, recipient_id, status, created_at, updated_at")
+    .select(columns)
     .single();
 
   if (error) throw error;
