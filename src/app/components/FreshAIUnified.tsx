@@ -3,6 +3,7 @@ import { useLayout } from "../contexts/useLayout";
 import { useTheme } from "../providers/ThemeProvider";
 import { supabase } from "../../lib/supabase";
 import { createFreshAIWorkspaceContext } from "../../core/fresh-ai/FreshAIWorkspaceContext";
+import { getFreshAICapability, type FreshAICapabilityId } from "../../core/fresh-ai/FreshAICapabilityRegistry";
 import { conversationService } from "../../features/ai/services/conversationService";
 import { freshSecureVault } from "../../core/crypto/FreshSecureVault";
 import FreshAIRichText from "./FreshAIRichText";
@@ -36,15 +37,27 @@ type AskPayload = {
 };
 
 const modes = ["Chat", "Research", "Create", "Build", "Learn", "Act"] as const;
+type FreshAIMode = (typeof modes)[number];
+const modeCapabilityIds: Record<FreshAIMode, FreshAICapabilityId> = {
+  Chat: "conversation",
+  Research: "research",
+  Create: "creation",
+  Build: "code",
+  Learn: "knowledge",
+  Act: "work",
+};
+function isModeAvailable(candidate: FreshAIMode): boolean {
+  return getFreshAICapability(modeCapabilityIds[candidate]).status === "implemented";
+}
 const capabilities = [
-  ["◈", "Research", "Find, compare and verify information"],
-  ["✦", "Create", "Images, media and native artifacts"],
-  ["⌘", "Build", "Code, systems and engineering"],
-  ["◇", "Analyze", "Understand files, data and context"],
-  ["◎", "Learn", "Teach, explain and build knowledge"],
-  ["✓", "Verify", "Check evidence and trust"],
-  ["↗", "Act", "Governed actions and automation"],
-  ["▱", "Organize", "Projects, memory and workspace"],
+  ["◈", "Research", "Find, compare and verify information", "research", "Research"],
+  ["✦", "Create", "Images, media and native artifacts", "creation", "Create"],
+  ["⌘", "Build", "Code, systems and engineering", "code", "Build"],
+  ["◇", "Analyze", "Understand files, data and context", "vision", "Chat"],
+  ["◎", "Learn", "Teach, explain and build knowledge", "knowledge", "Learn"],
+  ["✓", "Verify", "Check evidence and trust", "trust", "Chat"],
+  ["↗", "Act", "Governed actions and automation", "work", "Act"],
+  ["▱", "Organize", "Projects and workspace organization", "projects", "Chat"],
 ] as const;
 
 export default function FreshAIUnified() {
@@ -57,7 +70,7 @@ export default function FreshAIUnified() {
   const [draft, setDraft] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [mode, setMode] = useState<(typeof modes)[number]>("Chat");
+  const [mode, setMode] = useState<FreshAIMode>("Chat");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -308,11 +321,15 @@ export default function FreshAIUnified() {
     <div className="fresh-ai-constellation" role="dialog" aria-label="Fresh AI capabilities">
       <div className="fresh-ai-constellation-head"><div><b>Fresh Intelligence</b><small>Choose a capability. Fresh keeps one intelligence underneath.</small></div><button type="button" onClick={() => setConstellation(false)} aria-label="Close capabilities">×</button></div>
       <div className="fresh-ai-capability-grid">
-        {capabilities.map(([icon, name, description]) => (
-          <button key={name} type="button" onClick={() => { const nextMode = name === "Research" ? "Research" : name === "Create" ? "Create" : name === "Build" ? "Build" : name === "Learn" ? "Learn" : name === "Act" ? "Act" : "Chat"; setMode(nextMode); setConstellation(false); inputRef.current?.focus(); }}>
-            <i>{icon}</i><span><b>{name}</b><small>{description}</small></span><em>›</em>
-          </button>
-        ))}
+        {capabilities.map(([icon, name, description, capabilityId, nextMode]) => {
+          const contract = getFreshAICapability(capabilityId);
+          const available = contract.status === "implemented";
+          return (
+            <button key={name} type="button" disabled={!available} title={available ? description : "In development — this capability is not executable yet"} aria-label={`${name}: ${available ? "available" : "in development"}`} onClick={() => { if (!available) return; setMode(nextMode); setConstellation(false); inputRef.current?.focus(); }}>
+              <i>{icon}</i><span><b>{name}</b><small>{description}</small><small className="fresh-ai-capability-status">{available ? "Available" : "In development · not executable yet"}</small></span><em>{available ? "›" : "Soon"}</em>
+            </button>
+          );
+        })}
       </div>
     </div>
   ) : null;
@@ -360,7 +377,7 @@ export default function FreshAIUnified() {
         {vaultMessage ? <small className="fresh-ai-vault-msg">{vaultMessage}</small> : <small className="fresh-ai-vault-msg">At-rest E2EE when unlocked — live AI requests still use plaintext on the server.</small>}
       </div>
       <form onSubmit={ask}><button className="fresh-ai-add" type="button" onClick={() => setConstellation((current) => !current)} aria-label="Open capabilities">＋</button><textarea ref={inputRef} rows={1} value={draft} onChange={(event) => { setDraft(event.target.value); resizeInput(); }} onKeyDown={keyDown} placeholder="Message Fresh AI…" /><button className={`fresh-ai-voice ${voice ? "active" : ""}`} type="button" onClick={() => setVoice((current) => !current)} aria-label="Toggle voice">{voice ? "◉" : "◌"}</button><button className="fresh-ai-send" type="submit" disabled={!draft.trim() || loading || uploading} aria-label="Send">↑</button></form>
-      <div className="fresh-ai-composer-tools"><label className="fresh-ai-attach">⌕ {uploading ? "Uploading…" : "Attach"}<input type="file" multiple onChange={(event) => { void uploadFiles(event.target.files); event.currentTarget.value = ""; }} /></label><div className="fresh-ai-mode-strip">{modes.map((item) => <button key={item} className={mode === item ? "active" : ""} type="button" onClick={() => setMode(item)}>{item}</button>)}</div><span>{loading ? "Fresh is working…" : uploading ? "Securing files…" : "Enter to send · Shift+Enter for newline"}</span>{loading ? <button type="button" onClick={stop}>Stop</button> : null}</div>
+      <div className="fresh-ai-composer-tools"><label className="fresh-ai-attach">⌕ {uploading ? "Uploading…" : "Attach"}<input type="file" multiple onChange={(event) => { void uploadFiles(event.target.files); event.currentTarget.value = ""; }} /></label><div className="fresh-ai-mode-strip">{modes.map((item) => { const available = isModeAvailable(item); return <button key={item} className={mode === item ? "active" : ""} type="button" disabled={!available} title={available ? `${item} mode` : `${item} mode is in development and is not executable yet`} aria-label={`${item} mode — ${available ? "available" : "in development"}`} onClick={() => setMode(item)}>{item}{available ? "" : " · Soon"}</button>; })}</div><span>{loading ? "Fresh is working…" : uploading ? "Securing files…" : "Enter to send · Shift+Enter for newline"}</span>{loading ? <button type="button" onClick={stop}>Stop</button> : null}</div>
       {attachments.length > 0 ? <div className="fresh-ai-composer-attachments" aria-label="Attached files">{attachments.map((file) => <span key={file.id}>◇ {file.name}</span>)}</div> : null}
       <small className="fresh-ai-unified-status"><span>✦</span> {source || "Fresh AI"} · Runtime evolving · Vault {vaultUnlocked ? "unlocked · at-rest E2EE" : "locked"} · Weights training-required · Beyond-SI doctrine</small>
     </div>
