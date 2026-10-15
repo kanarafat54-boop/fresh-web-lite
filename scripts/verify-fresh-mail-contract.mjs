@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 
 const read = (path) => readFileSync(path, "utf8");
 const schema = read("supabase/migrations/20261015060000_fresh_mail_core.sql");
-const messages = read("api/mail/messages.ts");
-const webhook = read("api/mail/resend-webhook.ts");
+const messages = read("api/mail.ts");
+const webhook = read("api/mail.ts");
 const ui = read("src/features/workspaces/FreshMailPanel.tsx");
 const communication = read("src/features/workspaces/CommunicationWorkspace.tsx");
 
@@ -37,7 +37,7 @@ assert.match(webhook, /no_active_mailbox_match/);
 assert.doesNotMatch(webhook, /body\.ownerId|body\.userId|body\.owner_id/);
 
 assert.match(communication, /FreshMailPanel/);
-assert.match(ui, /fetch\("\/api\/mail\/messages"/);
+assert.match(ui, /fetch\("\/api\/mail"/);
 assert.match(ui, /type="submit"/);
 assert.doesNotMatch(ui, /dangerouslySetInnerHTML/);
 
