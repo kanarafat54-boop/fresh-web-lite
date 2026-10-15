@@ -208,7 +208,7 @@ export default function FreshMailPanel() {
             />
           </label>
           <p id="fresh-mail-address-help" className="fresh-mail-help">3–32 characters: lowercase letters, numbers, dots, underscores, or hyphens. Your domain is added after verification.</p>
-          <button type="submit" className="fresh-mail-primary" disabled={provisioning || loading || !localPartDraft.trim()}>
+          <button type="submit" className="fresh-mail-primary" disabled={provisioning || loading || needsAuth || !localPartDraft.trim()}>
             {provisioning ? "Checking domain…" : "Create mailbox"}
           </button>
         </form>
