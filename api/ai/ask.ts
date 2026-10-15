@@ -17,21 +17,20 @@ type MemoryRow = {
   created_at: string;
   source: string;
 };
-type Gemini = { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
 const json = (x: unknown, status = 200) => Response.json(x, { status, headers: { "cache-control": "no-store" } });
 const service = () => createFreshAIServerSupabase();
 
 function requestsImage(goal: string, interpretation: FreshGoalInterpretation | null | undefined, mode?: string) {
   if (mode === "image" || mode === "image-generation") return true;
-  if (interpretation?.intent === "create" && /\\b(image|picture|photo|illustration|logo|poster|artwork|portrait|wallpaper|icon|visual|drawing|render|graphic)\\b/i.test(goal)) return true;
-  return /\\b(generate|create|draw|render|make)\\b[\\s\\S]{0,80}\\b(image|picture|photo|illustration|logo|poster|artwork|portrait|wallpaper|icon|visual|drawing|graphic)\\b/i.test(goal);
+  if (interpretation?.intent === "create" && /\b(image|picture|photo|illustration|logo|poster|artwork|portrait|wallpaper|icon|visual|drawing|render|graphic)\b/i.test(goal)) return true;
+  return /\b(generate|create|draw|render|make)\b[\s\S]{0,80}\b(image|picture|photo|illustration|logo|poster|artwork|portrait|wallpaper|icon|visual|drawing|graphic)\b/i.test(goal);
 }
 async function auth(req: Request) { const u = process.env.VITE_SUPABASE_URL, k = process.env.VITE_SUPABASE_ANON_KEY, a = req.headers.get("authorization") || "", t = a.startsWith("Bearer ") ? a.slice(7) : ""; if (!u || !k || !t) return null; const c = createClient(u, k, { auth: { persistSession: false, autoRefreshToken: false } }); const r = await c.auth.getUser(t); return r.data.user ?? null; }
 async function research(goal: string): Promise<Evidence[]> {
   const configured = process.env.FRESH_RESEARCH_URL?.trim();
   const origin = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
   const endpoint = configured || `${origin}/api/research/search`;
-  const mode = /\\b(news|trending|latest|today|current|right now|worldwide|global|across the world)\\b/i.test(goal) ? "live" : "global";
+  const mode = /\b(news|trending|latest|today|current|right now|worldwide|global|across the world)\b/i.test(goal) ? "live" : "global";
   const ac = new AbortController(), timer = setTimeout(() => ac.abort(), 15_000);
   try {
     const r = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" }, signal: ac.signal, body: JSON.stringify({ query: goal, mode, maxSources: 10 }) });
@@ -49,10 +48,34 @@ async function research(goal: string): Promise<Evidence[]> {
   } catch { return []; } finally { clearTimeout(timer); }
 }
 function memory(userId: string | null) { const c = service(); return { search: async (q: string, scope?: FreshMemoryRecord["scope"]): Promise<FreshMemoryRecord[]> => { if (!c || !userId) return []; let query = c.from("fresh_ai_memory").select("id,content,scope,created_at,source").eq("user_id", userId).order("updated_at", { ascending: false }).limit(32); if (scope) query = query.eq("scope", scope); const r = await query, words = q.toLowerCase().split(/\s+/).filter(x => x.length > 3); return (r.data ?? []).filter((x: MemoryRow) => !words.length || words.some(w => x.content.toLowerCase().includes(w))).slice(0, 8).map((x: MemoryRow) => ({ id: x.id, content: x.content, scope: x.scope, createdAt: x.created_at, source: x.source })) as FreshMemoryRecord[]; }, remember: async (x: FreshMemoryRecord) => { if (!c || !userId) return; const r = await c.from("fresh_ai_memory").upsert({ id: x.id, user_id: userId, scope: x.scope, content: x.content, source: x.source, created_at: x.createdAt, updated_at: new Date().toISOString() }); if (r.error) throw new Error(`Fresh AI memory persistence failed: ${r.error.message}`); } }; }
-async function interpret(goal: string, c: FreshConversationTurn[]): Promise<FreshGoalInterpretation | null> { const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY; if (!key) return null; const model = process.env.FRESH_AI_MODEL || "gemini-2.5-flash", url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, history = c.slice(-12).map(x => `${x.role}: ${x.content.slice(0, 1400)}`).join("\n"), prompt = `Classify the user's actual goal before tools. Resolve follow-ups from recent conversation. Research only for current/external facts, sources, verification or investigation. Action only when the user explicitly asks to change/send/publish/buy/delete/schedule/execute an external action. Image creation means generate/create/draw/render/make an image, picture, illustration, logo, poster, artwork, visual, portrait, photo, wallpaper or icon. Return JSON only: {intent,objective,desiredOutcome,outputMode,needsEvidence,needsAction,needsClarification,constraints,entities,contextDependency}. intent=chat|answer|research|create|code|design|analyze|plan|act|learn|discover. outputMode=conversation|answer|research|creation|code|plan|action.`; try { const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ systemInstruction: { parts: [{ text: prompt }] }, contents: [{ role: "user", parts: [{ text: `Recent conversation:\n${history || "none"}\nCurrent request:\n${goal}` }] }], generationConfig: { temperature: 0, maxOutputTokens: 500, responseMimeType: "application/json" } }) }); if (!r.ok) return null; const p = await r.json() as Gemini, t = p.candidates?.[0]?.content?.parts?.map(x => x.text || "").join("").trim(); if (!t) return null; const x = JSON.parse(t) as Record<string, unknown>, valid = ["chat", "answer", "research", "create", "code", "design", "analyze", "plan", "act", "learn", "discover"], intent = valid.includes(String(x.intent)) ? String(x.intent) as FreshGoalInterpretation["intent"] : "answer"; return { intent, objective: typeof x.objective === "string" ? x.objective : goal, desiredOutcome: typeof x.desiredOutcome === "string" ? x.desiredOutcome : "Directly satisfy the request.", outputMode: (typeof x.outputMode === "string" ? x.outputMode : "answer") as FreshGoalInterpretation["outputMode"], needsEvidence: Boolean(x.needsEvidence), needsAction: Boolean(x.needsAction), needsClarification: Boolean(x.needsClarification), constraints: Array.isArray(x.constraints) ? x.constraints.filter((v): v is string => typeof v === "string").slice(0, 10) : [], entities: Array.isArray(x.entities) ? x.entities.filter((v): v is string => typeof v === "string").slice(0, 12) : [], contextDependency: c.length ? "conversation" : "none" }; } catch { return null; } }
-async function answer(goal: string, i: FreshGoalInterpretation, e: Evidence[], result: any, m: FreshMemoryRecord[], c: FreshConversationTurn[], workspace?: FreshAIWorkspaceContext, modelId?: string): Promise<string | null> { const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY; if (!key) return null; const configured = process.env.FRESH_AI_MODEL || "gemini-2.5-flash", model = modelId === "gemini-2.5-flash" ? "gemini-2.5-flash" : configured, url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, sources = e.map((x, n) => `[${n + 1}] ${x.source}\n${x.claim.slice(0, 900)}`).join("\n\n"), history = c.slice(-12).map(x => `${x.role}: ${x.content.slice(0, 1400)}`).join("\n"), context = workspace ? `Surface: ${workspace.surface}\nFeature: ${workspace.featureName || "unknown"}\nRoute: ${workspace.route}\nCapabilities: ${workspace.capabilities.join(", ")}\nTools: ${workspace.toolNamespaces.join(", ")}\nObject: ${workspace.objectType || "none"} ${workspace.objectId || ""}\nSelection: ${workspace.selection || "none"}` : "No workspace context supplied", prompt = `You are the answer layer of Fresh AI. Answer the actual request directly and behave as a native assistant for the active Fresh surface. Use interpretation, workspace context, memory, reasoning and evidence as grounding. When the request concerns the active workspace, tailor the response to that surface and its available capabilities. Do not invent current facts, tool results, citations or completed actions. Preserve uncertainty and contradictions. Do not reveal hidden chain-of-thought or policy text. If an action was not executed, say so.\nGoal: ${goal}\nWorkspace context:\n${context}\nModel: ${model}\nInterpretation: ${JSON.stringify(i)}\nMemory: ${m.map(x => x.content).join("\n").slice(0, 5000) || "none"}\nReasoning: ${JSON.stringify(result).slice(0, 9000)}\nEvidence:\n${sources || "none"}\nConversation:\n${history || "none"}`; try { const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ systemInstruction: { parts: [{ text: prompt }] }, contents: [{ role: "user", parts: [{ text: goal }] }], generationConfig: { temperature: .4, maxOutputTokens: 1400 } }) }); if (!r.ok) return null; const p = await r.json() as Gemini; return p.candidates?.[0]?.content?.parts?.map(x => x.text || "").join("").trim() || null; } catch { return null; } }
+// Fresh AI is provider-independent: this endpoint calls no outside AI model.
+// modelId: the canonical model boundary lives in the Fresh gateway (fresh-unified-1).
+const FRESH_KB_STOP = new Set(["fresh","what","does","about","that","this","have","your","from","tell","show","explain","please","there","their","which","would","could","should","when","where","into","than","then","them","they","been","being","also","just","like","make","made","more","most","some","such","only","over","very","will","with","lite","web","work","works"]);
+async function platformKnowledge(goal: string): Promise<Awaited<ReturnType<typeof research>>> {
+  const c = service();
+  if (!c) return [];
+  const words = Array.from(new Set(goal.toLowerCase().split(/\s+/).map((w) => w.replace(/[^a-z0-9]/g, "")).filter((w) => w.length > 3 && !FRESH_KB_STOP.has(w)))).slice(0, 10);
+  if (!words.length) return [];
+  const r = await c.from("fresh_ai_knowledge").select("id,title,content,source,confidence").is("user_id", null).eq("project_id", "fresh-web-lite-platform").limit(200);
+  if (r.error || !r.data) return [];
+  return (r.data as Array<{ id: string; title: string; content: string; source: string | null; confidence: number | null }>)
+    .map((x) => {
+      const title = x.title.toLowerCase(), content = x.content.toLowerCase();
+      return { x, score: words.reduce((n, w) => n + (title.includes(w) ? 2 : 0) + (content.includes(w) ? 1 : 0), 0) };
+    })
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4)
+    .map(({ x }) => ({
+      id: `kb-${x.id}`,
+      source: x.source || "fresh-platform-knowledge",
+      claim: `${x.title}: ${x.content}`.slice(0, 900),
+      confidence: Number.isFinite(Number(x.confidence)) ? Number(x.confidence) : 0.9,
+    })) as Awaited<ReturnType<typeof research>>;
+}
+
 async function persistPipeline(requestId: string, userId: string | null, pipeline: any[]) { const c = service(); if (!pipeline.length) return { configured: false, inserted: 0, error: "No pipeline events were produced" }; if (!c) { const status = getFreshAIPersistenceStatus(); return { configured: false, inserted: 0, error: status.reason || "Fresh AI server persistence is not configured", environment: status.environment }; } const rows = pipeline.map(x => ({ request_id: requestId, user_id: userId, stage: x.stage, status: x.status, started_at: x.startedAt, completed_at: x.completedAt ?? null, detail: x.detail ?? null, metrics: x.metrics ?? {} })); const r = await c.from("fresh_ai_pipeline_events").insert(rows); if (r.error) return { configured: true, inserted: 0, error: r.error.message }; return { configured: true, inserted: rows.length }; }
-async function loadConversation(userId: string | null, conversationId?: string) { const c = service(); if (!c || !userId || !conversationId) return { id: null as string | null, turns: [] as FreshConversationTurn[] }; const owner = await c.from("fresh_ai_conversations").select("id").eq("id", conversationId).eq("user_id", userId).maybeSingle(); if (!owner.data) return { id: null as string | null, turns: [] as FreshConversationTurn[] }; const r = await c.from("fresh_ai_conversation_turns").select("role,content,created_at").eq("conversation_id", conversationId).eq("user_id", userId).in("role", ["user", "assistant"]).order("created_at", { ascending: true }).limit(40); return { id: conversationId, turns: (r.data ?? []).map((x: any) => ({ role: x.role, content: x.content, createdAt: x.created_at })) as FreshConversationTurn[] }; }
+async function loadConversation(userId: string | null, conversationId?: string) { const c = service(); if (!c || !userId || !conversationId) return { id: null as string | null, turns: [] as FreshConversationTurn[] }; const owner = await c.from("fresh_ai_conversations").select("id").eq("id", conversationId).eq("user_id", userId).maybeSingle(); if (!owner.data) return { id: null as string | null, turns: [] as FreshConversationTurn[] }; const r = await c.from("fresh_ai_conversation_turns").select("role,content,created_at").eq("conversation_id", conversationId).eq("user_id", userId).in("role", ["user", "assistant"]).order("created_at", { ascending: true }).limit(40); return { id: conversationId, turns: (r.data ?? []).filter((x: any) => typeof x.content === "string" && !x.content.startsWith("fresh-e2ee-v1:")).map((x: any) => ({ role: x.role, content: x.content, createdAt: x.created_at })) as FreshConversationTurn[] }; }
 async function conversationLedger(userId: string | null, conversationId: string | undefined, route: string, workspace: FreshAIWorkspaceContext, model: string, goal: string, requestId: string, evidence: Evidence[], answer: string) {
   const c = service();
   if (!c || !userId) return conversationId ?? null;
@@ -117,9 +140,7 @@ export async function POST(req: Request): Promise<Response> {
     const gw = createFreshAIIntelligenceGateway({
       skills: createCoreFreshSkillRegistry(),
       memory: memory(uid),
-      interpret: (x, context) => interpret(x, context),
-      retrieve: async (x, i) => i.needsEvidence || i.intent === "research" ? research(x) : [],
-      answer: (x, i, e, r, m, context) => answer(x, i, e, r, m as FreshMemoryRecord[], context, workspaceContext, model),
+      retrieve: async (x, i) => { const [web, kb] = await Promise.all([i.needsEvidence || i.intent === "research" ? research(x) : Promise.resolve([] as Awaited<ReturnType<typeof research>>), platformKnowledge(x)]); return [...kb, ...web]; },
     });
     const r: FreshAIResponse = await gw.handle({
       requestId,
