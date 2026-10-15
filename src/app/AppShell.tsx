@@ -1,11 +1,21 @@
 import AppRouter from "./AppRouter";
 import { ThemeProvider, useTheme } from "./providers/ThemeProvider";
 import { LayoutProvider } from "./contexts/LayoutProvider";
+import { useLayout } from "./contexts/useLayout";
 import FreshAIUnified from "./components/FreshAIUnified";
 import "../index.css";
 import "../core/design/primitives.css";
 import { useProfileNav } from "../features/profile/context/ProfileNavContext";
 import { ProfileView } from "../features/profile/components/ProfileView";
+
+function GlobalFreshAIEntry() {
+  const { activeRoute } = useLayout();
+  const normalizedRoute = (activeRoute ?? "").replace(/\\/$/, "").toLowerCase();
+  const isAI = ["ai", "/ai", "fresh-ai", "/fresh-ai"].includes(normalizedRoute) ||
+    (typeof window !== "undefined" && ["/ai", "/fresh-ai"].includes(window.location.pathname.replace(/\\/$/, "").toLowerCase()));
+  if (isAI) return null;
+  return <FreshAIUnified />;
+}
 
 function GlobalProfileOverlay() {
   const { viewingUserId, closeProfile } = useProfileNav();
@@ -63,7 +73,7 @@ export default function AppShell() {
           <AppRouter />
           <GlobalProfileOverlay />
           <GlobalThemeControl />
-          <FreshAIUnified />
+          <GlobalFreshAIEntry />
         </div>
       </LayoutProvider>
     </ThemeProvider>
