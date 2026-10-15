@@ -1,0 +1,51 @@
+name: Fresh Mail Backend Gate
+
+on:
+  pull_request:
+    paths:
+      - "api/mail/**"
+      - "supabase/migrations/*fresh_mail_core.sql"
+      - "scripts/verify-fresh-mail-contract.mjs"
+      - "docs/FRESH_MAIL_BACKEND_SETUP.md"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/fresh-mail-gate.yml"
+      - "src/server/vercelNodeAdapter.ts"
+  push:
+    branches: [main]
+    paths:
+      - "api/mail/**"
+      - "supabase/migrations/*fresh_mail_core.sql"
+      - "scripts/verify-fresh-mail-contract.mjs"
+      - "docs/FRESH_MAIL_BACKEND_SETUP.md"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/fresh-mail-gate.yml"
+      - "src/server/vercelNodeAdapter.ts"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fresh-mail-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Fresh Mail security and wiring contract
+        run: npm run test:fresh-mail-contract
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
+      - name: Lint
+        run: npm run lint
