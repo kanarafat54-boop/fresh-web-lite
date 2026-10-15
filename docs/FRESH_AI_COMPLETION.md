@@ -1,10 +1,12 @@
-# Fresh AI completion status (~99% app layer)
+# Fresh AI completion status — capability-specific readiness
 
 ## What “done” means here
 
+Fresh AI must not be summarized with a single completion percentage. Architecture files and static contract checks establish that boundaries exist; they do not prove every capability is live, production-ready, or verified in the deployed browser. Use the capability registry and runtime checks to determine readiness.
+
 | Layer | Status |
 |-------|--------|
-| **Application** (UI, API, vault, gateway, governance, doctrine) | **~99% wired** |
+| **Application** (UI, API, vault, gateway, governance, doctrine) | **Partially wired; production readiness not established** |
 | **Foundation weights** (`fresh-unified-1`) | **training-required** |
 | **Server-blind live E2EE** | **blocked** until on-device inference |
 
