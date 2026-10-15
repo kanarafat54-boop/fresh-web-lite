@@ -49,8 +49,8 @@ create table if not exists public.fresh_mail_messages (
 
 create unique index if not exists fresh_mail_messages_owner_idempotency_uq
   on public.fresh_mail_messages (owner_id, idempotency_key);
-create unique index if not exists fresh_mail_messages_provider_id_uq
-  on public.fresh_mail_messages (provider, provider_message_id)
+create unique index if not exists fresh_mail_messages_owner_provider_id_uq
+  on public.fresh_mail_messages (owner_id, provider, provider_message_id)
   where provider_message_id is not null;
 create index if not exists fresh_mail_messages_owner_created_idx
   on public.fresh_mail_messages (owner_id, created_at desc);
