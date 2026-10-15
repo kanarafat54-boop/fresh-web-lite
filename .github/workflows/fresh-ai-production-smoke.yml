@@ -1,0 +1,34 @@
+name: Fresh AI production smoke
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/fresh-ai-production-smoke.yml"
+      - "scripts/smoke-fresh-ai-production.mjs"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/fresh-ai-production-smoke.yml"
+      - "scripts/smoke-fresh-ai-production.mjs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fresh-ai-production-smoke
+  cancel-in-progress: false
+
+jobs:
+  production-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Test deployed Fresh AI knowledge response
+        run: node scripts/smoke-fresh-ai-production.mjs
