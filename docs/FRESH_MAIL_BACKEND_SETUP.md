@@ -6,9 +6,9 @@ This is a backend foundation, not a launch-ready mailbox. It is intentionally no
 
 - A private server-mediated schema for address ownership, message records, and webhook event idempotency.
 - An accessible, mobile-first Fresh Mail panel integrated into the existing Communication workspace, with inbox listing and plain-text compose.
-- `GET /api/mail/messages` to list only the verified Fresh ID user's records.
-- `POST /api/mail/messages` for plain-text outbound messages through Resend.
-- `POST /api/mail/resend-webhook` for signed `email.received` events, inbound body retrieval, active-address matching, and idempotent persistence.
+- `GET /api/mail` to list only the verified Fresh ID user's records.
+- `POST /api/mail` for plain-text outbound messages through Resend.
+- `POST /api/mail?webhook=1` for signed `email.received` events, inbound body retrieval, active-address matching, and idempotent persistence.
 - A static security contract check: `npm run test:fresh-mail-contract`.
 
 ## Required server-only environment
@@ -29,7 +29,7 @@ Do not copy secret values into GitHub, client variables, issue comments, screens
 2. Apply the migration only in a disposable test database using the project's approved migration workflow. This PR does not apply it to any database.
 3. Run `npm run test:fresh-mail-contract`, `npm run lint`, and `npm run build`.
 4. Add an active address row for a controlled test account only after its inbound domain and sender are verified. The migration defaults addresses to `pending`; the webhook intentionally ignores unassigned addresses.
-5. Configure a Resend `email.received` webhook to `https://<deployment-host>/api/mail/resend-webhook`; copy its signing secret to server-only environment settings.
+5. Configure a Resend `email.received` webhook to `https://<deployment-host>/api/mail?webhook=1`; copy its signing secret to server-only environment settings.
 6. Send a plain-text test message to an external mailbox, reply to the assigned inbound address, and verify that both messages persist after reload.
 7. Repeat with two Fresh ID accounts and prove each account cannot read the other's records. Verify invalid signatures are rejected and provider retries do not duplicate messages.
 8. Inspect Supabase grants/RLS and advisors after migration; do not treat a static test or successful build as security sign-off.
