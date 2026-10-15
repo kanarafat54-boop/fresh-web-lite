@@ -46,6 +46,8 @@ assert.match(ui, /fetch\("\/api\/mail"/);
 assert.match(ui, /type="submit"/);
 assert.match(ui, /const idempotencyKey = retryKey \?\? makeIdempotencyKey\(\)/);
 assert.match(ui, /setRetryKey\(idempotencyKey\)/);
+assert.match(ui, /fetch\("\/api\/mail\?provision=1"/);
+assert.match(ui, /Create your Fresh Mail address/);
 assert.doesNotMatch(messages, /subject,text_body,html_body,status/);
 assert.doesNotMatch(ui, /dangerouslySetInnerHTML/);
 
