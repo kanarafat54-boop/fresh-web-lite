@@ -57,7 +57,7 @@ export default function FreshMailPanel() {
         return;
       }
       setNeedsAuth(false);
-      const response = await fetch("/api/mail/messages", {
+      const response = await fetch("/api/mail", {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
       });
@@ -91,7 +91,7 @@ export default function FreshMailPanel() {
         throw new Error("Your Fresh ID session has expired. Sign in again.");
       }
       const to = toDraft.split(/[;,\n]+/).map((address) => address.trim()).filter(Boolean);
-      const response = await fetch("/api/mail/messages", {
+      const response = await fetch("/api/mail", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
