@@ -25,6 +25,12 @@ Set these only in Vercel server environment settings; never use a `VITE_` prefix
 
 Do not copy secret values into GitHub, client variables, issue comments, screenshots, or logs.
 
+## No-cost development path (no domain purchase)
+
+A paid domain is **not required** to keep engineering Fresh Mail. The pull-request CI starts a disposable PostgreSQL service and applies the Fresh Mail migration there, then checks RLS/grants, mailbox uniqueness, and idempotency. This uses the existing GitHub Actions workflow and does not create a Supabase staging branch or touch production data.
+
+Without a domain whose DNS you control, mailbox provisioning and real inbound replies must remain disabled. Do not use `fresh-web-lite.vercel.app` as an email domain just because it hosts the app. Until a suitable domain is available, continue with the disposable database tests, contract checks, build/lint, and provider-mocked tests; label any simulated messages as test data and never show them as real delivered email.
+
 ## Safe activation sequence
 
 1. Review the schema and route diffs in this PR.
@@ -40,7 +46,7 @@ Do not copy secret values into GitHub, client variables, issue comments, screens
 ## Known limits — not implemented here
 
 - The UI currently supports mailbox provisioning, inbox listing, and plain-text sending only. Reply/forward/drafts/archive/spam/trash/search, attachments, and real delivery-status webhooks remain unimplemented.
-- No custom domain has been verified or configured by this change.
+- No custom domain has been verified or configured by this change; purchasing one is not part of this phase.
 - No provider key, webhook secret, database migration, or production deployment has been changed.
 - Outbound `sent` means Resend accepted the request; it does not mean the recipient's server delivered it.
 - Inbound HTML is stored as message content; the eventual UI must render it safely (prefer sandboxed rendering or sanitized HTML), not inject it directly into the application DOM.
