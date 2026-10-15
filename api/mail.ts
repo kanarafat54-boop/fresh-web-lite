@@ -275,6 +275,97 @@ async function handleWebhook(req: Request): Promise<Response> {
 
 
 
+async function provisionMailbox(req: Request): Promise<Response> {
+  const configured = clients();
+  if (!configured) return json({ error: "Fresh Mail server configuration is incomplete" }, 503);
+  const user = await verifiedUser(req, configured.auth);
+  if (!user) return json({ error: "Authentication required" }, 401);
+
+  let body: Record<string, unknown>;
+  try {
+    body = (await req.json()) as Record<string, unknown>;
+  } catch {
+    return json({ error: "Invalid JSON body" }, 400);
+  }
+
+  const localPart = typeof body.localPart === "string" ? body.localPart.trim().toLowerCase() : "";
+  if (
+    localPart.length < 3 ||
+    localPart.length > 32 ||
+    !/^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])$/.test(localPart) ||
+    localPart.includes("..")
+  ) {
+    return json({ error: "Choose a mailbox name with 3–32 letters, numbers, dots, underscores, or hyphens. It must start and end with a letter or number." }, 400);
+  }
+
+  const apiKey = env("RESEND_API_KEY");
+  const domain = (env("FRESH_MAIL_DOMAIN") ?? "").toLowerCase();
+  const domainId = env("FRESH_MAIL_DOMAIN_ID");
+  if (!apiKey || !domain || !domainId) {
+    return json({ error: "Mailbox provisioning is not configured. A verified Resend domain with receiving enabled is required." }, 503);
+  }
+
+  const prior = await configured.admin.from("fresh_mail_addresses")
+    .select("email_address,status")
+    .eq("owner_id", user.id)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  if (prior.error) return json({ error: "Fresh Mail storage is not ready" }, 503);
+  if (prior.data) return json({ ok: true, mailbox: prior.data, alreadyAssigned: true });
+
+  let domainResponse: Response;
+  try {
+    domainResponse = await fetch(`https://api.resend.com/domains/${encodeURIComponent(domainId)}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch {
+    return json({ error: "Could not verify the email domain with the provider" }, 502);
+  }
+  if (!domainResponse.ok) {
+    return json({ error: "The configured email domain could not be verified with the provider" }, 503);
+  }
+  const providerDomain = await domainResponse.json().catch(() => null) as {
+    id?: string;
+    name?: string;
+    status?: string;
+    capabilities?: { sending?: string; receiving?: string };
+  } | null;
+  if (
+    !providerDomain ||
+    providerDomain.id !== domainId ||
+    providerDomain.name?.toLowerCase() !== domain ||
+    providerDomain.status !== "verified" ||
+    providerDomain.capabilities?.sending !== "enabled" ||
+    providerDomain.capabilities?.receiving !== "enabled"
+  ) {
+    return json({ error: "The configured domain is not verified for both sending and receiving" }, 409);
+  }
+
+  const emailAddress = `${localPart}@${domain}`;
+  const inserted = await configured.admin.from("fresh_mail_addresses")
+    .insert({ owner_id: user.id, email_address: emailAddress, provider: "resend", status: "active" })
+    .select("email_address,status")
+    .single();
+  if (inserted.error) {
+    if (inserted.error.code === "23505") {
+      const ownerAddress = await configured.admin.from("fresh_mail_addresses")
+        .select("email_address,status")
+        .eq("owner_id", user.id)
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle();
+      if (ownerAddress.data) return json({ ok: true, mailbox: ownerAddress.data, alreadyAssigned: true });
+      return json({ error: "That mailbox name is already taken. Choose another name." }, 409);
+    }
+    console.error("Fresh Mail mailbox provisioning failed", { code: inserted.error.code });
+    return json({ error: "Could not assign this mailbox" }, 503);
+  }
+
+  return json({ ok: true, mailbox: inserted.data }, 201);
+}
+
 async function sendOutbound(req: Request): Promise<Response> {
   const configured = clients();
   if (!configured) return json({ error: "Fresh Mail server configuration is incomplete" }, 503);
