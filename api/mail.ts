@@ -192,10 +192,19 @@ async function handleWebhook(req: Request): Promise<Response> {
       // invocation timed out, a 2xx here could permanently suppress provider retries.
       return json({ error: "Webhook event is already processing; retry later" }, 503);
     }
-    await admin.from("fresh_mail_webhook_events")
-      .update({ status: "processing", failure_code: null })
+    const reclaimed = await admin.from("fresh_mail_webhook_events")
+      .update({ status: "processing", failure_code: null, processed_at: null })
       .eq("provider", "resend")
-      .eq("provider_event_id", eventId);
+      .eq("provider_event_id", eventId)
+      .eq("status", "failed")
+      .select("id")
+      .maybeSingle();
+    if (reclaimed.error || !reclaimed.data) {
+      console.error("Fresh Mail webhook retry claim failed", {
+        code: reclaimed.error?.code ?? "event_not_reclaimable",
+      });
+      return json({ error: "Webhook retry could not be claimed safely" }, 503);
+    }
   } else if (inserted.error) {
     console.error("Fresh Mail webhook ledger insert failed", { code: inserted.error.code });
     return json({ error: "Webhook ledger is unavailable" }, 503);
