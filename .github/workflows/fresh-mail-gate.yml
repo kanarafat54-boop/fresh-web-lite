@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "api/mail/**"
+      - "src/features/workspaces/FreshMailPanel.*"
+      - "src/features/workspaces/CommunicationWorkspace.tsx"
       - "supabase/migrations/*fresh_mail_core.sql"
       - "scripts/verify-fresh-mail-contract.mjs"
       - "docs/FRESH_MAIL_BACKEND_SETUP.md"
@@ -15,6 +17,8 @@ on:
     branches: [main]
     paths:
       - "api/mail/**"
+      - "src/features/workspaces/FreshMailPanel.*"
+      - "src/features/workspaces/CommunicationWorkspace.tsx"
       - "supabase/migrations/*fresh_mail_core.sql"
       - "scripts/verify-fresh-mail-contract.mjs"
       - "docs/FRESH_MAIL_BACKEND_SETUP.md"
