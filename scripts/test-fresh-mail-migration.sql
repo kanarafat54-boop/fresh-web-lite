@@ -3,7 +3,6 @@ DO $$
 DECLARE
   v_owner_id uuid := gen_random_uuid();
   v_other_owner_id uuid := gen_random_uuid();
-  address_id uuid;
 BEGIN
   IF EXISTS (
     SELECT 1
