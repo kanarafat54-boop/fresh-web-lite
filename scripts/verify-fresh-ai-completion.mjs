@@ -7,12 +7,12 @@ const path = resolve(root, "src/core/fresh-ai/FreshAICompletionStatus.ts");
 const text = readFileSync(path, "utf8");
 
 for (const s of [
-  "appLayerPercent: 99",
+  "capability-specific",
+  "overall completion percentage",
   "training-required",
   "e2ee-live",
   "blocked",
   "assertFreshAICompletionHonesty",
-  "Do not claim 100%",
 ]) {
   if (!text.includes(s)) {
     console.error("Missing:", s);

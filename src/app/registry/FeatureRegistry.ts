@@ -43,7 +43,7 @@ FeatureRegistry.register({ id: "auth-signin", name: "Fresh ID Sign In", route: "
 FeatureRegistry.register({ id: "auth-signup", name: "Fresh ID Sign Up", route: "/auth/sign-up", searchable: false, lazyLoader: loadAuth });
 FeatureRegistry.register({ id: "first-experience", name: "Fresh First Experience", searchable: false, lazyLoader: () => import("../../features/fresh-first-experience/FreshFirstExperience").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "feed", name: "Home", route: "/", searchable: true, lazyLoader: () => import("../../features/home/HomeDashboard").then((m) => ({ default: m.default })) });
-FeatureRegistry.register({ id: "ai", name: "Fresh AI", route: "/ai", searchable: true, lazyLoader: () => import("../../features/ai/components/FreshAIHome").then((m) => ({ default: m.default })) });
+FeatureRegistry.register({ id: "ai", name: "Fresh AI", route: "/ai", searchable: true, lazyLoader: () => import("../components/FreshAIUnified").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "wallet", name: "Fresh Wallet", route: "/wallet", searchable: true, permissions: ["wallet:read"], lazyLoader: () => import("../../features/wallet/WalletDashboard").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "studio", name: "Creator Studio", route: "/studio", searchable: true, lazyLoader: () => import("../../features/creator/CreatorStudioDashboard").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "profile", name: "Profile", route: "/profile", searchable: true, lazyLoader: () => import("../../features/profile/components/SmartProfilePage").then((m) => ({ default: m.default })) });

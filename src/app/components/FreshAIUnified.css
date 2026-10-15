@@ -64,3 +64,10 @@
   .fresh-ai-unified-shell,.fresh-ai-unified-overlay,.fresh-ai-unified-trigger,.fresh-ai-unified-composer form,.fresh-ai-constellation{backdrop-filter:none;-webkit-backdrop-filter:none}
   .fresh-ai-unified-shell{box-shadow:none}
 }
+
+
+/* Honest capability availability: unfinished modes remain visible but cannot be invoked. */
+.fresh-ai-capability-grid button:disabled,.fresh-ai-mode-strip button:disabled{opacity:.58;cursor:not-allowed;transform:none}
+.fresh-ai-capability-grid button:disabled:hover{background:rgba(100,120,170,.08)}
+.fresh-ai-capability-status{color:var(--fresh-ai-accent);font-weight:700;opacity:1!important}
+.fresh-ai-mode-strip button:disabled{border:1px dashed var(--fresh-ai-line)}
