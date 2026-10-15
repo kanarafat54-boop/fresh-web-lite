@@ -56,18 +56,31 @@ export async function GET(req: Request): Promise<Response> {
 
   const parsedLimit = Number(new URL(req.url).searchParams.get("limit") ?? "30");
   const limit = Number.isFinite(parsedLimit) ? Math.max(1, Math.min(100, Math.floor(parsedLimit))) : 30;
-  const { data, error } = await configured.admin
-    .from("fresh_mail_messages")
-    .select("id,direction,from_address,to_addresses,cc_addresses,subject,text_body,html_body,status,created_at,sent_at,received_at")
-    .eq("owner_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  const [messagesResult, addressResult] = await Promise.all([
+    configured.admin
+      .from("fresh_mail_messages")
+      .select("id,direction,from_address,to_addresses,cc_addresses,subject,text_body,html_body,status,created_at,sent_at,received_at")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(limit),
+    configured.admin
+      .from("fresh_mail_addresses")
+      .select("email_address,status")
+      .eq("owner_id", user.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  if (error) {
-    console.error("Fresh Mail list query failed", { code: error.code });
+  if (messagesResult.error || addressResult.error) {
+    console.error("Fresh Mail list query failed", {
+      messageCode: messagesResult.error?.code,
+      addressCode: addressResult.error?.code,
+    });
     return json({ error: "Fresh Mail storage is not ready" }, 503);
   }
-  return json({ ok: true, messages: data ?? [] });
+  return json({ ok: true, messages: messagesResult.data ?? [], mailbox: addressResult.data ?? null });
 }
 
 export async function POST(req: Request): Promise<Response> {
