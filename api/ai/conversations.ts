@@ -60,7 +60,7 @@ export async function GET(req: Request): Promise<Response> {
 }
 
 /**
- * Seal the latest user + assistant turns with client-produced envelopes.
+ * Seal the user + assistant turns for one exact request using client-produced envelopes.
  * Server never decrypts; it only replaces content with ciphertext the client owns.
  */
 export async function POST(req: Request): Promise<Response> {
@@ -73,6 +73,7 @@ export async function POST(req: Request): Promise<Response> {
     const body = (await req.json()) as {
       action?: string;
       conversationId?: string;
+      requestId?: string;
       sealedUserContent?: string;
       sealedAssistantContent?: string;
     };
@@ -82,13 +83,15 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     const conversationId = typeof body.conversationId === "string" ? body.conversationId : "";
+    const requestId = typeof body.requestId === "string" ? body.requestId.trim() : "";
     const sealedUser = typeof body.sealedUserContent === "string" ? body.sealedUserContent : "";
     const sealedAssistant =
       typeof body.sealedAssistantContent === "string" ? body.sealedAssistantContent : "";
 
-    if (!conversationId || !sealedUser || !sealedAssistant) {
-      return json({ error: "conversationId and sealed contents are required" }, 400);
+    if (!conversationId || !requestId || !sealedUser || !sealedAssistant) {
+      return json({ error: "conversationId, requestId, and sealed contents are required" }, 400);
     }
+    if (requestId.length > 128) return json({ error: "Invalid requestId" }, 400);
     if (!looksSealed(sealedUser) || !looksSealed(sealedAssistant)) {
       return json({ error: "Payloads must be Fresh E2EE envelopes" }, 400);
     }
@@ -104,11 +107,14 @@ export async function POST(req: Request): Promise<Response> {
       .maybeSingle();
     if (!owner.data) return json({ error: "Conversation not found" }, 404);
 
+    // Bind sealing to the exact request. Timestamp-only selection can seal a different
+    // request when concurrent responses finish out of order.
     const turns = await c
       .from("fresh_ai_conversation_turns")
       .select("id,role,created_at")
       .eq("conversation_id", conversationId)
       .eq("user_id", u.id)
+      .eq("request_id", requestId)
       .in("role", ["user", "assistant"])
       .order("created_at", { ascending: false })
       .limit(8);
@@ -117,7 +123,7 @@ export async function POST(req: Request): Promise<Response> {
     const latestAssistant = rows.find((row) => row.role === "assistant");
     const latestUser = rows.find((row) => row.role === "user");
     if (!latestUser || !latestAssistant) {
-      return json({ error: "No turns available to seal" }, 404);
+      return json({ error: "No user and assistant turns found for this request" }, 404);
     }
 
     const userUpdate = await c
@@ -125,7 +131,8 @@ export async function POST(req: Request): Promise<Response> {
       .update({ content: sealedUser })
       .eq("id", latestUser.id)
       .eq("user_id", u.id)
-      .eq("conversation_id", conversationId);
+      .eq("conversation_id", conversationId)
+      .eq("request_id", requestId);
     if (userUpdate.error) {
       return json({ error: `Failed to seal user turn: ${userUpdate.error.message}` }, 500);
     }
@@ -135,7 +142,8 @@ export async function POST(req: Request): Promise<Response> {
       .update({ content: sealedAssistant })
       .eq("id", latestAssistant.id)
       .eq("user_id", u.id)
-      .eq("conversation_id", conversationId);
+      .eq("conversation_id", conversationId)
+      .eq("request_id", requestId);
     if (assistantUpdate.error) {
       return json({ error: `Failed to seal assistant turn: ${assistantUpdate.error.message}` }, 500);
     }
