@@ -36,4 +36,9 @@ assert.match(webhook, /provider_message_id/);
 assert.match(webhook, /no_active_mailbox_match/);
 assert.doesNotMatch(webhook, /body\.ownerId|body\.userId|body\.owner_id/);
 
+assert.match(communication, /FreshMailPanel/);
+assert.match(ui, /fetch\("\/api\/mail\/messages"/);
+assert.match(ui, /type="submit"/);
+assert.doesNotMatch(ui, /dangerouslySetInnerHTML/);
+
 console.log("Fresh Mail contract checks passed.");
