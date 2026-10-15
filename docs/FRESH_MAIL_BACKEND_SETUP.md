@@ -5,6 +5,7 @@ This is a backend foundation, not a launch-ready mailbox. It is intentionally no
 ## What this change provides
 
 - A private server-mediated schema for address ownership, message records, and webhook event idempotency.
+- An accessible, mobile-first Fresh Mail panel integrated into the existing Communication workspace, with inbox listing and plain-text compose.
 - `GET /api/mail/messages` to list only the verified Fresh ID user's records.
 - `POST /api/mail/messages` for plain-text outbound messages through Resend.
 - `POST /api/mail/resend-webhook` for signed `email.received` events, inbound body retrieval, active-address matching, and idempotent persistence.
@@ -35,7 +36,7 @@ Do not copy secret values into GitHub, client variables, issue comments, screens
 
 ## Known limits — not implemented here
 
-- No mailbox UI, address provisioning, reply/forward/draft/archive/spam/trash/search, attachments, or real delivery-status webhooks.
+- The UI currently supports inbox listing and plain-text sending only; address provisioning, reply/forward/drafts/archive/spam/trash/search, attachments, and real delivery-status webhooks remain unimplemented.
 - No custom domain has been verified or configured by this change.
 - No provider key, webhook secret, database migration, or production deployment has been changed.
 - Outbound `sent` means Resend accepted the request; it does not mean the recipient's server delivered it.
