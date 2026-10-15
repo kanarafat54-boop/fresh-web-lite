@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 const read = (path) => fs.readFileSync(path, "utf8");
 
 const orchestrator = read("src/core/semantic/truthDecisionOrchestrator.ts");
+const claimIntelligence = read("src/core/semantic/claimIntelligence.ts");
 const calibration = read("src/core/semantic/confidenceCalibration.ts");
 const temporal = read("src/core/semantic/temporalTruth.ts");
 const persistenceContract = read("src/core/semantic/semanticPersistence.ts");
@@ -20,6 +21,9 @@ const required = [
   [orchestrator, "calibrateClaimConfidence", "Truth orchestrator must consume calibrated confidence."],
   [orchestrator, "assessTemporalTruth", "Truth orchestrator must evaluate temporal truth."],
   [orchestrator, "isActionableTemporalTruth", "Truth orchestrator must enforce temporal actionability."],
+  [orchestrator, "compareClaims(comparableClaim, toComparableClaim(other)).relation === \"contradictory\"", "Temporal disputes must be restricted to semantically contradictory claims."],
+  [claimIntelligence, "const genericPredicates = new Set", "Generic research-finding predicates must not imply contradiction by themselves."],
+  [claimIntelligence, "!genericPredicate && predicateScore >= 0.65 && objectScore < 0.25", "Predicate-only contradiction heuristic must exclude generic predicates."],
   [orchestrator, "ALLOW_ACTION", "Truth decision boundary must expose ALLOW_ACTION."],
   [orchestrator, "ALLOW_WITH_CAUTION", "Truth decision boundary must expose ALLOW_WITH_CAUTION."],
   [orchestrator, "BLOCK_ACTION", "Truth decision boundary must expose BLOCK_ACTION."],

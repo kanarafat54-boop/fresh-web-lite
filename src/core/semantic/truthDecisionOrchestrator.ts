@@ -1,13 +1,33 @@
 import type { SemanticClaim, SemanticEvidence } from "./types.js";
 import { assessTemporalTruth, isActionableTemporalTruth, type TemporalTruthAssessment } from "./temporalTruth.js";
 import { calibrateClaimConfidence, type CalibratedConfidence } from "./confidenceCalibration.js";
+import { compareClaims, type Claim } from "./claimIntelligence.js";
 import type { ProvenanceEdge, ProvenanceNode } from "./sourceProvenance.js";
 
 export type TruthDecision = { claimId: string; assessment: TemporalTruthAssessment; calibration: CalibratedConfidence; actionable: boolean; decision: "ALLOW_ACTION" | "ALLOW_WITH_CAUTION" | "BLOCK_ACTION"; reasons: string[] };
 
+function toComparableClaim(claim: SemanticClaim): Claim {
+  return {
+    id: claim.id,
+    subjectEntityId: claim.subjectEntityId ?? "",
+    predicate: claim.predicate,
+    object: String(claim.object),
+    statement: `${claim.predicate} ${String(claim.object)}`,
+    normalizedStatement: claim.normalizedText,
+    observedAt: claim.lastObservedAt,
+    validFrom: claim.validFrom,
+    validTo: claim.validTo,
+    confidence: claim.confidence,
+  };
+}
+
 export function decideTruth(claim: SemanticClaim, allClaims: SemanticClaim[], evidence: SemanticEvidence[], provenanceNodes: ProvenanceNode[] = [], provenanceEdges: ProvenanceEdge[] = [], now = new Date().toISOString()): TruthDecision {
   const calibration = calibrateClaimConfidence(claim, evidence, provenanceNodes, provenanceEdges, allClaims, now);
-  const assessment = assessTemporalTruth({ ...claim, confidence: calibration.confidence }, now, allClaims);
+  // Temporal overlap alone is not a contradiction. Only pass claims that the
+  // semantic comparator classifies as contradictory into the temporal dispute gate.
+  const comparableClaim = toComparableClaim(claim);
+  const conflictingClaims = allClaims.filter((other) => other.id !== claim.id && compareClaims(comparableClaim, toComparableClaim(other)).relation === "contradictory");
+  const assessment = assessTemporalTruth({ ...claim, confidence: calibration.confidence }, now, conflictingClaims);
   const actionable = isActionableTemporalTruth(assessment) && calibration.actionable;
   const decision = actionable ? "ALLOW_ACTION" : assessment.status === "CURRENT" && calibration.confidence >= 0.6 ? "ALLOW_WITH_CAUTION" : "BLOCK_ACTION";
   return { claimId: claim.id, assessment, calibration, actionable, decision, reasons: [...assessment.reasons, `Calibrated confidence: ${Math.round(calibration.confidence * 100)}%.`, `Independent evidence clusters: ${calibration.independenceClusters}.`, `Provenance-independent sources: ${calibration.provenanceIndependentSources}.`, `Calibration decision: ${calibration.decision}.`, calibration.actionable ? "Confidence calibration permits automated action." : "Confidence calibration does not permit automated action."] };

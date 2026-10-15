@@ -31,3 +31,47 @@ jobs:
         run: npm run build
       - name: Verify TRUEMODE research persistence contract
         run: npm run test:truemode-chain
+      - name: Verify TRUEMODE claim-comparison behavior
+        run: npm run test:truemode-claim-comparisons
+      - name: Verify TRUEMODE persistence RPC acknowledgements and failures
+        run: npm run test:truemode-persistence-rpc
+      - name: Verify research API dry-run end to end without database writes
+        run: npm run test:fresh-research-api-dry-run
+
+  postgres-integration:
+    name: Real PostgreSQL persistence integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: truemode_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d truemode_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+      - name: Create disposable test schema
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f scripts/truemode-postgres-test-fixture.sql
+      - name: Apply the actual TRUEMODE persistence migration
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261014120128_atomic_truemode_research_persistence.sql
+      - name: Verify writes, read-back, idempotency, and rollback
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f scripts/test-truemode-persistence-postgres.sql
