@@ -188,7 +188,9 @@ async function handleWebhook(req: Request): Promise<Response> {
       return json({ ok: true, duplicate: true });
     }
     if (prior.data?.status === "processing") {
-      return json({ ok: true, duplicate: true, status: "processing" }, 202);
+      // Do not acknowledge an in-flight event as complete: if the original
+      // invocation timed out, a 2xx here could permanently suppress provider retries.
+      return json({ error: "Webhook event is already processing; retry later" }, 503);
     }
     await admin.from("fresh_mail_webhook_events")
       .update({ status: "processing", failure_code: null })
