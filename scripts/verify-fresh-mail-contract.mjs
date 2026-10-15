@@ -15,10 +15,15 @@ assert.match(schema, /enable row level security/i);
 assert.match(schema, /revoke all on table public\.fresh_mail_messages from public, anon, authenticated/i);
 assert.match(schema, /grant all on table public\.fresh_mail_messages to service_role/i);
 assert.match(schema, /fresh_mail_messages_owner_idempotency_uq/i);
+assert.match(schema, /fresh_mail_addresses_one_active_per_owner_uq/i);
 
 assert.match(messages, /auth\.getUser\(token\)/);
 assert.match(messages, /owner_id", user\.id/);
 assert.match(messages, /RESEND_API_KEY/);
+assert.match(messages, /async function provisionMailbox/);
+assert.match(messages, /FRESH_MAIL_DOMAIN_ID/);
+assert.match(messages, /capabilities\?\.receiving !== "enabled"/);
+assert.match(messages, /params.get\("provision"\) === "1"/);
 assert.match(messages, /Idempotency-Key/);
 assert.match(messages, /requestFingerprint/);
 assert.match(messages, /const storedKey = .*outbound:/);
