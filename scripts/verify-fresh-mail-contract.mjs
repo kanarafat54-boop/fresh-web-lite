@@ -18,6 +18,8 @@ assert.match(messages, /auth\.getUser\(token\)/);
 assert.match(messages, /owner_id", user\.id/);
 assert.match(messages, /RESEND_API_KEY/);
 assert.match(messages, /Idempotency-Key/);
+assert.match(messages, /requestFingerprint/);
+assert.match(messages, /outbound:\\${idempotencyKey}/);
 assert.match(messages, /provider accepted the email, but Fresh Mail could not confirm local persistence/i);
 assert.match(messages, /status: "sent"/);
 assert.doesNotMatch(messages, /body\.ownerId|body\.userId|body\.owner_id/);
