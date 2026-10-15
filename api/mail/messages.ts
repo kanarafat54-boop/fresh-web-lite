@@ -110,17 +110,20 @@ export async function POST(req: Request): Promise<Response> {
     return json({ error: "No active Fresh Mail address is assigned to this account yet" }, 409);
   }
 
-  const storedKey = idempotencyKey;
+  const storedKey = `outbound:${idempotencyKey}`;
   const requestFingerprint = createHash("sha256")
     .update(JSON.stringify({ from: address.email_address, to, subject, text: textBody }))
     .digest("hex");
   const existing = await configured.admin
     .from("fresh_mail_messages")
-    .select("id,status,provider_message_id,created_at,request_fingerprint")
+    .select("id,status,provider_message_id,created_at,request_fingerprint,direction")
     .eq("owner_id", user.id)
     .eq("idempotency_key", storedKey)
     .maybeSingle();
   if (existing.error) return json({ error: "Fresh Mail storage is not ready" }, 503);
+  if (existing.data && existing.data.direction !== "outbound") {
+    return json({ error: "This idempotencyKey conflicts with an existing message" }, 409);
+  }
   if (existing.data?.request_fingerprint && existing.data.request_fingerprint !== requestFingerprint) {
     return json({ error: "This idempotencyKey was already used for different message content" }, 409);
   }
@@ -154,10 +157,13 @@ export async function POST(req: Request): Promise<Response> {
       if (inserted.error.code === "23505") {
         const raced = await configured.admin
           .from("fresh_mail_messages")
-          .select("id,status,provider_message_id")
+          .select("id,status,provider_message_id,request_fingerprint,direction")
           .eq("owner_id", user.id)
           .eq("idempotency_key", storedKey)
           .maybeSingle();
+        if (raced.data && (raced.data.direction !== "outbound" || (raced.data.request_fingerprint && raced.data.request_fingerprint !== requestFingerprint))) {
+          return json({ error: "This idempotencyKey was already used for different message content" }, 409);
+        }
         if (raced.data?.status === "sent") {
           return json({ ok: true, status: "sent", messageId: raced.data.id, providerMessageId: raced.data.provider_message_id, idempotentReplay: true });
         }
