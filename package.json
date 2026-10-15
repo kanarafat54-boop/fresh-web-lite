@@ -48,7 +48,8 @@
     "test:fresh-training-run-record": "node scripts/verify-fresh-training-run-record.mjs",
     "test:fresh-mail-contract": "node scripts/verify-fresh-mail-contract.mjs",
     "test:truemode-claim-comparisons": "node scripts/test-truemode-claim-comparisons.mjs",
-    "test:truemode-persistence-rpc": "node scripts/test-truemode-persistence-rpc.mjs"
+    "test:truemode-persistence-rpc": "node scripts/test-truemode-persistence-rpc.mjs",
+    "test:fresh-research-api-dry-run": "node scripts/test-fresh-research-api-dry-run.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
