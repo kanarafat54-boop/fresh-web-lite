@@ -11,7 +11,7 @@ const similarity = (a: string, b: string): number => { const left = tokens(a), r
 const evidenceForClaim = (statement: string): SemanticEvidence[] => semanticStore.getEvidence().filter((item) => similarity(item.claim, statement) >= 0.22);
 const evidenceBalance = (supporting: SemanticEvidence[], counter: SemanticEvidence[]): number => { const total = supporting.length + counter.length; return total === 0 ? 0 : (supporting.length - counter.length) / total; };
 const oppositePredicate = (predicate: string): string | undefined => ({ is: "is_not", exists: "does_not_exist", founded: "not_founded", owns: "does_not_own", supports: "opposes", increases: "decreases", active: "inactive" }[normalize(predicate)]);
-const genericPredicates = new Set(["research_finding", "finding", "claim", "fact", "statement", "assertion"]);
+const genericPredicates = new Set(["research finding", "finding", "claim", "fact", "statement", "assertion"]);
 export function createClaim(input: Omit<Claim, "normalizedStatement">): Claim { return { ...input, normalizedStatement: normalize(`${input.predicate} ${input.object}`) }; }
 export function compareClaims(left: Claim, right: Claim): { relation: ClaimRelation; similarity: number; confidence: number; rationale: string } {
   if (left.subjectEntityId !== right.subjectEntityId) return { relation: "unrelated", similarity: 0, confidence: 0.98, rationale: "Claims refer to different resolved entities." };
