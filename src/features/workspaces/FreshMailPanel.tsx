@@ -41,6 +41,7 @@ export default function FreshMailPanel() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [needsAuth, setNeedsAuth] = useState(false);
+  const [retryKey, setRetryKey] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -91,6 +92,8 @@ export default function FreshMailPanel() {
         throw new Error("Your Fresh ID session has expired. Sign in again.");
       }
       const to = toDraft.split(/[;,\n]+/).map((address) => address.trim()).filter(Boolean);
+      const idempotencyKey = retryKey ?? makeIdempotencyKey();
+      setRetryKey(idempotencyKey);
       const response = await fetch("/api/mail", {
         method: "POST",
         headers: {
@@ -101,7 +104,7 @@ export default function FreshMailPanel() {
           to,
           subject: subjectDraft,
           text: textDraft,
-          idempotencyKey: makeIdempotencyKey(),
+          idempotencyKey,
         }),
       });
       const payload = await response.json().catch(() => ({})) as MailApiResponse;
@@ -111,6 +114,7 @@ export default function FreshMailPanel() {
       } else {
         setNotice("The message is still being reconciled. Refresh the inbox before trying again.");
       }
+      setRetryKey(null);
       setToDraft("");
       setSubjectDraft("");
       setTextDraft("");
