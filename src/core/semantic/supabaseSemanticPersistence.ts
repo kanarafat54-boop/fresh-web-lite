@@ -57,7 +57,7 @@ export function createSemanticPersistenceFromRpcClient(client: RpcClient): Seman
       };
       // One database function means all graph writes commit or roll back together.
       const { data, error } = await client.rpc("persist_fresh_intelligence_research_graph", { p_batch_key: input.batchKey, p_payload: payload });
-      if (error) throw error;
+      if (error) throw new Error(error.message || "Supabase TRUEMODE persistence RPC failed.");
       assertResearchPersistenceRpcResult(data);
     },
   };
