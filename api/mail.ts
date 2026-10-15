@@ -535,9 +535,9 @@ async function sendOutbound(req: Request): Promise<Response> {
 
 
 export async function POST(req: Request): Promise<Response> {
-  if (new URL(req.url).searchParams.get("webhook") === "1") {
-    return handleWebhook(req);
-  }
+  const params = new URL(req.url).searchParams;
+  if (params.get("webhook") === "1") return handleWebhook(req);
+  if (params.get("provision") === "1") return provisionMailbox(req);
   return sendOutbound(req);
 }
 
