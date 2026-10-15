@@ -51,9 +51,23 @@ function memory(userId: string | null) { const c = service(); return { search: a
 // Fresh AI is provider-independent: this endpoint calls no outside AI model.
 // modelId: the canonical model boundary lives in the Fresh gateway (fresh-unified-1).
 const FRESH_KB_STOP = new Set(["fresh","what","does","about","that","this","have","your","from","tell","show","explain","please","there","their","which","would","could","should","when","where","into","than","then","them","they","been","being","also","just","like","make","made","more","most","some","such","only","over","very","will","with","lite","web","work","works"]);
+const FRESH_KB_IDENTITY = /\b(who are you|what are you|what can you do|what are you able|introduce yourself|your (abilities|capabilities|powers))\b/i;
 async function platformKnowledge(goal: string): Promise<Awaited<ReturnType<typeof research>>> {
   const c = service();
   if (!c) return [];
+  const ranked = await c.rpc("search_fresh_platform_knowledge", { p_query: FRESH_KB_IDENTITY.test(goal) ? "ai assistant capabilities" : goal, p_limit: 4 });
+  if (!ranked.error && Array.isArray(ranked.data)) {
+    const rows = ranked.data as Array<{ id: string; title: string; content: string; source: string | null; confidence: number | string | null; rank: number | string }>;
+    const best = rows.reduce((m, x) => Math.max(m, Number(x.rank) || 0), 0);
+    return rows
+      .filter((x, i) => i === 0 || (Number(x.rank) || 0) >= best * 0.6)
+      .map((x) => ({
+        id: `kb-${x.id}`,
+        source: x.source || "fresh-platform-knowledge",
+        claim: `${x.title}: ${x.content}`.slice(0, 900),
+        confidence: Number.isFinite(Number(x.confidence)) ? Number(x.confidence) : 0.9,
+      })) as Awaited<ReturnType<typeof research>>;
+  }
   const words = Array.from(new Set(goal.toLowerCase().split(/\s+/).map((w) => w.replace(/[^a-z0-9]/g, "")).filter((w) => w.length > 3 && !FRESH_KB_STOP.has(w)))).slice(0, 10);
   if (!words.length) return [];
   const r = await c.from("fresh_ai_knowledge").select("id,title,content,source,confidence").is("user_id", null).eq("project_id", "fresh-web-lite-platform").limit(200);
