@@ -35,6 +35,8 @@ assert.match(webhook, /svix-id/);
 assert.match(webhook, /svix-timestamp/);
 assert.match(webhook, /svix-signature/);
 assert.match(webhook, /timingSafeEqual/);
+assert.match(webhook, /Webhook event is already processing; retry later/);
+assert.match(webhook, /return json\(\{ error: "Webhook event is already processing; retry later" \}, 503\)/);
 assert.match(webhook, /api\.resend\.com\/emails\/receiving/);
 assert.match(webhook, /fresh_mail_webhook_events/);
 assert.match(webhook, /provider_message_id/);
