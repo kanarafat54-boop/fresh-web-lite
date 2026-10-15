@@ -7,6 +7,7 @@ for(const required of ["Fresh Native 1D Signal Engine","Fresh Native 2D Composit
 if(!native.includes("FRESH_NATIVE_DIMENSIONAL_ENGINES")||!native.includes("enabled:true"))throw new Error("Native dimensional registry is not active")
 for(const required of ["/api/ai/ask","/api/ai/conversations","FreshAIRichText","speechSynthesis","AbortController","👍","👎","dimensionalArtifact","Native Dimensions 1D–11D"]){if(!ui.includes(required))throw new Error(`Missing unified Fresh AI UX contract: ${required}`)}
 if(!history.includes("fresh_ai_conversation_turns")||!history.includes("auth"))throw new Error("Conversation history boundary is incomplete")
+if(!history.includes("export const config = { maxDuration: 30 };"))throw new Error("Conversation history endpoint must have the 30-second budget needed for auth plus bounded persistence calls")
 if(!rich.includes("text.split(/```")&&!rich.includes("<pre"))throw new Error("Rich text code rendering is incomplete")
 if(!shell.includes("FreshAIUnified"))throw new Error("AppShell is not using the unified Fresh AI UI")
 if(!registry.includes('id: "ai", name: "Fresh AI", route: "/ai"')||!registry.includes('import("../components/FreshAIUnified")'))throw new Error("The dedicated /ai route must use the canonical unified Fresh AI surface");
