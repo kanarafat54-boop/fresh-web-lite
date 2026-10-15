@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { SemanticPersistence } from "./semanticPersistence.js";
 
 type PersistenceInput = Parameters<SemanticPersistence["persistResearchGraph"]>[0];
-type RpcClient = Pick<ReturnType<typeof createClient>, "rpc">;
+type RpcClient = { rpc: (functionName: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message?: string } | null }> };
 
 /** Validate the JSON contract returned by the atomic database function. */
 export function assertResearchPersistenceRpcResult(data: unknown): void {
@@ -35,7 +35,7 @@ export function createSupabaseSemanticPersistence(): SemanticPersistence {
     throw new Error("Server Supabase URL does not match the browser Supabase project. Align SUPABASE_URL and its server secret key.");
   }
   const client = createClient(url, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  return createSemanticPersistenceFromRpcClient(client);
+  return createSemanticPersistenceFromRpcClient(client as unknown as RpcClient);
 }
 
 /** Internal dependency seam for deterministic RPC contract tests; production passes the authenticated Supabase client. */
