@@ -42,9 +42,7 @@ export async function POST(req: Request): Promise<Response> {
   try {
     const url = requireEnv("VITE_SUPABASE_URL");
     const publishableKey =
-      process.env.SUPABASE_PUBLISHABLE_KEY ??
-      process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-      process.env.VITE_SUPABASE_ANON_KEY;
+      process.env.VITE_SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY;
     if (!publishableKey) throw new Error("Missing Supabase publishable key");
 
     // This client exists only to validate the caller's actual Auth JWT.
@@ -55,7 +53,7 @@ export async function POST(req: Request): Promise<Response> {
     if (authError || !authData.user) return json({ error: "Invalid or expired session" }, 401);
 
     // Secret key is server-only. It is never sent to the browser.
-    const secretKey = requireEnv("SUPABASE_SECRET_KEY");
+    const secretKey = process.env.SUPABASE_SECRET_KEY_FRESHWEBLITE || requireEnv("SUPABASE_SECRET_KEY");
     const admin = createClient(url, secretKey, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     });
@@ -124,6 +122,7 @@ export async function POST(req: Request): Promise<Response> {
         break;
       }
       case "create_and_sandbox_settle_rail_request": {
+        if (process.env.FRESH_TREASURY_SANDBOX !== "1") return json({ error: "Sandbox settlement is disabled in this environment" }, 403);
         const { data, error } = await admin.rpc("treasury_create_and_sandbox_settle_rail_request", {
           p_actor_id: actorId,
           p_direction: body.direction,
