@@ -5,14 +5,23 @@ DECLARE
   other_owner_id uuid := gen_random_uuid();
   address_id uuid;
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_class c
-    JOIN pg_namespace n ON n.oid = c.relnamespace
-    WHERE n.nspname = 'public'
-      AND c.relname = 'fresh_mail_messages'
-      AND c.relrowsecurity
+  IF EXISTS (
+    SELECT 1
+    FROM (VALUES
+      ('fresh_mail_addresses'),
+      ('fresh_mail_messages'),
+      ('fresh_mail_webhook_events')
+    ) AS t(table_name)
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = 'public'
+        AND c.relname = t.table_name
+        AND c.relrowsecurity
+    )
   ) THEN
-    RAISE EXCEPTION 'RLS is not enabled on fresh_mail_messages';
+    RAISE EXCEPTION 'RLS is not enabled on every private Fresh Mail table';
   END IF;
 
   IF EXISTS (
@@ -23,9 +32,15 @@ BEGIN
       ('fresh_mail_webhook_events')
     ) AS t(table_name)
     WHERE has_table_privilege('anon', format('public.%I', table_name), 'SELECT')
+       OR has_table_privilege('anon', format('public.%I', table_name), 'INSERT')
+       OR has_table_privilege('anon', format('public.%I', table_name), 'UPDATE')
+       OR has_table_privilege('anon', format('public.%I', table_name), 'DELETE')
        OR has_table_privilege('authenticated', format('public.%I', table_name), 'SELECT')
+       OR has_table_privilege('authenticated', format('public.%I', table_name), 'INSERT')
+       OR has_table_privilege('authenticated', format('public.%I', table_name), 'UPDATE')
+       OR has_table_privilege('authenticated', format('public.%I', table_name), 'DELETE')
   ) THEN
-    RAISE EXCEPTION 'A browser role can read a private Fresh Mail table';
+    RAISE EXCEPTION 'A browser role has direct access to a private Fresh Mail table';
   END IF;
 
   IF NOT has_table_privilege('service_role', 'public.fresh_mail_messages', 'SELECT')
