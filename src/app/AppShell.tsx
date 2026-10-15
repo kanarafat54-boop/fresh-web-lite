@@ -10,9 +10,9 @@ import { ProfileView } from "../features/profile/components/ProfileView";
 
 function GlobalFreshAIEntry() {
   const { activeRoute } = useLayout();
-  const normalizedRoute = (activeRoute ?? "").replace(/\\/$/, "").toLowerCase();
+  const normalizedRoute = (activeRoute ?? "").replace(/\/+$/, "").toLowerCase();
   const isAI = ["ai", "/ai", "fresh-ai", "/fresh-ai"].includes(normalizedRoute) ||
-    (typeof window !== "undefined" && ["/ai", "/fresh-ai"].includes(window.location.pathname.replace(/\\/$/, "").toLowerCase()));
+    (typeof window !== "undefined" && ["/ai", "/fresh-ai"].includes(window.location.pathname.replace(/\/+$/, "").toLowerCase()));
   if (isAI) return null;
   return <FreshAIUnified />;
 }
