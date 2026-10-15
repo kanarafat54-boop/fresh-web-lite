@@ -122,7 +122,7 @@ export async function GET(req: Request): Promise<Response> {
   const [messagesResult, addressResult] = await Promise.all([
     configured.admin
       .from("fresh_mail_messages")
-      .select("id,direction,from_address,to_addresses,cc_addresses,subject,text_body,html_body,status,created_at,sent_at,received_at")
+      .select("id,direction,from_address,to_addresses,cc_addresses,subject,text_body,status,created_at,sent_at,received_at")
       .eq("owner_id", user.id)
       .order("created_at", { ascending: false })
       .limit(limit),
