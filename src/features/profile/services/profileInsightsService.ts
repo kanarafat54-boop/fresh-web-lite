@@ -14,8 +14,8 @@ export interface ProfileInsights {
 
 export async function getProfileInsights(userId: string): Promise<ProfileInsights | null> {
   const [followers, following, posts, shorts] = await Promise.all([
-    supabase.from("follows").select("id", { count: "exact", head: true }).eq("followed_id", userId),
-    supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", userId),
+    supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followed_id", userId),
+    supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("follower_id", userId),
     supabase.from("posts").select("id", { count: "exact", head: true }).eq("author_id", userId),
     supabase.from("shorts").select("id", { count: "exact", head: true }).eq("author_id", userId),
   ]);

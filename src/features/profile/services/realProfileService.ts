@@ -87,10 +87,10 @@ export async function loadRealUniversalProfile(user: FreshUser): Promise<Univers
         .limit(50),
     ),
     safeQuery("follows_followers", () =>
-      supabase.from("follows").select("id", { count: "exact", head: true }).eq("followed_id", user.id),
+      supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followed_id", user.id),
     ),
     safeQuery("follows_following", () =>
-      supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", user.id),
+      supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("follower_id", user.id),
     ),
   ]);
 

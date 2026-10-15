@@ -151,8 +151,8 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
     void getProfileInsights(userId).then(setInsights).catch(() => setInsights(null));
 
     const [followers, following] = await Promise.all([
-      supabase.from("follows").select("id", { count: "exact", head: true }).eq("followed_id", userId),
-      supabase.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", userId),
+      supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followed_id", userId),
+      supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("follower_id", userId),
     ]);
     setFollowerCount(followers.count ?? 0);
     setFollowingCount(following.count ?? 0);
