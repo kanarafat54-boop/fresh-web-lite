@@ -30,17 +30,18 @@ Do not copy secret values into GitHub, client variables, issue comments, screens
 1. Review the schema and route diffs in this PR.
 2. Apply the migration only in a disposable test database using the project's approved migration workflow. This PR does not apply it to any database.
 3. Run `npm run test:fresh-mail-contract`, `npm run lint`, and `npm run build`.
-4. Add an active address row for a controlled test account only after its inbound domain and sender are verified. The migration defaults addresses to `pending`; the webhook intentionally ignores unassigned addresses.
+4. Configure a Resend domain that you control, and confirm the provider reports the exact domain as verified with both sending and receiving enabled. Do not use the Vercel-hosted app domain as an email domain unless you control its DNS.
 5. Configure a Resend `email.received` webhook to `https://<deployment-host>/api/mail?webhook=1`; copy its signing secret to server-only environment settings.
-6. Send a plain-text test message to an external mailbox, reply to the assigned inbound address, and verify that both messages persist after reload.
-7. Repeat with two Fresh ID accounts and prove each account cannot read the other's records. Verify invalid signatures are rejected and provider retries do not duplicate messages.
-8. Inspect Supabase grants/RLS and advisors after migration; do not treat a static test or successful build as security sign-off.
+6. Set the required server-only environment variables in a non-production test deployment. The authenticated `POST /api/mail?provision=1` route can then assign one active mailbox per Fresh ID account; it refuses provisioning unless the configured provider domain checks pass.
+7. Send a plain-text test message to an external mailbox, reply to the assigned inbound address, and verify that both messages persist after reload.
+8. Repeat with two Fresh ID accounts and prove each account cannot read the other's records. Verify invalid signatures are rejected and provider retries do not duplicate messages.
+9. Inspect Supabase grants/RLS and advisors after migration; do not treat a static test or successful build as security sign-off.
 
 ## Known limits — not implemented here
 
-- The UI currently supports inbox listing and plain-text sending only; address provisioning, reply/forward/drafts/archive/spam/trash/search, attachments, and real delivery-status webhooks remain unimplemented.
+- The UI currently supports mailbox provisioning, inbox listing, and plain-text sending only. Reply/forward/drafts/archive/spam/trash/search, attachments, and real delivery-status webhooks remain unimplemented.
 - No custom domain has been verified or configured by this change.
 - No provider key, webhook secret, database migration, or production deployment has been changed.
 - Outbound `sent` means Resend accepted the request; it does not mean the recipient's server delivered it.
 - Inbound HTML is stored as message content; the eventual UI must render it safely (prefer sandboxed rendering or sanitized HTML), not inject it directly into the application DOM.
-- No user can provision or activate their own address through these routes. Address assignment remains an operator-controlled test step until a verified provisioning workflow exists.
+- Provisioning is implemented but is not live until the server environment, verified receiving domain, migration, and deployment are configured and tested.
