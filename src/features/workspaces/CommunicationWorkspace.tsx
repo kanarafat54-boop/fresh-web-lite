@@ -14,6 +14,7 @@ import { listThread, sendMessage, markThreadRead, getUnreadCounts, type DirectMe
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
 import { useLayout } from "../../app/contexts/useLayout";
 import "./WorkspacePage.css";
+import FreshMailPanel from "./FreshMailPanel";
 
 const SIGNALS = ["interests", "skills", "goals", "communities", "projects", "professional", "location"] as const;
 
@@ -239,6 +240,8 @@ export default function CommunicationWorkspace() {
           persisted in Supabase rather than simulated in local UI state.
         </p>
       </header>
+
+      <FreshMailPanel />
 
       {error && (
         <div className="workspace-empty" role="alert" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
