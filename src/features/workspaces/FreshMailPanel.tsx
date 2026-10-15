@@ -42,6 +42,8 @@ export default function FreshMailPanel() {
   const [notice, setNotice] = useState<string | null>(null);
   const [needsAuth, setNeedsAuth] = useState(false);
   const [retryKey, setRetryKey] = useState<string | null>(null);
+  const [localPartDraft, setLocalPartDraft] = useState("");
+  const [provisioning, setProvisioning] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -76,6 +78,41 @@ export default function FreshMailPanel() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const provisionMailbox = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (provisioning || mailbox) return;
+    setProvisioning(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        setNeedsAuth(true);
+        throw new Error("Sign in with Fresh ID before creating a mailbox.");
+      }
+      const response = await fetch("/api/mail?provision=1", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ localPart: localPartDraft }),
+      });
+      const payload = await response.json().catch(() => ({})) as MailApiResponse;
+      if (!response.ok) throw new Error(payload.error || "Fresh Mail could not create this mailbox.");
+      setMailbox(payload.mailbox ?? null);
+      setLocalPartDraft("");
+      setNotice("Your Fresh Mail address is assigned and ready.");
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Fresh Mail could not create this mailbox.");
+    } finally {
+      setProvisioning(false);
+    }
+  };
 
   const send = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -147,13 +184,34 @@ export default function FreshMailPanel() {
           <strong>{mailbox.email_address}</strong>
         </div>
       ) : (
-        <div className="fresh-mail-empty" role="status">
-          <strong>No active mailbox assigned</strong>
-          <p>
-            Your Fresh ID is separate from your email address. A mailbox must be assigned and activated after provider
-            verification before sending or receiving can work.
+        <form className="fresh-mail-compose" onSubmit={(event) => void provisionMailbox(event)}>
+          <h3>Create your Fresh Mail address</h3>
+          <p className="fresh-mail-help">
+            Choose a unique address name. It can only be assigned after Fresh Mail’s sending and receiving domain is verified.
           </p>
-        </div>
+          <label>
+            Email address name
+            <input
+              type="text"
+              value={localPartDraft}
+              onChange={(event) => setLocalPartDraft(event.target.value.toLowerCase())}
+              minLength={3}
+              maxLength={32}
+              pattern="[a-z0-9](?:[a-z0-9._-]*[a-z0-9])"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="e.g. memphis.arafat"
+              aria-describedby="fresh-mail-address-help"
+              required
+              disabled={provisioning || loading || needsAuth}
+            />
+          </label>
+          <p id="fresh-mail-address-help" className="fresh-mail-help">3–32 characters: lowercase letters, numbers, dots, underscores, or hyphens. Your domain is added after verification.</p>
+          <button type="submit" className="fresh-mail-primary" disabled={provisioning || loading || !localPartDraft.trim()}>
+            {provisioning ? "Checking domain…" : "Create mailbox"}
+          </button>
+        </form>
       )}
 
       {needsAuth && (
