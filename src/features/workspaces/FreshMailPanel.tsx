@@ -171,7 +171,7 @@ export default function FreshMailPanel() {
             inputMode="email"
             autoComplete="email"
             value={toDraft}
-            onChange={(event) => setToDraft(event.target.value)}
+            onChange={(event) => { setRetryKey(null); setToDraft(event.target.value); }}
             placeholder="recipient@example.com"
             aria-describedby="fresh-mail-recipient-help"
             required
@@ -184,7 +184,7 @@ export default function FreshMailPanel() {
           <input
             type="text"
             value={subjectDraft}
-            onChange={(event) => setSubjectDraft(event.target.value)}
+            onChange={(event) => { setRetryKey(null); setSubjectDraft(event.target.value); }}
             maxLength={200}
             placeholder="Email subject"
             required
@@ -195,7 +195,7 @@ export default function FreshMailPanel() {
           Message
           <textarea
             value={textDraft}
-            onChange={(event) => setTextDraft(event.target.value)}
+            onChange={(event) => { setRetryKey(null); setTextDraft(event.target.value); }}
             maxLength={100000}
             rows={5}
             placeholder="Write your email…"
