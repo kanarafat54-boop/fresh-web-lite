@@ -95,7 +95,7 @@ export default function FreshAIUnified() {
   const stickRef = useRef(true);
   const historyLoadedRef = useRef(false);
 
-  useEffect(() => { if (isAI) setOpen(true); }, [isAI]);
+  useEffect(() => { setOpen(isAI); setConstellation(false); }, [activeRoute, isAI]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: loading ? "auto" : "smooth" }); }, [turns, loading]);
 
   useEffect(() => {
