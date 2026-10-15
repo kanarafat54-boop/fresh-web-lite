@@ -31,3 +31,5 @@ jobs:
         run: npm run build
       - name: Verify TRUEMODE research persistence contract
         run: npm run test:truemode-chain
+      - name: Verify TRUEMODE claim-comparison behavior
+        run: npm run test:truemode-claim-comparisons
