@@ -5,6 +5,8 @@ const read = (path) => readFileSync(path, "utf8");
 const schema = read("supabase/migrations/20261015060000_fresh_mail_core.sql");
 const messages = read("api/mail/messages.ts");
 const webhook = read("api/mail/resend-webhook.ts");
+const ui = read("src/features/workspaces/FreshMailPanel.tsx");
+const communication = read("src/features/workspaces/CommunicationWorkspace.tsx");
 
 assert.match(schema, /create table if not exists public\.fresh_mail_addresses/i);
 assert.match(schema, /create table if not exists public\.fresh_mail_messages/i);
