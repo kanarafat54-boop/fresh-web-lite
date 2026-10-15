@@ -31,7 +31,9 @@ function clients() {
   };
 }
 
-async function verifiedUser(req: Request, auth: ReturnType<typeof createClient>) {
+type ConfiguredClients = NonNullable<ReturnType<typeof clients>>;
+
+async function verifiedUser(req: Request, auth: ConfiguredClients["auth"]) {
   const token = bearer(req);
   if (!token) return null;
   const { data, error } = await auth.auth.getUser(token);
