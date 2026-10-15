@@ -3,6 +3,7 @@ name: Fresh Mail Backend Gate
 on:
   pull_request:
     paths:
+      - "api/mail.ts"
       - "api/mail/**"
       - "src/features/workspaces/FreshMailPanel.*"
       - "src/features/workspaces/CommunicationWorkspace.tsx"
@@ -16,6 +17,7 @@ on:
   push:
     branches: [main]
     paths:
+      - "api/mail.ts"
       - "api/mail/**"
       - "src/features/workspaces/FreshMailPanel.*"
       - "src/features/workspaces/CommunicationWorkspace.tsx"
