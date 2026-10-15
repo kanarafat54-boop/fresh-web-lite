@@ -20,6 +20,8 @@ create unique index if not exists fresh_mail_addresses_email_lower_uq
   on public.fresh_mail_addresses (lower(email_address));
 create index if not exists fresh_mail_addresses_owner_status_idx
   on public.fresh_mail_addresses (owner_id, status);
+create unique index if not exists fresh_mail_addresses_one_active_per_owner_uq
+  on public.fresh_mail_addresses (owner_id) where status = 'active';
 
 create table if not exists public.fresh_mail_messages (
   id uuid primary key default gen_random_uuid(),
