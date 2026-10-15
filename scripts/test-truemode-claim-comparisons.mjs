@@ -5,10 +5,10 @@ import { writeFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-// Bundle the real TypeScript module so these tests exercise production comparison logic.
+// Bundle the real TypeScript modules so tests exercise production comparison and truth-decision logic.
 const tempDir = await mkdtemp(join(tmpdir(), "truemode-claim-tests-"));
 try {
-  const result = await build({
+  const claimBundle = await build({
     entryPoints: ["src/core/semantic/claimIntelligence.ts"],
     bundle: true,
     platform: "node",
@@ -16,9 +16,22 @@ try {
     write: false,
     packages: "bundle",
   });
-  const modulePath = join(tempDir, "claimIntelligence.mjs");
-  await writeFile(modulePath, result.outputFiles[0].text, "utf8");
-  const { compareClaims } = await import(pathToFileURL(modulePath).href);
+  const claimModulePath = join(tempDir, "claimIntelligence.mjs");
+  await writeFile(claimModulePath, claimBundle.outputFiles[0].text, "utf8");
+  const { compareClaims } = await import(pathToFileURL(claimModulePath).href);
+
+  const truthBundle = await build({
+    entryPoints: ["src/core/semantic/truthDecisionOrchestrator.ts"],
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    write: false,
+    packages: "bundle",
+  });
+  const truthModulePath = join(tempDir, "truthDecisionOrchestrator.mjs");
+  await writeFile(truthModulePath, truthBundle.outputFiles[0].text, "utf8");
+  const { decideTruthBatch } = await import(pathToFileURL(truthModulePath).href);
+
   const claim = (id, subjectEntityId, predicate, object, statement = `${predicate} ${object}`) => ({
     id, subjectEntityId, predicate, object, statement,
     normalizedStatement: statement.toLowerCase(),
@@ -36,6 +49,12 @@ try {
   assert.notEqual(compareClaims(
     claim("c", "entity-1", "research_finding", "rainfall increased", "rainfall increased in district north"),
     claim("d", "entity-1", "research_finding", "school attendance improved", "school attendance improved in district south")
+  ).relation, "contradictory");
+
+  // Generic predicate labels are normalized consistently (underscore and space forms).
+  assert.notEqual(compareClaims(
+    claim("c2", "entity-1", "research_finding", "rainfall increased", "rainfall increased in district north"),
+    claim("d2", "entity-1", "research finding", "school attendance improved", "school attendance improved in district south")
   ).relation, "contradictory");
 
   // Different resolved entities must never conflict, even with opposing predicates.
@@ -56,7 +75,29 @@ try {
     claim("j", "entity-1", "founded", "company z")
   ).relation, "same");
 
-  console.log("TRUEMODE claim-comparison behavior tests: PASS (5 cases)");
+  const stored = (id, predicate, object, normalizedText, validFrom = "2026-01-01T00:00:00.000Z", validTo = "2027-01-01T00:00:00.000Z") => ({
+    id, subjectEntityId: "entity-1", predicate, object, normalizedText,
+    status: "supported", confidence: 0.95,
+    firstObservedAt: "2026-01-01T00:00:00.000Z",
+    lastObservedAt: "2026-10-15T00:00:00.000Z",
+    validFrom, validTo, evidenceIds: [], counterEvidenceIds: [],
+  });
+
+  // Overlapping validity windows alone must not dispute unrelated generic findings.
+  const unrelatedTemporal = decideTruthBatch([
+    stored("t1", "research_finding", "rainfall increased", "rainfall increased in district north"),
+    stored("t2", "research_finding", "school attendance improved", "school attendance improved in district south"),
+  ], [], [], [], "2026-10-15T00:00:00.000Z");
+  assert.ok(unrelatedTemporal.every((decision) => decision.assessment.status !== "DISPUTED"));
+
+  // Genuine opposing claims with overlapping validity windows must be marked disputed.
+  const opposingTemporal = decideTruthBatch([
+    stored("t3", "supports", "proposal alpha", "supports proposal alpha"),
+    stored("t4", "opposes", "proposal alpha", "opposes proposal alpha"),
+  ], [], [], [], "2026-10-15T00:00:00.000Z");
+  assert.ok(opposingTemporal.every((decision) => decision.assessment.status === "DISPUTED"));
+
+  console.log("TRUEMODE claim-comparison and temporal-dispute tests: PASS (8 cases)");
 } finally {
   await rm(tempDir, { recursive: true, force: true });
 }
