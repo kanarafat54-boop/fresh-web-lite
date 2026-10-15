@@ -39,6 +39,9 @@ assert.doesNotMatch(webhook, /body\.ownerId|body\.userId|body\.owner_id/);
 assert.match(communication, /FreshMailPanel/);
 assert.match(ui, /fetch\("\/api\/mail"/);
 assert.match(ui, /type="submit"/);
+assert.match(ui, /const idempotencyKey = retryKey \?\? makeIdempotencyKey\(\)/);
+assert.match(ui, /setRetryKey\(idempotencyKey\)/);
+assert.doesNotMatch(messages, /subject,text_body,html_body,status/);
 assert.doesNotMatch(ui, /dangerouslySetInnerHTML/);
 
 console.log("Fresh Mail contract checks passed.");
