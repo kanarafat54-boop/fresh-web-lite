@@ -80,11 +80,13 @@ export default function FreshAIUnified() {
   const abortRef = useRef<AbortController | null>(null);
   const messagesRef = useRef<HTMLElement | null>(null);
   const stickRef = useRef(true);
+  const historyLoadedRef = useRef(false);
 
   useEffect(() => { if (isAI) setOpen(true); }, [isAI]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: loading ? "auto" : "smooth" }); }, [turns, loading]);
 
   useEffect(() => {
+    if ((!open && !isAI) || historyLoadedRef.current) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -94,7 +96,9 @@ export default function FreshAIUnified() {
         const response = await fetch("/api/ai/conversations", { headers: { authorization: `Bearer ${token}` } });
         if (!response.ok) return;
         const payload = await response.json() as { conversation?: { id: string } | null; turns?: Array<{ role: "user" | "assistant"; content: string; created_at: string }> };
-        if (cancelled || !payload.conversation) return;
+        if (cancelled) return;
+        historyLoadedRef.current = true;
+        if (!payload.conversation) return;
         setConversationId(payload.conversation.id);
         const rawTurns = (payload.turns ?? []).map((turn) => ({ role: turn.role, content: turn.content, createdAt: turn.created_at }));
         const opened = await conversationService.openTurns(rawTurns);
@@ -103,7 +107,19 @@ export default function FreshAIUnified() {
       } catch {}
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [open, isAI]);
+
+  useEffect(() => {
+    if (!open || isAI) return;
+    const closeOnEscape = (event: Event) => {
+      if ((event as globalThis.KeyboardEvent).key === "Escape") {
+        setOpen(false);
+        setConstellation(false);
+      }
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open, isAI]);
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -346,10 +362,10 @@ export default function FreshAIUnified() {
       <form onSubmit={ask}><button className="fresh-ai-add" type="button" onClick={() => setConstellation((current) => !current)} aria-label="Open capabilities">＋</button><textarea ref={inputRef} rows={1} value={draft} onChange={(event) => { setDraft(event.target.value); resizeInput(); }} onKeyDown={keyDown} placeholder="Message Fresh AI…" /><button className={`fresh-ai-voice ${voice ? "active" : ""}`} type="button" onClick={() => setVoice((current) => !current)} aria-label="Toggle voice">{voice ? "◉" : "◌"}</button><button className="fresh-ai-send" type="submit" disabled={!draft.trim() || loading || uploading} aria-label="Send">↑</button></form>
       <div className="fresh-ai-composer-tools"><label className="fresh-ai-attach">⌕ {uploading ? "Uploading…" : "Attach"}<input type="file" multiple onChange={(event) => { void uploadFiles(event.target.files); event.currentTarget.value = ""; }} /></label><div className="fresh-ai-mode-strip">{modes.map((item) => <button key={item} className={mode === item ? "active" : ""} type="button" onClick={() => setMode(item)}>{item}</button>)}</div><span>{loading ? "Fresh is working…" : uploading ? "Securing files…" : "Enter to send · Shift+Enter for newline"}</span>{loading ? <button type="button" onClick={stop}>Stop</button> : null}</div>
       {attachments.length > 0 ? <div className="fresh-ai-composer-attachments" aria-label="Attached files">{attachments.map((file) => <span key={file.id}>◇ {file.name}</span>)}</div> : null}
-      <small className="fresh-ai-unified-status"><span>✦</span> {source || "Fresh AI"} · App ~99% · Vault {vaultUnlocked ? "unlocked · at-rest E2EE" : "locked"} · Weights training-required · Beyond-SI doctrine</small>
+      <small className="fresh-ai-unified-status"><span>✦</span> {source || "Fresh AI"} · Runtime evolving · Vault {vaultUnlocked ? "unlocked · at-rest E2EE" : "locked"} · Weights training-required · Beyond-SI doctrine</small>
     </div>
   </div>;
 
   if (isAI) return <main className="fresh-ai-unified-page">{body}</main>;
-  return <>{!open ? <button className="fresh-ai-unified-trigger" type="button" onClick={() => setOpen(true)}><span>✦</span>Fresh AI</button> : null}{open ? <div className="fresh-ai-unified-overlay" role="dialog" aria-label="Fresh AI">{body}</div> : null}</>;
+  return <>{!open ? <button className="fresh-ai-unified-trigger" type="button" onClick={() => setOpen(true)} aria-label="Open Fresh AI assistant" title="Open Fresh AI"><span>✦</span>Fresh AI</button> : null}{open ? <div className="fresh-ai-unified-overlay" role="dialog" aria-modal="true" aria-label="Fresh AI" onClick={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>{body}</div> : null}</>;
 }
