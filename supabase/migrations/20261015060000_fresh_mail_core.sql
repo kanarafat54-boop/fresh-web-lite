@@ -27,6 +27,7 @@ create table if not exists public.fresh_mail_messages (
   provider text not null default 'resend' check (provider in ('resend')),
   provider_message_id text,
   idempotency_key text not null,
+  request_fingerprint text,
   direction text not null check (direction in ('inbound', 'outbound')),
   from_address text not null,
   to_addresses text[] not null default '{}',
