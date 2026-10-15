@@ -17,6 +17,8 @@ Set these only in Vercel server environment settings; never use a `VITE_` prefix
 
 - `RESEND_API_KEY` — provider API key with only the access needed for sending and receiving.
 - `RESEND_WEBHOOK_SECRET` — signing secret copied from the Resend webhook configuration.
+- `FRESH_MAIL_DOMAIN` — exact lowercase domain or subdomain approved for Fresh Mail addresses.
+- `FRESH_MAIL_DOMAIN_ID` — the matching Resend domain ID. Provisioning checks that the provider reports this exact domain as verified with both sending and receiving enabled.
 - `SUPABASE_URL` or existing `VITE_SUPABASE_URL` — project URL.
 - `SUPABASE_PUBLISHABLE_KEY` or existing `VITE_SUPABASE_PUBLISHABLE_KEY` / `VITE_SUPABASE_ANON_KEY` — used only to validate the Fresh ID access token.
 - `SUPABASE_SECRET_KEY_FRESHWEBLITE` or existing `SUPABASE_SECRET_KEY` — server-only database access.
