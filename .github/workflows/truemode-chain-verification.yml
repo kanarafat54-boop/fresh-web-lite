@@ -35,3 +35,5 @@ jobs:
         run: npm run test:truemode-claim-comparisons
       - name: Verify TRUEMODE persistence RPC acknowledgements and failures
         run: npm run test:truemode-persistence-rpc
+      - name: Verify research API dry-run end to end without database writes
+        run: npm run test:fresh-research-api-dry-run
