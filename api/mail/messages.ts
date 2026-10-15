@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 
@@ -110,13 +111,19 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const storedKey = idempotencyKey;
+  const requestFingerprint = createHash("sha256")
+    .update(JSON.stringify({ from: address.email_address, to, subject, text: textBody }))
+    .digest("hex");
   const existing = await configured.admin
     .from("fresh_mail_messages")
-    .select("id,status,provider_message_id,created_at")
+    .select("id,status,provider_message_id,created_at,request_fingerprint")
     .eq("owner_id", user.id)
     .eq("idempotency_key", storedKey)
     .maybeSingle();
   if (existing.error) return json({ error: "Fresh Mail storage is not ready" }, 503);
+  if (existing.data?.request_fingerprint && existing.data.request_fingerprint !== requestFingerprint) {
+    return json({ error: "This idempotencyKey was already used for different message content" }, 409);
+  }
   if (existing.data?.status === "sent") {
     return json({ ok: true, status: "sent", messageId: existing.data.id, providerMessageId: existing.data.provider_message_id, idempotentReplay: true });
   }
@@ -132,6 +139,7 @@ export async function POST(req: Request): Promise<Response> {
         owner_id: user.id,
         provider: "resend",
         idempotency_key: storedKey,
+        request_fingerprint: requestFingerprint,
         direction: "outbound",
         from_address: address.email_address,
         to_addresses: to,
