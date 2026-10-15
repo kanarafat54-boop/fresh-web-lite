@@ -44,7 +44,8 @@
     "test:fresh-training-backend": "node scripts/test-fresh-training-backend.mjs",
     "test:fresh-dataset-preparation": "node scripts/test-fresh-dataset-preparation.mjs",
     "prepare:fresh-training": "node scripts/prepare-fresh-unified-dataset.mjs",
-    "test:fresh-training-run-record": "node scripts/verify-fresh-training-run-record.mjs"
+    "test:fresh-training-run-record": "node scripts/verify-fresh-training-run-record.mjs",
+    "test:fresh-mail-contract": "node scripts/verify-fresh-mail-contract.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",

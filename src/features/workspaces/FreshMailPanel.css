@@ -1,0 +1,175 @@
+.fresh-mail-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.fresh-mail-header,
+.fresh-mail-inbox-heading,
+.fresh-mail-message-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fresh-mail-header > div { min-width: 0; flex: 1; }
+.fresh-mail-eyebrow {
+  margin: 0 0 4px;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.fresh-mail-header h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 4vw, 1.8rem);
+  line-height: 1.25;
+}
+.fresh-mail-intro {
+  margin: 6px 0 0;
+  color: var(--text-dim);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+.fresh-mail-address {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  overflow-wrap: anywhere;
+}
+.fresh-mail-address span,
+.fresh-mail-help,
+.fresh-mail-message-meta,
+.fresh-mail-message-status,
+.fresh-mail-inbox-heading span {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.fresh-mail-address strong { font-size: 1rem; line-height: 1.5; overflow-wrap: anywhere; }
+.fresh-mail-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.fresh-mail-compose h3,
+.fresh-mail-inbox h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+.fresh-mail-compose label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.fresh-mail-compose input,
+.fresh-mail-compose textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.fresh-mail-compose textarea { resize: vertical; min-height: 130px; }
+.fresh-mail-help { margin: -6px 0 0; }
+.fresh-mail-primary,
+.fresh-mail-secondary {
+  min-height: 46px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.fresh-mail-primary {
+  background: var(--accent, #635bff);
+  border-color: var(--accent, #635bff);
+  color: white;
+}
+.fresh-mail-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.fresh-mail-primary:disabled,
+.fresh-mail-secondary:disabled { opacity: 0.55; cursor: not-allowed; }
+.fresh-mail-empty,
+.fresh-mail-error,
+.fresh-mail-notice {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-size: 1rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.fresh-mail-empty { color: var(--text-dim); }
+.fresh-mail-empty p { margin: 6px 0 0; }
+.fresh-mail-error { border-color: #b91c1c; }
+.fresh-mail-notice { border-color: var(--accent, #635bff); }
+.fresh-mail-inbox { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.fresh-mail-inbox-heading { align-items: center; }
+.fresh-mail-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.fresh-mail-message {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.fresh-mail-message-top { align-items: center; }
+.fresh-mail-message-top time { color: var(--text-dim); font-size: 0.85rem; line-height: 1.5; }
+.fresh-mail-tag {
+  display: inline-block;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+.fresh-mail-tag-inbound { border-color: var(--accent, #635bff); }
+.fresh-mail-message h4 { margin: 10px 0 4px; font-size: 1rem; line-height: 1.45; overflow-wrap: anywhere; }
+.fresh-mail-message-meta { margin: 0 0 8px; overflow-wrap: anywhere; }
+.fresh-mail-message-body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+.fresh-mail-message-status { margin: 10px 0 0; overflow-wrap: anywhere; }
+
+@media (max-width: 520px) {
+  .fresh-mail-panel { padding: 12px; gap: 12px; }
+  .fresh-mail-header { flex-direction: column; }
+  .fresh-mail-secondary { width: 100%; }
+  .fresh-mail-compose { padding: 12px; }
+}
