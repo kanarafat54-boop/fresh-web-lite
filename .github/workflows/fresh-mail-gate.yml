@@ -15,6 +15,7 @@ on:
       - ".github/workflows/fresh-mail-gate.yml"
       - "src/server/vercelNodeAdapter.ts"
       - "scripts/test-fresh-mail-migration.sql"
+      - "scripts/test-fresh-mail-migration.sql"
   push:
     branches: [main]
     paths:
@@ -29,6 +30,7 @@ on:
       - "package-lock.json"
       - ".github/workflows/fresh-mail-gate.yml"
       - "src/server/vercelNodeAdapter.ts"
+      - "scripts/test-fresh-mail-migration.sql"
 
 permissions:
   contents: read
