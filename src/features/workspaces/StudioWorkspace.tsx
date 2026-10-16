@@ -38,7 +38,7 @@ import StudioMediaOpsPanels from "./StudioMediaOpsPanels";
 import "./WorkspacePage.css";
 import "./StudioWorkspace.css";
 
-type StudioMode = "edit" | "pipeline" | "discover" | "business" | "system";
+type StudioMode = "start" | "edit" | "pipeline" | "discover" | "business" | "system";
 
 const MODE_TABS: { id: StudioMode; label: string }[] = [
   { id: "edit", label: "Edit" },
@@ -61,7 +61,7 @@ function isLiveObjectUrl(url?: string | null): boolean {
 export default function StudioWorkspace() {
   const { setActiveRoute } = useLayout();
   const capabilities = getComputeCapabilities();
-  const [mode, setMode] = useState<StudioMode>("edit");
+  const [mode, setMode] = useState<StudioMode>("start");
   const [weights, setWeights] = useState(DEFAULT_RECOMMENDATION_WEIGHTS);
   const [document, setDocument] = useState<RenderDocument>(() => createRenderDocument("local-media"));
   const [projects, setProjects] = useState<FreshMediaProject[]>([]);
@@ -164,8 +164,8 @@ export default function StudioWorkspace() {
     setTranscript("");
     setTrimStart(0);
     setTrimEnd(30);
-    setMessage("New project. Import media to begin.");
-    setMode("edit");
+    setMessage("New project. Choose a creation path to begin.");
+    setMode("start");
   };
 
   const importMedia = (file: File) => {
@@ -444,17 +444,17 @@ export default function StudioWorkspace() {
   };
 
   return (
-    <section className="workspace-page studio-workspace" aria-label="Fresh Studio">
+    <section className={`workspace-page studio-workspace${mode === "start" ? " studio-workspace-start" : ""}`} aria-label="Fresh Studio">
       <header className="workspace-hero studio-hero-compact">
         <span className="workspace-eyebrow">Creation</span>
         <h1>Fresh Studio</h1>
-        <p>Import → edit → render on device → hand off to Creator. Advanced tools live in tabs.</p>
+        <p>Choose what you want to make. Start simple; advanced tools are available when you need them.</p>
         <div className="studio-hero-actions">
           <button type="button" className="studio-btn-primary" onClick={() => fileRef.current?.click()}>
-            Import media
+            Import video
           </button>
           <button type="button" onClick={persist}>
-            Save
+            Save project
           </button>
           <button type="button" onClick={newProject}>
             New project
@@ -469,7 +469,7 @@ export default function StudioWorkspace() {
             ref={fileRef}
             hidden
             type="file"
-            accept="video/*,audio/*,image/*"
+            accept="video/*"
             onChange={(event) => {
               const file = event.target.files?.[0];
               event.currentTarget.value = "";
@@ -481,6 +481,53 @@ export default function StudioWorkspace() {
           {message}
         </p>
       </header>
+
+      {mode === "start" && (
+        <section className="studio-start-hub" aria-label="Choose what to create">
+          <div className="studio-start-heading">
+            <span className="workspace-eyebrow">FRESH STUDIO</span>
+            <h2>What would you like to create?</h2>
+            <p>Pick one starting point. You can explore advanced controls later.</p>
+          </div>
+          <div className="studio-start-grid">
+            <button type="button" className="studio-start-card studio-start-card-primary" onClick={() => fileRef.current?.click()}>
+              <span className="studio-start-icon" aria-hidden="true">▶</span>
+              <strong>Edit a video</strong>
+              <small>Import a video, preview it, make supported edits and export.</small>
+              <span className="studio-start-link">Choose video →</span>
+            </button>
+            <button type="button" className="studio-start-card" onClick={() => setActiveRoute("ai")}>
+              <span className="studio-start-icon" aria-hidden="true">✦</span>
+              <strong>Create with Fresh AI</strong>
+              <small>Open Fresh AI for the creation and assistance tools currently available.</small>
+              <span className="studio-start-link">Open Fresh AI →</span>
+            </button>
+            <button type="button" className="studio-start-card" onClick={() => setActiveRoute("creator")}>
+              <span className="studio-start-icon" aria-hidden="true">▧</span>
+              <strong>Design a post</strong>
+              <small>Open Creator to compose and prepare content.</small>
+              <span className="studio-start-link">Open Creator →</span>
+            </button>
+            <button type="button" className="studio-start-card" onClick={() => setMode("pipeline")}>
+              <span className="studio-start-icon" aria-hidden="true">⚙</span>
+              <strong>Advanced tools</strong>
+              <small>Access media pipeline status, diagnostics and experimental controls.</small>
+              <span className="studio-start-link">View tools →</span>
+            </button>
+          </div>
+          {project && (
+            <div className="studio-continue-card">
+              <div>
+                <span className="workspace-eyebrow">YOUR PROJECT</span>
+                <strong>{project.title}</strong>
+                <p>{project.sourceName ?? "Saved project"} · {project.pipelineStatus ?? "draft"}</p>
+              </div>
+              <button type="button" className="studio-btn-primary" onClick={() => setMode("edit")}>Continue editing</button>
+            </div>
+          )}
+          <p className="studio-start-note">Your video is previewed and edited in this workspace. Some AI operations depend on device support or configured services; Fresh Studio will report when a tool is unavailable.</p>
+        </section>
+      )}
 
       <section className="studio-project-bar" aria-label="Active project">
         <div>
