@@ -11,6 +11,7 @@ const checks = [
   ["Flow remains a first-class route", "src/app/components/BottomNav.tsx", ['id: "fresh-flow"']],
   ["Create is visibly labeled and opens Studio", "src/app/components/BottomNav.tsx", ['label: "Create"', 'route: "studio"', 'activeRoute === "studio"']],
   ["Fresh Studio creation home", "src/features/workspaces/StudioWorkspace.tsx", ["What would you like to create?", "Edit a video", "Create with Fresh AI", "Design a post", "Advanced tools", 'useState<StudioMode>("start")']],
+  ["Fresh Studio photo editor", "src/features/workspaces/StudioWorkspace.tsx", ["Edit a photo", "importPhoto", "photoBrightness", "photoContrast", "photoSaturation", "exportPhoto", "Export PNG copy", "The original file remains unchanged"]],
   ["Fresh Camera permission is user initiated", "src/features/workspaces/StudioWorkspace.tsx", ["const openCamera = async () =>", "navigator.mediaDevices.getUserMedia", "facingMode: { ideal: cameraFacing }"]],
   ["Fresh Camera can capture and download a photo", "src/features/workspaces/StudioWorkspace.tsx", ["const capturePhoto = () =>", "video.videoWidth", 'download="fresh-camera-photo.jpg"', "Photo captured at"]],
   ["Fresh Camera stops its stream when closed", "src/features/workspaces/StudioWorkspace.tsx", ["const closeCamera = () =>", "cameraStream.getTracks().forEach((track) => track.stop())", "useEffect(() => () => cameraStream?.getTracks().forEach((track) => track.stop()), [cameraStream])"]],
