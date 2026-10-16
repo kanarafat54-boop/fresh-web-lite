@@ -612,7 +612,7 @@ export default function StudioWorkspace() {
           <span>STATE</span>
           <strong>{renderJob?.status ?? project?.pipelineStatus ?? "draft"}</strong>
         </div>
-      </section>
+      </section>}
 
       {!["photo"].includes(mode) && <nav className="studio-mode-tabs" aria-label="Studio sections">
         {MODE_TABS.map((tab) => (
@@ -626,7 +626,7 @@ export default function StudioWorkspace() {
             {tab.label}
           </button>
         ))}
-      </nav>
+      </nav>}
 
       {mode === "photo" && (
         <section className="studio-photo-workspace" aria-label="Photo editor">
