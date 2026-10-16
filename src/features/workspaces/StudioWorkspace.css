@@ -104,3 +104,27 @@
 .studio-continue-card p{margin:5px 0 0;color:var(--fresh-muted);font-size:13px}
 .studio-start-note{margin:0;font-size:13px}
 @media(max-width:640px){.studio-start-grid{grid-template-columns:1fr;gap:11px}.studio-start-card{min-height:0;padding:17px;border-radius:17px}.studio-continue-card{align-items:stretch;flex-direction:column}.studio-continue-card button{width:100%}}
+
+
+/* Camera-first capture: large preview, clear controls, and no hidden horizontal overflow. */
+.studio-workspace-camera .studio-hero-compact > p,
+.studio-workspace-camera .studio-project-bar,
+.studio-workspace-camera .studio-mode-tabs,
+.studio-workspace-camera > .studio-grid { display: none; }
+.studio-camera { display: grid; gap: 14px; width: 100%; max-width: 920px; margin: 10px auto 30px; min-width: 0; }
+.studio-camera-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.studio-camera-heading h2 { margin: 6px 0; font-size: clamp(22px, 3vw, 30px); line-height: 1.2; }
+.studio-camera-heading p, .studio-camera-note { color: var(--fresh-muted); font-size: 14px; line-height: 1.55; }
+.studio-camera-preview { display: block; width: 100%; aspect-ratio: 9 / 16; max-height: min(66vh, 720px); object-fit: contain; background: #050508; border: 1px solid var(--fresh-border); border-radius: 18px; }
+.studio-camera-status { margin: 0; font-size: 15px; line-height: 1.5; }
+.studio-camera-error { margin: 0; padding: 12px; border-radius: 12px; border: 1px solid #dc2626; color: var(--fresh-text); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.studio-camera-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.studio-camera-actions button, .studio-camera-heading button { min-height: 48px; padding: 12px 16px; border: 1px solid var(--fresh-border); border-radius: 12px; background: var(--fresh-surface-2); color: var(--fresh-text); font-size: 15px; font-weight: 750; cursor: pointer; }
+.studio-camera-actions .studio-camera-stop { background: #dc2626; border-color: #dc2626; color: white; }
+.studio-camera-note { margin: 0; }
+@media (max-width: 520px) {
+  .studio-camera-heading { flex-direction: column; }
+  .studio-camera-heading button { width: 100%; }
+  .studio-camera-preview { max-height: 56vh; border-radius: 14px; }
+  .studio-camera-actions { grid-template-columns: 1fr; }
+}
