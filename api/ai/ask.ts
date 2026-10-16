@@ -26,6 +26,54 @@ function requestsImage(goal: string, interpretation: FreshGoalInterpretation | n
   return /\b(generate|create|draw|render|make)\b[\s\S]{0,80}\b(image|picture|photo|illustration|logo|poster|artwork|portrait|wallpaper|icon|visual|drawing|graphic)\b/i.test(goal);
 }
 async function auth(req: Request) { const u = process.env.VITE_SUPABASE_URL, k = process.env.VITE_SUPABASE_ANON_KEY, a = req.headers.get("authorization") || "", t = a.startsWith("Bearer ") ? a.slice(7) : ""; if (!u || !k || !t) return null; const c = createClient(u, k, { auth: { persistSession: false, autoRefreshToken: false } }); const r = await c.auth.getUser(t); return r.data.user ?? null; }
+
+async function handleMediaWorkerProxy(req: Request): Promise<Response> {
+  const jsonProxy = (value: unknown, status = 200) => Response.json(value, { status, headers: { "cache-control": "no-store" } });
+  try {
+    const url = new URL(req.url);
+    const suffix = url.searchParams.get("__fresh_media_worker_path") ?? "";
+    const path = "/" + suffix.replace(/^\/+/, "");
+    if (!(path === "/jobs" || /^\/jobs\/[0-9a-f-]{36}$/i.test(path) || /^\/jobs\/[0-9a-f-]{36}\/output$/i.test(path))) return jsonProxy({ error: "Media worker route not found." }, 404);
+    if (!((req.method === "POST" && path === "/jobs") || (req.method === "GET" && path.startsWith("/jobs/")))) return jsonProxy({ error: "Method not allowed." }, 405);
+    const authorization = req.headers.get("authorization") ?? "";
+    const bearer = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+    const supabaseUrl = process.env.VITE_SUPABASE_URL, anonKey = process.env.VITE_SUPABASE_ANON_KEY;
+    if (!bearer || !supabaseUrl || !anonKey) return jsonProxy({ error: "Authentication required." }, 401);
+    const supabase = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const authResult = await supabase.auth.getUser(bearer);
+    if (!authResult.data.user) return jsonProxy({ error: "Authentication required." }, 401);
+    const workerUrl = process.env.FRESH_MEDIA_WORKER_URL?.trim().replace(/\/$/, "");
+    const workerToken = process.env.FRESH_MEDIA_WORKER_API_TOKEN?.trim();
+    if (!workerUrl || !workerToken) return jsonProxy({ error: "Fresh media processing is not configured on the server." }, 503);
+    const headers = new Headers({ authorization: "Bearer " + workerToken });
+    let body: string | undefined;
+    if (req.method === "POST") {
+      if (!(req.headers.get("content-type") ?? "").toLowerCase().includes("application/json")) return jsonProxy({ error: "A JSON media job is required." }, 415);
+      body = await req.text();
+      if (body.length > 64 * 1024) return jsonProxy({ error: "Media job request is too large." }, 413);
+      let parsed: unknown;
+      try { parsed = JSON.parse(body); } catch { return jsonProxy({ error: "Invalid JSON media job." }, 400); }
+      if (!parsed || typeof parsed !== "object" || typeof (parsed as { inputUrl?: unknown }).inputUrl !== "string") return jsonProxy({ error: "inputUrl is required." }, 400);
+      headers.set("content-type", "application/json");
+    }
+    const upstream = await fetch(workerUrl + path, { method: req.method, headers, ...(body === undefined ? {} : { body }), cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(45_000) });
+    const contentType = upstream.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      const payload = await upstream.json().catch(() => ({})) as Record<string, unknown>;
+      if (typeof payload.statusUrl === "string" && path === "/jobs" && payload.statusUrl.startsWith("/")) payload.statusUrl = "/api/media-worker" + payload.statusUrl;
+      if (typeof payload.outputUrl === "string" && payload.outputUrl.startsWith("/jobs/")) payload.outputUrl = "/api/media-worker" + payload.outputUrl;
+      return jsonProxy(payload, upstream.status);
+    }
+    const outHeaders = new Headers({ "cache-control": "no-store", "x-content-type-options": "nosniff" });
+    if (contentType) outHeaders.set("content-type", contentType);
+    const length = upstream.headers.get("content-length");
+    if (length) outHeaders.set("content-length", length);
+    return new Response(upstream.body, { status: upstream.status, headers: outHeaders });
+  } catch {
+    return jsonProxy({ error: "Fresh media worker request failed. Please try again." }, 502);
+  }
+}
+
 async function research(goal: string): Promise<Evidence[]> {
   const configured = process.env.FRESH_RESEARCH_URL?.trim();
   const origin = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
@@ -103,7 +151,13 @@ async function conversationLedger(userId: string | null, conversationId: string 
   return id;
 }
 
+export async function GET(req: Request): Promise<Response> {
+  if (new URL(req.url).searchParams.has("__fresh_media_worker_path")) return handleMediaWorkerProxy(req);
+  return json({ error: "Method not allowed." }, 405);
+}
+
 export async function POST(req: Request): Promise<Response> {
+  if (new URL(req.url).searchParams.has("__fresh_media_worker_path")) return handleMediaWorkerProxy(req);
   const requestId = crypto.randomUUID();
   try {
     const b = await req.json() as Body;
@@ -194,4 +248,4 @@ export async function POST(req: Request): Promise<Response> {
  return json({ requestId, conversationId, answer: r.result.answer, confidence: verification.confidence, source: e.length ? "Fresh AI / verified evidence" : "Fresh AI", evidence: e, pipeline: r.pipeline, governance, verification, persistence, image, proof: { mode: "gateway", evidenceCount: e.length, provenance: "Fresh AI Intelligence Gateway → Kernel → Truth/Reasoning → Verification", model }, intent: r.interpretation.intent, status: r.status, error: r.error, workspace: workspaceContext ?? null, model });
  } catch (error) { return json({ requestId, error: error instanceof Error ? error.message : "Fresh AI request failed" }, 500); } }
 
-export default createVercelNodeHandler({ POST });
+export default createVercelNodeHandler({ GET, POST });

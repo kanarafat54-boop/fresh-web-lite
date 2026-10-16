@@ -18,17 +18,26 @@ export type RemoteMediaWorkerStatus = {
   error?: string;
 };
 
-function baseUrl(): string | null {
-  const value = import.meta.env.VITE_FRESH_MEDIA_WORKER_URL?.trim();
-  return value ? value.replace(/\/$/, "") : null;
+// Keep the worker URL and API token server-side. The browser talks only to the
+// same-origin authenticated Vercel proxy.
+function baseUrl(): string {
+  return "/api/media-worker";
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const base = baseUrl();
-  if (!base) throw new Error("Fresh media worker is not configured.");
-  const response = await fetch(base + path, {
+  const { supabase } = await import("../../lib/supabase");
+  const { data, error } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (error || !token) throw new Error("Sign in to use Fresh media processing.");
+
+  const response = await fetch(baseUrl() + path, {
     ...init,
-    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${token}`,
+      ...(init?.headers ?? {}),
+    },
+    cache: "no-store",
   });
   const payload = (await response.json().catch(() => ({}))) as { error?: string } & T;
   if (!response.ok) throw new Error(payload.error ?? "Fresh media worker request failed.");
@@ -36,7 +45,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function isRemoteMediaWorkerConfigured(): boolean {
-  return Boolean(baseUrl());
+  // Server configuration is checked by the proxy so no secret is exposed here.
+  return true;
 }
 
 export async function submitRemoteMediaJob(job: RemoteMediaWorkerJob) {
