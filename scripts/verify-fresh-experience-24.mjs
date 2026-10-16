@@ -11,6 +11,8 @@ const checks = [
   ["Flow remains a first-class route", "src/app/components/BottomNav.tsx", ['id: "fresh-flow"']],
   ["Create is visibly labeled and opens Studio", "src/app/components/BottomNav.tsx", ['label: "Create"', 'route: "studio"', 'activeRoute === "studio"']],
   ["Fresh Studio creation home", "src/features/workspaces/StudioWorkspace.tsx", ["What would you like to create?", "Edit a video", "Create with Fresh AI", "Design a post", "Advanced tools", 'useState<StudioMode>("start")']],
+  ["Fresh Studio capture and creative entry points", "src/features/workspaces/StudioWorkspace.tsx", ["Record with camera", "Create an image", "Create audio or voice", 'setMode("camera")', 'mode === "camera"']],
+  ["Fresh Studio camera uses real browser capture", "src/features/workspaces/StudioCameraPanel.tsx", ["getUserMedia", "MediaRecorder", "onCaptured", "track.stop()"]],
   ["Flow dedicated surface", "src/app/AppRouter.css", [".fresh-flow-app-shell .fresh-desktop-sidebar{display:none}"]],
   ["Flow media worlds remain available", "src/features/fresh-flow/FreshFlowHub.tsx", ["Shorts", "Long Videos", "News / Posts", "AR / VR", "Podcasts", "Others"]],
   ["Topbar has universal search", "src/app/components/TopBar.tsx", ["Search anything across Fresh"]],
@@ -30,6 +32,11 @@ for (const [name, file, tokens] of checks) {
 const homeCss = fs.readFileSync(path.join(root, "src/features/home/HomeDashboard.css"), "utf8");
 for (const token of ["@media(max-width:900px)", "@media(max-width:520px)", "fresh-home-action-grid"]) {
   if (!homeCss.includes(token)) throw new Error(`Home responsive contract missing ${token}`);
+}
+
+const studioCss = fs.readFileSync(path.join(root, "src/features/workspaces/StudioWorkspace.css"), "utf8");
+for (const token of [".studio-camera-preview", ".studio-camera-actions", "@media (max-width: 520px)"]) {
+  if (!studioCss.includes(token)) throw new Error(`Fresh Studio camera responsive contract missing ${token}`);
 }
 
 console.log("Fresh Experience 24 visible-product contracts: PASS");
