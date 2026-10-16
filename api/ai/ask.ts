@@ -32,8 +32,8 @@ async function handleMediaWorkerProxy(req: Request): Promise<Response> {
   try {
     const url = new URL(req.url);
     const suffix = url.searchParams.get("__fresh_media_worker_path") ?? "";
-    const path = "/" + suffix.replace(/^\\/+/, "");
-    if (!(path === "/jobs" || /^\\/jobs\\/[0-9a-f-]{36}$/i.test(path) || /^\\/jobs\\/[0-9a-f-]{36}\\/output$/i.test(path))) return jsonProxy({ error: "Media worker route not found." }, 404);
+    const path = "/" + suffix.replace(/^\/+/, "");
+    if (!(path === "/jobs" || /^\/jobs\/[0-9a-f-]{36}$/i.test(path) || /^\/jobs\/[0-9a-f-]{36}\/output$/i.test(path))) return jsonProxy({ error: "Media worker route not found." }, 404);
     if (!((req.method === "POST" && path === "/jobs") || (req.method === "GET" && path.startsWith("/jobs/")))) return jsonProxy({ error: "Method not allowed." }, 405);
     const authorization = req.headers.get("authorization") ?? "";
     const bearer = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
@@ -42,10 +42,10 @@ async function handleMediaWorkerProxy(req: Request): Promise<Response> {
     const supabase = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const authResult = await supabase.auth.getUser(bearer);
     if (!authResult.data.user) return jsonProxy({ error: "Authentication required." }, 401);
-    const workerUrl = process.env.FRESH_MEDIA_WORKER_URL?.trim().replace(/\\/$/, "");
+    const workerUrl = process.env.FRESH_MEDIA_WORKER_URL?.trim().replace(/\/$/, "");
     const workerToken = process.env.FRESH_MEDIA_WORKER_API_TOKEN?.trim();
     if (!workerUrl || !workerToken) return jsonProxy({ error: "Fresh media processing is not configured on the server." }, 503);
-    const headers = new Headers({ authorization: `Bearer ${workerToken}` });
+    const headers = new Headers({ authorization: "Bearer " + workerToken });
     let body: string | undefined;
     if (req.method === "POST") {
       if (!(req.headers.get("content-type") ?? "").toLowerCase().includes("application/json")) return jsonProxy({ error: "A JSON media job is required." }, 415);
