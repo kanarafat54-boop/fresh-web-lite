@@ -35,10 +35,11 @@ import { createThumbnail, probeMedia, submitMediaToWorker, waitForMediaWorker } 
 import { saveMediaAsset } from "../../core/platform/mediaStorage";
 import { useLayout } from "../../app/contexts/useLayout";
 import StudioMediaOpsPanels from "./StudioMediaOpsPanels";
+import StudioCameraPanel from "./StudioCameraPanel";
 import "./WorkspacePage.css";
 import "./StudioWorkspace.css";
 
-type StudioMode = "start" | "edit" | "pipeline" | "discover" | "business" | "system";
+type StudioMode = "start" | "camera" | "edit" | "pipeline" | "discover" | "business" | "system";
 
 const MODE_TABS: { id: StudioMode; label: string }[] = [
   { id: "edit", label: "Edit" },
@@ -444,7 +445,7 @@ export default function StudioWorkspace() {
   };
 
   return (
-    <section className={`workspace-page studio-workspace${mode === "start" ? " studio-workspace-start" : ""}`} aria-label="Fresh Studio">
+    <section className={`workspace-page studio-workspace${mode === "start" ? " studio-workspace-start" : ""}${mode === "camera" ? " studio-workspace-camera" : ""}`} aria-label="Fresh Studio">
       <header className="workspace-hero studio-hero-compact">
         <span className="workspace-eyebrow">Creation</span>
         <h1>Fresh Studio</h1>
@@ -495,6 +496,24 @@ export default function StudioWorkspace() {
               <strong>Create with Fresh AI</strong>
               <small>Open Fresh AI for the creation and assistance tools currently available.</small>
               <span className="studio-start-link">Open Fresh AI →</span>
+            </button>
+            <button type="button" className="studio-start-card studio-start-card-primary" onClick={() => setMode("camera")}>
+              <span className="studio-start-icon" aria-hidden="true">●</span>
+              <strong>Record with camera</strong>
+              <small>Capture a new video with your phone camera, then send it straight into the editor.</small>
+              <span className="studio-start-link">Open camera →</span>
+            </button>
+            <button type="button" className="studio-start-card" onClick={() => setActiveRoute("ai")}>
+              <span className="studio-start-icon" aria-hidden="true">▧</span>
+              <strong>Create an image</strong>
+              <small>Open Fresh AI to check the image-generation tools currently available.</small>
+              <span className="studio-start-link">Explore image tools →</span>
+            </button>
+            <button type="button" className="studio-start-card" onClick={() => setActiveRoute("ai")}>
+              <span className="studio-start-icon" aria-hidden="true">♫</span>
+              <strong>Create audio or voice</strong>
+              <small>Open Fresh AI to check available voice and audio tools.</small>
+              <span className="studio-start-link">Explore audio tools →</span>
             </button>
             <button type="button" className="studio-start-card" onClick={() => setActiveRoute("creator")}>
               <span className="studio-start-icon" aria-hidden="true">▧</span>
@@ -551,6 +570,13 @@ export default function StudioWorkspace() {
           </button>
         ))}
       </nav>
+
+      {mode === "camera" && (
+        <StudioCameraPanel
+          onCaptured={(file) => importMedia(file)}
+          onClose={() => setMode("start")}
+        />
+      )}
 
       {mode === "edit" && (
         <section className="studio-grid studio-edit-grid">
