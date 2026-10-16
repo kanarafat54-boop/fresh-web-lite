@@ -184,7 +184,7 @@ export default function StudioWorkspace() {
         const url = URL.createObjectURL(blob);
         const link = window.document.createElement("a");
         link.href = url;
-        link.download = `fresh-studio-${photoName.replace(/\\.[^.]+$/, "") || "photo"}.png`;
+        link.download = `fresh-studio-${photoName.replace(/\.[^.]+$/, "") || "photo"}.png`;
         link.click();
         URL.revokeObjectURL(url);
         setMessage(`Exported edited photo at ${canvas.width}×${canvas.height}. Your original file was not changed.`);
