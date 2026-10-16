@@ -1,8 +1,10 @@
 import http from "node:http";
+import https from "node:https";
 import { execFile } from "node:child_process";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import { randomUUID, timingSafeEqual } from "node:crypto";
+import { isIP } from "node:net";
 import { join } from "node:path";
 import { assertSafeMediaUrl } from "./media-url-security.mjs";
 
@@ -49,34 +51,50 @@ async function body(req) {
   return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
 }
 
+function requestPinnedHttps(url, address) {
+  return new Promise((resolve, reject) => {
+    const request = https.request(url, {
+      method: "GET",
+      timeout: 30000,
+      lookup: (_hostname, options, callback) => {
+        const record = { address, family: isIP(address) };
+        if (options && typeof options === "object" && options.all) callback(null, [record]);
+        else callback(null, record.address, record.family);
+      },
+    }, resolve);
+    request.on("timeout", () => request.destroy(new Error("Media download timed out.")));
+    request.on("error", reject);
+    request.end();
+  });
+}
+
 async function download(url, target) {
-  const parsed = await assertSafeMediaUrl(url);
-  const response = await fetch(parsed, { redirect: "manual", signal: AbortSignal.timeout(30000) });
-  if (!response.ok) throw new Error("Media download failed with HTTP " + response.status + ".");
-  const type = response.headers.get("content-type") || "";
+  const safe = await assertSafeMediaUrl(url);
+  const response = await requestPinnedHttps(safe.url, safe.address);
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    response.resume();
+    throw new Error("Media download failed with HTTP " + response.statusCode + ".");
+  }
+  const type = String(response.headers["content-type"] || "");
   if (!type.startsWith("video/") && !type.startsWith("audio/") && !type.includes("octet-stream")) {
+    response.resume();
     throw new Error("URL does not advertise a supported media content type.");
   }
-  const length = Number(response.headers.get("content-length") || 0);
-  if (length > MAX_INPUT_BYTES) throw new Error("Input media exceeds the 50 MB worker limit.");
-  if (!response.body) throw new Error("Media response has no body.");
+  const length = Number(response.headers["content-length"] || 0);
+  if (length > MAX_INPUT_BYTES) {
+    response.resume();
+    throw new Error("Input media exceeds the 50 MB worker limit.");
+  }
 
-  const reader = response.body.getReader();
   const chunks = [];
   let total = 0;
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      total += value.byteLength;
-      if (total > MAX_INPUT_BYTES) {
-        await reader.cancel().catch(() => {});
-        throw new Error("Input media exceeds the 50 MB worker limit.");
-      }
-      chunks.push(Buffer.from(value));
+  for await (const chunk of response) {
+    total += chunk.length;
+    if (total > MAX_INPUT_BYTES) {
+      response.destroy();
+      throw new Error("Input media exceeds the 50 MB worker limit.");
     }
-  } finally {
-    reader.releaseLock();
+    chunks.push(Buffer.from(chunk));
   }
   await writeFile(target, Buffer.concat(chunks, total), { flag: "wx" });
 }
