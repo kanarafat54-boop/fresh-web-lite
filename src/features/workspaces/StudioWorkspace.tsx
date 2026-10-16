@@ -35,10 +35,11 @@ import { createThumbnail, probeMedia, submitMediaToWorker, waitForMediaWorker } 
 import { saveMediaAsset } from "../../core/platform/mediaStorage";
 import { useLayout } from "../../app/contexts/useLayout";
 import StudioMediaOpsPanels from "./StudioMediaOpsPanels";
+import StudioStartPanel from "./StudioStartPanel";
 import "./WorkspacePage.css";
 import "./StudioWorkspace.css";
 
-type StudioMode = "edit" | "pipeline" | "discover" | "business" | "system";
+type StudioMode = "start" | "edit" | "pipeline" | "discover" | "business" | "system";
 
 const MODE_TABS: { id: StudioMode; label: string }[] = [
   { id: "edit", label: "Edit" },
@@ -61,7 +62,8 @@ function isLiveObjectUrl(url?: string | null): boolean {
 export default function StudioWorkspace() {
   const { setActiveRoute } = useLayout();
   const capabilities = getComputeCapabilities();
-  const [mode, setMode] = useState<StudioMode>("edit");
+  const [mode, setMode] = useState<StudioMode>("start");
+  const [selectedMediaKind, setSelectedMediaKind] = useState<"video" | "image" | "audio">("video");
   const [weights, setWeights] = useState(DEFAULT_RECOMMENDATION_WEIGHTS);
   const [document, setDocument] = useState<RenderDocument>(() => createRenderDocument("local-media"));
   const [projects, setProjects] = useState<FreshMediaProject[]>([]);
@@ -117,6 +119,9 @@ export default function StudioWorkspace() {
   const normalized = useMemo(() => normalizeWeights(weights), [weights]);
   const ranked = useMemo(() => rerankCandidates(candidates, normalized), [normalized]);
   const compute = planCompute({ capability: "render", gpuRequired: capabilities.webgpu, private: true });
+  const isImageSource = (project?.sourceType ?? "").startsWith("image/");
+  const isAudioSource = (project?.sourceType ?? "").startsWith("audio/");
+  const isVideoSource = !isImageSource && !isAudioSource;
 
   const setWeight = (key: keyof typeof weights, value: number) =>
     setWeights((current) => ({ ...current, [key]: value }));
@@ -212,7 +217,12 @@ export default function StudioWorkspace() {
       .arrayBuffer()
       .then((bytes) => saveMediaAsset(nextProject.id, new Blob([bytes], { type: file.type })))
       .catch(() => {});
-    setMessage(`Imported ${file.name}. Use Edit tools, then Render or hand off to Creator.`);
+    setSelectedMediaKind(file.type.startsWith("image/") ? "image" : file.type.startsWith("audio/") ? "audio" : "video");
+    setMessage(file.type.startsWith("image/")
+      ? `Imported ${file.name}. Image preview is ready; image editing and export are not connected yet.`
+      : file.type.startsWith("audio/")
+        ? `Imported ${file.name}. Audio playback is ready; audio processing is not connected yet.`
+        : `Imported ${file.name}. Use video edit tools, then render or hand off to Creator.`);
     setMode("edit");
   };
 
@@ -448,8 +458,9 @@ export default function StudioWorkspace() {
       <header className="workspace-hero studio-hero-compact">
         <span className="workspace-eyebrow">Creation</span>
         <h1>Fresh Studio</h1>
-        <p>Import → edit → render on device → hand off to Creator. Advanced tools live in tabs.</p>
+        <p>{mode === "start" ? "A simpler home for your creative work." : "Import → edit → render on device → hand off to Creator. Advanced tools live in tabs."}</p>
         <div className="studio-hero-actions">
+          {mode !== "start" && <>
           <button type="button" className="studio-btn-primary" onClick={() => fileRef.current?.click()}>
             Import media
           </button>
@@ -465,11 +476,12 @@ export default function StudioWorkspace() {
           <button type="button" onClick={() => setActiveRoute("fresh-flow")}>
             Fresh Flow
           </button>
+          </>}
           <input
             ref={fileRef}
             hidden
             type="file"
-            accept="video/*,audio/*,image/*"
+            accept={selectedMediaKind === "image" ? "image/*" : selectedMediaKind === "audio" ? "audio/*" : "video/*"}
             onChange={(event) => {
               const file = event.target.files?.[0];
               event.currentTarget.value = "";
@@ -482,7 +494,20 @@ export default function StudioWorkspace() {
         </p>
       </header>
 
-      <section className="studio-project-bar" aria-label="Active project">
+      {mode === "start" && (
+        <StudioStartPanel
+          projects={projects}
+          onChoose={(kind) => {
+            setSelectedMediaKind(kind);
+            setMode("edit");
+            fileRef.current?.click();
+          }}
+          onOpenProject={restoreProject}
+          onNewProject={() => { newProject(); setMode("edit"); }}
+        />
+      )}
+
+      {mode !== "start" && <section className="studio-project-bar" aria-label="Active project">
         <div>
           <span>PROJECT</span>
           <strong>{project?.title ?? "No project yet"}</strong>
@@ -495,9 +520,9 @@ export default function StudioWorkspace() {
           <span>STATE</span>
           <strong>{renderJob?.status ?? project?.pipelineStatus ?? "draft"}</strong>
         </div>
-      </section>
+      </section>}
 
-      <nav className="studio-mode-tabs" aria-label="Studio sections">
+      {mode !== "start" && <nav className="studio-mode-tabs" aria-label="Studio sections">
         {MODE_TABS.map((tab) => (
           <button
             key={tab.id}
@@ -509,7 +534,7 @@ export default function StudioWorkspace() {
             {tab.label}
           </button>
         ))}
-      </nav>
+      </nav>}
 
       {mode === "edit" && (
         <section className="studio-grid studio-edit-grid">
@@ -519,16 +544,22 @@ export default function StudioWorkspace() {
               <h2>Preview</h2>
             </div>
             {sourcePreview ? (
-              <video
-                ref={videoRef}
-                className="studio-preview"
-                src={sourcePreview}
-                controls
-                playsInline
-                onLoadedMetadata={() => void restorePlayback()}
-                onPause={() => void savePlayback()}
-                onRateChange={(event) => setPlaybackRate(event.currentTarget.playbackRate)}
-              />
+              isImageSource ? (
+                <img className="studio-preview studio-image-preview" src={sourcePreview} alt={project?.sourceName ?? "Imported image"} />
+              ) : isAudioSource ? (
+                <audio className="studio-audio-preview" src={sourcePreview} controls preload="metadata" />
+              ) : (
+                <video
+                  ref={videoRef}
+                  className="studio-preview"
+                  src={sourcePreview}
+                  controls
+                  playsInline
+                  onLoadedMetadata={() => void restorePlayback()}
+                  onPause={() => void savePlayback()}
+                  onRateChange={(event) => setPlaybackRate(event.currentTarget.playbackRate)}
+                />
+              )
             ) : (
               <button
                 type="button"
@@ -539,7 +570,7 @@ export default function StudioWorkspace() {
                 <span>Stays private on this device until you publish from Creator.</span>
               </button>
             )}
-            {sourcePreview && (
+            {sourcePreview && isVideoSource && (
               <div className="studio-actions studio-player-controls">
                 <button
                   type="button"
@@ -567,7 +598,7 @@ export default function StudioWorkspace() {
                 </button>
               </div>
             )}
-            {sourcePreview && (
+            {sourcePreview && isVideoSource && (
               <div className="studio-actions">
                 <button type="button" className="studio-btn-primary" onClick={() => void exportDocument()} disabled={exporting}>
                   {exporting ? "Rendering…" : "Render current graph"}
@@ -588,7 +619,10 @@ export default function StudioWorkspace() {
                 </button>
               </div>
             )}
-            {mediaInfo && (
+            {sourcePreview && (isImageSource || isAudioSource) && (
+              <p className="studio-muted">{isImageSource ? "Image preview only — image editing, generation, and export are not connected in this workspace yet." : "Audio playback only — audio effects, stem separation, and audio export are not connected in this workspace yet."}</p>
+            )}
+            {mediaInfo && isVideoSource && (
               <p className="studio-muted">
                 {Math.round(mediaInfo.duration)}s · {mediaInfo.width}×{mediaInfo.height} ·{" "}
                 {mediaInfo.aspectRatio.toFixed(2)}:1
@@ -601,8 +635,9 @@ export default function StudioWorkspace() {
           <article className="studio-panel">
             <div className="studio-panel-heading">
               <span>02</span>
-              <h2>Edits</h2>
+              <h2>Video edits</h2>
             </div>
+            {!isImageSource && !isAudioSource ? <>
             <p className="studio-muted">Non-destructive. Edits store as a JSON graph until you render.</p>
             <div className="studio-actions studio-edit-fields">
               <label>
@@ -685,6 +720,9 @@ export default function StudioWorkspace() {
               <summary>Render graph JSON</summary>
               <pre className="studio-code">{JSON.stringify(document, null, 2)}</pre>
             </details>
+            </> : (
+              <p className="studio-muted">These editing controls currently apply to video. Image editing/generation and audio processing are separate workflows still to be connected.</p>
+            )}
           </article>
 
           {projects.length > 0 && (
