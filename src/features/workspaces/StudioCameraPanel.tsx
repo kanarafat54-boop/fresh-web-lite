@@ -13,7 +13,7 @@ export default function StudioCameraPanel({ onCaptured, onClose }: Props) {
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState("");
-  const [status, setStatus] = useState("Camera is off until you choose Start camera.");
+  const [status, setStatus] = useState("Requesting camera permission…");
 
   useEffect(() => {
     let cancelled = false;
