@@ -38,7 +38,7 @@ import StudioMediaOpsPanels from "./StudioMediaOpsPanels";
 import "./WorkspacePage.css";
 import "./StudioWorkspace.css";
 
-type StudioMode = "start" | "edit" | "pipeline" | "discover" | "business" | "system";
+type StudioMode = "start" | "photo" | "edit" | "pipeline" | "discover" | "business" | "system";
 
 const MODE_TABS: { id: StudioMode; label: string }[] = [
   { id: "edit", label: "Edit" },
@@ -87,6 +87,13 @@ export default function StudioWorkspace() {
   const [trimStart, setTrimStart] = useState(0);
   const [trimEnd, setTrimEnd] = useState(30);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const photoFileRef = useRef<HTMLInputElement | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoName, setPhotoName] = useState("");
+  const [photoBrightness, setPhotoBrightness] = useState(100);
+  const [photoContrast, setPhotoContrast] = useState(100);
+  const [photoSaturation, setPhotoSaturation] = useState(100);
+  const [photoRotation, setPhotoRotation] = useState(0);
   const [escrow, setEscrow] = useState(() =>
     fundEscrow({
       payerId: "brand-demo",
@@ -117,6 +124,58 @@ export default function StudioWorkspace() {
   const normalized = useMemo(() => normalizeWeights(weights), [weights]);
   const ranked = useMemo(() => rerankCandidates(candidates, normalized), [normalized]);
   const compute = planCompute({ capability: "render", gpuRequired: capabilities.webgpu, private: true });
+
+  const importPhoto = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setMessage("Choose an image file such as JPG, PNG or WebP.");
+      return;
+    }
+    if (photoUrl) URL.revokeObjectURL(photoUrl);
+    const url = URL.createObjectURL(file);
+    setPhotoUrl(url);
+    setPhotoName(file.name);
+    setPhotoBrightness(100);
+    setPhotoContrast(100);
+    setPhotoSaturation(100);
+    setPhotoRotation(0);
+    setMode("photo");
+    setMessage("Photo loaded locally. Adjust it, then export a new copy; the original stays unchanged.");
+  };
+
+  const exportPhoto = () => {
+    if (!photoUrl) return;
+    const image = new Image();
+    image.onload = () => {
+      const quarterTurn = Math.abs(photoRotation % 180) === 90;
+      const canvas = window.document.createElement("canvas");
+      canvas.width = quarterTurn ? image.naturalHeight : image.naturalWidth;
+      canvas.height = quarterTurn ? image.naturalWidth : image.naturalHeight;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        setMessage("This browser could not export the photo. Try another browser.");
+        return;
+      }
+      context.filter = `brightness(${photoBrightness}%) contrast(${photoContrast}%) saturate(${photoSaturation}%)`;
+      context.translate(canvas.width / 2, canvas.height / 2);
+      context.rotate((photoRotation * Math.PI) / 180);
+      context.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2);
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          setMessage("Photo export failed. Your original has not been changed.");
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const link = window.document.createElement("a");
+        link.href = url;
+        link.download = `fresh-studio-${photoName.replace(/\\.[^.]+$/, "") || "photo"}.png`;
+        link.click();
+        URL.revokeObjectURL(url);
+        setMessage(`Exported edited photo at ${canvas.width}×${canvas.height}. Your original file was not changed.`);
+      }, "image/png");
+    };
+    image.onerror = () => setMessage("Could not read this image. Try a JPG, PNG or WebP file.");
+    image.src = photoUrl;
+  };
 
   const setWeight = (key: keyof typeof weights, value: number) =>
     setWeights((current) => ({ ...current, [key]: value }));
@@ -452,7 +511,7 @@ export default function StudioWorkspace() {
         <div className="studio-hero-actions">
           {mode !== "start" && (
             <>
-              <button type="button" className="studio-btn-primary" onClick={() => fileRef.current?.click()}>Import video</button>
+              <button type="button" className="studio-btn-primary" onClick={() => (mode === "photo" ? photoFileRef.current?.click() : fileRef.current?.click())}>{mode === "photo" ? "Choose another photo" : "Import video"}</button>
               <button type="button" onClick={persist}>Save project</button>
               <button type="button" onClick={newProject}>New project</button>
               <button type="button" onClick={openCreator}>Open Creator</button>
@@ -460,6 +519,17 @@ export default function StudioWorkspace() {
             </>
           )}
         </div>
+        <input
+          ref={photoFileRef}
+          hidden
+          type="file"
+          accept="image/*"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.currentTarget.value = "";
+            if (file) importPhoto(file);
+          }}
+        />
         <input
           ref={fileRef}
           hidden
@@ -484,6 +554,12 @@ export default function StudioWorkspace() {
             <p>Pick one starting point. You can explore advanced controls later.</p>
           </div>
           <div className="studio-start-grid">
+            <button type="button" className="studio-start-card studio-start-card-primary" onClick={() => photoFileRef.current?.click()}>
+              <span className="studio-start-icon" aria-hidden="true">▧</span>
+              <strong>Edit a photo</strong>
+              <small>Import a picture, adjust light and color, rotate it, and export a new copy.</small>
+              <span className="studio-start-link">Choose photo →</span>
+            </button>
             <button type="button" className="studio-start-card studio-start-card-primary" onClick={() => fileRef.current?.click()}>
               <span className="studio-start-icon" aria-hidden="true">▶</span>
               <strong>Edit a video</strong>
@@ -523,7 +599,7 @@ export default function StudioWorkspace() {
         </section>
       )}
 
-      <section className="studio-project-bar" aria-label="Active project">
+      {mode !== "photo" && <section className="studio-project-bar" aria-label="Active project">
         <div>
           <span>PROJECT</span>
           <strong>{project?.title ?? "No project yet"}</strong>
@@ -538,7 +614,7 @@ export default function StudioWorkspace() {
         </div>
       </section>
 
-      <nav className="studio-mode-tabs" aria-label="Studio sections">
+      {!["photo"].includes(mode) && <nav className="studio-mode-tabs" aria-label="Studio sections">
         {MODE_TABS.map((tab) => (
           <button
             key={tab.id}
@@ -551,6 +627,31 @@ export default function StudioWorkspace() {
           </button>
         ))}
       </nav>
+
+      {mode === "photo" && (
+        <section className="studio-photo-workspace" aria-label="Photo editor">
+          <article className="studio-panel studio-photo-preview-panel">
+            <div className="studio-panel-heading"><span>PHOTO</span><h2>Preview</h2></div>
+            {photoUrl ? <img className="studio-photo-preview" src={photoUrl} alt={`Original photo: ${photoName}`} style={{ filter: `brightness(${photoBrightness}%) contrast(${photoContrast}%) saturate(${photoSaturation}%)`, transform: `rotate(${photoRotation}deg)` }} /> : <p>Choose a photo to begin.</p>}
+            <p className="studio-muted">Edits are previewed in your browser. The original file remains unchanged until you choose to export a copy.</p>
+            <div className="studio-actions">
+              <button type="button" onClick={() => setPhotoRotation((value) => (value + 270) % 360)}>↶ Rotate left</button>
+              <button type="button" onClick={() => setPhotoRotation((value) => (value + 90) % 360)}>↷ Rotate right</button>
+              <button type="button" onClick={() => { setPhotoBrightness(100); setPhotoContrast(100); setPhotoSaturation(100); setPhotoRotation(0); setMessage("Photo adjustments reset."); }}>Reset edits</button>
+              <button type="button" className="studio-btn-primary" onClick={exportPhoto} disabled={!photoUrl}>Export PNG copy</button>
+            </div>
+          </article>
+          <article className="studio-panel">
+            <div className="studio-panel-heading"><span>ADJUST</span><h2>Light and color</h2></div>
+            <p className="studio-muted">Use the sliders to make a natural correction. These are real browser adjustments, not AI enhancement.</p>
+            <label className="studio-photo-slider">Brightness <output>{photoBrightness}%</output><input type="range" min="50" max="150" value={photoBrightness} onChange={(event) => setPhotoBrightness(Number(event.target.value))} /></label>
+            <label className="studio-photo-slider">Contrast <output>{photoContrast}%</output><input type="range" min="50" max="150" value={photoContrast} onChange={(event) => setPhotoContrast(Number(event.target.value))} /></label>
+            <label className="studio-photo-slider">Saturation <output>{photoSaturation}%</output><input type="range" min="0" max="180" value={photoSaturation} onChange={(event) => setPhotoSaturation(Number(event.target.value))} /></label>
+            <div className="studio-photo-info"><strong>{photoName || "No photo selected"}</strong><span>Local editing · No automatic upload</span><span>Export format: PNG</span></div>
+            <button type="button" onClick={() => photoFileRef.current?.click()}>Choose a different photo</button>
+          </article>
+        </section>
+      )}
 
       {mode === "edit" && (
         <section className="studio-grid studio-edit-grid">
