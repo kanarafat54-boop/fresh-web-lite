@@ -11,7 +11,7 @@ type Props = {
 
 const choices: { kind: MediaKind; icon: string; title: string; description: string; detail: string }[] = [
   { kind: "video", icon: "▶", title: "Edit a video", description: "Trim, crop, add text and color, then export.", detail: "VIDEO EDITOR" },
-  { kind: "image", icon: "▧", title: "Open an image", description: "Preview an image and start an image workflow.", detail: "IMAGE WORKSPACE" },
+  { kind: "image", icon: "▧", title: "Open an image", description: "Preview an image on this device. Editing and generation are not connected yet.", detail: "IMAGE WORKSPACE" },
   { kind: "audio", icon: "♫", title: "Work with audio", description: "Open and listen to an audio file on this device.", detail: "AUDIO WORKSPACE" },
 ];
 
