@@ -108,6 +108,7 @@
 
 /* Camera-first capture: large preview, clear controls, and no hidden horizontal overflow. */
 .studio-workspace-camera .studio-hero-compact > p,
+.studio-workspace-camera .studio-hero-actions,
 .studio-workspace-camera .studio-project-bar,
 .studio-workspace-camera .studio-mode-tabs,
 .studio-workspace-camera > .studio-grid { display: none; }
