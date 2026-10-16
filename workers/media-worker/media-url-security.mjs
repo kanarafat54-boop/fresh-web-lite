@@ -22,7 +22,10 @@ function isPublicIPv6(value) {
     const mapped = address.slice(7);
     return isIP(mapped) === 4 && isPublicIPv4(mapped);
   }
-  const first = Number.parseInt(address.split(":")[0] || "0", 16);
+  const parts = address.split(":");
+  const first = Number.parseInt(parts[0] || "0", 16);
+  const second = Number.parseInt(parts[1] || "0", 16);
+  if (first === 0x2001 && second === 0x0db8) return false; // Documentation-only range.
   return Number.isFinite(first) && first >= 0x2000 && first <= 0x3fff;
 }
 
