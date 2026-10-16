@@ -26,6 +26,7 @@ for (const token of ["isPublicIPv4", "isPublicIPv6", "lookup", "Media hosts must
   if (!security.includes(token)) throw new Error("Missing media-worker URL security contract: " + token);
 }
 if (!docker.includes("ffmpeg")) throw new Error("FFmpeg is not installed in the worker image.");
+if (!docker.includes("COPY media-url-security.mjs ./")) throw new Error("Media URL security module is not copied into the worker image.");
 if (server.includes('url.pathname === "/jobs") return json(res, 200, { jobs:')) {
   throw new Error("Public job enumeration must not be exposed.");
 }
