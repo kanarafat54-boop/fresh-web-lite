@@ -15,7 +15,8 @@ const required = [
   "FRESH_MEDIA_WORKER_API_TOKEN",
   "timingSafeEqual",
   "assertSafeMediaUrl",
-  "AbortSignal.timeout",
+  "requestPinnedHttps",
+  "timeout: 30000",
   "MAX_ACTIVE_JOBS",
 ];
 for (const token of required) {
