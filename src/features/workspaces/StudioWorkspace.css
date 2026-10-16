@@ -104,3 +104,17 @@
 .studio-continue-card p{margin:5px 0 0;color:var(--fresh-muted);font-size:13px}
 .studio-start-note{margin:0;font-size:13px}
 @media(max-width:640px){.studio-start-grid{grid-template-columns:1fr;gap:11px}.studio-start-card{min-height:0;padding:17px;border-radius:17px}.studio-continue-card{align-items:stretch;flex-direction:column}.studio-continue-card button{width:100%}}
+
+
+/* Local photo workspace: clear controls, visible preview, and phone-sized targets. */
+.studio-photo-workspace{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,1fr);gap:16px;margin:0 0 28px}
+.studio-photo-preview-panel{min-width:0}
+.studio-photo-preview{display:block;width:100%;max-height:58vh;min-height:180px;object-fit:contain;object-position:center;background:#09090d;border-radius:16px;margin:12px 0;transition:filter .12s ease,transform .12s ease}
+.studio-photo-slider{display:grid;grid-template-columns:1fr auto;gap:8px 12px;margin:18px 0;font-size:15px;font-weight:750;color:var(--fresh-text)}
+.studio-photo-slider output{color:var(--fresh-accent);font-variant-numeric:tabular-nums}
+.studio-photo-slider input{grid-column:1/-1;width:100%;min-height:32px;accent-color:var(--fresh-accent)}
+.studio-photo-info{display:grid;gap:7px;padding:13px;margin:16px 0;border:1px solid var(--fresh-border);border-radius:14px;background:var(--fresh-surface-2);overflow-wrap:anywhere}
+.studio-photo-info strong{font-size:14px}
+.studio-photo-info span{font-size:13px;color:var(--fresh-muted);line-height:1.45}
+.studio-photo-workspace button{min-height:46px}
+@media(max-width:760px){.studio-photo-workspace{grid-template-columns:minmax(0,1fr);gap:12px}.studio-photo-preview{max-height:48vh}.studio-photo-workspace .studio-panel{padding:14px}}
