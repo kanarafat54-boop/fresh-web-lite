@@ -1,15 +1,15 @@
-import { HomeIcon, FeedIcon, AIIcon, SearchIcon, ProfileIcon } from "../../components/Icons";
+import { HomeIcon, FeedIcon, AIIcon, PlusIcon, ProfileIcon } from "../../components/Icons";
 import { useLayout } from "../contexts/useLayout";
 import "./BottomNav.css";
 
-/** Mockup bottom nav: Home · Flow · AI · Ecosystems · Profile */
-type BottomDestination = { id: string; label: string; icon: typeof HomeIcon };
+/** Primary mobile destinations: Home · Flow · Create · AI · Profile */
+type BottomDestination = { id: string; label: string; icon: typeof HomeIcon; route: string };
 const primaryDestinations: BottomDestination[] = [
-  { id: "feed", label: "Home", icon: HomeIcon },
-  { id: "fresh-flow", label: "Flow", icon: FeedIcon },
-  { id: "ai", label: "AI", icon: AIIcon },
-  { id: "discovery", label: "Ecosystems", icon: SearchIcon },
-  { id: "profile", label: "Profile", icon: ProfileIcon },
+  { id: "feed", label: "Home", icon: HomeIcon, route: "feed" },
+  { id: "fresh-flow", label: "Flow", icon: FeedIcon, route: "fresh-flow" },
+  { id: "studio", label: "Create", icon: PlusIcon, route: "studio" },
+  { id: "ai", label: "AI", icon: AIIcon, route: "ai" },
+  { id: "profile", label: "Profile", icon: ProfileIcon, route: "profile" },
 ];
 
 export default function BottomNav() {
@@ -17,13 +17,15 @@ export default function BottomNav() {
   return (
     <nav className="fresh-bottom-nav" aria-label="Fresh primary navigation">
       <div className="fresh-bottom-nav-scroll">
-        {primaryDestinations.map(({ id, label, icon: Icon }) => {
+        {primaryDestinations.map(({ id, label, icon: Icon, route }) => {
           const active =
             id === "feed"
               ? activeRoute === "feed" || !activeRoute
               : id === "fresh-flow"
                 ? typeof activeRoute === "string" && activeRoute.startsWith("fresh-flow")
-                : activeRoute === id;
+                : id === "studio"
+                  ? activeRoute === "studio" || activeRoute === "creator"
+                  : activeRoute === id;
           return (
             <button
               key={id}
@@ -31,7 +33,7 @@ export default function BottomNav() {
               className={`fresh-nav-item${active ? " active" : ""}`}
               aria-current={active ? "page" : undefined}
               aria-label={label}
-              onClick={() => setActiveRoute(id)}
+              onClick={() => setActiveRoute(route)}
             >
               <span className="fresh-nav-icon" aria-hidden="true">
                 <Icon size={24} />
