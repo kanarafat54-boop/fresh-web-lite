@@ -45,7 +45,7 @@ FeatureRegistry.register({ id: "first-experience", name: "Fresh First Experience
 FeatureRegistry.register({ id: "feed", name: "Home", route: "/", searchable: true, lazyLoader: () => import("../../features/home/HomeDashboard").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "ai", name: "Fresh AI", route: "/ai", searchable: true, lazyLoader: () => import("../components/FreshAIUnified").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "wallet", name: "Fresh Wallet", route: "/wallet", searchable: true, permissions: ["wallet:read"], lazyLoader: () => import("../../features/wallet/WalletDashboard").then((m) => ({ default: m.default })) });
-FeatureRegistry.register({ id: "studio", name: "Creator Studio", route: "/studio", searchable: true, lazyLoader: () => import("../../features/creator/CreatorStudioDashboard").then((m) => ({ default: m.default })) });
+FeatureRegistry.register({ id: "studio", name: "Fresh Studio", route: "/studio", searchable: true, lazyLoader: () => import("../../features/workspaces/StudioWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "profile", name: "Profile", route: "/profile", searchable: true, lazyLoader: () => import("../../features/profile/components/SmartProfilePage").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "discovery", name: "Ecosystems", route: "/discovery", searchable: true, lazyLoader: () => import("../../features/workspaces/DiscoveryWorkspace").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "work", name: "Work", route: "/work", searchable: true, lazyLoader: () => import("../../features/workspaces/WorkWorkspace").then((m) => ({ default: m.default })) });
