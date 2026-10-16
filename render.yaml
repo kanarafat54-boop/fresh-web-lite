@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: fresh-web-lite-media-worker
+    runtime: docker
+    plan: free
+    dockerContext: ./workers/media-worker
+    dockerfilePath: ./workers/media-worker/Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: FRESH_MEDIA_WORKER_API_TOKEN
+        sync: false
