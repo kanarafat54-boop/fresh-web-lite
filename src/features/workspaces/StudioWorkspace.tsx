@@ -450,33 +450,27 @@ export default function StudioWorkspace() {
         <h1>Fresh Studio</h1>
         <p>Choose what you want to make. Start simple; advanced tools are available when you need them.</p>
         <div className="studio-hero-actions">
-          <button type="button" className="studio-btn-primary" onClick={() => fileRef.current?.click()}>
-            Import video
-          </button>
-          <button type="button" onClick={persist}>
-            Save project
-          </button>
-          <button type="button" onClick={newProject}>
-            New project
-          </button>
-          <button type="button" onClick={openCreator}>
-            Open Creator
-          </button>
-          <button type="button" onClick={() => setActiveRoute("fresh-flow")}>
-            Fresh Flow
-          </button>
-          <input
-            ref={fileRef}
-            hidden
-            type="file"
-            accept="video/*"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.currentTarget.value = "";
-              if (file) importMedia(file);
-            }}
-          />
+          {mode !== "start" && (
+            <>
+              <button type="button" className="studio-btn-primary" onClick={() => fileRef.current?.click()}>Import video</button>
+              <button type="button" onClick={persist}>Save project</button>
+              <button type="button" onClick={newProject}>New project</button>
+              <button type="button" onClick={openCreator}>Open Creator</button>
+              <button type="button" onClick={() => setActiveRoute("fresh-flow")}>Fresh Flow</button>
+            </>
+          )}
         </div>
+        <input
+          ref={fileRef}
+          hidden
+          type="file"
+          accept="video/*"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.currentTarget.value = "";
+            if (file) importMedia(file);
+          }}
+        />
         <p className="studio-message" role="status">
           {message}
         </p>
