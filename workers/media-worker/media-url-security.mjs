@@ -13,7 +13,6 @@ function isPublicIPv4(value) {
   if (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) return false;
   if (a === 203 && b === 0 && c === 113) return false;
   if (a === 192 && b === 88 && c === 99) return false;
-  if (a === 255) return false;
   return true;
 }
 
@@ -21,12 +20,9 @@ function isPublicIPv6(value) {
   const address = value.toLowerCase().split("%")[0];
   if (address.startsWith("::ffff:")) {
     const mapped = address.slice(7);
-    if (isIP(mapped) === 4) return isPublicIPv4(mapped);
-    return false;
+    return isIP(mapped) === 4 && isPublicIPv4(mapped);
   }
   const first = Number.parseInt(address.split(":")[0] || "0", 16);
-  // Only global-unicast 2000::/3 is accepted. This excludes loopback,
-  // unspecified, link-local, unique-local, multicast and IPv4-compatible ranges.
   return Number.isFinite(first) && first >= 0x2000 && first <= 0x3fff;
 }
 
@@ -58,16 +54,19 @@ export async function assertSafeMediaUrl(value) {
 
   if (isIP(hostname)) {
     if (!isPublicAddress(hostname)) throw new Error("Private or reserved media addresses are not allowed.");
-  } else {
-    let addresses;
-    try {
-      addresses = await lookup(hostname, { all: true, verbatim: true });
-    } catch {
-      throw new Error("Media host could not be resolved.");
-    }
-    if (!addresses.length || addresses.some((entry) => !isPublicAddress(entry.address))) {
-      throw new Error("Media hosts must resolve only to public IP addresses.");
-    }
+    return { url: parsed, address: hostname };
   }
-  return parsed;
+
+  let addresses;
+  try {
+    addresses = await lookup(hostname, { all: true, verbatim: true });
+  } catch {
+    throw new Error("Media host could not be resolved.");
+  }
+  if (!addresses.length || addresses.some((entry) => !isPublicAddress(entry.address))) {
+    throw new Error("Media hosts must resolve only to public IP addresses.");
+  }
+  // Return a validated address and pin the HTTPS socket to it to prevent DNS rebinding
+  // between validation and the actual connection. TLS still verifies the URL hostname.
+  return { url: parsed, address: addresses[0].address };
 }
