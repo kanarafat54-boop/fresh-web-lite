@@ -38,7 +38,7 @@ import StudioMediaOpsPanels from "./StudioMediaOpsPanels";
 import "./WorkspacePage.css";
 import "./StudioWorkspace.css";
 
-type StudioMode = "start" | "edit" | "pipeline" | "discover" | "business" | "system";
+type StudioMode = "start" | "camera" | "edit" | "pipeline" | "discover" | "business" | "system";
 
 const MODE_TABS: { id: StudioMode; label: string }[] = [
   { id: "edit", label: "Edit" },
@@ -74,6 +74,10 @@ export default function StudioWorkspace() {
   const [exportUrl, setExportUrl] = useState<string | null>(null);
   const [browserSupport] = useState(() => getBrowserExportSupport());
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [cameraFacing, setCameraFacing] = useState<"environment" | "user">("environment");
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [message, setMessage] = useState("Import a video to start editing on this device.");
   const [mediaInfo, setMediaInfo] = useState<{
     duration: number;
@@ -98,6 +102,18 @@ export default function StudioWorkspace() {
   );
 
   useEffect(() => {
+    if (mode === "camera" && cameraStream && cameraVideoRef.current) {
+      cameraVideoRef.current.srcObject = cameraStream;
+    }
+    if (mode !== "camera" && cameraStream) {
+      cameraStream.getTracks().forEach((track) => track.stop());
+      setCameraStream(null);
+    }
+  }, [mode, cameraStream]);
+
+  useEffect(() => () => cameraStream?.getTracks().forEach((track) => track.stop()), [cameraStream]);
+
+  useEffect(() => {
     const saved = listMediaProjects();
     setProjects(saved);
     if (saved[0]) {
@@ -117,6 +133,72 @@ export default function StudioWorkspace() {
   const normalized = useMemo(() => normalizeWeights(weights), [weights]);
   const ranked = useMemo(() => rerankCandidates(candidates, normalized), [normalized]);
   const compute = planCompute({ capability: "render", gpuRequired: capabilities.webgpu, private: true });
+
+  const openCamera = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMessage("Camera access is not supported by this browser. Try opening Fresh Web Lite in an updated browser over HTTPS.");
+      return;
+    }
+    try {
+      cameraStream?.getTracks().forEach((track) => track.stop());
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: cameraFacing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false,
+      });
+      setCapturedPhoto(null);
+      setCameraStream(stream);
+      setMode("camera");
+      setMessage("Camera ready. Photos are captured in this browser session and are not uploaded automatically.");
+    } catch (error) {
+      setMessage(error instanceof Error ? `Could not open camera: ${error.message}` : "Camera permission was denied or the camera is unavailable.");
+    }
+  };
+
+  const switchCamera = async () => {
+    const nextFacing = cameraFacing === "environment" ? "user" : "environment";
+    setCameraFacing(nextFacing);
+    cameraStream?.getTracks().forEach((track) => track.stop());
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error("Camera API is unavailable.");
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: nextFacing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false,
+      });
+      setCameraStream(stream);
+    } catch (error) {
+      setCameraStream(null);
+      setMessage(error instanceof Error ? `Could not switch camera: ${error.message}` : "Could not switch camera.");
+    }
+  };
+
+  const capturePhoto = () => {
+    const video = cameraVideoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      setMessage("Camera is still starting. Wait a moment and try again.");
+      return;
+    }
+    const canvas = window.document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      setMessage("This browser could not prepare the photo. Try again.");
+      return;
+    }
+    if (cameraFacing === "user") {
+      context.translate(canvas.width, 0);
+      context.scale(-1, 1);
+    }
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    setCapturedPhoto(canvas.toDataURL("image/jpeg", 0.95));
+    setMessage(`Photo captured at ${canvas.width}×${canvas.height}. Download it or retake it.`);
+  };
+
+  const closeCamera = () => {
+    cameraStream?.getTracks().forEach((track) => track.stop());
+    setCameraStream(null);
+    setMode("start");
+  };
 
   const setWeight = (key: keyof typeof weights, value: number) =>
     setWeights((current) => ({ ...current, [key]: value }));
@@ -450,7 +532,7 @@ export default function StudioWorkspace() {
         <h1>Fresh Studio</h1>
         <p>Choose what you want to make. Start simple; advanced tools are available when you need them.</p>
         <div className="studio-hero-actions">
-          {mode !== "start" && (
+          {mode !== "start" && mode !== "camera" && (
             <>
               <button type="button" className="studio-btn-primary" onClick={() => fileRef.current?.click()}>Import video</button>
               <button type="button" onClick={persist}>Save project</button>
@@ -496,6 +578,12 @@ export default function StudioWorkspace() {
               <small>Open Fresh AI for the creation and assistance tools currently available.</small>
               <span className="studio-start-link">Open Fresh AI →</span>
             </button>
+            <button type="button" className="studio-start-card" onClick={() => void openCamera()}>
+              <span className="studio-start-icon" aria-hidden="true">◉</span>
+              <strong>Open camera</strong>
+              <small>Use your phone camera, switch between front and rear, and capture a high-resolution photo.</small>
+              <span className="studio-start-link">Start camera →</span>
+            </button>
             <button type="button" className="studio-start-card" onClick={() => setActiveRoute("creator")}>
               <span className="studio-start-icon" aria-hidden="true">▧</span>
               <strong>Design a post</strong>
@@ -523,7 +611,7 @@ export default function StudioWorkspace() {
         </section>
       )}
 
-      <section className="studio-project-bar" aria-label="Active project">
+      {mode !== "camera" && <section className="studio-project-bar" aria-label="Active project">
         <div>
           <span>PROJECT</span>
           <strong>{project?.title ?? "No project yet"}</strong>
@@ -536,9 +624,9 @@ export default function StudioWorkspace() {
           <span>STATE</span>
           <strong>{renderJob?.status ?? project?.pipelineStatus ?? "draft"}</strong>
         </div>
-      </section>
+      </section>}
 
-      <nav className="studio-mode-tabs" aria-label="Studio sections">
+      {mode !== "camera" && <nav className="studio-mode-tabs" aria-label="Studio sections">
         {MODE_TABS.map((tab) => (
           <button
             key={tab.id}
@@ -550,7 +638,31 @@ export default function StudioWorkspace() {
             {tab.label}
           </button>
         ))}
-      </nav>
+      </nav>}
+
+      {mode === "camera" && (
+        <section className="studio-camera-workspace" aria-label="Fresh Camera">
+          <div className="studio-camera-heading">
+            <div>
+              <span className="workspace-eyebrow">FRESH CAMERA</span>
+              <h2>Capture the moment</h2>
+              <p>Use the highest resolution offered by your device camera. Results depend on the device and browser.</p>
+            </div>
+            <button type="button" onClick={closeCamera}>Close camera</button>
+          </div>
+          <div className="studio-camera-view">
+            <video ref={cameraVideoRef} autoPlay muted playsInline aria-label="Live camera preview" />
+            {capturedPhoto && <img src={capturedPhoto} alt="Your captured photo" />}
+          </div>
+          <div className="studio-camera-controls">
+            <button type="button" onClick={() => void switchCamera()} disabled={!cameraStream}>Switch front / rear</button>
+            <button type="button" className="studio-btn-primary studio-shutter" onClick={capturePhoto} disabled={!cameraStream}>Capture photo</button>
+            {capturedPhoto && <a className="studio-download" href={capturedPhoto} download="fresh-camera-photo.jpg">Download photo</a>}
+            {capturedPhoto && <button type="button" onClick={() => setCapturedPhoto(null)}>Retake</button>}
+          </div>
+          <p className="studio-camera-privacy">Privacy: the camera runs only after you grant permission. Closing this screen stops the camera stream. Photos are not sent to a server by this camera screen.</p>
+        </section>
+      )}
 
       {mode === "edit" && (
         <section className="studio-grid studio-edit-grid">
