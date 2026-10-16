@@ -48,7 +48,10 @@ export default function StudioCameraPanel({ onCaptured, onClose }: Props) {
     void startCamera();
     return () => {
       cancelled = true;
-      recorderRef.current?.stop();
+      if (recorderRef.current) {
+        recorderRef.current.onstop = null;
+        if (recorderRef.current.state !== "inactive") recorderRef.current.stop();
+      }
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     };
