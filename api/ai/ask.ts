@@ -151,6 +151,11 @@ async function conversationLedger(userId: string | null, conversationId: string 
   return id;
 }
 
+export async function GET(req: Request): Promise<Response> {
+  if (new URL(req.url).searchParams.has("__fresh_media_worker_path")) return handleMediaWorkerProxy(req);
+  return json({ error: "Method not allowed." }, 405);
+}
+
 export async function POST(req: Request): Promise<Response> {
   if (new URL(req.url).searchParams.has("__fresh_media_worker_path")) return handleMediaWorkerProxy(req);
   const requestId = crypto.randomUUID();
@@ -243,4 +248,4 @@ export async function POST(req: Request): Promise<Response> {
  return json({ requestId, conversationId, answer: r.result.answer, confidence: verification.confidence, source: e.length ? "Fresh AI / verified evidence" : "Fresh AI", evidence: e, pipeline: r.pipeline, governance, verification, persistence, image, proof: { mode: "gateway", evidenceCount: e.length, provenance: "Fresh AI Intelligence Gateway → Kernel → Truth/Reasoning → Verification", model }, intent: r.interpretation.intent, status: r.status, error: r.error, workspace: workspaceContext ?? null, model });
  } catch (error) { return json({ requestId, error: error instanceof Error ? error.message : "Fresh AI request failed" }, 500); } }
 
-export default createVercelNodeHandler({ POST });
+export default createVercelNodeHandler({ GET, POST });
