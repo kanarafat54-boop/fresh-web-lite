@@ -29,6 +29,14 @@ The live `supabase_migrations.schema_migrations` table retains SQL statements fo
 - `20260929030515_identity_harden_ecosystem_rpc.sql`
 - `20260929034004_fresh_flow_media_rls_performance.sql`
 
+## Replay failure and correction attempt (2026-10-17)
+- First full replay failed at migration `20260924090731_harden_public_security_definer_functions_2026_09_24_v2.sql`: PostgreSQL reported `function public.ensure_profile_details_for_user() does not exist` while processing a historical `REVOKE`. The stack itself started successfully and had applied migrations through `20260924090731` before this error.
+- Root cause identified for this failure: the tracked chain contains historical no-op marker migrations for some functions that existed in production, but those function definitions are not created in a clean replay. The hardening migration assumed those historical signatures always existed.
+- Corrective change in `04e438e13357e0bb942ba2fb05e54e3dea59ba52`: wrap each exact legacy function signature in `to_regprocedure(...) IS NOT NULL` checks, then apply the existing revoke/search-path hardening only when that signature exists. This avoids creating overloads or weakening/altering a different function.
+- Follow-up change in `3707be84170f8bc6a17bfa441c9a70c4082e47b3`: apply the same existence guards to the adjacent search-path migration so a missing historical function signature does not become the next deterministic replay failure.
+- The original replay run is [failed run 39033401048](https://github.com/kanarafat54-boop/fresh-web-lite/actions/runs/39033401048). A subsequent run was underway on the earlier correction commit during the last check; the latest guard change must complete its own full replay before this correction is considered validated.
+- Important: these guards address clean-replay compatibility, not a complete security review. Live function signatures, function bodies, ACLs, and any intended functions missing from the tracked migration chain still require reconciliation.
+
 ## Full replay CI attempt
 - Added `.github/workflows/supabase-full-migration-replay.yml` in commit `59d382bdb97e8bc4792ee9131c69f5aa5c110e55`.
 - This workflow initializes an ephemeral local Supabase config in the GitHub-hosted runner, starts an isolated local Supabase stack, and runs `supabase db reset --local --no-seed` to replay the full migration directory. It does not link to or mutate production and needs no Supabase project secrets.
