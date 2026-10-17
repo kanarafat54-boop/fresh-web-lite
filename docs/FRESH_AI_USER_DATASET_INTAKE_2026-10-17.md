@@ -32,6 +32,6 @@ The first command checks schema, unique IDs, provenance, unsafe patterns and req
 
 ## Runtime and training boundaries
 
-This shard is a training/evaluation input, not a live database seed and not a model checkpoint. It can be included in a future authorized training run after evaluation and dataset composition review. It does not change the live model's status: `fresh-unified-1` remains `training-required` until real training, evaluation, checkpoint integrity, native serving, and promotion gates pass.
+This shard is a training/evaluation input, not a model checkpoint. The 37 curated examples were also imported into the existing live `public.fresh_ai_training_examples` table using `source = user-intake-curated-v1`, `dataset_version = user-intake-curated-v1`, stable `labels.example_id` values, and an idempotent insert guard. The post-import query verified 175 total examples and exactly 37 unique intake IDs. The live `/api/ai/status` endpoint then returned HTTP 200 and reported `trainingExamples: 175`. These rows are available to the existing training-example store; this does not mean the live model has learned from them or that inference uses them as retrieval context. `fresh-unified-1` remains `training-required` until real training, evaluation, checkpoint integrity, native serving, and promotion gates pass.
 
 For same-day product availability, use the existing Fresh AI application request path and verify its configured runtime independently. Adding examples alone cannot make an untrained foundation model serve responses.
