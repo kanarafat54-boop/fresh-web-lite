@@ -30,6 +30,28 @@ create table if not exists public.fresh_intelligence_claims (
   created_at timestamptz not null default now()
 );
 
+-- Restore claim-to-claim relation storage before the later observed_at
+-- compatibility migration. The production catalog confirms these columns,
+-- constraints, and the server-managed access boundary.
+create table if not exists public.fresh_intelligence_claim_relations (
+  id uuid primary key default gen_random_uuid(),
+  left_claim_id text not null references public.fresh_intelligence_claims(id) on delete cascade,
+  right_claim_id text not null references public.fresh_intelligence_claims(id) on delete cascade,
+  relation text not null check (relation in ('same', 'supports', 'contradicts', 'unrelated', 'conditional_contradiction')),
+  confidence numeric not null default 0 check (confidence >= 0 and confidence <= 1),
+  rationale text,
+  observed_at timestamptz not null default now()
+);
+
+create index if not exists fresh_intelligence_claim_relations_left_claim_id_idx
+  on public.fresh_intelligence_claim_relations (left_claim_id);
+create index if not exists fresh_intelligence_claim_relations_right_claim_id_idx
+  on public.fresh_intelligence_claim_relations (right_claim_id);
+
+alter table public.fresh_intelligence_claim_relations enable row level security;
+revoke all on table public.fresh_intelligence_claim_relations from public, anon, authenticated;
+grant all on table public.fresh_intelligence_claim_relations to service_role;
+
 create index if not exists fresh_intelligence_claims_source_idx
   on public.fresh_intelligence_claims (source_id);
 create index if not exists fresh_intelligence_claims_entity_idx
