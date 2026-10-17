@@ -42,6 +42,8 @@ jobs:
           grep -q '"checkpointCreated": false' artifacts/fresh-training/user-intake-curated-v1.manifest.json
       - name: Install Fresh training backend
         run: python3 -m pip install -r training/requirements.txt
+      - name: Exercise expanded authorized corpus through tokenizer and training dry-run
+        run: npm run test:fresh-expanded-corpus
       - run: npm run test:fresh-unified-training
       - run: npm run test:fresh-unified-curriculum
       - run: npm run test:fresh-training-job
