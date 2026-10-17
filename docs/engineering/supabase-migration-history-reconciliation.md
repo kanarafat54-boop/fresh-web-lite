@@ -94,3 +94,10 @@ Keep this PR in draft and do not merge until the outstanding content comparisons
 - Read-only live catalog inspection showed the current recipient resolver signature is `treasury_resolve_recipient_by_id(uuid,uuid,text)`, and the internal transfer signature is `treasury_transfer_internal(uuid,uuid,uuid,bigint,text,text)`; the historical migration names obsolete signatures for both.
 - Commits `ef720297d08fa7eb5f58adc609f00bc196346027` and `4116bbd35408f4edeff02a19ecdf4da91e0ac2fc` guard only the two obsolete exact signatures with `to_regprocedure`, avoiding an accidental grant to a different overload and allowing replay to proceed when those legacy signatures are absent. Existing privilege statements for other exact signatures remain unchanged.
 - No production database or migration ledger was changed. Full replay on the new commit is the next required verification; security semantics for these RPCs still require dedicated caller/authorization review before merge.
+
+
+## Fifth replay failure and current correction (2026-10-17)
+- Full isolated replay [run 39039807123](https://github.com/kanarafat54-boop/fresh-web-lite/actions/runs/39039807123) advanced through the ecosystem, Fresh AI, and Fresh Intelligence foundations, then failed in `20260929030418_identity_public_profile_boundary.sql`: `public.users.full_name` did not exist.
+- Root cause: `20260815120000_content_foundation_tables.sql` creates a deliberately minimal `public.users` mirror for preview foreign-key targets, but the later public-profile boundary expects identity columns `full_name`, `verified`, and `presence`. Production read-only catalog inspection confirms these columns exist in the live table. This is a clean-replay fixture/schema drift, not a reason to weaken the public profile view.
+- Commit `fdd196e2b04fdd3a0a1a3427d2e204e252315bcc` adds the three missing columns idempotently to the foundation migration, preserving safe defaults for an empty local database. No production schema or migration history was changed.
+- Full replay on the new head must still pass; other green workflows do not substitute for this gate.
