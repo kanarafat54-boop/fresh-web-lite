@@ -11,6 +11,8 @@ import hashlib
 import json
 from pathlib import Path
 
+from fresh_corpus_policy import load_authorization_registry, validate_row_authorization
+
 MODEL_ID = "fresh-unified-1"
 TOKENIZER_ID = "fresh-unified-tokenizer-v1"
 TARGET_VOCAB_SIZE = 32000
@@ -30,17 +32,14 @@ def sha256_file(path: Path) -> str:
 
 def load_rows(path: Path) -> list[dict]:
     rows = []
+    registry = load_authorization_registry()
     for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
             continue
         row = json.loads(line)
         if not row.get("input") or not row.get("target"):
             raise ValueError(f"row {n} is missing input/target")
-        metadata = row.get("metadata") or {}
-        if metadata.get("sourceType") != "synthetic-starter":
-            raise ValueError(f"row {n} is not an authorized starter source")
-        if metadata.get("license") != "internal-synthetic":
-            raise ValueError(f"row {n} has an unapproved license")
+        validate_row_authorization(row, registry, n)
         rows.append(row)
     if not rows:
         raise ValueError("dataset is empty")
@@ -95,10 +94,10 @@ def train(dataset: Path, output: Path) -> None:
         "byteBase": {"offset": BYTE_OFFSET, "count": BASE_BYTE_COUNT},
         "mergeCount": len(merges),
         "datasetSha256": sha256_file(dataset),
-        "trainingSource": "authorized-internal-synthetic-starter",
+        "trainingSource": "authorized-internal-synthetic-corpus",
         "status": "starter-trained",
         "productionReady": False,
-        "note": "Tokenizer training is real and deterministic, but this artifact is trained only on the tiny authorized starter corpus and is not production-quality."
+        "note": "Tokenizer training is real and deterministic, but this artifact is trained only on the currently available authorized corpus and is not production-quality."
     }
     artifact = {"manifest": manifest, "merges": merges}
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -106,7 +105,7 @@ def train(dataset: Path, output: Path) -> None:
     print(f"Fresh tokenizer training: PASS ({len(merges)} merges)")
     print(f"dataset_sha256={manifest['datasetSha256']}")
     print(f"artifact={output}")
-    print("Production tokenizer status: NOT READY — starter corpus only.")
+    print("Production tokenizer status: NOT READY — authorized smoke corpus is still too small.")
 
 
 def main() -> None:

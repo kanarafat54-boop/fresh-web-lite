@@ -8,6 +8,8 @@ import random
 import sys
 from pathlib import Path
 
+from fresh_corpus_policy import load_authorization_registry, validate_row_authorization
+
 MODEL_ID = "fresh-unified-1"
 TOKENIZER_ID = "fresh-unified-tokenizer-v1"
 PAD, BOS, EOS, SEP = 0, 1, 2, 3
@@ -23,12 +25,14 @@ def sha256_file(path: Path) -> str:
 
 def load_dataset(path: Path) -> list[dict]:
     rows = []
+    registry = load_authorization_registry()
     for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
             continue
         row = json.loads(line)
         if not row.get("id") or not row.get("input") or not row.get("target"):
             raise ValueError(f"Invalid training example at line {line_no}")
+        validate_row_authorization(row, registry, line_no)
         rows.append(row)
     if not rows or len({r["id"] for r in rows}) != len(rows):
         raise ValueError("Dataset is empty or contains duplicate IDs")
@@ -117,16 +121,32 @@ def main() -> int:
         feed_forward_size=spec["feedForwardSize"],
     ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
-    examples = list(make_examples(rows, spec["contextLength"], encode, merges))
-    if not examples:
-        raise SystemExit("No trainable examples")
 
+    class FreshAIDataset(torch.utils.data.Dataset):
+        """Tokenize authorized Fresh input/target pairs with the canonical tokenizer."""
+        def __init__(self, source_rows, max_context, tokenizer_encode, tokenizer_merges):
+            self.examples = list(make_examples(source_rows, max_context, tokenizer_encode, tokenizer_merges))
+        def __len__(self):
+            return len(self.examples)
+        def __getitem__(self, index):
+            inputs, labels = self.examples[index]
+            return torch.tensor(inputs, dtype=torch.long), torch.tensor(labels, dtype=torch.long)
+
+    train_dataset = FreshAIDataset(rows, spec["contextLength"], encode, merges)
+    if not len(train_dataset):
+        raise SystemExit("No trainable examples")
+    # Batch size 1 supports variable-length sequences without silently padding labels.
+    loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=True)
+    batches = iter(loader)
     model.train()
     last_loss = None
-    for step in range(max(1, args.steps)):
-        inp, labels = examples[step % len(examples)]
-        x = torch.tensor(inp, dtype=torch.long, device=device).unsqueeze(0)
-        y = torch.tensor(labels, dtype=torch.long, device=device).unsqueeze(0)
+    for _step in range(max(1, args.steps)):
+        try:
+            x, y = next(batches)
+        except StopIteration:
+            batches = iter(loader)
+            x, y = next(batches)
+        x, y = x.to(device), y.to(device)
         optimizer.zero_grad(set_to_none=True)
         _, loss = model(x, y)
         loss.backward()
@@ -149,7 +169,7 @@ def main() -> int:
         "finalLoss": last_loss,
         "device": str(device),
         "pipelineSmokeTest": True,
-        "note": "Starter corpus checkpoint using the canonical Fresh trained-subword tokenizer; not production or frontier training."
+        "note": "Authorized corpus checkpoint using the canonical Fresh trained-subword tokenizer; not production or frontier training."
     }
     output.with_suffix(output.suffix + ".json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(f"status=completed\ncheckpoint={output}\ncheckpoint_sha256={checkpoint_sha}")
