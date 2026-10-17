@@ -10,7 +10,7 @@ declare
   v_pair record;
   v_id uuid;
 begin
-  select * into v_pair from public.fresh_ai_preference_pairs where id = p_pair_id;
+  select * into v_pair from public.fresh_ai_preference_pairs where id = p_pair_id for update;
   if not found then
     raise exception 'Correction % was not found', p_pair_id using errcode = 'P0002';
   end if;
