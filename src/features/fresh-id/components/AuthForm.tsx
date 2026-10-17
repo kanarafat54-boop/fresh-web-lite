@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useLayout } from "../../../app/contexts/useLayout";
 import { useFreshId } from "../context/FreshIdContext";
 import { supabase } from "../../../lib/supabase";
+import { formatUtcDateInputValue, validateDateOfBirth } from "../utils/dateOfBirth";
 
 export function AuthForm() {
   const {
@@ -29,6 +30,10 @@ export function AuthForm() {
   const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [country, setCountry] = useState("");
+  const [gender, setGender] = useState("");
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -77,12 +82,42 @@ export function AuthForm() {
   async function handleRegister() {
     setSignupError(null);
 
+    if (!fullName.trim() || !username.trim() || !email.trim() || !password || !confirmPassword || !dateOfBirth) {
+      setSignupError("Complete all required fields before creating your Fresh ID.");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]{3,24}$/.test(username.trim())) {
+      setSignupError("Username must be 3–24 characters and use only letters, numbers, and underscores.");
+      return;
+    }
+    if (password.length < 12) {
+      setSignupError("Use a password with at least 12 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setSignupError("Your passwords do not match. Please check both fields.");
+      return;
+    }
+    const dateOfBirthError = validateDateOfBirth(dateOfBirth);
+    if (dateOfBirthError === "invalid" || dateOfBirthError === "not-past") {
+      setSignupError("Enter a valid date of birth in the past.");
+      return;
+    }
+    if (dateOfBirthError === "underage") {
+      setSignupError("You must be at least 13 to create a Fresh ID. Additional age rules may apply in your region.");
+      return;
+    }
     if (!policyAccepted) {
-      setSignupError("Please review and accept the Privacy and Policy sections before creating your Fresh ID.");
+      setSignupError("Please review and accept the Privacy Notice and Terms of Service before creating your Fresh ID.");
       return;
     }
 
-    await register(email.trim(), password, username.trim(), fullName.trim());
+    await register(email.trim(), password, username.trim().toLowerCase(), fullName.trim(), {
+      dateOfBirth,
+      country: country.trim(),
+      gender,
+      consentVersion: "2026-10-14",
+    });
   }
 
   function handleSubmit() {
@@ -100,7 +135,17 @@ export function AuthForm() {
           Your Fresh Web Lite account was created. Check your email to confirm it,
           then return here and log in.
         </p>
-        <button className="auth-tab" onClick={() => setAuthView("form")}>
+        <button
+          className="auth-tab"
+          onClick={() => {
+            setMode("login");
+            setSignupError(null);
+            setAuthView("form");
+            if (window.location.pathname !== "/auth/sign-in") {
+              window.history.replaceState({ freshRoute: "auth-signin" }, "", "/auth/sign-in");
+            }
+          }}
+        >
           Back to Log In
         </button>
         <button className="guest-btn" onClick={loginAsGuest}>
@@ -154,7 +199,15 @@ export function AuthForm() {
       )}
 
       <label className="auth-field"><span className="auth-field-label">Email address</span><input className="auth-input" name="email" autoComplete="email" aria-label="Email address" placeholder="you@example.com" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
-      <label className="auth-field"><span className="auth-field-label">Password</span><input className="auth-input" name="password" autoComplete={mode === "login" ? "current-password" : "new-password"} aria-label="Password" placeholder={mode === "login" ? "Enter your password" : "Create a password"} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "register" ? 8 : undefined} /></label>
+      <label className="auth-field"><span className="auth-field-label">Password</span><input className="auth-input" name="password" autoComplete={mode === "login" ? "current-password" : "new-password"} aria-label="Password" placeholder={mode === "login" ? "Enter your password" : "Create a password (12+ characters)"} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "register" ? 12 : undefined} /></label>
+      {mode === "register" && (
+        <>
+          <label className="auth-field"><span className="auth-field-label">Confirm password</span><input className="auth-input" name="confirm-password" autoComplete="new-password" aria-label="Confirm password" placeholder="Enter the same password again" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={12} /></label>
+          <label className="auth-field"><span className="auth-field-label">Date of birth (day / month / year)</span><input className="auth-input" name="date-of-birth" autoComplete="bday" aria-label="Date of birth, day month and year" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={formatUtcDateInputValue()} /></label>
+          <label className="auth-field"><span className="auth-field-label">Country or region (optional)</span><input className="auth-input" name="country" autoComplete="country-name" aria-label="Country or region" placeholder="Your country or region" value={country} onChange={(e) => setCountry(e.target.value)} maxLength={100} /></label>
+          <label className="auth-field"><span className="auth-field-label">Gender (optional)</span><select className="auth-input" name="gender" aria-label="Gender (optional)" value={gender} onChange={(e) => setGender(e.target.value)}><option value="">Prefer not to say</option><option value="woman">Woman</option><option value="man">Man</option><option value="non_binary">Non-binary</option><option value="self_described">I describe myself another way</option></select></label>
+        </>
+      )}
 
       {error && <p className="auth-error">{error}</p>}
       {signupError && <p className="auth-error">{signupError}</p>}
@@ -162,7 +215,7 @@ export function AuthForm() {
       {mode === "register" && (
         <label className="auth-policy-check">
           <input type="checkbox" checked={policyAccepted} onChange={(e) => setPolicyAccepted(e.target.checked)} />
-          <span>I have reviewed the <strong>Privacy</strong> and <strong>Policy</strong> sections on this page.</span>
+          <span>I have reviewed the <strong>Privacy Notice</strong> and <strong>Terms of Service</strong>.</span>
         </label>
       )}
       {message && <p className="auth-message">{message}</p>}
