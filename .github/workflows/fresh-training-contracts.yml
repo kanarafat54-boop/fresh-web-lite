@@ -44,6 +44,8 @@ jobs:
         run: python3 -m pip install -r training/requirements.txt
       - name: Exercise expanded authorized corpus through tokenizer and training dry-run
         run: npm run test:fresh-expanded-corpus
+      - name: Verify live Fresh AI conversation endpoint
+        run: node scripts/smoke-fresh-ai-production.mjs
       - run: npm run test:fresh-unified-training
       - run: npm run test:fresh-unified-curriculum
       - run: npm run test:fresh-training-job
