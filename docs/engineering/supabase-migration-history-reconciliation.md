@@ -29,6 +29,12 @@ The live `supabase_migrations.schema_migrations` table retains SQL statements fo
 - `20260929030515_identity_harden_ecosystem_rpc.sql`
 - `20260929034004_fresh_flow_media_rls_performance.sql`
 
+## Full replay CI attempt
+- Added `.github/workflows/supabase-full-migration-replay.yml` in commit `59d382bdb97e8bc4792ee9131c69f5aa5c110e55`.
+- This workflow initializes an ephemeral local Supabase config in the GitHub-hosted runner, starts an isolated local Supabase stack, and runs `supabase db reset --local --no-seed` to replay the full migration directory. It does not link to or mutate production and needs no Supabase project secrets.
+- First run: [GitHub Actions run 39033401048](https://github.com/kanarafat54-boop/fresh-web-lite/actions/runs/39033401048). Status was `in_progress` during the latest check; do not mark the replay successful until the run finishes and the reset step passes.
+- The repo still contains six migration filenames that do not use a 14-digit timestamp prefix: `0001_fresh_treasury_ledger.sql`, `0002_treasury_transaction_api_remote_history_anchor.sql`, `202608170001_universal_comment_media_storage.sql`, `202608230001_profile_foundation.sql`, `202608240001_connections_foundation.sql`, and `20260929_security_hardening.sql`. Five of these versions exist in the live ledger. Do not rename them without preserving version identity and verifying CLI behavior; the full replay will establish whether the current CLI accepts them.
+
 ## Validation status (2026-10-17)
 - [x] All ten recovered SQL files compared against the stored statements (nine exact matches; one matches after normalizing one outer leading newline).
 - [x] Verified `20260924090751` and `20260926094316` against the live `supabase_migrations.schema_migrations.statements` values on 2026-10-17. Both statements match their repository files after outer-whitespace normalization (the `20260924090751` file is an exact match; the `20260926094316` file is an exact match).
