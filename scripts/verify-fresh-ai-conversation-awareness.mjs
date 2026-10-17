@@ -8,7 +8,8 @@ const stream = read("api/ai/stream.ts");
 const feedback = read("api/ai/feedback.ts");
 const ui = read("src/app/components/FreshAIUnified.tsx");
 const knowledge = read("src/core/fresh-ai/FreshAIPlatformKnowledge.ts");
-const status = read("api/ai/status.ts");
+const status = read("src/server/freshAIStatus.ts");
+const vercel = read("vercel.json");
 
 if (!kernel.includes("request.conversation??[]")) fail("kernel does not use conversation context");
 if (!kernel.includes("resolveContextDependency(request.input,safeMemories,request.conversation??[])")) fail("kernel does not resolve conversational dependencies");
@@ -22,4 +23,5 @@ if (!feedback.includes("fresh_ai_preference_pairs") || !feedback.includes("safet
 if (!feedback.includes("body.share === true")) fail("feedback API stores corrections without explicit consent");
 if (!ui.includes("Nothing is shared unless you press OK")) fail("UI does not ask for consent before sharing a correction");
 if (!status.includes("FRESH_UNIFIED_MODEL.weightsStatus")) fail("status endpoint does not report canonical checkpoint readiness");
+if (!ask.includes("__fresh_ai_status") || !vercel.includes('"src": "/api/ai/status"') || !vercel.includes('"dest": "/api/ai/ask?__fresh_ai_status=1"')) fail("status endpoint is not routed through the existing Vercel function");
 console.log("Fresh AI conversation awareness + knowledge retrieval + consent-gated learning contract: PASS");
