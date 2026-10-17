@@ -32,4 +32,3 @@ export async function handleFreshAIStatus(): Promise<Response> {
   }, { headers: { "cache-control": "public, max-age=60" } });
 }
 
-export default createVercelNodeHandler({ GET });
