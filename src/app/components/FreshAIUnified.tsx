@@ -311,7 +311,17 @@ export default function FreshAIUnified() {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       if (!token) return;
-      const response = await fetch("/api/ai/feedback", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify({ requestId: id, rating, correct: rating >= 4 }) });
+      let share = false, correction = "";
+      const lastUser = [...turns].reverse().find((turn) => turn.role === "user");
+      const lastAssistant = [...turns].reverse().find((turn) => turn.role === "assistant" && turn.content);
+      if (rating <= 2 && lastUser && lastAssistant) {
+        const typed = window.prompt("What should Fresh AI have said? Your correction can help teach Fresh AI. Leave it empty to send only the thumbs-down.", "");
+        if (typed && typed.trim()) {
+          correction = typed.trim().slice(0, 2000);
+          share = window.confirm("Share this question, Fresh AI's answer and your correction with Fresh AI's owner so it can be reviewed and used to teach Fresh AI? Nothing is shared unless you press OK.");
+        }
+      }
+      const response = await fetch("/api/ai/feedback", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify({ requestId: id, rating, correct: rating >= 4, share, question: share ? lastUser?.content.slice(0, 2000) : undefined, answer: share ? lastAssistant?.content.slice(0, 2000) : undefined, correction: share ? correction : undefined }) });
       if (response.ok) setFeedback((current) => ({ ...current, [id]: rating }));
     } catch {}
   }
