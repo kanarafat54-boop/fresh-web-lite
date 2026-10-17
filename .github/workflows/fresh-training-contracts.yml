@@ -37,7 +37,7 @@ jobs:
         run: node scripts/prepare-fresh-unified-dataset.mjs data/fresh-training/user-intake-curated-v1.jsonl artifacts/fresh-training/user-intake-curated-v1.manifest.json
       - name: Verify curated manifest count and non-checkpoint status
         run: |
-          grep -q '"exampleCount": 37' artifacts/fresh-training/user-intake-curated-v1.manifest.json
+          grep -q '"exampleCount": 62' artifacts/fresh-training/user-intake-curated-v1.manifest.json
           grep -q '"weightsCreated": false' artifacts/fresh-training/user-intake-curated-v1.manifest.json
           grep -q '"checkpointCreated": false' artifacts/fresh-training/user-intake-curated-v1.manifest.json
       - name: Install Fresh training backend
