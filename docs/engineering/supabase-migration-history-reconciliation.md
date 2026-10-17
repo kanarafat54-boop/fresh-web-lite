@@ -80,3 +80,10 @@ Keep this PR in draft and do not merge until the outstanding content comparisons
 - Root cause: `20260902034420_add_ecosystem_profiles.sql` was a no-op marker even though later tracked migrations depend on the table. Read-only production catalog inspection recovered its columns, FK to `public.users(id)` with `ON DELETE CASCADE`, unique `(fresh_id, ecosystem_id)`, feed-mode check constraint, indexes, RLS, and enabled-profile read policy.
 - Commit `967c0f98520d8194fa8bb985a004becb7ed0eb35` restores the base table and the catalog-backed foundation in that historical migration. It deliberately keeps the live feed-mode check's original values; the later feed-mode migration remains responsible for any subsequent constraint change. No production schema or migration ledger was changed.
 - The new commit must complete a fresh full replay. If it fails again, use the exact next failing migration and live catalog evidence; do not declare the replay passed based on the other green workflows.
+
+
+## Fifth replay failure and current correction (2026-10-17)
+- Replay run [39035679528](https://github.com/kanarafat54-boop/fresh-web-lite/actions/runs/39035679528) progressed through `20260929_security_hardening.sql` before failing because `public.fresh_ai_training_examples` did not exist.
+- The hardening migration revokes client access to this table, while the earlier `20260908183843_fresh_ai_training_alignment.sql` was a no-op marker. Read-only production catalog checks recovered the table's 12 columns, type check constraint, `(example_type, created_at DESC)` index, enabled RLS, and service-role-only grants.
+- Commit `53965c5a8393e70f9a6edde00989b37dc42c66c6` restores the table foundation at its earlier historical migration, including service-only privileges. This avoids weakening or skipping the later security-hardening step. Production was not changed.
+- The latest replay must now prove this correction and reveal any next chronological dependency; other green workflows do not substitute for a successful full replay.
