@@ -5,6 +5,10 @@
       "dest": "/api/ai/ask?__fresh_media_worker_path=$1"
     },
     {
+      "src": "/api/ai/status",
+      "dest": "/api/ai/ask?__fresh_ai_status=1"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/$1"
     },
