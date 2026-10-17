@@ -121,16 +121,32 @@ def main() -> int:
         feed_forward_size=spec["feedForwardSize"],
     ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
-    examples = list(make_examples(rows, spec["contextLength"], encode, merges))
-    if not examples:
-        raise SystemExit("No trainable examples")
 
+    class FreshAIDataset(torch.utils.data.Dataset):
+        """Tokenize authorized Fresh input/target pairs with the canonical tokenizer."""
+        def __init__(self, source_rows, max_context, tokenizer_encode, tokenizer_merges):
+            self.examples = list(make_examples(source_rows, max_context, tokenizer_encode, tokenizer_merges))
+        def __len__(self):
+            return len(self.examples)
+        def __getitem__(self, index):
+            inputs, labels = self.examples[index]
+            return torch.tensor(inputs, dtype=torch.long), torch.tensor(labels, dtype=torch.long)
+
+    train_dataset = FreshAIDataset(rows, spec["contextLength"], encode, merges)
+    if not len(train_dataset):
+        raise SystemExit("No trainable examples")
+    # Batch size 1 supports variable-length sequences without silently padding labels.
+    loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=True)
+    batches = iter(loader)
     model.train()
     last_loss = None
-    for step in range(max(1, args.steps)):
-        inp, labels = examples[step % len(examples)]
-        x = torch.tensor(inp, dtype=torch.long, device=device).unsqueeze(0)
-        y = torch.tensor(labels, dtype=torch.long, device=device).unsqueeze(0)
+    for _step in range(max(1, args.steps)):
+        try:
+            x, y = next(batches)
+        except StopIteration:
+            batches = iter(loader)
+            x, y = next(batches)
+        x, y = x.to(device), y.to(device)
         optimizer.zero_grad(set_to_none=True)
         _, loss = model(x, y)
         loss.backward()
