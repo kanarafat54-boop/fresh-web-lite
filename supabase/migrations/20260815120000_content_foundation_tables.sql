@@ -12,6 +12,13 @@ create table if not exists public.users (
   created_at timestamptz not null default now()
 );
 
+-- Bring the minimal preview users mirror up to the identity columns consumed
+-- by later profile views. Existing production columns are left unchanged.
+alter table public.users
+  add column if not exists full_name text not null default '',
+  add column if not exists verified boolean not null default false,
+  add column if not exists presence text not null default 'offline';
+
 create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),
   author_id uuid references public.users (id) on delete set null,
