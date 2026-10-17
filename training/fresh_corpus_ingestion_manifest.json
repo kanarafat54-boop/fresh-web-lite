@@ -23,6 +23,36 @@
       "transformation": "fresh-unified-jsonl-v1",
       "productionTrainingEligible": false,
       "notes": "The repository-authored starter corpus is eligible for pipeline validation only; it is not sufficient for meaningful pretraining."
+    },
+    {
+      "sourceId": "fwl-user-intake-curated-v1",
+      "authorizationId": "fwl-internal-synthetic-v1",
+      "sourceType": "internal-synthetic",
+      "status": "eligible",
+      "contentLocation": "data/fresh-training/user-intake-curated-v1.jsonl",
+      "contentSha256": "computed-by-ingestion",
+      "license": "internal-synthetic",
+      "trainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "repo-authored-synthetic-v1",
+      "transformation": "curated-synthetic-v1",
+      "productionTrainingEligible": false,
+      "notes": "Fresh-authored synthetic instruction examples derived from themes in the user-supplied package; raw third-party content is not asserted or copied verbatim."
+    },
+    {
+      "sourceId": "fwl-expanded-authorized-corpus-v1",
+      "authorizationId": "fwl-internal-synthetic-v1",
+      "sourceType": "authorized-mixed-internal-synthetic",
+      "status": "eligible",
+      "contentLocation": "data/fresh-training/fresh-unified-expanded-v1.jsonl",
+      "contentSha256": "computed-by-ingestion",
+      "license": "internal-synthetic",
+      "trainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "repo-authored-synthetic-v1",
+      "transformation": "fresh-unified-jsonl-v1",
+      "productionTrainingEligible": false,
+      "notes": "Deterministic union of 46 starter and 37 curated Fresh-authored synthetic examples; authorized for pipeline smoke testing, not sufficient for production training."
     }
   ]
 }
