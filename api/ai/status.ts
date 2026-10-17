@@ -22,7 +22,7 @@ export async function GET(): Promise<Response> {
     const p = await c.from("fresh_ai_capabilities").select("name,enabled,metadata").eq("owner_scope", "platform").order("name");
     powers = p.error || !p.data ? [] : (p.data as Array<{ name: string; enabled: boolean; metadata: { wiring?: string } | null }>).map((x) => ({ name: x.name, enabled: Boolean(x.enabled), wiring: x.metadata?.wiring ?? "unknown" }));
   }
-  const weights = (FRESH_UNIFIED_MODEL as unknown as { weightsStatus?: string }).weightsStatus ?? "unknown";
+  const weights = FRESH_UNIFIED_MODEL.weightsStatus;
   return Response.json({
     service: "fresh-ai",
     independent: outsideKeysPresent === 0 && !externalAnswerOptIn,
