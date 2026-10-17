@@ -68,3 +68,8 @@ Successful application CI is not proof that all historical migrations replay suc
 
 ## Safety boundary
 Keep this PR in draft and do not merge until the outstanding content comparisons and migration replay/review gates are complete. Do not apply historical migrations or repair production migration history as part of this reconciliation.
+
+- Third replay attempt [run 39034327671](https://github.com/kanarafat54-boop/fresh-web-lite/actions/runs/39034327671) reached the index-hardening migration and failed because `public.fresh_intelligence_evidence_lineage` was absent. The same migration also expects the evidence and knowledge graph foundations to be present before indexing them.
+- Read-only production catalog inspection confirmed the evidence-lineage columns, key/check constraints, existing indexes, RLS state, and service-managed access pattern. The production catalog was not modified.
+- Commit `d3116f008963623906a027949d5c614824817f10` restored the missing Fresh AI safety-event and serving-metrics tables. Commit `431d67fed732c659bf870fef92b9034335acc755` now restores the Fresh Intelligence evidence, claim-evidence, and evidence-lineage foundation in `20260906090000_fresh_intelligence_foundation.sql`, including constraints, indexes, RLS, and service-role-only grants.
+- Replay for `431d67fed732c659bf870fef92b9034335acc755` is running as [run 39035299888](https://github.com/kanarafat54-boop/fresh-web-lite/actions/runs/39035299888). This is not yet a passing replay; review the next failure, if any, before considering the migration chain validated.
