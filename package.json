@@ -49,7 +49,9 @@
     "test:fresh-mail-contract": "node scripts/verify-fresh-mail-contract.mjs",
     "test:truemode-claim-comparisons": "node scripts/test-truemode-claim-comparisons.mjs",
     "test:truemode-persistence-rpc": "node scripts/test-truemode-persistence-rpc.mjs",
-    "test:fresh-research-api-dry-run": "node scripts/test-fresh-research-api-dry-run.mjs"
+    "test:fresh-research-api-dry-run": "node scripts/test-fresh-research-api-dry-run.mjs",
+    "test:fresh-ai-conversation-awareness": "node scripts/verify-fresh-ai-conversation-awareness.mjs",
+    "test:fresh-ai-knowledge-grounding": "node scripts/verify-fresh-ai-knowledge-grounding.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
