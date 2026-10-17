@@ -8,8 +8,6 @@ revoke all on table public.fresh_ai_serving_metrics from anon, authenticated;
 revoke all on table public.fresh_ai_training_examples from anon, authenticated;
 revoke all on table public.fresh_intelligence_evidence_lineage from anon, authenticated;
 revoke all on table public.fresh_intelligence_truth_decisions from anon, authenticated;
-revoke all on table public.fresh_intelligence_claim_evidence from anon, authenticated;
-revoke all on table public.fresh_intelligence_truth_decisions from anon, authenticated;
 revoke all on table public.fresh_knowledge_entity_aliases from anon, authenticated;
 revoke all on table public.fresh_knowledge_entity_relations from anon, authenticated;
 revoke all on table public.ledger_entries from anon, authenticated;
