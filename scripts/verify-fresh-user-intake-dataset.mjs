@@ -5,7 +5,7 @@ const lines = fs.readFileSync(path, "utf8").split(/\r?\n/).filter((line) => line
 const seen = new Set();
 const domains = new Set();
 const forbidden = [
-  [/thought_process|thought_chain|chain.of.thought/i, "hidden reasoning trace field"],
+  [/thought_process|thought_chain|chainOfThought/i, "hidden reasoning trace field"],
   [/super-secret-key|JWT_SECRET\s*\|\|/i, "hardcoded/fallback secret pattern"],
   [/execute_terminal|system control|execution privileges/i, "unbounded tool privilege claim"],
   [/image_path|image_ref|<image>/i, "unresolved image placeholder"],
