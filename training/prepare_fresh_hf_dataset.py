@@ -10,6 +10,8 @@ import argparse
 import json
 from pathlib import Path
 
+from fresh_corpus_policy import load_authorization_registry, validate_row_authorization
+
 
 def format_instruction(row: dict) -> dict:
     if not row.get("input") or not row.get("target"):
@@ -33,12 +35,14 @@ def main() -> int:
     out = Path(args.output)
     rows = []
     seen = set()
+    registry = load_authorization_registry()
     for line_no, line in enumerate(src.read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
             continue
         row = json.loads(line)
         if not row.get("id") or row["id"] in seen:
             raise ValueError(f"row {line_no}: missing or duplicate ID")
+        validate_row_authorization(row, registry, line_no)
         seen.add(row["id"])
         rows.append(format_instruction(row))
     if not rows:
