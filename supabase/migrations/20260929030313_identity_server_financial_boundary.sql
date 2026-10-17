@@ -324,20 +324,31 @@ grant execute on function public.treasury_sandbox_settle_rail_request(uuid,uuid)
 grant execute on function public.treasury_create_and_sandbox_settle_rail_request(uuid,text,text,text,bigint,text,uuid,jsonb) to service_role;
 grant execute on function public.treasury_transfer_internal(uuid,uuid,uuid,bigint,text,text) to service_role;
 
--- Harden browser-readable legacy wallet tables: authenticated-only ownership reads.
-drop policy if exists "Users can view their own balance" on public.wallet_balances;
-create policy "Users can view their own balance"
-on public.wallet_balances for select to authenticated
-using ((select auth.uid()) = user_id);
+-- Harden legacy wallet tables only when the optional legacy schema exists.
+-- The canonical treasury schema does not require these compatibility tables.
+do $migration$
+begin
+  if to_regclass('public.wallet_balances') is not null
+     and exists (select 1 from information_schema.columns
+                 where table_schema='public' and table_name='wallet_balances' and column_name='user_id') then
+    execute 'drop policy if exists "Users can view their own balance" on public.wallet_balances';
+    execute 'create policy "Users can view their own balance" on public.wallet_balances for select to authenticated using ((select auth.uid()) = user_id)';
+  end if;
 
-drop policy if exists "Users can view their own transactions" on public.wallet_transactions;
-create policy "Users can view their own transactions"
-on public.wallet_transactions for select to authenticated
-using ((select auth.uid()) = user_id);
+  if to_regclass('public.wallet_transactions') is not null
+     and exists (select 1 from information_schema.columns
+                 where table_schema='public' and table_name='wallet_transactions' and column_name='user_id') then
+    execute 'drop policy if exists "Users can view their own transactions" on public.wallet_transactions';
+    execute 'create policy "Users can view their own transactions" on public.wallet_transactions for select to authenticated using ((select auth.uid()) = user_id)';
+  end if;
 
-drop policy if exists "own wallet" on public.wallets;
-create policy "own wallet"
-on public.wallets for select to authenticated
-using ((select auth.uid()) = user_id);
+  if to_regclass('public.wallets') is not null
+     and exists (select 1 from information_schema.columns
+                 where table_schema='public' and table_name='wallets' and column_name='user_id') then
+    execute 'drop policy if exists "own wallet" on public.wallets';
+    execute 'create policy "own wallet" on public.wallets for select to authenticated using ((select auth.uid()) = user_id)';
+  end if;
+end
+$migration$;
 
 commit;
