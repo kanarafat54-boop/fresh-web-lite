@@ -31,10 +31,11 @@ The live `supabase_migrations.schema_migrations` table retains SQL statements fo
 
 ## Validation status (2026-10-17)
 - [x] Eight recovered SQL files compared against the stored statements (seven whitespace-trimmed matches; one matches after normalizing one outer leading newline).
-- [ ] Verify `20260924090751` and `20260926094316` against their stored SQL; comparison remains incomplete.
+- [x] Verified `20260924090751` and `20260926094316` against the live `supabase_migrations.schema_migrations.statements` values on 2026-10-17. Both statements match their repository files after outer-whitespace normalization (the `20260924090751` file is an exact match; the `20260926094316` file is an exact match).
 - [x] Six GitHub Actions workflows completed successfully on commit `9e4459d5ddebc5c62ac24c198987e7da6782f31c`: Fresh Shorts Production Gate, TRUEMODE Chain Verification, Fresh AI integrity, Phase 0 isolated PostgreSQL security tests, Fresh Web Lite build gate, and Fresh AI training contracts.
-- [ ] Pass Supabase Preview migration replay checks and resolve any ordering/dependency errors.
-- [ ] Review current production schema, grants, and policies against recovered statements.
+- [ ] Classify the 14 repository SQL files whose versions are not present in the live ledger. They include substantive schema/security changes as well as a migration that duplicates the `treasury_entries` RLS topic; do not assume they are all test-only or safe to apply.
+- [ ] Pass a clean, full migration replay in an isolated, no-cost environment and resolve ordering/dependency errors. The existing Phase 0 workflow only uses a fixture and three selected migrations, not the full migration chain; `supabase/config.toml` is absent.
+- [ ] Review current production schema, grants, RLS policies, and privileged function definitions against recovered statements. A read-only catalog check found a later two-argument `treasury_sandbox_settle_rail_request` function with an empty search path, while the recovered historical migration defines a one-argument function with `search_path=public`; investigate chronology and grants without overwriting the live function.
 
 Successful application CI is not proof that all historical migrations replay successfully on a clean database. Recorded SQL is historical evidence, not proof of safe replay.
 
