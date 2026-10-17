@@ -105,7 +105,7 @@ def train(dataset: Path, output: Path) -> None:
     print(f"Fresh tokenizer training: PASS ({len(merges)} merges)")
     print(f"dataset_sha256={manifest['datasetSha256']}")
     print(f"artifact={output}")
-    print("Production tokenizer status: NOT READY — starter corpus only.")
+    print("Production tokenizer status: NOT READY — authorized smoke corpus is still too small.")
 
 
 def main() -> None:
