@@ -26,7 +26,13 @@ if (exported.length !== 83 || !exported.every((row) => row.text.includes("User: 
 run("python3", ["training/train_fresh_tokenizer.py", "--dataset", dataset, "--output", tokenizer], "Expanded corpus tokenizer training");
 run("python3", ["training/train_fresh_unified.py", "--dataset", dataset, "--tokenizer", tokenizer, "--output", checkpoint, "--dry-run"], "Expanded corpus model dry-run");
 if (fs.existsSync(checkpoint)) throw new Error("Dry-run unexpectedly created model weights");
+run("python3", ["training/train_fresh_unified.py", "--dataset", dataset, "--tokenizer", tokenizer, "--output", checkpoint, "--spec", "training/model_spec_smoke.json", "--train", "--steps", "1", "--seed", "42"], "One-step PyTorch Dataset/DataLoader optimizer smoke test");
+if (!fs.existsSync(checkpoint) || !fs.existsSync(checkpoint + ".json")) throw new Error("One-step optimizer run did not create checkpoint and manifest");
+const trainingManifest = JSON.parse(fs.readFileSync(checkpoint + ".json", "utf8"));
+if (trainingManifest.steps !== 1 || trainingManifest.pipelineSmokeTest !== true || trainingManifest.datasetSha256 !== JSON.parse(fs.readFileSync(tokenizer, "utf8")).manifest.datasetSha256) throw new Error("Optimizer smoke checkpoint is not bound to the exact expanded corpus");
+fs.unlinkSync(checkpoint);
+fs.unlinkSync(checkpoint + ".json");
 run("node", ["scripts/run-fresh-unified-training.mjs", "--dataset", dataset, "--curriculum", "src/core/fresh-ai/FreshUnifiedTrainingCurriculum.ts", "--output", job], "Expanded corpus run preparation");
 const record = JSON.parse(fs.readFileSync(job, "utf8"));
 if (record.dataset.exampleCount !== 83 || record.execution.status !== "planned" || record.gates.training !== "not-run") throw new Error("Prepared run record does not reflect expanded corpus or honest status");
-console.log("Fresh expanded corpus integration: PASS (83 examples; authorized; tokenizer-bound; no weights created)");
+console.log("Fresh expanded corpus integration: PASS (83 authorized examples; native tokenizer; dry-run and one-step optimizer verified; smoke checkpoint removed)");
