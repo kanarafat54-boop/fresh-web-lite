@@ -3,7 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
-const dataset = "data/fresh-training/fresh-unified-expanded-v1.jsonl";
+const dataset = "artifacts/fresh-training/generated-expanded-corpus-v1.jsonl";
+const baseDataset = "data/fresh-training/fresh-unified-expanded-v1.jsonl";
+const curatedDataset = "data/fresh-training/user-intake-curated-v1.jsonl";
 const tokenizer = "artifacts/fresh-training/fresh-unified-expanded-tokenizer.json";
 const checkpoint = "artifacts/fresh-training/fresh-unified-expanded-smoke.pt";
 const formatted = "artifacts/fresh-training/fresh-unified-expanded-hf.jsonl";
@@ -17,16 +19,22 @@ function run(command, args, label) {
   if (result.status !== 0) throw new Error(`${label} failed (exit ${result.status})`);
 }
 
-const raw = fs.readFileSync(dataset, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line));
-if (raw.length !== 83) throw new Error(`Expected 83 combined examples, got ${raw.length}`);
+const baseRows = fs.readFileSync(baseDataset, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line));
+const curatedRows = fs.readFileSync(curatedDataset, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line));
+const knownIds = new Set(baseRows.map((row) => row.id));
+const additions = curatedRows.filter((row) => !knownIds.has(row.id));
+const raw = [...baseRows, ...additions];
+fs.mkdirSync(path.dirname(dataset), { recursive: true });
+fs.writeFileSync(dataset, raw.map((row) => JSON.stringify(row)).join("\\n") + "\\n");
+if (raw.length !== 108) throw new Error(`Expected 108 combined examples, got ${raw.length}`);
 if (new Set(raw.map((row) => row.id)).size !== raw.length) throw new Error("Combined dataset IDs are not unique");
 if (!raw.some((row) => row.metadata?.sourceType === "internal-synthetic" && row.metadata?.authorizationId === "fwl-internal-synthetic-v1")) throw new Error("Curated authorized examples are missing");
 run("python3", ["training/prepare_fresh_hf_dataset.py", "--input", dataset, "--output", formatted], "Hugging Face text-format export");
 const exported = fs.readFileSync(formatted, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line));
-if (exported.length !== 83 || !exported.every((row) => row.text.includes("User: ") && row.text.includes("Assistant: "))) throw new Error("HF export is incomplete or malformed");
+if (exported.length !== 108 || !exported.every((row) => row.text.includes("User: ") && row.text.includes("Assistant: "))) throw new Error("HF export is incomplete or malformed");
 run("python3", ["training/prepare_fresh_dataset.py", "--input", dataset, "--output", prepared], "Canonical authorized dataset split");
 const preparedManifest = JSON.parse(fs.readFileSync(prepared, "utf8"));
-if (preparedManifest.exampleCount !== 83 || preparedManifest.productionReady !== false || Object.values(preparedManifest.splits).reduce((sum, split) => sum + split.length, 0) !== 83) throw new Error("Canonical dataset split is incomplete or incorrectly promoted");
+if (preparedManifest.exampleCount !== 108 || preparedManifest.productionReady !== false || Object.values(preparedManifest.splits).reduce((sum, split) => sum + split.length, 0) !== 108) throw new Error("Canonical dataset split is incomplete or incorrectly promoted");
 fs.unlinkSync(prepared);
 run("python3", ["training/train_fresh_tokenizer.py", "--dataset", dataset, "--output", tokenizer], "Expanded corpus tokenizer training");
 run("python3", ["training/train_fresh_unified.py", "--dataset", dataset, "--tokenizer", tokenizer, "--output", checkpoint, "--dry-run"], "Expanded corpus model dry-run");
@@ -39,5 +47,6 @@ fs.unlinkSync(checkpoint);
 fs.unlinkSync(checkpoint + ".json");
 run("node", ["scripts/run-fresh-unified-training.mjs", "--dataset", dataset, "--curriculum", "src/core/fresh-ai/FreshUnifiedTrainingCurriculum.ts", "--output", job], "Expanded corpus run preparation");
 const record = JSON.parse(fs.readFileSync(job, "utf8"));
-if (record.dataset.exampleCount !== 83 || record.execution.status !== "planned" || record.gates.training !== "not-run") throw new Error("Prepared run record does not reflect expanded corpus or honest status");
-console.log("Fresh expanded corpus integration: PASS (83 authorized examples; native tokenizer; dry-run and one-step optimizer verified; smoke checkpoint removed)");
+if (record.dataset.exampleCount !== 108 || record.execution.status !== "planned" || record.gates.training !== "not-run") throw new Error("Prepared run record does not reflect expanded corpus or honest status");
+console.log("Fresh expanded corpus integration: PASS (108 authorized examples; native tokenizer; dry-run and one-step optimizer verified; smoke checkpoint removed)");
+fs.unlinkSync(dataset);
