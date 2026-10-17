@@ -1,0 +1,12 @@
+REVOKE EXECUTE ON FUNCTION public.ensure_profile_details_for_user() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.sync_universal_interaction_to_short_legacy() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.treasury_ensure_user_account(text,text,text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.treasury_resolve_recipient(text,text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.treasury_resolve_recipient_by_id(uuid,text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.treasury_transfer_internal(uuid,uuid,bigint,text,text) FROM anon;
+ALTER FUNCTION public.ensure_profile_details_for_user() SET search_path = public;
+ALTER FUNCTION public.sync_universal_interaction_to_short_legacy() SET search_path = public;
+ALTER FUNCTION public.treasury_ensure_user_account(text,text,text) SET search_path = public;
+ALTER FUNCTION public.treasury_resolve_recipient(text,text) SET search_path = public;
+ALTER FUNCTION public.treasury_resolve_recipient_by_id(uuid,text) SET search_path = public;
+ALTER FUNCTION public.treasury_transfer_internal(uuid,uuid,bigint,text,text) SET search_path = public;
