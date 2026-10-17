@@ -1,6 +1,6 @@
 -- Owner-approved learning loop. Users can share a correction (with explicit consent) from the
 -- thumbs-down button; it lands in fresh_ai_preference_pairs with safety_checked = false.
--- Approving a correction turns it into searchable Fresh AI knowledge. Already applied live.
+-- Approving a correction turns it into searchable Fresh AI knowledge. Apply only after schema review.
 create or replace function public.approve_fresh_ai_correction(p_pair_id uuid)
 returns uuid
 language plpgsql
