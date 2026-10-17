@@ -51,7 +51,30 @@ if (!curriculum.text.includes("fresh-unified-curriculum-v1")) throw new Error("U
 const modelBound = /modelId\s*:\s*FRESH_UNIFIED_MODEL\.id/.test(curriculum.text) || /modelId\s*:\s*[\"']fresh-unified-1[\"']/.test(curriculum.text);
 if (!modelBound) throw new Error("Curriculum is not bound to fresh-unified-1");
 if (!curriculum.text.includes("synthetic-starter-plus-lawful-public-licensed-authorized-data")) throw new Error("Curriculum data policy is missing");
-if (!examples.every((row) => row.metadata.sourceType === "synthetic-starter")) throw new Error("Starter preparation requires synthetic-starter provenance");
+const authorizationPath = resolve(root, "training/fresh_corpus_authorizations.json");
+const authorizationRegistry = JSON.parse(readFileSync(authorizationPath, "utf8"));
+if (authorizationRegistry.schema !== "fresh-corpus-authorization-registry-v1" ||
+    authorizationRegistry.policy?.unknownIsBlocked !== true ||
+    authorizationRegistry.policy?.trainingPermissionRequired !== true ||
+    authorizationRegistry.policy?.evidenceRequired !== true) {
+  throw new Error("Training authorization registry is invalid or not fail-closed");
+}
+const authorizedSources = new Map((authorizationRegistry.sources ?? []).map((source) => [source.authorizationId, source]));
+for (const [index, row] of examples.entries()) {
+  const metadata = row.metadata ?? {};
+  const authorizationId = metadata.authorizationId ??
+    (metadata.sourceType === "synthetic-starter" && metadata.license === "internal-synthetic" ? "fwl-internal-synthetic-v1" : null);
+  const authorization = authorizationId ? authorizedSources.get(authorizationId) : null;
+  if (!authorization || authorization.status !== "eligible" ||
+      authorization.trainingPermission !== "verified" ||
+      authorization.derivativeModelPermission !== "verified" ||
+      !authorization.evidenceRef || metadata.license !== authorization.license) {
+    throw new Error(`Training example ${row.id} at row ${index + 1} lacks verified corpus authorization`);
+  }
+  if (!["synthetic-starter", "internal-synthetic"].includes(metadata.sourceType)) {
+    throw new Error(`Training example ${row.id} has an unsupported source type`);
+  }
+}
 
 const job = {
   schema: "fresh-unified-training-run-record-v1",
