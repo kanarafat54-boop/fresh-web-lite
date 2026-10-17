@@ -7,6 +7,7 @@ const dataset = "data/fresh-training/fresh-unified-expanded-v1.jsonl";
 const tokenizer = "artifacts/fresh-training/fresh-unified-expanded-tokenizer.json";
 const checkpoint = "artifacts/fresh-training/fresh-unified-expanded-smoke.pt";
 const formatted = "artifacts/fresh-training/fresh-unified-expanded-hf.jsonl";
+const prepared = "artifacts/fresh-training/prepared-expanded-corpus.json";
 const job = "artifacts/fresh-training/jobs/expanded-corpus-ci.json";
 
 function run(command, args, label) {
@@ -23,6 +24,10 @@ if (!raw.some((row) => row.metadata?.sourceType === "internal-synthetic" && row.
 run("python3", ["training/prepare_fresh_hf_dataset.py", "--input", dataset, "--output", formatted], "Hugging Face text-format export");
 const exported = fs.readFileSync(formatted, "utf8").trim().split(/\r?\n/).map((line) => JSON.parse(line));
 if (exported.length !== 83 || !exported.every((row) => row.text.includes("User: ") && row.text.includes("Assistant: "))) throw new Error("HF export is incomplete or malformed");
+run("python3", ["training/prepare_fresh_dataset.py", "--input", dataset, "--output", prepared], "Canonical authorized dataset split");
+const preparedManifest = JSON.parse(fs.readFileSync(prepared, "utf8"));
+if (preparedManifest.exampleCount !== 83 || preparedManifest.productionReady !== false || Object.values(preparedManifest.splits).reduce((sum, split) => sum + split.length, 0) !== 83) throw new Error("Canonical dataset split is incomplete or incorrectly promoted");
+fs.unlinkSync(prepared);
 run("python3", ["training/train_fresh_tokenizer.py", "--dataset", dataset, "--output", tokenizer], "Expanded corpus tokenizer training");
 run("python3", ["training/train_fresh_unified.py", "--dataset", dataset, "--tokenizer", tokenizer, "--output", checkpoint, "--dry-run"], "Expanded corpus model dry-run");
 if (fs.existsSync(checkpoint)) throw new Error("Dry-run unexpectedly created model weights");
