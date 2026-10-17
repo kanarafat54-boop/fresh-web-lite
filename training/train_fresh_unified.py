@@ -8,6 +8,8 @@ import random
 import sys
 from pathlib import Path
 
+from fresh_corpus_policy import load_authorization_registry, validate_row_authorization
+
 MODEL_ID = "fresh-unified-1"
 TOKENIZER_ID = "fresh-unified-tokenizer-v1"
 PAD, BOS, EOS, SEP = 0, 1, 2, 3
@@ -23,12 +25,14 @@ def sha256_file(path: Path) -> str:
 
 def load_dataset(path: Path) -> list[dict]:
     rows = []
+    registry = load_authorization_registry()
     for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
             continue
         row = json.loads(line)
         if not row.get("id") or not row.get("input") or not row.get("target"):
             raise ValueError(f"Invalid training example at line {line_no}")
+        validate_row_authorization(row, registry, line_no)
         rows.append(row)
     if not rows or len({r["id"] for r in rows}) != len(rows):
         raise ValueError("Dataset is empty or contains duplicate IDs")
@@ -149,7 +153,7 @@ def main() -> int:
         "finalLoss": last_loss,
         "device": str(device),
         "pipelineSmokeTest": True,
-        "note": "Starter corpus checkpoint using the canonical Fresh trained-subword tokenizer; not production or frontier training."
+        "note": "Authorized corpus checkpoint using the canonical Fresh trained-subword tokenizer; not production or frontier training."
     }
     output.with_suffix(output.suffix + ".json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(f"status=completed\ncheckpoint={output}\ncheckpoint_sha256={checkpoint_sha}")
