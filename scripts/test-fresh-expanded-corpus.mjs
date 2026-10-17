@@ -25,7 +25,7 @@ const knownIds = new Set(baseRows.map((row) => row.id));
 const additions = curatedRows.filter((row) => !knownIds.has(row.id));
 const raw = [...baseRows, ...additions];
 fs.mkdirSync(path.dirname(dataset), { recursive: true });
-fs.writeFileSync(dataset, raw.map((row) => JSON.stringify(row)).join("\\n") + "\\n");
+fs.writeFileSync(dataset, raw.map((row) => JSON.stringify(row)).join("\n") + "\n");
 if (raw.length !== 108) throw new Error(`Expected 108 combined examples, got ${raw.length}`);
 if (new Set(raw.map((row) => row.id)).size !== raw.length) throw new Error("Combined dataset IDs are not unique");
 if (!raw.some((row) => row.metadata?.sourceType === "internal-synthetic" && row.metadata?.authorizationId === "fwl-internal-synthetic-v1")) throw new Error("Curated authorized examples are missing");
