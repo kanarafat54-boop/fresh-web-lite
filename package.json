@@ -52,7 +52,8 @@
     "test:fresh-research-api-dry-run": "node scripts/test-fresh-research-api-dry-run.mjs",
     "test:fresh-ai-conversation-awareness": "node scripts/verify-fresh-ai-conversation-awareness.mjs",
     "test:fresh-ai-knowledge-grounding": "node scripts/verify-fresh-ai-knowledge-grounding.mjs",
-    "test:fresh-user-intake-dataset": "node scripts/verify-fresh-user-intake-dataset.mjs"
+    "test:fresh-user-intake-dataset": "node scripts/verify-fresh-user-intake-dataset.mjs",
+    "test:fresh-expanded-corpus": "node scripts/test-fresh-expanded-corpus.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
