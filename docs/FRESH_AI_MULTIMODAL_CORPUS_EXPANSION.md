@@ -70,6 +70,6 @@ Hugging Face `datasets` and `transformers` may be used as optional data preparat
 
 ## Current verified boundary
 
-The repository currently has an 83-example combined text corpus and a native tokenizer/PyTorch pipeline exercised by tests. The 37 examples derived from the user's supplied themes are internally authored synthetic examples, not copied Gemini training data. The broader training-example store count is not proof that a model has learned from those rows.
+The base corpus contains 83 examples. The curated intake shard now contains 62 examples, including 25 newly reviewed multimodal-readiness and data-governance examples; the expanded-corpus integration test assembles the 108 unique records before validating and exercising the native pipeline. These additions are internally authored synthetic examples, not copied Gemini training data. They teach data quality and modality-handling policy; they do not provide actual image, audio, or video supervision. The broader training-example store count is not proof that a model has learned from those rows.
 
 `fresh-unified-1` must remain `training-required` until an actual authorized training run, held-out evaluation, checkpoint integrity verification, native-serving test, and explicit promotion all pass. A dry run or optimizer smoke test is not a production model.
