@@ -1,0 +1,14 @@
+import fs from "node:fs";
+const read = (p) => fs.readFileSync(p, "utf8");
+const fail = (m) => { throw new Error(m); };
+const kernel = read("src/core/fresh-ai/FreshAIKernel.ts");
+const engines = read("src/core/fresh-ai/FreshNativeDimensionalEngines.ts");
+const ask = read("api/ai/ask.ts");
+if (!kernel.includes("const followUp=")) fail("kernel has no follow-up memory");
+if (!kernel.includes("in my knowledge yet")) fail("kernel still uses the generic fallback");
+if (!/buildGroundedAnswer\(request\.input,safeEvidence,safeDimensions,interpretation,request\.conversation\?\?\[\]\)/.test(kernel)) fail("conversation is not passed into buildGroundedAnswer");
+for (const needed of ["joinMeshes", '"Generated box"', '"Generated house"', "cube|box|crate|brick"]) if (!engines.includes(needed)) fail(`native 3D engine is missing: ${needed}`);
+if (!ask.includes("No external AI model API was required")) fail("native artifact reply lost its independence statement");
+if (!ask.includes("Result: ${nativeArtifact.title}")) fail("native artifact reply does not name what was built");
+if (!ask.includes('r.result.answer = "Fresh AI generated the image requested."')) fail("image replies can still show the cannot-create fallback");
+console.log("Fresh AI follow-up memory + honest fallback + real 3D shapes: PASS");

@@ -175,7 +175,7 @@ export async function POST(req: Request): Promise<Response> {
     if (nativeArtifact) {
       return json({
         requestId,
-        answer: `Fresh AI generated this using its native ${nativeArtifact.dimension}D engine. No external AI model API was required.`,
+        answer: `Fresh AI generated this using its native ${nativeArtifact.dimension}D engine. No external AI model API was required. Result: ${nativeArtifact.title}.`,
         intent: "create",
         status: "completed",
         model: "fresh-native-dimensional",
@@ -215,7 +215,7 @@ export async function POST(req: Request): Promise<Response> {
       try {
         const image = await generateFreshAIImage(goal, { size: b.image?.size, quality: b.image?.quality });
         generatedImage = { dataUrl: `data:image/${image.outputFormat};base64,${image.b64Json}`, b64: image.b64Json, model: image.model, size: image.size };
-        r.result.answer = r.result.answer || "Fresh AI generated the image requested.";
+        r.result.answer = "Fresh AI generated the image requested.";
       } catch (error) {
         return json({ requestId, error: error instanceof Error ? error.message : "Image generation failed", status: "failed", intent: r.interpretation.intent }, 503);
       }
