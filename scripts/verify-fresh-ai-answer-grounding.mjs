@@ -30,6 +30,14 @@ if (!activeAskApi.includes("const FRESH_EXTERNAL_FACT_QUESTION = /") ||
 if (!activeAskApi.includes("i.needsEvidence || i.intent === \"research\" ? research(x)")) {
   throw new Error("Evidence-seeking questions must invoke the real research route from the active Fresh AI API.");
 }
+if (!activeAskApi.includes('u.protocol === "https:" || u.protocol === "http:"') ||
+    !activeAskApi.includes("const groundedClaims = claims.flatMap")) {
+  throw new Error("Research claims must be tied to a valid HTTP(S) source URL before entering Fresh AI evidence.");
+}
+if (!activeAskApi.includes("if (FRESH_EXTERNAL_FACT_QUESTION.test(goal.trim()) && evidence.length === 0)") ||
+    !activeAskApi.includes("I couldn't verify this answer from usable web sources right now.")) {
+  throw new Error("Public factual questions must fail transparently when usable evidence is unavailable.");
+}
 const imageUi = fs.readFileSync("src/app/components/FreshAIUnified.tsx", "utf8");
 const imageApi = fs.readFileSync("api/ai/ask.ts", "utf8");
 if (!imageUi.includes('fetch("/api/ai/ask"') || !imageUi.includes("setImage(payload.image)") || !imageUi.includes("const imagePanel = image ?")) {
