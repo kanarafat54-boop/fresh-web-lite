@@ -7,6 +7,9 @@ import "./SettingsWorkspace.css";
 
 type Theme = "dark" | "light";
 type PrivacyPrefs = { discoverable: boolean; personalization: boolean; announcements: boolean };
+type FreshIdDeviceSession = { session_id: string; created_at: string; updated_at: string; user_agent: string | null; ip_address: string | null; is_current: boolean };
+type DevicePermission = "camera" | "microphone" | "location" | "notifications";
+type DevicePermissionState = "granted" | "denied" | "prompt" | "unsupported" | "unknown";
 const defaultPrivacy: PrivacyPrefs = { discoverable: false, personalization: true, announcements: false };
 const getPrivacy = (): PrivacyPrefs => {
   try { return { ...defaultPrivacy, ...JSON.parse(window.localStorage.getItem("fresh-privacy-preferences") || "{}") }; }
@@ -39,6 +42,13 @@ export default function SettingsWorkspace() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [passwordBusy, setPasswordBusy] = useState(false);
+  const [deviceSessions, setDeviceSessions] = useState<FreshIdDeviceSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
+  const [devicePermissions, setDevicePermissions] = useState<Record<DevicePermission, DevicePermissionState>>({
+    camera: "unknown", microphone: "unknown", location: "unknown", notifications: "unknown",
+  });
+  const [permissionBusy, setPermissionBusy] = useState<DevicePermission | null>(null);
   const [freshAccounts, setFreshAccounts] = useState<Array<{ id: string; account_type: string; display_name: string; slug: string | null; status: string }>>([]);
   const [accountName, setAccountName] = useState("");
   const [accountType, setAccountType] = useState<"creator" | "business" | "developer" | "organization">("creator");
@@ -140,6 +150,143 @@ export default function SettingsWorkspace() {
     void listPasskeys().then((items) => { if (!cancelled) setPasskeys(items); });
     return () => { cancelled = true; };
   }, [isAuthenticated, isGuest, listPasskeys]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isAuthenticated || isGuest) { setDeviceSessions([]); return; }
+    setSessionsLoading(true);
+    void supabase.rpc("list_fresh_id_sessions").then(({ data, error: sessionsError }) => {
+      if (cancelled) return;
+      if (sessionsError) {
+        setStatus("Device session management is not available on this deployment yet. Apply the Fresh ID device-security migration first.");
+        setDeviceSessions([]);
+      } else {
+        setDeviceSessions((data ?? []) as FreshIdDeviceSession[]);
+      }
+      setSessionsLoading(false);
+    }).catch(() => {
+      if (!cancelled) {
+        setStatus("Fresh ID could not load your signed-in devices. Check your connection and try again.");
+        setSessionsLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [isAuthenticated, isGuest]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const names: DevicePermission[] = ["camera", "microphone", "location", "notifications"];
+    void Promise.all(names.map(async (name) => {
+      try {
+        if (name === "notifications" && typeof Notification === "undefined") return [name, "unsupported"] as const;
+        if (!navigator.permissions?.query) {
+          if (name === "notifications" && typeof Notification !== "undefined") return [name, Notification.permission === "default" ? "prompt" : Notification.permission] as const;
+          return [name, "unknown"] as const;
+        }
+        const result = await navigator.permissions.query({ name: name === "camera" ? "camera" as PermissionName : name === "microphone" ? "microphone" as PermissionName : name === "location" ? "geolocation" as PermissionName : "notifications" as PermissionName });
+        return [name, result.state] as const;
+      } catch {
+        return [name, "unknown"] as const;
+      }
+    })).then((entries) => {
+      if (!cancelled) setDevicePermissions((current) => ({ ...current, ...Object.fromEntries(entries) as Record<DevicePermission, DevicePermissionState> }));
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  async function requestDevicePermission(name: DevicePermission) {
+    setPermissionBusy(name);
+    setStatus("");
+    try {
+      if (!window.isSecureContext) {
+        setStatus("Device permissions require a secure HTTPS connection or an approved installed-app context.");
+        return;
+      }
+      if (name === "camera" || name === "microphone") {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          setDevicePermissions((current) => ({ ...current, [name]: "unsupported" }));
+          setStatus("This browser does not provide access to that device. Check browser and operating-system settings.");
+          return;
+        }
+        const stream = await navigator.mediaDevices.getUserMedia(name === "camera" ? { video: true, audio: false } : { video: false, audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+      } else if (name === "location") {
+        await new Promise<void>((resolve, reject) => {
+          if (!navigator.geolocation) { reject(new Error("unsupported")); return; }
+          navigator.geolocation.getCurrentPosition(() => resolve(), (error) => reject(error), { maximumAge: 0, timeout: 12000 });
+        });
+      } else {
+        if (typeof Notification === "undefined") {
+          setDevicePermissions((current) => ({ ...current, notifications: "unsupported" }));
+          setStatus("Notifications are not supported by this browser.");
+          return;
+        }
+        await Notification.requestPermission();
+      }
+      const descriptor = (name === "camera" ? "camera" : name === "microphone" ? "microphone" : name === "location" ? "geolocation" : "notifications") as PermissionName;
+      try {
+        const result = await navigator.permissions.query({ name: descriptor });
+        setDevicePermissions((current) => ({ ...current, [name]: result.state }));
+      } catch {
+        setDevicePermissions((current) => ({ ...current, [name]: name === "notifications" && typeof Notification !== "undefined" ? (Notification.permission === "default" ? "prompt" : Notification.permission) : "unknown" }));
+      }
+      setStatus("Permission check finished. Your browser and operating system remain in control of this access.");
+    } catch (error) {
+      const permissionState = error instanceof DOMException && error.name === "NotAllowedError" ? "denied" : "unknown";
+      setDevicePermissions((current) => ({ ...current, [name]: permissionState }));
+      setStatus(permissionState === "denied" ? "Access was denied. You can change it in your browser or device settings." : "Fresh ID could not access that device. Check browser permissions and try again.");
+    } finally {
+      setPermissionBusy(null);
+    }
+  }
+
+  async function signOutOtherDevices() {
+    if (!window.confirm("Sign out every other device using this Fresh ID? This device will stay signed in.")) return;
+    setSessionsLoading(true);
+    setStatus("");
+    try {
+      const { error: signOutError } = await supabase.auth.signOut({ scope: "others" });
+      if (signOutError) {
+        setStatus("Fresh ID could not sign out other devices. Please try again.");
+        return;
+      }
+      const { data, error: listError } = await supabase.rpc("list_fresh_id_sessions");
+      if (listError) {
+        setDeviceSessions((current) => current.filter((item) => item.is_current));
+      } else {
+        setDeviceSessions((data ?? []) as FreshIdDeviceSession[]);
+      }
+      setStatus("Fresh ID requested sign-out for every other session. Previously issued access tokens may remain valid until they expire.");
+    } catch {
+      setStatus("Fresh ID could not reach the session service. Check your connection and try again.");
+    } finally {
+      setSessionsLoading(false);
+    }
+  }
+
+  async function revokeDeviceSession(sessionId: string) {
+    setRevokingSessionId(sessionId);
+    setStatus("");
+    try {
+      const { data, error: revokeError } = await supabase.rpc("revoke_fresh_id_session", { p_session_id: sessionId });
+      if (revokeError) {
+        setStatus("Fresh ID could not revoke that device session. Refresh the page and try again.");
+        return;
+      }
+      if (!data) {
+        setStatus("That session is already ended or no longer belongs to this account.");
+      } else {
+        setDeviceSessions((current) => current.filter((item) => item.session_id !== sessionId));
+        setStatus("Device session revoked. Its refresh token is no longer valid; an already-issued access token may remain usable until it expires.");
+      }
+      const { data: rows, error: listError } = await supabase.rpc("list_fresh_id_sessions");
+      if (!listError) setDeviceSessions((rows ?? []) as FreshIdDeviceSession[]);
+    } catch {
+      setStatus("Fresh ID could not reach the device-security service. Check your connection and try again.");
+    } finally {
+      setRevokingSessionId(null);
+    }
+  }
 
   async function persistPreferenceSettings(patch: Partial<FreshUser["preferences"]>) {
     if (!user || isGuest) {
@@ -305,6 +452,28 @@ export default function SettingsWorkspace() {
       <div className="fresh-settings-security-grid"><div><span>Session expires</span><strong>{prettyDate(session.expiresAt ? new Date(session.expiresAt * 1000).toISOString() : null)}</strong></div><div><span>Last refresh</span><strong>{prettyDate(session.lastRefreshedAt)}</strong></div><div><span>Passkey support</span><strong>{passkeySupported ? "Available on this device" : "Unavailable in this browser"}</strong></div></div>
       <div className="fresh-settings-actions"><button type="button" onClick={() => void sendPasswordReset()} disabled={!user || isGuest}>Send password reset link</button><button type="button" onClick={() => void addPasskey()} disabled={!user || isGuest || !passkeySupported || passkeyBusy}>{passkeyBusy ? "Working…" : "Add a passkey"}</button><button type="button" className="fresh-settings-danger" onClick={() => void signOut()} disabled={!user}>Sign out</button></div>
       <div className="fresh-settings-passkeys"><h3>Registered passkeys</h3>{passkeys.length === 0 ? <p>No passkeys are listed for this account yet.</p> : passkeys.map((item) => <div className="fresh-settings-passkey" key={item.id}><div><strong>{item.friendly_name || "Fresh ID passkey"}</strong><small>Added {prettyDate(item.created_at)}</small></div><button type="button" onClick={() => void deletePasskey(item.id)} disabled={passkeyBusy}>Remove</button></div>)}</div>
+      <section className="fresh-settings-device-sessions" aria-labelledby="fresh-id-devices-heading">
+        <div><h3 id="fresh-id-devices-heading">Devices signed in to Fresh ID</h3><p>Review active sessions and sign out a device you no longer recognize. This list comes from the authentication service, not a device-name guess.</p></div>
+        <button type="button" className="fresh-settings-danger fresh-settings-signout-others" onClick={() => void signOutOtherDevices()} disabled={!isAuthenticated || isGuest || sessionsLoading}>Sign out all other devices</button>
+        {sessionsLoading ? <p>Loading your signed-in devices…</p> : deviceSessions.length === 0 ? <p>No other active sessions are listed, or session management has not been enabled yet.</p> : deviceSessions.map((item) => <article className="fresh-settings-device-session" key={item.session_id}>
+          <div className="fresh-settings-device-session-details"><strong>{item.is_current ? "This device" : (item.user_agent || "Browser or device session")}</strong><small>Last refreshed: {prettyDate(item.updated_at)} · Signed in: {prettyDate(item.created_at)}</small>{item.ip_address && <small>IP address: {item.ip_address}</small>}</div>
+          {item.is_current ? <span className="fresh-settings-status good">Current session</span> : <button type="button" className="fresh-settings-danger" onClick={() => void revokeDeviceSession(item.session_id)} disabled={revokingSessionId !== null}>{revokingSessionId === item.session_id ? "Signing out…" : "Sign out device"}</button>}
+        </article>)}
+        <p className="fresh-settings-security-note">Remote sign-out revokes the device's refresh session. An access token already issued to that device can remain valid until its expiry; sensitive server actions must also validate session status for immediate enforcement.</p>
+      </section>
+      <section className="fresh-settings-device-permissions" aria-labelledby="fresh-id-permissions-heading">
+        <div><h3 id="fresh-id-permissions-heading">Device permissions</h3><p>Allow Fresh features to use hardware only when you choose. Fresh ID cannot override permissions denied by your browser or operating system.</p></div>
+        {([
+          ["camera", "Camera", "Take photos, scan codes, or record video."],
+          ["microphone", "Microphone", "Record audio or join calls."],
+          ["location", "Location", "Use location-aware features when needed."],
+          ["notifications", "Notifications", "Receive alerts when you enable them."],
+        ] as Array<[DevicePermission, string, string]>).map(([name, label, description]) => <article className="fresh-settings-device-permission" key={name}>
+          <div><strong>{label}</strong><small>{description}</small><span className="fresh-settings-permission-state">Status: {devicePermissions[name]}</span></div>
+          <button type="button" onClick={() => void requestDevicePermission(name)} disabled={permissionBusy !== null}>{permissionBusy === name ? "Checking…" : devicePermissions[name] === "granted" ? "Check access" : "Request access"}</button>
+        </article>)}
+        <p className="fresh-settings-security-note">Each request is triggered by your action. Camera and microphone streams are stopped immediately after the permission check; location is checked without saving your coordinates. File access remains controlled by the file picker and operating system.</p>
+      </section>
       <form className="fresh-settings-password-form" onSubmit={(event) => void changePassword(event)}>
         <h3>Change password</h3>
         <p>Verify your current password before choosing a new one. Use at least 12 characters.</p>
