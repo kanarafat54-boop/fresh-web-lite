@@ -94,9 +94,9 @@ export default function FreshAIHome() {
     const controller = new AbortController(); abortRef.current = controller; userPinnedToBottomRef.current = true;
     setTurns((current) => [...current, user, pending]); setDraft(""); setError(null); setEvidence([]); setMeta({}); setLoading(true);
     try {
-      const imageRequest = mode === "create" && /\\b(generate|create|draw|render|make|design)\\b[\\s\\S]{0,100}\\b(image|picture|photo|illustration|logo|poster|artwork|portrait|wallpaper|icon|visual|drawing|graphic)\\b/i.test(text);
+      const imageRequest = mode === "create" && /\b(generate|create|draw|render|make|design)\b[\s\S]{0,100}\b(image|picture|photo|illustration|logo|poster|artwork|portrait|wallpaper|icon|visual|drawing|graphic)\b/i.test(text);
       if (imageRequest) {
-        const goal = text.replace(/^Create:\\s*/i, "").trim();
+        const goal = text.replace(/^Create:\s*/i, "").trim();
         const response = await fetch("/api/ai/ask", {
           method: "POST",
           signal: controller.signal,
