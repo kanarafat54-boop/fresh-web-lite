@@ -67,10 +67,15 @@ export default function SettingsWorkspace() {
       setTextSize(user.preferences.textSize);
       document.documentElement.dataset.textSize = user.preferences.textSize;
     }
-    if (user?.preferences?.privacy) {
-      setPrivacy({ ...defaultPrivacy, ...user.preferences.privacy });
-    }
-  }, [user]);
+    // A registered account without saved privacy preferences starts from safe defaults.
+    // Device-local choices are used only for signed-out/guest sessions so one account's
+    // local choices are not accidentally presented as another account's saved settings.
+    setPrivacy(user?.preferences?.privacy
+      ? { ...defaultPrivacy, ...user.preferences.privacy }
+      : isAuthenticated && !isGuest
+        ? defaultPrivacy
+        : getPrivacy());
+  }, [user, isAuthenticated, isGuest]);
 
   useEffect(() => {
     let cancelled = false;
