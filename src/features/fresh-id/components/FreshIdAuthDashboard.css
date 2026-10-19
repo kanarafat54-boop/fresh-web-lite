@@ -1007,3 +1007,30 @@
   outline-offset: 3px;
 }
 .auth-password-toggle:active { transform: scale(.96); }
+
+
+/* Fresh ID viewport safety: long forms must scroll instead of clipping controls on small/short screens. */
+@media (max-width: 760px), (max-height: 720px) {
+  .fresh-id-gateway {
+    height: 100svh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+  .fresh-id-layer {
+    height: auto;
+    min-height: 100%;
+  }
+  .fresh-id-screen {
+    height: auto;
+    min-height: 100svh;
+    justify-content: flex-start;
+    padding-bottom: max(100px, calc(82px + env(safe-area-inset-bottom)));
+  }
+  .fresh-id-screen-overview {
+    padding-bottom: max(100px, calc(86px + env(safe-area-inset-bottom)));
+  }
+  .fresh-id-screen-form {
+    overflow: visible;
+  }
+}
