@@ -624,3 +624,182 @@
 
 /* Fresh ID signup clarity and password visibility controls */
 .auth-field-help{display:block;margin-top:7px;color:var(--auth-muted,#a8a8b8);font-size:.82rem;line-height:1.45}.auth-password-field{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px}.auth-password-field .auth-field-label{grid-column:1/-1}.auth-password-field .auth-input{min-width:0}.auth-password-toggle{min-height:44px;padding:8px 12px;border:1px solid rgba(140,130,255,.45);border-radius:10px;background:rgba(99,91,255,.1);color:inherit;font:inherit;font-weight:700;cursor:pointer}.auth-password-toggle:focus-visible{outline:3px solid #A99DFF;outline-offset:2px}.auth-field select.auth-input{min-height:48px;white-space:normal}
+
+
+/* Viewport/accessibility correction: never clip Fresh ID forms or their actions. */
+.fresh-id-gateway {
+  height: auto !important;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip !important;
+  overflow-y: visible !important;
+}
+.fresh-id-layer {
+  flex: 1 0 auto;
+  min-height: 0;
+  height: auto;
+  overflow: visible;
+}
+.fresh-id-screen {
+  height: auto;
+  min-height: calc(100vh - 126px);
+  min-height: calc(100dvh - 126px);
+  flex: 0 0 auto;
+  overflow: visible;
+  padding-top: max(84px, calc(env(safe-area-inset-top) + 72px));
+  padding-bottom: max(28px, calc(env(safe-area-inset-bottom) + 78px));
+}
+.fresh-id-screen-form {
+  justify-content: flex-start;
+  overflow: visible;
+}
+.fresh-id-auth-shell {
+  min-height: 0;
+  align-items: start;
+  padding-block: 16px;
+}
+.fresh-id-form-stage {
+  min-width: 0;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}
+.fresh-id-form-stage .auth-form,
+.auth-form {
+  min-width: 0;
+  max-width: 100%;
+}
+.auth-form :is(input, select, button, label) {
+  scroll-margin-top: max(16px, env(safe-area-inset-top));
+  scroll-margin-bottom: max(20px, env(safe-area-inset-bottom));
+}
+.auth-form :is(input, select, button):focus-visible {
+  scroll-margin-block: 24px;
+}
+.fresh-id-gateway-bottom {
+  position: relative;
+  inset: auto;
+  flex: 0 0 auto;
+  margin-top: auto;
+  width: 100%;
+  background: linear-gradient(180deg, rgba(7,9,13,0), rgba(7,9,13,.94) 35%);
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+.fresh-id-screen-overview {
+  justify-content: flex-start;
+  overflow: visible;
+}
+.fresh-id-overview-head,
+.fresh-id-journey-board,
+.fresh-id-overview-stage {
+  max-width: 100%;
+}
+.fresh-id-journey-board {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));
+}
+.fresh-id-journey-connector {
+  display: none;
+}
+.fresh-id-screen-document {
+  overflow: visible;
+}
+.fresh-id-document-wrap {
+  min-width: 0;
+}
+.fresh-id-document {
+  overflow-wrap: anywhere;
+}
+.fresh-id-standalone-auth .fresh-id-screen-form {
+  padding-top: max(24px, env(safe-area-inset-top));
+}
+.fresh-id-standalone-auth .fresh-id-auth-shell {
+  min-height: calc(100vh - 92px);
+  min-height: calc(100dvh - 92px);
+  padding-top: 8px;
+}
+@media (max-width: 900px) {
+  .fresh-id-auth-shell {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 18px;
+  }
+  .fresh-id-auth-identity {
+    min-width: 0;
+  }
+  .fresh-id-auth-identity h1 {
+    overflow-wrap: anywhere;
+  }
+}
+@media (max-width: 760px) {
+  .fresh-id-screen {
+    min-height: calc(100vh - 112px);
+    min-height: calc(100dvh - 112px);
+    padding: max(72px, env(safe-area-inset-top)) 16px max(24px, calc(env(safe-area-inset-bottom) + 76px));
+  }
+  .fresh-id-screen-form {
+    justify-content: flex-start;
+  }
+  .fresh-id-standalone-auth .fresh-id-screen-form {
+    padding-top: max(18px, env(safe-area-inset-top));
+    padding-bottom: max(24px, calc(env(safe-area-inset-bottom) + 72px));
+  }
+  .fresh-id-auth-shell {
+    padding: 8px 0 18px;
+    gap: 18px;
+  }
+  .fresh-id-form-stage {
+    padding: clamp(16px, 4vw, 24px);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .auth-form {
+    gap: 12px;
+  }
+  .auth-form .auth-submit-btn,
+  .auth-form .guest-btn,
+  .auth-form .auth-tab,
+  .auth-form .auth-password-toggle {
+    min-height: 44px;
+  }
+  .auth-social-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .fresh-id-gateway-bottom {
+    gap: 6px;
+    padding-inline: 8px;
+  }
+  .fresh-id-gateway-bottom .fresh-id-nav-arrow {
+    flex: 0 0 32px;
+  }
+  .fresh-id-pagination {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 380px) {
+  .fresh-id-screen {
+    padding-inline: 12px;
+  }
+  .fresh-id-form-stage {
+    padding: 14px;
+  }
+  .auth-social-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .fresh-id-progress {
+    gap: 5px;
+    font-size: .66rem;
+  }
+}
+@media (max-height: 620px) {
+  .fresh-id-auth-shell {
+    align-content: start;
+    padding-block: 8px 20px;
+  }
+  .fresh-id-auth-orb {
+    display: none;
+  }
+  .fresh-id-auth-identity h1 {
+    font-size: clamp(1.8rem, 5vh, 3rem);
+  }
+}
