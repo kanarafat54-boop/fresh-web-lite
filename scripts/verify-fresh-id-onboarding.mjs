@@ -30,6 +30,21 @@ const checks = [
     [/updateUser\(\{ password: newPassword \}\)/, "settings submits the new password to Supabase Auth"],
     [/newPassword !== confirmNewPassword/, "settings rejects mismatched new passwords"],
     [/fresh-settings-password-form/, "password settings use a dedicated responsive form"],
+    [/list_fresh_id_sessions/, "settings loads authenticated device sessions"],
+    [/revoke_fresh_id_session/, "settings can revoke a remote device session"],
+    [/signOut\(\{ scope: "others" \}\)/, "settings can sign out all other devices"],
+    [/Sign out all other devices/, "the remote sign-out-all control is visible"],
+    [/requestDevicePermission\(/, "device access is requested only after a user action"],
+    [/window\.isSecureContext/, "device permissions require a secure context"],
+    [/access token may remain usable until it expires/, "remote session revocation explains access-token expiry limits"],
+  ]],
+  ["supabase/migrations/20261019140000_fresh_id_device_security.sql", [
+    [/create or replace function public\.list_fresh_id_sessions\(\)/, "session listing is implemented server-side"],
+    [/where s\.user_id = \(select auth\.uid\(\)\)/, "session listing is scoped to the authenticated account"],
+    [/create or replace function public\.revoke_fresh_id_session\(p_session_id uuid\)/, "remote session revocation is implemented server-side"],
+    [/where id = p_session_id\s+and user_id = v_user_id/s, "revocation checks both session and owner identity"],
+    [/revoke all on function public\.revoke_fresh_id_session\(uuid\) from public, anon/, "remote revocation RPC is not public or anonymous"],
+    [/grant execute on function public\.revoke_fresh_id_session\(uuid\) to authenticated/, "remote revocation is callable by authenticated users"],
   ]],
 ];
 
