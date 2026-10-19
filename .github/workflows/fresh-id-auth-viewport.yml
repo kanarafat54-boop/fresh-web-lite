@@ -1,0 +1,52 @@
+name: Fresh ID Auth Viewport Gate
+
+on:
+  pull_request:
+    paths:
+      - "src/features/fresh-id/components/FreshIdAuthDashboard.css"
+      - "src/features/fresh-id/components/FreshIdAuthDashboard.tsx"
+      - "src/features/fresh-id/components/AuthForm.tsx"
+      - "scripts/verify-fresh-id-auth-viewport.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/fresh-id-auth-viewport.yml"
+  push:
+    branches:
+      - main
+      - "fix/fresh-id-auth-viewport-overflow"
+    paths:
+      - "src/features/fresh-id/components/FreshIdAuthDashboard.css"
+      - "src/features/fresh-id/components/FreshIdAuthDashboard.tsx"
+      - "src/features/fresh-id/components/AuthForm.tsx"
+      - "scripts/verify-fresh-id-auth-viewport.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/fresh-id-auth-viewport.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fresh-id-auth-viewport-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Verify viewport accessibility contract
+        run: npm run test:fresh-id-auth-viewport
+      - name: Type-check application
+        run: npm run typecheck
+      - name: Build production bundle
+        run: npm run build
