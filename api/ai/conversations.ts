@@ -2,7 +2,8 @@ import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 import { createClient } from "@supabase/supabase-js";
 import { createFreshAIServerSupabase } from "../../src/core/fresh-ai/FreshAIServerServices.js";
 
-export const config = { maxDuration: 10 };
+// Auth validation plus bounded conversation persistence can exceed the old 10s cap.
+export const config = { maxDuration: 30 };
 
 const json = (x: unknown, status = 200) =>
   Response.json(x, { status, headers: { "cache-control": "no-store" } });
