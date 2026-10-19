@@ -17,6 +17,8 @@ drop policy if exists "connection requests participant update" on public.connect
 drop policy if exists "connection requests participants update" on public.connection_requests;
 drop policy if exists "connection requests requester insert" on public.connection_requests;
 drop policy if exists "connection requests requester delete" on public.connection_requests;
+drop policy if exists "connection requests requester state transition" on public.connection_requests;
+drop policy if exists "connection requests recipient response" on public.connection_requests;
 
 create policy "connection requests participants read"
   on public.connection_requests

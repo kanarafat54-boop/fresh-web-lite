@@ -4,7 +4,15 @@
 
 **Status rule:** code presence is not production completion. A capability is **Complete** only after the user journey, authorization, persistence, failure/retry behavior, accessibility, automated checks, and live deployment have been verified. If a physical device or real provider is required, record that separately.
 
-**Audit basis:** source and documentation review on 2026-10-13. This is a repository-level assessment, not a claim that every live Supabase/Vercel path or real device has been tested.
+**Audit basis:** source and live-schema review on 2026-10-19. Production checks are listed separately; this is not a claim that every user journey or real device has been tested.
+
+## Production verification note — 2026-10-19
+
+- Vercel production deployment for commit `25f8d2f4f0d899f049f0227e6b20bdad48bbfff4` reached `READY`.
+- The live Supabase publication includes `public.direct_messages`; the client also has a five-second refresh fallback when Realtime is unavailable.
+- Read-only grant checks confirmed anonymous table-level SELECT/INSERT are revoked on `connection_requests`, `direct_messages`, `fresh_communication_threads`, and `fresh_communication_messages`. Authenticated column-level insert grants remain for the expected client fields.
+- This does **not** establish two-account end-to-end delivery, private event authorization, or full Fresh Connect runtime correctness. Those checks remain open.
+- Supabase Security Advisor still reports leaked-password protection disabled and three authenticated-callable SECURITY DEFINER functions. The account-creation RPC is intentionally privileged; helper-function exposure needs a separate review.
 
 ## Current status by capability
 
@@ -18,14 +26,14 @@
 | AR / VR | Destination and workspace exist | **Surface exists; real device/capability support not proven** | Verify actual supported experiences and gracefully handle unsupported devices |
 | Others / additional formats | Extensible media workspace exists | **Extension surface only until a format is individually verified** | Each format must have a real source, playback/viewer, interactions and clear unsupported state |
 | Profiles and post sharing | Profile overlay and post-specific share route are implemented | **Code implemented; latest live route still needs verification** | Open a shared post in a clean session/device, verify correct item, author, interactions and return to all posts |
-| Connections and direct messages | Connection request services, accepted-connection checks and Supabase direct-message service exist | **Core service implemented; realtime and end-to-end delivery not yet proven** | Two-account test: request, accept, send, receive, read state, reload, denied access, network failure; confirm no cross-account leakage |
+| Connections and direct messages | Connection request services, accepted-connection checks, live direct-message subscription and polling fallback exist | **Realtime wired and publication enabled; two-account delivery still unverified** | Two-account test: request, accept, send, receive, read state, reload, denied access, network failure; confirm no cross-account leakage |
 | Reactions, comments, saves and follows | Interaction services and persistence migrations exist | **Implemented in parts; cross-surface consistency must be tested** | Same state across feed/profile/detail, duplicate prevention, authorization and retry/error paths |
 | Gifts / Fresh Coin | Gift service invokes Treasury transfer and records a Short receipt | **Payment path exists; not proof of production monetization** | Verify ledger invariants, idempotency, receipt reconciliation, fees, refunds/disputes and actual settlement provider; sandbox must be labelled |
 | Creator publishing and media operations | Creator Studio and production panels exist | **Tooling exists; complete publish-to-distribution journey not proven** | Draft → upload → processing → publish/schedule → visible in Fresh Flow → analytics and failure recovery |
 | Fresh Live | LiveWorkspace renders EcosystemPlaceholder | **NOT IMPLEMENTED as a live-streaming product** | Choose and configure a real streaming provider; create live sessions, publish/ingest, playback, live chat, moderation, end/replay, reconnect, metrics and tested access controls |
 | Monetization / payouts | Treasury and payment-rail code exists; creator monetization panels exist | **Financial foundations exist; production payout readiness not proven** | Confirm supported real rails, settlement reconciliation, compliance, creator eligibility, fees, disputes, fraud controls and audit trail |
 | Admin operations | Admin overview and user-management API exist with server-side role check | **Basic admin surface exists; full operations console incomplete** | Live service/deployment health, media/live status, failed jobs, reports/moderation, payment reconciliation, audit log and least-privilege actions |
-| Security and privacy | RLS migrations and server-side privileged routes exist; prior review found auth/password-hardening and policy verification items | **Must be verified against live project** | Verify all deployed migrations, RLS/policies, auth settings, secret boundaries, admin authorization, private realtime authorization and data-retention behavior |
+| Security and privacy | Live table grants and messaging/connection policies were inspected and hardened on 2026-10-19; Supabase Security Advisor still reports Auth leaked-password protection disabled and three callable SECURITY DEFINER functions | **Messaging grants verified; remaining Auth/function warnings need review** | Verify all deployed migrations, RLS/policies, auth settings, secret boundaries, admin authorization, private realtime authorization and data-retention behavior |
 | Production release | GitHub CI gates and Vercel deployments exist | **CI is not the same as end-to-end production readiness** | Verify exact commit is deployed, HTTP smoke tests, server logs, migrations, critical journeys and rollback readiness |
 
 ## Recommended execution order

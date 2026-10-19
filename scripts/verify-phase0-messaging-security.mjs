@@ -2,6 +2,8 @@ import { readFile } from "node:fs/promises";
 
 const required = [
   ["supabase/migrations/20261014194500_harden_phase0_messaging_access.sql", [
+    [/drop policy if exists "fresh thread owner select"/i, "thread policies can safely replay"],
+    [/drop policy if exists "fresh message thread owner select"/i, "message policies can safely replay"],
     [/alter table public\.direct_messages enable row level security/i, "RLS is explicitly enabled for direct messages"],
     [/alter table public\.fresh_communication_threads enable row level security/i, "RLS is explicitly enabled for Fresh Communication threads"],
     [/alter table public\.fresh_communication_messages enable row level security/i, "RLS is explicitly enabled for Fresh Communication messages"],
@@ -24,6 +26,8 @@ const required = [
     [/error\?\.code === "23505"[\s\S]*?concurrentLookupError/i, "concurrent duplicate request creation recovers by reading the winning row"],
   ]],
   ["supabase/migrations/20261014194000_harden_connection_request_transitions.sql", [
+    [/drop policy if exists "connection requests requester state transition"/i, "connection-request migration can safely replay after its state policies already exist"],
+    [/drop policy if exists "connection requests recipient response"/i, "recipient-response policy is replaced safely on replay"],
     [/alter table public\.connection_requests enable row level security/i, "RLS is explicitly enabled for connection requests"],
     [/revoke all privileges on table public\.connection_requests from public, anon, authenticated/i, "connection request browser grants are revoked"],
     [/grant update \(status\) on table public\.connection_requests to authenticated/i, "only status has browser UPDATE privilege"],
