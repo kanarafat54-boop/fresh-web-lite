@@ -89,7 +89,7 @@ function createMockUser(): FreshUser {
 
 type AuthView = "form" | "check-email" | "reset-password" | "forgot-password";
 type EditableProfilePatch = Pick<Partial<FreshUser>, "fullName" | "username" | "preferences">;
-type ProfileProvisionResult = { ok: true; notice?: string } | { ok: false };
+type ProfileProvisionResult = { ok: boolean; notice?: string };
 
 export type FreshSessionState = {
   expiresAt: number | null;
