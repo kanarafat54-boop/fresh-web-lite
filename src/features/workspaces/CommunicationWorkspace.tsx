@@ -186,7 +186,7 @@ export default function CommunicationWorkspace() {
           .then(() => setUnreadCounts((current) => ({ ...current, [activeThreadUserId]: 0 })))
           .catch(() => { /* The next thread load will retry marking messages read. */ });
       }
-    })
+    }, startFallbackRefresh)
       .then((stop) => {
         if (active) unsubscribe = stop;
         else stop();
