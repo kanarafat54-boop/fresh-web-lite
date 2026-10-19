@@ -63,6 +63,46 @@ export async function markThreadRead(otherUserId: string): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * Subscribe to both directions of a permitted conversation. Row-level security
+ * remains the authorization boundary; the client filter is only a bandwidth
+ * optimization and the callback also verifies the conversation participants.
+ */
+export async function subscribeToThread(
+  otherUserId: string,
+  onMessage: (message: DirectMessage) => void,
+): Promise<() => void> {
+  const myId = await getCurrentUserId();
+  await assertMessagingAllowed(otherUserId, myId);
+
+  const channel = supabase
+    .channel(`direct-messages:${myId}:${otherUserId}`)
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "direct_messages", filter: `recipient_id=eq.${myId}` },
+      (payload) => {
+        const message = payload.new as DirectMessage;
+        if (
+          (message.sender_id === otherUserId && message.recipient_id === myId) ||
+          (message.sender_id === myId && message.recipient_id === otherUserId)
+        ) onMessage(message);
+      },
+    )
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "direct_messages", filter: `sender_id=eq.${myId}` },
+      (payload) => {
+        const message = payload.new as DirectMessage;
+        if (message.sender_id === myId && message.recipient_id === otherUserId) onMessage(message);
+      },
+    )
+    .subscribe();
+
+  return () => {
+    void supabase.removeChannel(channel);
+  };
+}
+
 export async function getUnreadCounts(): Promise<Record<string, number>> {
   const myId = await getCurrentUserId();
   const { data, error } = await supabase
