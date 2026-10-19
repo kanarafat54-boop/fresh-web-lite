@@ -21,6 +21,10 @@ export default function OnboardingPage({ userName, onContinue, onSkip }: Props) 
 
   function finish(skip = false) {
     completeOnboarding(skip ? [] : selected);
+    if (skip) {
+      onSkip();
+      return;
+    }
     onContinue();
   }
 
