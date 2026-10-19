@@ -58,6 +58,8 @@ required.push(["Signup date picker uses the shared UTC date bound", authForm.inc
 required.push(["Auth context reuses the same date-of-birth validator", freshId.includes("validateDateOfBirth(profile.dateOfBirth)") && !freshId.includes("const birthDate = new Date(`${profile.dateOfBirth}T00:00:00.000Z`)")]);
 required.push(["Date-of-birth unit tests are included in the package scripts", packageJson.scripts["test:fresh-id-date-of-birth"] === "node --experimental-strip-types scripts/test-fresh-id-date-of-birth.mjs"]);
 
+required.push(["Password recovery requires matching new passwords and a 12-character minimum", authForm.includes("confirm-new-password") && authForm.includes("newPassword !== confirmNewPassword") && authForm.includes("minLength={12}")]);
+
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
   console.error("Fresh security contract failed:");
