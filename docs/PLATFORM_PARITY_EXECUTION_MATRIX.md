@@ -35,7 +35,7 @@ Observed gaps and cautions:
 | Trust and safety | Block/report, moderation, privacy controls, anti-spam and account recovery | Server-side enforcement, auditability, rate limits and accessible appeal/error paths |
 | Mobile/accessibility | Responsive layout, readable type, screen-reader support, low-bandwidth resilience | Test at small Android widths; no clipped controls; visible focus; retry/empty/loading states; avoid heavy initial downloads |
 
-## Fresh ID parity slice — implemented in this branch, pending CI/E2E
+## Fresh ID parity slice — CI passed; signed-in E2E remains open
 
 - Signup now collects full name, username, email, password confirmation, date of birth, optional country/gender, consent, and a selected starting experience (personal, creator, business, developer, or organization).
 - Date-only age validation uses UTC calendar dates so users in Uganda and other UTC-positive time zones are not incorrectly rejected at midnight boundaries.
@@ -45,7 +45,7 @@ Observed gaps and cautions:
 - WhatsApp, Telegram, and TikTok login buttons are disabled and labelled as not connected; they must not appear to work before their official identity integrations are configured.
 - Automated gates cover password confirmation, consent, recovery validation, UTC date handling, private-profile metadata cleanup, and existing Fresh ID security contracts.
 
-Still required before marking Fresh ID **verified**: run CI on this branch; complete a real test-mailbox signup and confirmation; test duplicate username, password mismatch, recovery link, password reset, session restoration, selected workspace-mode persistence, and Home landing on the preview; verify private profile data remains owner-only. Do not use a real user's account as a test fixture.
+CI build/typecheck/lint and the Fresh ID date/security contracts passed on this branch, and the Netlify deploy preview is ready. Vercel's preview check was blocked by a build-rate-limit response, not a reported source build error. Still required before marking Fresh ID **verified**: complete a real test-mailbox signup and confirmation; test duplicate username, password mismatch, recovery link, password reset, session restoration, selected workspace-mode persistence, and Home landing on the preview; verify private profile data remains owner-only. Do not use a real user's account as a test fixture.
 
 ## Delivery sequence
 
