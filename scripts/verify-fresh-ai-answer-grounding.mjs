@@ -22,6 +22,14 @@ if (!knowledge.includes("if (best <= 0) return [];") || !knowledge.includes("(Nu
 if (!knowledge.includes(".filter((s) => s.score >= 2)")) {
   throw new Error("Fallback knowledge retrieval must require meaningful lexical overlap.");
 }
+const activeAskApi = fs.readFileSync("api/ai/ask.ts", "utf8");
+if (!activeAskApi.includes("const FRESH_EXTERNAL_FACT_QUESTION = /") ||
+    !activeAskApi.includes("if (FRESH_EXTERNAL_FACT_QUESTION.test(goal.trim())) return [];")) {
+  throw new Error("The active /api/ai/ask retrieval path must reject internal platform knowledge for public factual questions.");
+}
+if (!activeAskApi.includes("i.needsEvidence || i.intent === \"research\" ? research(x)")) {
+  throw new Error("Evidence-seeking questions must invoke the real research route from the active Fresh AI API.");
+}
 const imageUi = fs.readFileSync("src/app/components/FreshAIUnified.tsx", "utf8");
 const imageApi = fs.readFileSync("api/ai/ask.ts", "utf8");
 if (!imageUi.includes('fetch("/api/ai/ask"') || !imageUi.includes("setImage(payload.image)") || !imageUi.includes("const imagePanel = image ?")) {
