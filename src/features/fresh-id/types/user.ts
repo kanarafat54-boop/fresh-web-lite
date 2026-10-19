@@ -1,4 +1,4 @@
-export type UserRole = "user" | "creator" | "admin" | "developer" | "business";
+export type UserRole = "user" | "admin";
 export type SubscriptionTier = "free" | "plus" | "pro" | "enterprise";
 export type PresenceStatus = "online" | "away" | "offline" | "invisible";
 export type ThemePreference = "light" | "dark" | "system";
