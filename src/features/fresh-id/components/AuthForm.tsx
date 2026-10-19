@@ -212,12 +212,12 @@ export function AuthForm() {
             className="auth-submit-btn"
             onClick={() => void loginWithPasskey()}
             disabled={loading || Boolean(socialLoading) || !passkeySupported}
-            title={!passkeySupported ? "Passkeys require HTTPS/localhost and browser support" : "Use your device biometric, PIN, or security key"}
+            title={!passkeySupported ? "Passkeys require HTTPS/localhost and browser support; password login is always available" : "Use a fingerprint, face unlock, device PIN or screen lock, password manager, or security key if supported by your browser"}
           >
-            {loading ? "Verifying..." : passkeySupported ? "Sign in with biometrics" : "Biometrics unavailable here"}
+            {loading ? "Verifying..." : passkeySupported ? "Sign in with a passkey" : "Passkeys unavailable — use password"}
           </button>
           {!passkeySupported && (
-            <p className="auth-message">Use the HTTPS Vercel deployment and enable a screen lock, fingerprint, or other passkey authenticator on this device.</p>
+            <p className="auth-message">You can always use your email and password above. Passkeys need HTTPS (or localhost) and a supported browser; depending on your device, verification may use a fingerprint, face unlock, screen lock, device PIN, password manager, or security key. A dedicated biometric sensor is not required for every passkey.</p>
           )}
           <button className="auth-tab" onClick={() => setAuthView("forgot-password")}>Forgot password?</button>
         </>
