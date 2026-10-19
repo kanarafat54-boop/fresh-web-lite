@@ -979,3 +979,31 @@
     transition:none;
   }
 }
+
+
+/* Password visibility is communicated with an icon, never a visible Show/Hide word. */
+.auth-password-toggle {
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  height: 44px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  line-height: 1;
+  color: var(--fresh-text, #f4f6fb);
+}
+.auth-password-toggle svg {
+  display: block;
+  width: 21px;
+  height: 21px;
+}
+.auth-password-toggle:hover {
+  background: rgba(99, 91, 255, .2);
+  border-color: rgba(169, 157, 255, .72);
+}
+.auth-password-toggle:focus-visible {
+  outline: 3px solid #A99DFF;
+  outline-offset: 3px;
+}
+.auth-password-toggle:active { transform: scale(.96); }
