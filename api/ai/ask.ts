@@ -112,7 +112,7 @@ async function platformKnowledge(goal: string): Promise<Awaited<ReturnType<typeo
       const title = x.title.toLowerCase(), content = x.content.toLowerCase();
       return { x, score: words.reduce((n, w) => n + (title.includes(w) ? 2 : 0) + (content.includes(w) ? 1 : 0), 0) };
     })
-    .filter((s) => s.score > 0)
+    .filter((s) => s.score > 0 && (s.x.title.toLowerCase().split(/\s+/).some((token) => token.length > 3 && words.includes(token.replace(/[^a-z0-9]/g, "")) ) || s.score - (words.reduce((n, w) => n + (s.x.title.toLowerCase().includes(w) ? 2 : 0), 0)) >= 2))
     .sort((a, b) => b.score - a.score)
     .slice(0, 4)
     .map(({ x }) => ({
