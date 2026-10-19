@@ -10,12 +10,21 @@ export interface UserIdentity {
   kycStatus?: KycStatus;
 }
 
+export type FreshPrivacyPreferences = {
+  discoverable: boolean;
+  personalization: boolean;
+  announcements: boolean;
+};
+
 export interface UserPreferences {
   theme: ThemePreference;
   language: string;
   timezone: string;
   emailNotifications: boolean;
   pushNotifications: boolean;
+  experienceMode?: "simple" | "standard" | "advanced";
+  textSize?: "normal" | "large" | "larger";
+  privacy?: FreshPrivacyPreferences;
 }
 
 export interface UserStats {
