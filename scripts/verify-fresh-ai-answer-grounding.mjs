@@ -38,6 +38,11 @@ if (!activeAskApi.includes("if (FRESH_EXTERNAL_FACT_QUESTION.test(goal.trim()) &
     !activeAskApi.includes("I couldn't verify this answer from usable web sources right now.")) {
   throw new Error("Public factual questions must fail transparently when usable evidence is unavailable.");
 }
+if (!activeAskApi.includes("const declaredUrls = Array.isArray(claim.sourceUrls)") ||
+    !activeAskApi.includes("when those declared URLs are invalid or absent from the returned source list.") ||
+    !activeAskApi.includes("if (!source) return [];")) {
+  throw new Error("Research claims must not be silently attributed to a different source when declared provenance is invalid.");
+}
 const imageUi = fs.readFileSync("src/app/components/FreshAIUnified.tsx", "utf8");
 const imageApi = fs.readFileSync("api/ai/ask.ts", "utf8");
 if (!imageUi.includes('fetch("/api/ai/ask"') || !imageUi.includes("setImage(payload.image)") || !imageUi.includes("const imagePanel = image ?")) {
