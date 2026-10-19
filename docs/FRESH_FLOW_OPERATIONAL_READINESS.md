@@ -12,7 +12,7 @@
 - The live Supabase publication includes `public.direct_messages`; the client also has a five-second refresh fallback when Realtime is unavailable.
 - Read-only grant checks confirmed anonymous table-level SELECT/INSERT are revoked on `connection_requests`, `direct_messages`, `fresh_communication_threads`, and `fresh_communication_messages`. Authenticated column-level insert grants remain for the expected client fields.
 - This does **not** establish two-account end-to-end delivery, private event authorization, or full Fresh Connect runtime correctness. Those checks remain open.
-- Fresh ID device security is under implementation in PR #104. Its migration is not applied to production by this documentation change. Remote revocation blocks refresh for the selected session; already-issued access tokens may remain valid until expiry unless sensitive endpoints validate the session against Auth state.
+- Fresh ID device security is under implementation in the open device-security pull request. Its migration is not applied to production by this documentation change. Remote revocation blocks refresh for the selected session; already-issued access tokens may remain valid until expiry unless sensitive endpoints validate the session against Auth state.
 - Supabase Security Advisor still reports leaked-password protection disabled and three authenticated-callable SECURITY DEFINER functions. The account-creation RPC is intentionally privileged; helper-function exposure needs a separate review.
 
 ## Current status by capability
