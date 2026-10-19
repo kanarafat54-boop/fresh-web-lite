@@ -142,7 +142,7 @@ export function AuthForm() {
     return (
       <div className="auth-form">
         <h3>Choose a new password</h3>
-        <label className="auth-field"><span className="auth-field-label">New password</span><input className="auth-input" name="new-password" autoComplete="new-password" aria-label="New password" placeholder="Choose a new password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} /></label>
+        <label className="auth-field"><span className="auth-field-label">New password</span><input className="auth-input" name="new-password" autoComplete="new-password" aria-label="New password" placeholder="At least 12 characters" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={12} /></label>
         {error && <p className="auth-error">{error}</p>}
         {message && <p className="auth-message">{message}</p>}
         <button className="auth-submit-btn" onClick={() => void updatePassword(newPassword)} disabled={loading}>
