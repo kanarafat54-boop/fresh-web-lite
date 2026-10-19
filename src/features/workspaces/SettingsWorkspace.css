@@ -79,3 +79,13 @@
 .fresh-settings-account-item>div{display:grid;gap:4px;min-width:0}
 .fresh-settings-account-item small{color:var(--fresh-muted);overflow-wrap:anywhere}
 @media(max-width:640px){.fresh-settings-workspace-form{grid-template-columns:1fr}.fresh-settings-account-item{align-items:flex-start}.fresh-settings-page{padding-left:14px;padding-right:14px}}
+
+
+/* Fresh ID password controls: clear labels and mobile-safe fields */
+.fresh-settings-password-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:22px;padding-top:18px;border-top:1px solid var(--fresh-border)}
+.fresh-settings-password-form h3,.fresh-settings-password-form p{grid-column:1/-1;margin:0}
+.fresh-settings-password-form p{color:var(--fresh-muted);line-height:1.5}
+.fresh-settings-password-form label{display:grid;gap:7px;min-width:0;color:var(--fresh-muted);font-size:.88rem;font-weight:700}
+.fresh-settings-password-form input{width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--fresh-border);border-radius:12px;padding:12px;background:var(--fresh-surface-2);color:var(--fresh-text);font:inherit}
+.fresh-settings-password-form button{grid-column:1/-1;justify-self:start}
+@media(max-width:650px){.fresh-settings-password-form{grid-template-columns:minmax(0,1fr)}}

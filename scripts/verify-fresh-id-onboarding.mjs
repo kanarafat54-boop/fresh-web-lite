@@ -25,6 +25,11 @@ const checks = [
   ["src/features/workspaces/SettingsWorkspace.tsx", [
     [/create_fresh_id_account/, "users can retry workspace creation from Settings"],
     [/setWorkspaceMode\(user\.preferences\.preferredWorkspaceMode\)/, "settings reflects the selected onboarding mode"],
+    [/async function changePassword\(/, "settings offers a direct password-change flow"],
+    [/signInWithPassword\(\{\s*email: user\.email,\s*password: currentPassword/s, "password changes verify the current password first"],
+    [/updateUser\(\{ password: newPassword \}\)/, "settings submits the new password to Supabase Auth"],
+    [/newPassword !== confirmNewPassword/, "settings rejects mismatched new passwords"],
+    [/fresh-settings-password-form/, "password settings use a dedicated responsive form"],
   ]],
 ];
 

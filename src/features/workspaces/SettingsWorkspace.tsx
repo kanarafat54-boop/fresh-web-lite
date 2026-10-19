@@ -35,6 +35,10 @@ export default function SettingsWorkspace() {
   const [status, setStatus] = useState("");
   const [passkeys, setPasskeys] = useState<Array<{ id: string; friendly_name?: string; created_at: string }>>([]);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [passwordBusy, setPasswordBusy] = useState(false);
   const [freshAccounts, setFreshAccounts] = useState<Array<{ id: string; account_type: string; display_name: string; slug: string | null; status: string }>>([]);
   const [accountName, setAccountName] = useState("");
   const [accountType, setAccountType] = useState<"creator" | "business" | "developer" | "organization">("creator");
@@ -218,6 +222,52 @@ export default function SettingsWorkspace() {
     await requestPasswordReset(user.email);
     setStatus("If an account exists for this email, a password-reset link will be sent.");
   }
+  async function changePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!user?.email || isGuest) {
+      setStatus("Sign in with a registered Fresh ID before changing your password.");
+      return;
+    }
+    if (newPassword.length < 12) {
+      setStatus("Use at least 12 characters for your new password.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setStatus("The new passwords do not match.");
+      return;
+    }
+    if (currentPassword === newPassword) {
+      setStatus("Choose a new password different from your current password.");
+      return;
+    }
+
+    setPasswordBusy(true);
+    setStatus("");
+    try {
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+      if (verifyError) {
+        setStatus("Your current password could not be verified. Check it and try again.");
+        return;
+      }
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) {
+        setStatus("Fresh ID could not update your password. Please try again or use the password-reset email.");
+        return;
+      }
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      setStatus("Your password has been changed successfully.");
+    } catch {
+      setStatus("Fresh ID could not reach the password service. Check your connection and try again.");
+    } finally {
+      setPasswordBusy(false);
+    }
+  }
+
   async function signOut() {
     await logout();
     setActiveRoute("auth-signin");
@@ -255,6 +305,14 @@ export default function SettingsWorkspace() {
       <div className="fresh-settings-security-grid"><div><span>Session expires</span><strong>{prettyDate(session.expiresAt ? new Date(session.expiresAt * 1000).toISOString() : null)}</strong></div><div><span>Last refresh</span><strong>{prettyDate(session.lastRefreshedAt)}</strong></div><div><span>Passkey support</span><strong>{passkeySupported ? "Available on this device" : "Unavailable in this browser"}</strong></div></div>
       <div className="fresh-settings-actions"><button type="button" onClick={() => void sendPasswordReset()} disabled={!user || isGuest}>Send password reset link</button><button type="button" onClick={() => void addPasskey()} disabled={!user || isGuest || !passkeySupported || passkeyBusy}>{passkeyBusy ? "Working…" : "Add a passkey"}</button><button type="button" className="fresh-settings-danger" onClick={() => void signOut()} disabled={!user}>Sign out</button></div>
       <div className="fresh-settings-passkeys"><h3>Registered passkeys</h3>{passkeys.length === 0 ? <p>No passkeys are listed for this account yet.</p> : passkeys.map((item) => <div className="fresh-settings-passkey" key={item.id}><div><strong>{item.friendly_name || "Fresh ID passkey"}</strong><small>Added {prettyDate(item.created_at)}</small></div><button type="button" onClick={() => void deletePasskey(item.id)} disabled={passkeyBusy}>Remove</button></div>)}</div>
+      <form className="fresh-settings-password-form" onSubmit={(event) => void changePassword(event)}>
+        <h3>Change password</h3>
+        <p>Verify your current password before choosing a new one. Use at least 12 characters.</p>
+        <label>Current password<input type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required /></label>
+        <label>New password<input type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} minLength={12} required /></label>
+        <label>Confirm new password<input type="password" autoComplete="new-password" value={confirmNewPassword} onChange={(event) => setConfirmNewPassword(event.target.value)} minLength={12} required /></label>
+        <button className="fresh-settings-primary" type="submit" disabled={!user || isGuest || passwordBusy}>{passwordBusy ? "Updating password…" : "Change password"}</button>
+      </form>
       {(error || message || status) && <p className={error ? "fresh-settings-feedback error" : "fresh-settings-feedback"} role="status">{error || status || message}</p>}
     </section>
 
