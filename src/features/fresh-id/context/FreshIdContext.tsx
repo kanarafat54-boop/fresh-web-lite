@@ -135,7 +135,7 @@ interface FreshIdContextValue {
   authView: AuthView;
   passkeySupported: boolean;
   setAuthView: (view: AuthView) => void;
-  register: (email: string, password: string, username: string, fullName: string) => Promise<void>;
+  register: (email: string, password: string, username: string, fullName: string, accountType?: "personal" | "creator" | "business" | "developer" | "organization") => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginWithPasskey: () => Promise<void>;
   registerPasskey: () => Promise<Passkey | null>;
@@ -220,12 +220,18 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     const username = `${baseUsername}_${authUser.id.slice(0, 8)}`;
     const fullName = String(metadata.full_name ?? metadata.name ?? baseUsername);
 
+    const selectedAccountType = String(metadata.fresh_account_type ?? "personal");
+    const workspaceModes = ["personal", "creator", "business", "developer", "organization"] as const;
+    const preferredWorkspaceMode = workspaceModes.includes(selectedAccountType as (typeof workspaceModes)[number])
+      ? selectedAccountType as (typeof workspaceModes)[number]
+      : "personal";
+
     const { error: insertError } = await supabase.from("users").insert({
       id: authUser.id,
       username,
       email,
       full_name: fullName,
-      preferences: defaults.preferences,
+      preferences: { ...defaults.preferences, preferredWorkspaceMode },
     });
 
     if (insertError) {
@@ -237,6 +243,32 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       }
       setError("Your sign-in succeeded, but Fresh ID could not create your profile. Please try again.");
       return false;
+    }
+
+    if (preferredWorkspaceMode !== "personal") {
+      try {
+        const { data: existingAccounts, error: accountLookupError } = await supabase
+          .from("fresh_id_accounts")
+          .select("id")
+          .eq("owner_user_id", authUser.id)
+          .eq("account_type", preferredWorkspaceMode)
+          .limit(1);
+
+        if (accountLookupError) {
+          setMessage("Your Fresh ID was created, but workspace setup is pending. Open Settings to retry after the account service is available.");
+        } else if (!existingAccounts?.length) {
+          const { error: accountCreateError } = await supabase.rpc("create_fresh_id_account", {
+            p_account_type: preferredWorkspaceMode,
+            p_display_name: fullName.trim().slice(0, 120) || username,
+            p_slug: null,
+          });
+          if (accountCreateError) {
+            setMessage("Your Fresh ID is ready, but your selected workspace could not be created yet. You can retry from Settings.");
+          }
+        }
+      } catch {
+        setMessage("Your Fresh ID is ready, but workspace setup could not finish. You can retry from Settings.");
+      }
     }
 
     return true;
@@ -296,7 +328,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   }
-  async function register(email: string, password: string, username: string, fullName: string) {
+  async function register(email: string, password: string, username: string, fullName: string, accountType: "personal" | "creator" | "business" | "developer" | "organization" = "personal") {
     setError(null);
     setMessage(null);
     setLoading(true);
@@ -315,7 +347,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         password,
         options: {
           emailRedirectTo: new URL("/auth/sign-in", window.location.origin).toString(),
-          data: { username, full_name: fullName },
+          data: { username, full_name: fullName, fresh_account_type: accountType },
         },
       });
       data = result.data;
