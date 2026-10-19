@@ -8,6 +8,28 @@ import { useLayout } from "../../../app/contexts/useLayout";
 import { useFreshId } from "../context/FreshIdContext";
 import { supabase } from "../../../lib/supabase";
 
+type PasswordVisibilityIconProps = { visible: boolean };
+
+function PasswordVisibilityIcon({ visible }: PasswordVisibilityIconProps) {
+  return (
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {visible ? (
+        <>
+          <path d="M3 3l18 18" />
+          <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+          <path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c5.2 0 8.6 4.8 9.5 6.3a1.3 1.3 0 0 1 0 1.4 15 15 0 0 1-3.1 3.5" />
+          <path d="M6.2 6.2A15.4 15.4 0 0 0 2.5 11.3a1.3 1.3 0 0 0 0 1.4C3.4 14.2 6.8 19 12 19a10 10 0 0 0 3-.5" />
+        </>
+      ) : (
+        <>
+          <path d="M2.5 12s3.4-7 9.5-7 9.5 7 9.5 7-3.4 7-9.5 7-9.5-7-9.5-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 export function AuthForm() {
   const {
     login,
@@ -184,9 +206,9 @@ export function AuthForm() {
       )}
 
       <label className="auth-field"><span className="auth-field-label">Email address</span><input className="auth-input" name="email" autoComplete="email" aria-label="Email address" placeholder="you@example.com" type="email" value={email} onChange={(e) => setEmail(e.target.value.trimStart())} required /></label>
-      <div className="auth-field auth-password-field"><label className="auth-field-label" htmlFor="fresh-id-password">Password</label><input id="fresh-id-password" className="auth-input" name="password" autoComplete={mode === "login" ? "current-password" : "new-password"} aria-label="Password" placeholder={mode === "login" ? "Enter your password" : "At least 12 characters"} type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "register" ? 12 : undefined} /><button className="auth-password-toggle" type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? "Hide" : "Show"}</button></div>
+      <div className="auth-field auth-password-field"><label className="auth-field-label" htmlFor="fresh-id-password">Password</label><input id="fresh-id-password" className="auth-input" name="password" autoComplete={mode === "login" ? "current-password" : "new-password"} aria-label="Password" placeholder={mode === "login" ? "Enter your password" : "At least 12 characters"} type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "register" ? 12 : undefined} /><button className="auth-password-toggle" type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"}><PasswordVisibilityIcon visible={showPassword} /></button></div>
       {mode === "register" && (
-        <div className="auth-field auth-password-field"><label className="auth-field-label" htmlFor="fresh-id-confirm-password">Confirm password</label><input id="fresh-id-confirm-password" className="auth-input" name="confirm-password" autoComplete="new-password" aria-label="Confirm password" placeholder="Enter the same password again" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={12} /><button className="auth-password-toggle" type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"}>{showConfirmPassword ? "Hide" : "Show"}</button></div>
+        <div className="auth-field auth-password-field"><label className="auth-field-label" htmlFor="fresh-id-confirm-password">Confirm password</label><input id="fresh-id-confirm-password" className="auth-input" name="confirm-password" autoComplete="new-password" aria-label="Confirm password" placeholder="Enter the same password again" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={12} /><button className="auth-password-toggle" type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"}><PasswordVisibilityIcon visible={showConfirmPassword} /></button></div>
       )}
 
       {error && <p className="auth-error">{error}</p>}
