@@ -180,7 +180,7 @@ export default function SettingsWorkspace() {
       try {
         if (name === "notifications" && typeof Notification === "undefined") return [name, "unsupported"] as const;
         if (!navigator.permissions?.query) {
-          if (name === "notifications" && typeof Notification !== "undefined") return [name, Notification.permission] as const;
+          if (name === "notifications" && typeof Notification !== "undefined") return [name, Notification.permission === "default" ? "prompt" : Notification.permission] as const;
           return [name, "unknown"] as const;
         }
         const result = await navigator.permissions.query({ name: name === "camera" ? "camera" as PermissionName : name === "microphone" ? "microphone" as PermissionName : name === "location" ? "geolocation" as PermissionName : "notifications" as PermissionName });
@@ -228,7 +228,7 @@ export default function SettingsWorkspace() {
         const result = await navigator.permissions.query({ name: descriptor });
         setDevicePermissions((current) => ({ ...current, [name]: result.state }));
       } catch {
-        setDevicePermissions((current) => ({ ...current, [name]: name === "notifications" && typeof Notification !== "undefined" ? Notification.permission : "unknown" }));
+        setDevicePermissions((current) => ({ ...current, [name]: name === "notifications" && typeof Notification !== "undefined" ? (Notification.permission === "default" ? "prompt" : Notification.permission) : "unknown" }));
       }
       setStatus("Permission check finished. Your browser and operating system remain in control of this access.");
     } catch (error) {
