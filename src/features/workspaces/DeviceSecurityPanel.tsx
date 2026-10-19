@@ -74,7 +74,6 @@ export default function DeviceSecurityPanel({ userId, onSignOut }: Props) {
     const { error } = await supabase.from("fresh_id_devices").update({
       permission_states: next,
       last_seen_at: new Date().toISOString(),
-      revoked_at: null,
     }).eq("user_id", userId).eq("device_key", deviceKey);
     if (error) setStatus("Permission state changed on this device, but could not sync to Fresh ID. Apply the device registry migration and retry.");
   }, [deviceKey, userId]);
@@ -120,7 +119,6 @@ export default function DeviceSecurityPanel({ userId, onSignOut }: Props) {
       void supabase.from("fresh_id_devices").update({
         last_seen_at: new Date().toISOString(),
         permission_states: readPermissionSnapshot(),
-        revoked_at: null,
       }).eq("user_id", userId).eq("device_key", deviceKey);
     }, 60000);
     const refresh = window.setInterval(() => void refreshDevices(), 30000);
