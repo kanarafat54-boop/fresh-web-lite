@@ -6,6 +6,7 @@ const runtime = fs.readFileSync("src/core/fresh-ai/FreshNeuralGenerationRuntime.
 
 const required = [
   [services, 'FRESH_AI_IMAGE_ENGINE_URL', "optional image engine must be server-configured"],
+  [services, "isFreshAIImageEngineConfigured", "API must identify the configured-engine path"],
   [services, 'FRESH_AI_IMAGE_ENGINE_TOKEN', "engine token must remain server-side"],
   [services, 'contract: "fresh-image-v1"', "adapter must use the Fresh-owned request contract"],
   [services, 'modelId: "fresh-unified-1"', "adapter must preserve Fresh model identity"],
@@ -14,9 +15,12 @@ const required = [
   [services, 'endpoint.protocol !== "https:"', "remote engine must require HTTPS"],
   [services, 'payload.b64Json.length > MAX_IMAGE_BASE64_CHARS', "image payload must be bounded"],
   [services, 'payload.mimeType !== "image/png"', "image output type must be validated"],
+  [services, "pngSignature", "image bytes must be verified as PNG rather than trusting a MIME label"],
+  [services, "payload.b64Json.length % 4 !== 0", "base64 payload must be structurally valid"],
   [services, 'engine: "configured-image-engine"', "configured engine provenance must be exposed"],
   [services, 'engine: "fresh-native"', "native engine provenance must be exposed"],
   [ask, 'engine: "fresh-native" | "configured-image-engine"', "API result must type engine provenance"],
+  [ask, "isFreshAIImageEngineConfigured() && !uid", "configured image inference must require an authenticated account"],
   [ask, 'metadata: { size: generatedImage.size, engine: generatedImage.engine }', "persisted assets must retain engine provenance"],
   [runtime, 'status: "training-required"', "native image generation must remain honest until trained inference exists"],
 ];
