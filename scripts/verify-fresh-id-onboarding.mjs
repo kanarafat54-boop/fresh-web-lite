@@ -32,6 +32,8 @@ const checks = [
     [/fresh-settings-password-form/, "password settings use a dedicated responsive form"],
     [/list_fresh_id_sessions/, "settings loads authenticated device sessions"],
     [/revoke_fresh_id_session/, "settings can revoke a remote device session"],
+    [/signOut\(\{ scope: "others" \}\)/, "settings can sign out all other devices"],
+    [/Sign out all other devices/, "the remote sign-out-all control is visible"],
     [/requestDevicePermission\(/, "device access is requested only after a user action"],
     [/window\.isSecureContext/, "device permissions require a secure context"],
     [/access token may remain usable until it expires/, "remote session revocation explains access-token expiry limits"],
