@@ -58,6 +58,11 @@ required.push(["Account creation RPC requires an authenticated owner and creates
 required.push(["Workspace account types are distinct from platform security roles", accountMigration.includes("distinct from authentication identities and privileged platform roles") && accountMigration.includes("p_account_type not in ('creator', 'business', 'developer', 'organization')")]);
 required.push(["Account and membership policies avoid recursive RLS checks", accountMigration.includes("public.is_fresh_id_account_member(id)") && accountMigration.includes("public.is_fresh_id_account_owner(account_id)")]);
 
+const adminApi = fs.readFileSync(path.join(root, "api/admin/users.ts"), "utf8");
+const adminPanel = fs.readFileSync(path.join(root, "src/features/admin/AdminPanel.tsx"), "utf8");
+required.push(["Platform security roles are only user/admin, not account modes", freshUserTypes.includes('UserRole = "user" | "admin"') && adminApi.includes('["user", "admin"].includes(body.role)') && !adminApi.includes('["user", "creator", "developer", "business", "admin"].includes(body.role)')]);
+required.push(["Admin UI does not expose workspace modes as platform roles", adminPanel.includes('<option value="user">user</option><option value="admin">admin</option>') && !adminPanel.includes('<option value="creator">creator</option>')]);
+
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
   console.error("Fresh security contract failed:");
