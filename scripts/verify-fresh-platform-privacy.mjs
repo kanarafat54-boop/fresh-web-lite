@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 const engine = readFileSync("src/core/fresh-platform/FreshPlatformEngine.ts", "utf8");
+const migration = readFileSync("supabase/migrations/20261019090000_fresh_profile_privacy_settings.sql", "utf8");
 assert.match(engine, /function isUuid\(value: string\)/);
 assert.match(engine, /select\("id,username,full_name,verified,stats,identity"\)/);
 assert.match(engine, /requestedAudience = profile\?\.profile_visibility \?\? detailsResult\.data\?\.visibility \?\? "private"/);
@@ -8,4 +9,9 @@ assert.match(engine, /if \(!canView\) return null;[\s\S]*Load profile sections o
 assert.match(engine, /analytics_visibility === "connections" && isAcceptedConnection/);
 assert.match(engine, /activity_visibility === "connections" && isAcceptedConnection/);
 assert.match(engine, /authData\.user\.id !== viewerId/);
+assert.match(migration, /enable row level security/i);
+assert.match(migration, /profile_privacy_settings_select_own/);
+assert.match(migration, /auth\.uid\(\) = user_id/);
+assert.match(migration, /default .private./i);
+assert.match(migration, /revoke all on table public\.profile_privacy_settings from public, anon, authenticated/i);
 console.log("Fresh Protofile privacy contract passed.");
