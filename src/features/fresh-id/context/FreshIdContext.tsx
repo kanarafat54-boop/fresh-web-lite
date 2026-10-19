@@ -149,6 +149,8 @@ interface FreshIdContextValue {
   session: FreshSessionState;
 }
 
+const workspaceProvisioning = new Map<string, Promise<void>>();
+
 const FreshIdContext = createContext<FreshIdContextValue | undefined>(undefined);
 
 export function FreshIdProvider({ children }: { children: ReactNode }) {
@@ -253,32 +255,47 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     const selected = String(metadata.fresh_account_type ?? "personal");
     if (!["creator", "business", "developer", "organization"].includes(selected)) return;
 
+    const pending = workspaceProvisioning.get(authUser.id);
+    if (pending) {
+      await pending;
+      return;
+    }
+
+    const task = (async () => {
+      try {
+        const { data: existingAccounts, error: lookupError } = await supabase
+          .from("fresh_id_accounts")
+          .select("id")
+          .eq("owner_user_id", authUser.id)
+          .eq("account_type", selected)
+          .limit(1);
+
+        if (lookupError) {
+          setMessage("Your Fresh ID is ready, but workspace setup is pending. Open Settings to retry when workspace accounts are available.");
+          return;
+        }
+        if (existingAccounts?.length) return;
+
+        const { error: createError } = await supabase.rpc("create_fresh_id_account", {
+          p_account_type: selected,
+          p_display_name: fullName.trim().slice(0, 120) || String(metadata.username ?? "My Fresh workspace"),
+          p_slug: null,
+        });
+        if (createError) {
+          setMessage("Your Fresh ID is ready, but your selected workspace could not be created yet. You can retry from Settings.");
+          return;
+        }
+        setMessage("Your Fresh ID and " + selected + " workspace are ready.");
+      } catch {
+        setMessage("Your Fresh ID is ready, but workspace setup could not finish. You can retry from Settings.");
+      }
+    })();
+
+    workspaceProvisioning.set(authUser.id, task);
     try {
-      const { data: existingAccounts, error: lookupError } = await supabase
-        .from("fresh_id_accounts")
-        .select("id")
-        .eq("owner_user_id", authUser.id)
-        .eq("account_type", selected)
-        .limit(1);
-
-      if (lookupError) {
-        setMessage("Your Fresh ID is ready, but workspace setup is pending. Open Settings to retry when workspace accounts are available.");
-        return;
-      }
-      if (existingAccounts?.length) return;
-
-      const { error: createError } = await supabase.rpc("create_fresh_id_account", {
-        p_account_type: selected,
-        p_display_name: fullName.trim().slice(0, 120) || String(metadata.username ?? "My Fresh workspace"),
-        p_slug: null,
-      });
-      if (createError) {
-        setMessage("Your Fresh ID is ready, but your selected workspace could not be created yet. You can retry from Settings.");
-        return;
-      }
-      setMessage("Your Fresh ID and " + selected + " workspace are ready.");
-    } catch {
-      setMessage("Your Fresh ID is ready, but workspace setup could not finish. You can retry from Settings.");
+      await task;
+    } finally {
+      if (workspaceProvisioning.get(authUser.id) === task) workspaceProvisioning.delete(authUser.id);
     }
   }
 
