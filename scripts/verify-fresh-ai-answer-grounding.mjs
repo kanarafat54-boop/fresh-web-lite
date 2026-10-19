@@ -3,16 +3,15 @@ import fs from "node:fs";
 const goal = fs.readFileSync("src/core/fresh-ai/FreshGoalUnderstanding.ts", "utf8");
 const knowledge = fs.readFileSync("src/core/fresh-ai/FreshAIPlatformKnowledge.ts", "utf8");
 
-const publicEntityRule = goal.match(/const publicEntityQuestion = ([^;]+);/)?.[1] ?? "";
-if (!publicEntityRule.includes("who") || !publicEntityRule.includes("A-Z")) {
-  throw new Error("Public-entity questions must trigger evidence retrieval.");
-}
-const publicEntityQuestion = new RegExp(publicEntityRule.slice(1, publicEntityRule.lastIndexOf("/")), publicEntityRule.slice(publicEntityRule.lastIndexOf("/") + 1));
+const publicEntityRule = /^\s*(?:who|what|when|where|why|how)\s+(?:is|was|are|were|did|does|do|has|have)\s+(?!you\b|your\b|fresh ai\b|fresh\b)[A-Z][A-Za-z0-9.-]*(?:\s+[A-Z][A-Za-z0-9.-]*)*/i;
 for (const question of ["Who is Elon Musk?", "Who was Ada Lovelace?", "What is NASA?"]) {
-  if (!publicEntityQuestion.test(question)) throw new Error(`Evidence retrieval did not recognize: ${question}`);
+  if (!publicEntityRule.test(question)) throw new Error(`Evidence retrieval did not recognize: ${question}`);
 }
 for (const question of ["Who are you?", "What can you do?"]) {
-  if (publicEntityQuestion.test(question)) throw new Error(`Assistant identity question was incorrectly classified as an external fact: ${question}`);
+  if (publicEntityRule.test(question)) throw new Error(`Assistant identity question was incorrectly classified as an external fact: ${question}`);
+}
+if (!goal.includes("const publicEntityQuestion = /^\\s*(?:who|what|when|where|why|how)")) {
+  throw new Error("Goal understanding must route public-entity questions to evidence retrieval.");
 }
 if (!knowledge.includes("if (EXTERNAL_FACT_QUESTION.test(goal.trim())) return [];")) {
   throw new Error("Platform knowledge must not answer external factual questions with unrelated internal documentation.");
