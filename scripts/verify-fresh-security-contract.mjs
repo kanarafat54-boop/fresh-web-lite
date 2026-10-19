@@ -5,6 +5,7 @@ const root = process.cwd();
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 const supabaseClient = fs.readFileSync(path.join(root, "src/lib/supabase.ts"), "utf8");
 const freshId = fs.readFileSync(path.join(root, "src/features/fresh-id/context/FreshIdContext.tsx"), "utf8");
+const authForm = fs.readFileSync(path.join(root, "src/features/fresh-id/components/AuthForm.tsx"), "utf8");
 const freshUserTypes = fs.readFileSync(path.join(root, "src/features/fresh-id/types/user.ts"), "utf8");
 const settingsWorkspace = fs.readFileSync(path.join(root, "src/features/workspaces/SettingsWorkspace.tsx"), "utf8");
 const router = fs.readFileSync(path.join(root, "src/app/AppRouter.tsx"), "utf8");
@@ -62,6 +63,14 @@ const adminApi = fs.readFileSync(path.join(root, "api/admin/users.ts"), "utf8");
 const adminPanel = fs.readFileSync(path.join(root, "src/features/admin/AdminPanel.tsx"), "utf8");
 required.push(["Platform security roles are only user/admin, not account modes", freshUserTypes.includes('UserRole = "user" | "admin"') && adminApi.includes('["user", "admin"].includes(body.role)') && !adminApi.includes('["user", "creator", "developer", "business", "admin"].includes(body.role)')]);
 required.push(["Admin UI does not expose workspace modes as platform roles", adminPanel.includes('<option value="user">user</option><option value="admin">admin</option>') && !adminPanel.includes('<option value="creator">creator</option>')]);
+
+required.push(["Signup validates matching passwords before registration", authForm.includes("password !== confirmPassword")]);
+required.push(["Signup requires privacy/terms consent", authForm.includes("if (!policyAccepted)")]);
+required.push(["Password recovery requires matching new passwords and a 12-character minimum", authForm.includes("confirm-new-password") && authForm.includes("newPassword !== confirmNewPassword") && authForm.includes("minLength={12}")]);
+required.push(["Signup form uses timezone-safe date-only validation", authForm.includes("validateDateOfBirth(dateOfBirth)") && !authForm.includes("birthDate.toISOString().slice(0, 10) !== dateOfBirth")]);
+required.push(["Signup date picker uses the shared UTC date bound", authForm.includes("max={formatUtcDateInputValue()}")]);
+required.push(["Auth context reuses the same date-of-birth validator", freshId.includes("validateDateOfBirth(profile.dateOfBirth)") && !freshId.includes("const birthDate = new Date(`${profile.dateOfBirth}T00:00:00.000Z`)")]);
+required.push(["Date-of-birth unit tests are included in the package scripts", packageJson.scripts["test:fresh-id-date-of-birth"] === "node --experimental-strip-types scripts/test-fresh-id-date-of-birth.mjs"]);
 
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
