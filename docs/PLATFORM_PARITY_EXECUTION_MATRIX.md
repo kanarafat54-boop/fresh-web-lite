@@ -35,6 +35,18 @@ Observed gaps and cautions:
 | Trust and safety | Block/report, moderation, privacy controls, anti-spam and account recovery | Server-side enforcement, auditability, rate limits and accessible appeal/error paths |
 | Mobile/accessibility | Responsive layout, readable type, screen-reader support, low-bandwidth resilience | Test at small Android widths; no clipped controls; visible focus; retry/empty/loading states; avoid heavy initial downloads |
 
+## Fresh ID parity slice — implemented in this branch, pending CI/E2E
+
+- Signup now collects full name, username, email, password confirmation, date of birth, optional country/gender, consent, and a selected starting experience (personal, creator, business, developer, or organization).
+- Date-only age validation uses UTC calendar dates so users in Uganda and other UTC-positive time zones are not incorrectly rejected at midnight boundaries.
+- Private signup attributes are persisted to the owner-scoped `fresh_id_private_profiles` table, with temporary Auth metadata cleared only after the private row exists.
+- Password recovery now requires a matching new-password confirmation and a 12-character minimum.
+- Account type is explicitly a starting-experience preference, not an authorization role or automatic workspace creation. Real creator/business/developer/organization workspaces are separately created through authenticated Fresh ID workspace controls.
+- WhatsApp, Telegram, and TikTok login buttons are disabled and labelled as not connected; they must not appear to work before their official identity integrations are configured.
+- Automated gates cover password confirmation, consent, recovery validation, UTC date handling, private-profile metadata cleanup, and existing Fresh ID security contracts.
+
+Still required before marking Fresh ID **verified**: run CI on this branch; complete a real test-mailbox signup and confirmation; test duplicate username, password mismatch, recovery link, password reset, session restoration, selected workspace-mode persistence, and Home landing on the preview; verify private profile data remains owner-only. Do not use a real user's account as a test fixture.
+
 ## Delivery sequence
 
 1. **Reliability and identity:** Fresh ID, profile/privacy settings, RLS, storage, errors and mobile baseline.
