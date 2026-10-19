@@ -3,6 +3,7 @@ import { useLayout } from "../../app/contexts/useLayout";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
 import { supabase } from "../../lib/supabase";
 import type { FreshUser } from "../fresh-id/types/user";
+import DeviceSecurityPanel from "./DeviceSecurityPanel";
 import "./SettingsWorkspace.css";
 
 type Theme = "dark" | "light";
@@ -315,6 +316,8 @@ export default function SettingsWorkspace() {
       </form>
       {(error || message || status) && <p className={error ? "fresh-settings-feedback error" : "fresh-settings-feedback"} role="status">{error || status || message}</p>}
     </section>
+
+    {isAuthenticated && !isGuest && user?.id && <DeviceSecurityPanel userId={user.id} onSignOut={signOut} />}
 
     <section className="fresh-settings-card"><div><h2>Connected accounts</h2><p>Only verified profile links are marked connected. New provider linking is not yet enabled here.</p></div><div className="fresh-settings-provider-list">{providers.map((p) => <div className="fresh-settings-provider" key={p.id}><span className={"fresh-settings-provider-mark " + p.id}>{p.label.slice(0,1)}</span><strong>{p.label}</strong><span className={p.connected ? "fresh-settings-status good" : "fresh-settings-status"}>{p.connected ? "Connected" : "Not linked"}</span></div>)}</div></section>
 
