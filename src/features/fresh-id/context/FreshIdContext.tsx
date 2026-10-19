@@ -14,6 +14,7 @@ import type { User } from "@supabase/supabase-js";
 
 import { supabase } from "../../../lib/supabase";
 import type { FreshUser, LinkedAccount } from "../types/user";
+import { validateDateOfBirth } from "../utils/dateOfBirth";
 
 type Passkey = {
   id: string;
@@ -88,6 +89,7 @@ function createMockUser(): FreshUser {
 
 type AuthView = "form" | "check-email" | "reset-password" | "forgot-password";
 type EditableProfilePatch = Pick<Partial<FreshUser>, "fullName" | "username" | "preferences">;
+type ProfileProvisionResult = { ok: true; notice?: string } | { ok: false };
 
 export type FreshSessionState = {
   expiresAt: number | null;
@@ -135,7 +137,7 @@ interface FreshIdContextValue {
   authView: AuthView;
   passkeySupported: boolean;
   setAuthView: (view: AuthView) => void;
-  register: (email: string, password: string, username: string, fullName: string) => Promise<void>;
+  register: (email: string, password: string, username: string, fullName: string, profile: { dateOfBirth: string; country: string; gender: string; consentVersion: string }) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginWithPasskey: () => Promise<void>;
   registerPasskey: () => Promise<Passkey | null>;
@@ -200,6 +202,10 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         setSession({ expiresAt: session.expires_at ?? null, lastRefreshedAt: new Date().toISOString(), accessLevel: "authenticated" });
         await loadUserProfile(session.user);
+        // Email-confirmation redirects can establish a session without passing
+        // through the explicit login() path. Clean temporary signup metadata
+        // here as well, after private-profile persistence has been attempted.
+        await clearTemporarySignupMetadata(session.user);
       } else if (!isGuest) {
         setSession({ expiresAt: null, lastRefreshedAt: new Date().toISOString(), accessLevel: "signed-out" });
         setUser(null);
@@ -209,7 +215,77 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  async function provisionUserProfile(authUser: User): Promise<boolean> {
+  async function persistPrivateSignupProfile(authUser: User): Promise<boolean> {
+    const metadata = authUser.user_metadata ?? {};
+    if (typeof metadata.date_of_birth !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(metadata.date_of_birth)) return true;
+
+    const privateFields = {
+      country: typeof metadata.country === "string" ? metadata.country : null,
+      gender: typeof metadata.gender === "string" ? metadata.gender : null,
+      updated_at: new Date().toISOString(),
+    };
+    const { data: existing, error: lookupError } = await supabase
+      .from("fresh_id_private_profiles")
+      .select("user_id")
+      .eq("user_id", authUser.id)
+      .maybeSingle();
+
+    if (lookupError) {
+      setError("We couldn't verify your private signup profile. Please try again.");
+      return false;
+    }
+
+    const saveResult = existing
+      ? await supabase.from("fresh_id_private_profiles").update(privateFields).eq("user_id", authUser.id)
+      : await supabase.from("fresh_id_private_profiles").insert({
+          user_id: authUser.id,
+          date_of_birth: metadata.date_of_birth,
+          ...privateFields,
+          signup_consent_version: typeof metadata.signup_consent_version === "string" ? metadata.signup_consent_version : null,
+        });
+
+    if (saveResult.error) {
+      // Auth-state restoration and the explicit signup/login path can both
+      // reach this insert for the same user. A unique-key race is successful
+      // only when the row now exists for this exact authenticated user.
+      if (saveResult.error.code === "23505") {
+        const { data: racedProfile, error: racedLookupError } = await supabase
+          .from("fresh_id_private_profiles")
+          .select("user_id")
+          .eq("user_id", authUser.id)
+          .maybeSingle();
+        if (!racedLookupError && racedProfile?.user_id === authUser.id) return true;
+      }
+      setError("Your account was created, but your private signup details could not be saved. Please retry after signing in.");
+      return false;
+    }
+    return true;
+  }
+
+  async function clearTemporarySignupMetadata(authUser: User) {
+    if (typeof authUser.user_metadata?.date_of_birth !== "string") return;
+    const { data: privateProfile, error: privateProfileError } = await supabase
+      .from("fresh_id_private_profiles")
+      .select("user_id")
+      .eq("user_id", authUser.id)
+      .maybeSingle();
+    if (privateProfileError || !privateProfile) return;
+
+    const { error: metadataError } = await supabase.auth.updateUser({
+      data: {
+        date_of_birth: null,
+        country: null,
+        gender: null,
+        signup_consent_version: null,
+        signup_consent_at: null,
+      },
+    });
+    if (metadataError) {
+      setMessage("Your private signup details are saved, but temporary account metadata could not be cleared yet.");
+    }
+  }
+
+  async function provisionUserProfile(authUser: User): Promise<ProfileProvisionResult> {
     const defaults = defaultUserFields();
     const email = authUser.email ?? "";
     const metadata = authUser.user_metadata ?? {};
@@ -217,7 +293,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       .toLowerCase()
       .replace(/[^a-z0-9_]/g, "")
       .slice(0, 24) || "user";
-    const username = `${baseUsername}_${authUser.id.slice(0, 8)}`;
+    const username = String(metadata.username ?? `${baseUsername}_${authUser.id.slice(0, 8)}`).toLowerCase();
     const fullName = String(metadata.full_name ?? metadata.name ?? baseUsername);
 
     const { error: insertError } = await supabase.from("users").insert({
@@ -229,17 +305,48 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     });
 
     if (insertError) {
-      // Auth callbacks can race with the initial profile load. A duplicate
-      // primary key means the other callback already provisioned this profile.
+      // Auth callbacks can race with the initial profile load. Treat a duplicate
+      // primary key as success only when this exact authenticated user's row exists.
       if (insertError.code === "23505") {
         const { data: existing } = await supabase.from("users").select("id").eq("id", authUser.id).maybeSingle();
-        if (existing) return true;
+        if (existing) {
+          return { ok: await persistPrivateSignupProfile(authUser) };
+        }
+
+        // The Auth account may already exist when a username claim loses a race.
+        // Provision a collision-resistant temporary handle rather than leaving a
+        // confirmed account permanently unable to finish its Fresh ID profile.
+        const fallbackUsername = `fresh_${authUser.id.replace(/-/g, "").slice(0, 18)}`;
+        const fallbackInsert = await supabase.from("users").insert({
+          id: authUser.id,
+          username: fallbackUsername,
+          email,
+          full_name: fullName,
+          preferences: defaults.preferences,
+        });
+        if (!fallbackInsert.error) {
+          const privateSaved = await persistPrivateSignupProfile(authUser);
+          if (!privateSaved) return { ok: false };
+          return {
+            ok: true,
+            notice: `Your requested username was unavailable, so Fresh ID assigned @${fallbackUsername} for now. You can change it in Profile.`,
+          };
+        }
+
+        // Another auth callback may have completed the profile while the fallback
+        // insert was in flight. Recover only if the user's own row now exists.
+        if (fallbackInsert.error.code === "23505") {
+          const { data: racedProfile } = await supabase.from("users").select("id").eq("id", authUser.id).maybeSingle();
+          if (racedProfile) return { ok: await persistPrivateSignupProfile(authUser) };
+        }
       }
-      setError("Your sign-in succeeded, but Fresh ID could not create your profile. Please try again.");
-      return false;
+      setError(insertError.code === "23505"
+        ? "Fresh ID couldn't finish your profile because an account record conflicts. Please try signing in again or contact support."
+        : "Your sign-in succeeded, but Fresh ID could not create your profile. Please try again.");
+      return { ok: false };
     }
 
-    return true;
+    return { ok: await persistPrivateSignupProfile(authUser) };
   }
 
   async function loadUserProfile(authUser: User) {
@@ -259,7 +366,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
 
     if (!data) {
       const created = await provisionUserProfile(authUser);
-      if (!created) {
+      if (!created.ok) {
         await supabase.auth.signOut();
         setLoading(false);
         return;
@@ -277,17 +384,24 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setUser(dbRowToFreshUser(createdProfile as Record<string, unknown>));
+      const privateProfile = await supabase.from("fresh_id_private_profiles").select("date_of_birth,country,gender").eq("user_id", authUser.id).maybeSingle();
+      setUser({ ...dbRowToFreshUser(createdProfile as Record<string, unknown>), dateOfBirth: privateProfile.data?.date_of_birth ? String(privateProfile.data.date_of_birth) : undefined, country: privateProfile.data?.country ? String(privateProfile.data.country) : undefined, gender: privateProfile.data?.gender ? String(privateProfile.data.gender) : undefined });
       setIsGuest(false);
       setError(null);
-      setMessage("Your Fresh ID account is connected.");
+      setMessage(created.notice ?? "Your Fresh ID account is connected.");
       setLoading(false);
       return;
     }
 
+    const privateSaved = await persistPrivateSignupProfile(authUser);
+    if (!privateSaved) {
+      setLoading(false);
+      return;
+    }
     const currentUser = dbRowToFreshUser(data as Record<string, unknown>);
+    const privateProfile = await supabase.from("fresh_id_private_profiles").select("date_of_birth,country,gender").eq("user_id", authUser.id).maybeSingle();
 
-    setUser(currentUser);
+    setUser({ ...currentUser, dateOfBirth: privateProfile.data?.date_of_birth ? String(privateProfile.data.date_of_birth) : undefined, country: privateProfile.data?.country ? String(privateProfile.data.country) : undefined, gender: privateProfile.data?.gender ? String(privateProfile.data.gender) : undefined });
     setIsGuest(false);
     setError(null);
     setLoading(false);
@@ -296,13 +410,23 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   }
-  async function register(email: string, password: string, username: string, fullName: string) {
+  async function register(email: string, password: string, username: string, fullName: string, profile: { dateOfBirth: string; country: string; gender: string; consentVersion: string }) {
     setError(null);
     setMessage(null);
     setLoading(true);
 
-    if (!email || !password || !username || !fullName) {
-      setError("Please fill in all fields.");
+    if (!email || !password || !username || !fullName || !profile?.dateOfBirth) {
+      setError("Please complete all required Fresh ID fields.");
+      setLoading(false);
+      return;
+    }
+
+    if (
+      password.length < 12 ||
+      !/^[a-z0-9_]{3,24}$/.test(username) ||
+      validateDateOfBirth(profile.dateOfBirth) !== null
+    ) {
+      setError("Check your username, date of birth, minimum age, and password requirements.");
       setLoading(false);
       return;
     }
@@ -315,7 +439,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         password,
         options: {
           emailRedirectTo: new URL("/auth/sign-in", window.location.origin).toString(),
-          data: { username, full_name: fullName },
+          data: { username, full_name: fullName, date_of_birth: profile.dateOfBirth, country: profile.country || null, gender: profile.gender || null, signup_consent_version: profile.consentVersion, signup_consent_at: new Date().toISOString() },
         },
       });
       data = result.data;
@@ -344,6 +468,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
 
     await loadUserProfile(data.user);
+    await clearTemporarySignupMetadata(data.user);
   }
 
   async function login(email: string, password: string) {
@@ -376,6 +501,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
 
     await loadUserProfile(data.user);
+    await clearTemporarySignupMetadata(data.user);
   }
 
   async function loginWithPasskey() {
