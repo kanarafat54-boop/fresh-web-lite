@@ -37,5 +37,15 @@ for (const token of ["@media(max-width:900px)", "@media(max-width:520px)", "fres
   if (!homeCss.includes(token)) throw new Error(`Home responsive contract missing ${token}`);
 }
 
+const studioSource = fs.readFileSync(path.join(root, "src/features/workspaces/StudioWorkspace.tsx"), "utf8");
+const pipelineStart = studioSource.indexOf("const runFullPipeline = async () => {");
+const pipelineEnd = studioSource.indexOf("const runLocalWasm = async () => {", pipelineStart);
+if (pipelineStart < 0 || pipelineEnd <= pipelineStart) throw new Error("Studio pipeline readiness handler is missing");
+const pipelineHandler = studioSource.slice(pipelineStart, pipelineEnd);
+if (!pipelineHandler.includes("not connected end-to-end yet")) throw new Error("Studio pipeline must report its disconnected state honestly");
+if (pipelineHandler.includes("setTimeout") || pipelineHandler.includes("runMediaPipeline(")) {
+  throw new Error("Studio pipeline readiness must not simulate successful AI stages");
+}
+
 console.log("Fresh Experience 24 visible-product contracts: PASS");
 console.log("Primary navigation, Home command center, Flow surface, Create routing, search, AI, profile, and responsive Home contracts verified.");
