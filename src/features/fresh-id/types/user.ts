@@ -62,6 +62,9 @@ export interface FreshUser {
   username: string;
   email: string;
   fullName: string;
+  dateOfBirth?: string;
+  country?: string;
+  gender?: string;
 
   avatar?: string;
   bannerImage?: string;
