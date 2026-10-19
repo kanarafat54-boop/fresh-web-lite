@@ -1,7 +1,8 @@
 -- Fresh ID device/session management.
 -- Public RPC wrappers are SECURITY INVOKER. Privileged reads/deletes stay in a non-exposed schema.
 create schema if not exists private;
-revoke all on schema private from public, anon, authenticated;
+revoke create on schema private from public, anon, authenticated;
+revoke usage on schema private from public, anon;
 grant usage on schema private to authenticated;
 
 create or replace function private.list_fresh_id_sessions()
