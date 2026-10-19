@@ -3,7 +3,7 @@
  * Fresh ID Auth Form
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLayout } from "../../../app/contexts/useLayout";
 import { useFreshId } from "../context/FreshIdContext";
 import { supabase } from "../../../lib/supabase";
@@ -29,6 +29,10 @@ export function AuthForm() {
   const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [accountType, setAccountType] = useState<"personal" | "creator" | "business" | "developer" | "organization">("personal");
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -36,6 +40,12 @@ export function AuthForm() {
   const [socialError, setSocialError] = useState<string | null>(null);
   const [signupError, setSignupError] = useState<string | null>(null);
   const [policyAccepted, setPolicyAccepted] = useState(false);
+
+  useEffect(() => {
+    const path = window.location.pathname.replace(/\/+$/, "");
+    if (activeRoute === "auth-signup" || path === "/auth/sign-up") setMode("register");
+    else if (activeRoute === "auth-signin" || path === "/auth/sign-in") setMode("login");
+  }, [activeRoute]);
 
   async function handleSocialSignIn(provider: "google" | "apple" | "meta" | "x" | "whatsapp" | "telegram" | "tiktok") {
     setSocialError(null);
@@ -82,7 +92,16 @@ export function AuthForm() {
       return;
     }
 
-    await register(email.trim(), password, username.trim(), fullName.trim());
+    if (password.length < 12) {
+      setSignupError("Use at least 12 characters for a stronger password.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setSignupError("Your passwords do not match. Please check both fields.");
+      return;
+    }
+
+    await register(email.trim(), password, username.trim(), fullName.trim(), accountType);
   }
 
   function handleSubmit() {
@@ -129,7 +148,7 @@ export function AuthForm() {
     return (
       <div className="auth-form">
         <h3>Choose a new password</h3>
-        <label className="auth-field"><span className="auth-field-label">New password</span><input className="auth-input" name="new-password" autoComplete="new-password" aria-label="New password" placeholder="Choose a new password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} /></label>
+        <label className="auth-field"><span className="auth-field-label">New password</span><input className="auth-input" name="new-password" autoComplete="new-password" aria-label="New password" placeholder="At least 12 characters" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={12} /></label>
         {error && <p className="auth-error">{error}</p>}
         {message && <p className="auth-message">{message}</p>}
         <button className="auth-submit-btn" onClick={() => void updatePassword(newPassword)} disabled={loading}>
@@ -148,13 +167,27 @@ export function AuthForm() {
 
       {mode === "register" && (
         <>
-          <label className="auth-field"><span className="auth-field-label">Full name</span><input className="auth-input" name="name" autoComplete="name" aria-label="Full name" placeholder="Your full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required /></label>
-          <label className="auth-field"><span className="auth-field-label">Username</span><input className="auth-input" name="username" autoComplete="username" aria-label="Username" placeholder="Choose a username" value={username} onChange={(e) => setUsername(e.target.value)} required /></label>
+          <label className="auth-field"><span className="auth-field-label">Full name</span><input className="auth-input" name="name" autoComplete="name" aria-label="Full name" placeholder="Your full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required maxLength={80} /></label>
+          <label className="auth-field"><span className="auth-field-label">Username</span><input className="auth-input" name="username" autoComplete="username" aria-label="Username" placeholder="Choose a username" value={username} onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 32))} required minLength={3} maxLength={32} /></label>
+          <label className="auth-field">
+            <span className="auth-field-label">What kind of Fresh account do you need?</span>
+            <select className="auth-input" name="fresh-account-type" value={accountType} onChange={(e) => setAccountType(e.target.value as typeof accountType)}>
+              <option value="personal">Personal — social, search and everyday use</option>
+              <option value="creator">Creator — publish and grow an audience</option>
+              <option value="business">Business — manage a business presence</option>
+              <option value="developer">Developer — build and integrate tools</option>
+              <option value="organization">Organization — collaborate with a team</option>
+            </select>
+            <small className="auth-field-help">Creator, business, developer and organization choices create a workspace after your Fresh ID is authenticated. You can add more workspaces later.</small>
+          </label>
         </>
       )}
 
-      <label className="auth-field"><span className="auth-field-label">Email address</span><input className="auth-input" name="email" autoComplete="email" aria-label="Email address" placeholder="you@example.com" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
-      <label className="auth-field"><span className="auth-field-label">Password</span><input className="auth-input" name="password" autoComplete={mode === "login" ? "current-password" : "new-password"} aria-label="Password" placeholder={mode === "login" ? "Enter your password" : "Create a password"} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "register" ? 8 : undefined} /></label>
+      <label className="auth-field"><span className="auth-field-label">Email address</span><input className="auth-input" name="email" autoComplete="email" aria-label="Email address" placeholder="you@example.com" type="email" value={email} onChange={(e) => setEmail(e.target.value.trimStart())} required /></label>
+      <div className="auth-field auth-password-field"><label className="auth-field-label" htmlFor="fresh-id-password">Password</label><input id="fresh-id-password" className="auth-input" name="password" autoComplete={mode === "login" ? "current-password" : "new-password"} aria-label="Password" placeholder={mode === "login" ? "Enter your password" : "At least 12 characters"} type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "register" ? 12 : undefined} /><button className="auth-password-toggle" type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? "Hide" : "Show"}</button></div>
+      {mode === "register" && (
+        <div className="auth-field auth-password-field"><label className="auth-field-label" htmlFor="fresh-id-confirm-password">Confirm password</label><input id="fresh-id-confirm-password" className="auth-input" name="confirm-password" autoComplete="new-password" aria-label="Confirm password" placeholder="Enter the same password again" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={12} /><button className="auth-password-toggle" type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"}>{showConfirmPassword ? "Hide" : "Show"}</button></div>
+      )}
 
       {error && <p className="auth-error">{error}</p>}
       {signupError && <p className="auth-error">{signupError}</p>}

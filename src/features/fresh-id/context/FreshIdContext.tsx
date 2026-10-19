@@ -135,7 +135,7 @@ interface FreshIdContextValue {
   authView: AuthView;
   passkeySupported: boolean;
   setAuthView: (view: AuthView) => void;
-  register: (email: string, password: string, username: string, fullName: string) => Promise<void>;
+  register: (email: string, password: string, username: string, fullName: string, accountType?: "personal" | "creator" | "business" | "developer" | "organization") => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginWithPasskey: () => Promise<void>;
   registerPasskey: () => Promise<Passkey | null>;
@@ -148,6 +148,8 @@ interface FreshIdContextValue {
   updatePassword: (newPassword: string) => Promise<void>;
   session: FreshSessionState;
 }
+
+const workspaceProvisioning = new Map<string, Promise<void>>();
 
 const FreshIdContext = createContext<FreshIdContextValue | undefined>(undefined);
 
@@ -220,12 +222,18 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     const username = `${baseUsername}_${authUser.id.slice(0, 8)}`;
     const fullName = String(metadata.full_name ?? metadata.name ?? baseUsername);
 
+    const selectedAccountType = String(metadata.fresh_account_type ?? "personal");
+    const workspaceModes = ["personal", "creator", "business", "developer", "organization"] as const;
+    const preferredWorkspaceMode = workspaceModes.includes(selectedAccountType as (typeof workspaceModes)[number])
+      ? selectedAccountType as (typeof workspaceModes)[number]
+      : "personal";
+
     const { error: insertError } = await supabase.from("users").insert({
       id: authUser.id,
       username,
       email,
       full_name: fullName,
-      preferences: defaults.preferences,
+      preferences: { ...defaults.preferences, preferredWorkspaceMode },
     });
 
     if (insertError) {
@@ -240,6 +248,55 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
 
     return true;
+  }
+
+  async function ensureSelectedWorkspace(authUser: User, fullName: string) {
+    const metadata = authUser.user_metadata ?? {};
+    const selected = String(metadata.fresh_account_type ?? "personal");
+    if (!["creator", "business", "developer", "organization"].includes(selected)) return;
+
+    const pending = workspaceProvisioning.get(authUser.id);
+    if (pending) {
+      await pending;
+      return;
+    }
+
+    const task = (async () => {
+      try {
+        const { data: existingAccounts, error: lookupError } = await supabase
+          .from("fresh_id_accounts")
+          .select("id")
+          .eq("owner_user_id", authUser.id)
+          .eq("account_type", selected)
+          .limit(1);
+
+        if (lookupError) {
+          setMessage("Your Fresh ID is ready, but workspace setup is pending. Open Settings to retry when workspace accounts are available.");
+          return;
+        }
+        if (existingAccounts?.length) return;
+
+        const { error: createError } = await supabase.rpc("create_fresh_id_account", {
+          p_account_type: selected,
+          p_display_name: fullName.trim().slice(0, 120) || String(metadata.username ?? "My Fresh workspace"),
+          p_slug: null,
+        });
+        if (createError) {
+          setMessage("Your Fresh ID is ready, but your selected workspace could not be created yet. You can retry from Settings.");
+          return;
+        }
+        setMessage("Your Fresh ID and " + selected + " workspace are ready.");
+      } catch {
+        setMessage("Your Fresh ID is ready, but workspace setup could not finish. You can retry from Settings.");
+      }
+    })();
+
+    workspaceProvisioning.set(authUser.id, task);
+    try {
+      await task;
+    } finally {
+      if (workspaceProvisioning.get(authUser.id) === task) workspaceProvisioning.delete(authUser.id);
+    }
   }
 
   async function loadUserProfile(authUser: User) {
@@ -277,10 +334,12 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setUser(dbRowToFreshUser(createdProfile as Record<string, unknown>));
+      const provisionedUser = dbRowToFreshUser(createdProfile as Record<string, unknown>);
+      setUser(provisionedUser);
       setIsGuest(false);
       setError(null);
       setMessage("Your Fresh ID account is connected.");
+      await ensureSelectedWorkspace(authUser, provisionedUser.fullName);
       setLoading(false);
       return;
     }
@@ -290,19 +349,35 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     setUser(currentUser);
     setIsGuest(false);
     setError(null);
+    await ensureSelectedWorkspace(authUser, currentUser.fullName);
     setLoading(false);
     } catch {
       setError("We couldn't finish loading your Fresh ID profile. Check your connection and try again.");
       setLoading(false);
     }
   }
-  async function register(email: string, password: string, username: string, fullName: string) {
+  async function register(email: string, password: string, username: string, fullName: string, accountType: "personal" | "creator" | "business" | "developer" | "organization" = "personal") {
     setError(null);
     setMessage(null);
     setLoading(true);
 
     if (!email || !password || !username || !fullName) {
       setError("Please fill in all fields.");
+      setLoading(false);
+      return;
+    }
+    if (password.length < 12) {
+      setError("Use at least 12 characters for a stronger password.");
+      setLoading(false);
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]{3,32}$/.test(username)) {
+      setError("Username must be 3–32 characters using letters, numbers or underscores.");
+      setLoading(false);
+      return;
+    }
+    if (!["personal", "creator", "business", "developer", "organization"].includes(accountType)) {
+      setError("Choose a valid Fresh account type.");
       setLoading(false);
       return;
     }
@@ -315,7 +390,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         password,
         options: {
           emailRedirectTo: new URL("/auth/sign-in", window.location.origin).toString(),
-          data: { username, full_name: fullName },
+          data: { username, full_name: fullName, fresh_account_type: accountType },
         },
       });
       data = result.data;

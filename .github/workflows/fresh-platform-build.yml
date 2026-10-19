@@ -33,6 +33,8 @@ jobs:
         run: npm run test:fresh-runtime-capabilities
       - name: Phase 0 messaging security contract
         run: npm run test:phase0-security
+      - name: Fresh ID signup and account-type contract
+        run: npm run test:fresh-id-onboarding
       - name: Fresh platform parity contract
         run: npm run test:fresh-platform-parity
       - name: Security/auth contract
