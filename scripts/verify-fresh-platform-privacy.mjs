@@ -1,0 +1,11 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+const engine = readFileSync("src/core/fresh-platform/FreshPlatformEngine.ts", "utf8");
+assert.match(engine, /function isUuid\(value: string\)/);
+assert.match(engine, /select\("id,username,full_name,verified,stats,identity"\)/);
+assert.match(engine, /requestedAudience = profile\?\.profile_visibility \?\? detailsResult\.data\?\.visibility \?\? "private"/);
+assert.match(engine, /if \(!canView\) return null;[\s\S]*Load profile sections only after the viewer passes the audience check/);
+assert.match(engine, /analytics_visibility === "connections" && isAcceptedConnection/);
+assert.match(engine, /activity_visibility === "connections" && isAcceptedConnection/);
+assert.match(engine, /authData\.user\.id !== viewerId/);
+console.log("Fresh Protofile privacy contract passed.");
