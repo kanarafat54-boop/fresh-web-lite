@@ -240,6 +240,30 @@ export default function SettingsWorkspace() {
     }
   }
 
+  async function signOutOtherDevices() {
+    if (!window.confirm("Sign out every other device using this Fresh ID? This device will stay signed in.")) return;
+    setSessionsLoading(true);
+    setStatus("");
+    try {
+      const { error: signOutError } = await supabase.auth.signOut({ scope: "others" });
+      if (signOutError) {
+        setStatus("Fresh ID could not sign out other devices. Please try again.");
+        return;
+      }
+      const { data, error: listError } = await supabase.rpc("list_fresh_id_sessions");
+      if (listError) {
+        setDeviceSessions((current) => current.filter((item) => item.is_current));
+      } else {
+        setDeviceSessions((data ?? []) as FreshIdDeviceSession[]);
+      }
+      setStatus("Fresh ID requested sign-out for every other session. Previously issued access tokens may remain valid until they expire.");
+    } catch {
+      setStatus("Fresh ID could not reach the session service. Check your connection and try again.");
+    } finally {
+      setSessionsLoading(false);
+    }
+  }
+
   async function revokeDeviceSession(sessionId: string) {
     setRevokingSessionId(sessionId);
     setStatus("");
@@ -430,6 +454,7 @@ export default function SettingsWorkspace() {
       <div className="fresh-settings-passkeys"><h3>Registered passkeys</h3>{passkeys.length === 0 ? <p>No passkeys are listed for this account yet.</p> : passkeys.map((item) => <div className="fresh-settings-passkey" key={item.id}><div><strong>{item.friendly_name || "Fresh ID passkey"}</strong><small>Added {prettyDate(item.created_at)}</small></div><button type="button" onClick={() => void deletePasskey(item.id)} disabled={passkeyBusy}>Remove</button></div>)}</div>
       <section className="fresh-settings-device-sessions" aria-labelledby="fresh-id-devices-heading">
         <div><h3 id="fresh-id-devices-heading">Devices signed in to Fresh ID</h3><p>Review active sessions and sign out a device you no longer recognize. This list comes from the authentication service, not a device-name guess.</p></div>
+        <button type="button" className="fresh-settings-danger fresh-settings-signout-others" onClick={() => void signOutOtherDevices()} disabled={!isAuthenticated || isGuest || sessionsLoading}>Sign out all other devices</button>
         {sessionsLoading ? <p>Loading your signed-in devices…</p> : deviceSessions.length === 0 ? <p>No other active sessions are listed, or session management has not been enabled yet.</p> : deviceSessions.map((item) => <article className="fresh-settings-device-session" key={item.session_id}>
           <div className="fresh-settings-device-session-details"><strong>{item.is_current ? "This device" : (item.user_agent || "Browser or device session")}</strong><small>Last refreshed: {prettyDate(item.updated_at)} · Signed in: {prettyDate(item.created_at)}</small>{item.ip_address && <small>IP address: {item.ip_address}</small>}</div>
           {item.is_current ? <span className="fresh-settings-status good">Current session</span> : <button type="button" className="fresh-settings-danger" onClick={() => void revokeDeviceSession(item.session_id)} disabled={revokingSessionId !== null}>{revokingSessionId === item.session_id ? "Signing out…" : "Sign out device"}</button>}
