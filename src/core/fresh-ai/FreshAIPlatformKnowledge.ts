@@ -7,7 +7,7 @@ import type { Evidence } from "./FreshAIArchitecture.js";
  */
 const KB_PROJECT = "fresh-web-lite-platform";
 const IDENTITY = /\b(who are you|what are you|what can you do|what are you able|introduce yourself|your (abilities|capabilities|powers))\b/i;
-const EXTERNAL_FACT_QUESTION = /^\s*(?:who|what|when|where|why|how)\s+(?:is|was|are|were|did|does|do|has|have)\s+(?!you\b|your\b|fresh ai\b|fresh\b)[A-Z][A-Za-z0-9.-]*(?:\s+[A-Z][A-Za-z0-9.-]*)*/;
+const EXTERNAL_FACT_QUESTION = /^\s*(?:who|what|when|where|why|how)\s+(?:is|was|are|were|did|does|do|has|have)\s+(?!you\b|your\b|fresh ai\b|fresh\b)[A-Z][A-Za-z0-9.-]*(?:\s+[A-Z][A-Za-z0-9.-]*)*/i;
 const STOP = new Set(["fresh", "what", "does", "about", "that", "this", "have", "your", "from", "tell", "show", "explain", "please", "there", "their", "which", "would", "could", "should", "when", "where", "into", "than", "then", "them", "they", "been", "being", "also", "just", "like", "make", "made", "more", "most", "some", "such", "only", "over", "very", "will", "with", "lite", "web", "work", "works"]);
 
 type Row = { id: string; title: string; content: string; source: string | null; confidence: number | string | null; rank?: number | string };
