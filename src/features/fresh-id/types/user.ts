@@ -10,6 +10,8 @@ export interface UserIdentity {
   kycStatus?: KycStatus;
 }
 
+export type FreshAccountType = "personal" | "creator" | "business" | "developer" | "organization";
+
 export type FreshPrivacyPreferences = {
   discoverable: boolean;
   personalization: boolean;
@@ -22,6 +24,7 @@ export interface UserPreferences {
   timezone: string;
   emailNotifications: boolean;
   pushNotifications: boolean;
+  accountType?: FreshAccountType;
   experienceMode?: "simple" | "standard" | "advanced";
   textSize?: "normal" | "large" | "larger";
   privacy?: FreshPrivacyPreferences;
