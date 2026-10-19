@@ -22,7 +22,7 @@ export default function SettingsWorkspace() {
   const { user, isAuthenticated, isGuest, loading, error, message, updateUser, logout, requestPasswordReset, passkeySupported, registerPasskey, listPasskeys, removePasskey, session } = useFreshId();
   const [theme, setTheme] = useState<Theme>("dark");
   const [experienceMode, setExperienceMode] = useState<"simple" | "standard" | "advanced">("simple");
-  const [accountType, setAccountType] = useState<"personal" | "creator" | "business" | "developer" | "organization">("personal");
+  const [workspaceMode, setWorkspaceMode] = useState<"personal" | "creator" | "business" | "developer" | "organization">("personal");
   const [textSize, setTextSize] = useState("normal");
   const [emailUpdates, setEmailUpdates] = useState(true);
   const [fullName, setFullName] = useState("");
@@ -57,8 +57,8 @@ export default function SettingsWorkspace() {
       setTheme(user.preferences.theme);
       document.documentElement.dataset.theme = user.preferences.theme;
     }
-    if (user?.preferences?.accountType) {
-      setAccountType(user.preferences.accountType);
+    if (user?.preferences?.preferredWorkspaceMode) {
+      setWorkspaceMode(user.preferences.workspaceMode);
     }
     if (user?.preferences?.experienceMode) {
       setExperienceMode(user.preferences.experienceMode);
@@ -100,8 +100,8 @@ export default function SettingsWorkspace() {
   }
 
   const changeAccountType = (next: "personal" | "creator" | "business" | "developer" | "organization") => {
-    setAccountType(next);
-    void persistPreferenceSettings({ accountType: next });
+    setWorkspaceMode(next);
+    void persistPreferenceSettings({ preferredWorkspaceMode: next });
   };
 
   const changeExperienceMode = (next: "simple" | "standard" | "advanced") => {
@@ -207,7 +207,7 @@ export default function SettingsWorkspace() {
 
     <section className="fresh-settings-card"><div><h2>Connected accounts</h2><p>Only verified profile links are marked connected. New provider linking is not yet enabled here.</p></div><div className="fresh-settings-provider-list">{providers.map((p) => <div className="fresh-settings-provider" key={p.id}><span className={"fresh-settings-provider-mark " + p.id}>{p.label.slice(0,1)}</span><strong>{p.label}</strong><span className={p.connected ? "fresh-settings-status good" : "fresh-settings-status"}>{p.connected ? "Connected" : "Not linked"}</span></div>)}</div></section>
 
-    <section className="fresh-settings-card"><div><h2>Your Fresh account type</h2><p>Choose the tools and workspace style that fit you. This setting does not grant administrator rights or change security permissions; Fresh ID controls those separately.</p></div><label className="fresh-settings-inline-field">Account type<select value={accountType} onChange={(e) => changeAccountType(e.target.value as typeof accountType)}><option value="personal">Personal — everyday Fresh use</option><option value="creator">Creator — publish and build an audience</option><option value="business">Business — manage a business presence</option><option value="developer">Developer — build with Fresh tools</option><option value="organization">Organization — coordinate a team</option></select></label><p className="fresh-settings-help">Your identity stays the same if you change this preference. Account roles, ownership and access remain enforced by Fresh ID and server-side policies.</p></section>
+    <section className="fresh-settings-card"><div><h2>Your Fresh account type</h2><p>Choose the tools and workspace style that fit you. This setting does not grant administrator rights or change security permissions; Fresh ID controls those separately.</p></div><label className="fresh-settings-inline-field">Account type<select value={workspaceMode} onChange={(e) => changeAccountType(e.target.value as typeof workspaceMode)}><option value="personal">Personal — everyday Fresh use</option><option value="creator">Creator — publish and build an audience</option><option value="business">Business — manage a business presence</option><option value="developer">Developer — build with Fresh tools</option><option value="organization">Organization — coordinate a team</option></select></label><p className="fresh-settings-help">Your identity stays the same if you change this preference. Account roles, ownership and access remain enforced by Fresh ID and server-side policies.</p></section>
 
     <section className="fresh-settings-card"><div><h2>How Fresh works for you</h2><p>Choose how much detail you want to see. You can change this at any time, and your other settings stay the same.</p></div><div className="fresh-settings-choice-row" role="group" aria-label="Experience level"><button type="button" className={experienceMode === "simple" ? "selected" : ""} onClick={() => changeExperienceMode("simple")} aria-pressed={experienceMode === "simple"}><span><strong>Simple</strong><small>Fewer choices and clearer steps</small></span></button><button type="button" className={experienceMode === "standard" ? "selected" : ""} onClick={() => changeExperienceMode("standard")} aria-pressed={experienceMode === "standard"}><span><strong>Standard</strong><small>More tools on your home screen</small></span></button><button type="button" className={experienceMode === "advanced" ? "selected" : ""} onClick={() => changeExperienceMode("advanced")} aria-pressed={experienceMode === "advanced"}><span><strong>Advanced</strong><small>More of the available controls</small></span></button></div><p className="fresh-settings-help">Simple mode does not remove your account or data. Use “Show more features” on Home whenever you need extra tools.</p></section>
 
