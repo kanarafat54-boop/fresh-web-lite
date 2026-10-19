@@ -37,6 +37,7 @@ export function AuthForm() {
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
   const [signupError, setSignupError] = useState<string | null>(null);
@@ -120,6 +121,13 @@ export function AuthForm() {
     });
   }
 
+  async function handlePasswordUpdate() {
+    if (newPassword.length < 12) { setSignupError("Use a password with at least 12 characters."); return; }
+    if (newPassword !== confirmNewPassword) { setSignupError("Your new passwords do not match."); return; }
+    setSignupError(null);
+    await updatePassword(newPassword);
+  }
+
   function handleSubmit() {
     if (mode === "login") {
       void login(email, password);
@@ -174,10 +182,12 @@ export function AuthForm() {
     return (
       <div className="auth-form">
         <h3>Choose a new password</h3>
-        <label className="auth-field"><span className="auth-field-label">New password</span><input className="auth-input" name="new-password" autoComplete="new-password" aria-label="New password" placeholder="Choose a new password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} /></label>
+        <label className="auth-field"><span className="auth-field-label">New password</span><input className="auth-input" name="new-password" autoComplete="new-password" aria-label="New password" placeholder="Choose a new password (12+ characters)" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={12} /></label>
+        <label className="auth-field"><span className="auth-field-label">Confirm new password</span><input className="auth-input" name="confirm-new-password" autoComplete="new-password" aria-label="Confirm new password" placeholder="Enter the new password again" type="password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} required minLength={12} /></label>
         {error && <p className="auth-error">{error}</p>}
+        {signupError && <p className="auth-error">{signupError}</p>}
         {message && <p className="auth-message">{message}</p>}
-        <button className="auth-submit-btn" onClick={() => void updatePassword(newPassword)} disabled={loading}>
+        <button className="auth-submit-btn" onClick={() => void handlePasswordUpdate()} disabled={loading}>
           {loading ? "Updating..." : "Update Password"}
         </button>
       </div>
