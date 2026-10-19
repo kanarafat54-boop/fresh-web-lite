@@ -46,7 +46,7 @@ required.push(["Browser cannot request privileged profile fields during provisio
 required.push(["Profile update API is typed to editable fields only", freshId.includes('type EditableProfilePatch = Pick<Partial<FreshUser>, "fullName" | "username" | "preferences">') && freshId.includes("updateUser(patch: EditableProfilePatch)")]);
 required.push(["Account type is distinct from privileged role", freshUserTypes.includes('FreshAccountType = "personal" | "creator" | "business" | "developer" | "organization"') && settingsWorkspace.includes("does not grant administrator rights")]);
 required.push(["Settings sync account preferences through Fresh ID", settingsWorkspace.includes("persistPreferenceSettings") && settingsWorkspace.includes("updateUser({ preferences: { ...user.preferences, ...patch } })")]);
-required.push(["Privacy preferences are account-syncable and remain locally usable", freshUserTypes.includes("privacy?: FreshPrivacyPreferences") && settingsWorkspace.includes('persistPreferenceSettings({ privacy: next })'));
+required.push(["Privacy preferences are account-syncable and remain locally usable", freshUserTypes.includes("privacy?: FreshPrivacyPreferences") && settingsWorkspace.includes('persistPreferenceSettings({ privacy: next })')]);
 
 required.push(["Settings do not misrepresent saved privacy preferences as enforced controls", settingsWorkspace.includes("not yet universal enforcement switches") && settingsWorkspace.includes("does not yet enforce visibility across every profile or search service")]);
 required.push(["Guest preference changes are clearly separated from registered-account persistence", settingsWorkspace.includes("if (!user || isGuest)") && settingsWorkspace.includes("saved on this device only")]);
