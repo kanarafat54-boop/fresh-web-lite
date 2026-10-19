@@ -85,15 +85,20 @@ async function research(goal: string): Promise<Evidence[]> {
     const r = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" }, signal: ac.signal, body: JSON.stringify({ query: goal, mode, maxSources: 10 }) });
     if (!r.ok) return [];
     const p = await r.json() as { claims?: Array<{ id?: string; text?: string; confidence?: number; sourceUrls?: string[] }>; sources?: Array<{ title?: string; url?: string; snippet?: string; publishedAt?: string }>; runId?: string };
-    const claims = (p.claims ?? []).filter(x => x.text);
-    const sources = p.sources ?? [];
-    const sourceByUrl = new Map(sources.filter(x => x.url).map(x => [x.url as string, x]));
-    if (claims.length) return claims.map((claim, index) => {
-      const sourceUrl = claim.sourceUrls?.[0] || sources[index]?.url || "fresh-research";
-      const source = sourceByUrl.get(sourceUrl) || sources[index];
-      return { id: claim.id || `research-${p.runId || "run"}-${index + 1}`, source: sourceUrl, claim: claim.text as string, observedAt: source?.publishedAt, confidence: typeof claim.confidence === "number" ? claim.confidence : .7 };
+    const sources = (p.sources ?? []).filter((source) => {
+      if (!source.url) return false;
+      try { const u = new URL(source.url); return u.protocol === "https:" || u.protocol === "http:"; } catch { return false; }
     });
-    return sources.filter(x => x.url && (x.snippet || x.title)).map((source, index) => ({ id: `research-${p.runId || "run"}-${index + 1}`, source: source.url as string, claim: source.snippet || source.title as string, observedAt: source.publishedAt, confidence: .6 }));
+    const sourceByUrl = new Map(sources.map((x) => [x.url as string, x]));
+    const claims = (p.claims ?? []).filter((x) => typeof x.text === "string" && x.text.trim());
+    const groundedClaims = claims.flatMap((claim, index) => {
+      const sourceUrl = (claim.sourceUrls ?? []).find((url) => sourceByUrl.has(url)) || (sources[index]?.url as string | undefined);
+      if (!sourceUrl) return [];
+      const source = sourceByUrl.get(sourceUrl);
+      return [{ id: claim.id || `research-${p.runId || "run"}-${index + 1}`, source: sourceUrl, claim: claim.text as string, observedAt: source?.publishedAt, confidence: typeof claim.confidence === "number" ? claim.confidence : .7 }];
+    });
+    if (groundedClaims.length) return groundedClaims;
+    return sources.filter(x => x.snippet || x.title).map((source, index) => ({ id: `research-${p.runId || "run"}-${index + 1}`, source: source.url as string, claim: source.snippet || source.title as string, observedAt: source.publishedAt, confidence: .6 }));
   } catch { return []; } finally { clearTimeout(timer); }
 }
 function memory(userId: string | null) { const c = service(); return { search: async (q: string, scope?: FreshMemoryRecord["scope"]): Promise<FreshMemoryRecord[]> => { if (!c || !userId) return []; let query = c.from("fresh_ai_memory").select("id,content,scope,created_at,source").eq("user_id", userId).order("updated_at", { ascending: false }).limit(32); if (scope) query = query.eq("scope", scope); const r = await query, words = q.toLowerCase().split(/\s+/).filter(x => x.length > 3); return (r.data ?? []).filter((x: MemoryRow) => !words.length || words.some(w => x.content.toLowerCase().includes(w))).slice(0, 8).map((x: MemoryRow) => ({ id: x.id, content: x.content, scope: x.scope, createdAt: x.created_at, source: x.source })) as FreshMemoryRecord[]; }, remember: async (x: FreshMemoryRecord) => { if (!c || !userId) return; const r = await c.from("fresh_ai_memory").upsert({ id: x.id, user_id: userId, scope: x.scope, content: x.content, source: x.source, created_at: x.createdAt, updated_at: new Date().toISOString() }); if (r.error) throw new Error(`Fresh AI memory persistence failed: ${r.error.message}`); } }; }
@@ -229,6 +234,9 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     const evidence = (r.result.claims ?? []).flatMap((x: any) => Array.isArray(x.evidence) ? x.evidence : []) as Evidence[];
+    if (FRESH_EXTERNAL_FACT_QUESTION.test(goal.trim()) && evidence.length === 0) {
+      r.result.answer = "I couldn't verify this answer from usable web sources right now. Please try again shortly, or ask me to research it again. I won't substitute Fresh Web Lite's internal documentation for external facts.";
+    }
     const conversationId = await conversationLedger(uid, b.conversationId, route, workspaceContext, model, goal, requestId, evidence, r.result.answer || "");
     let image: { dataUrl?: string; url?: string; assetId?: string; model: string; size: string; engine: "fresh-native" | "configured-image-engine" } | null = null;
     if (generatedImage) {
