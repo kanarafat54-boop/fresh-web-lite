@@ -3,7 +3,7 @@
  * Fresh ID Auth Form
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLayout } from "../../../app/contexts/useLayout";
 import { useFreshId } from "../context/FreshIdContext";
 import { supabase } from "../../../lib/supabase";
@@ -40,6 +40,12 @@ export function AuthForm() {
   const [socialError, setSocialError] = useState<string | null>(null);
   const [signupError, setSignupError] = useState<string | null>(null);
   const [policyAccepted, setPolicyAccepted] = useState(false);
+
+  useEffect(() => {
+    const path = window.location.pathname.replace(/\/+$/, "");
+    if (activeRoute === "auth-signup" || path === "/auth/sign-up") setMode("register");
+    else if (activeRoute === "auth-signin" || path === "/auth/sign-in") setMode("login");
+  }, [activeRoute]);
 
   async function handleSocialSignIn(provider: "google" | "apple" | "meta" | "x" | "whatsapp" | "telegram" | "tiktok") {
     setSocialError(null);
