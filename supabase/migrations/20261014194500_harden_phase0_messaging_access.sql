@@ -48,6 +48,9 @@ grant insert (owner_id, kind, title) on table public.fresh_communication_threads
 grant update (title) on table public.fresh_communication_threads to authenticated;
 
 drop policy if exists "fresh thread owner" on public.fresh_communication_threads;
+drop policy if exists "fresh thread owner select" on public.fresh_communication_threads;
+drop policy if exists "fresh thread owner insert" on public.fresh_communication_threads;
+drop policy if exists "fresh thread owner update" on public.fresh_communication_threads;
 create policy "fresh thread owner select"
   on public.fresh_communication_threads
   for select
@@ -74,6 +77,8 @@ grant select on table public.fresh_communication_messages to authenticated;
 grant insert (thread_id, sender_id, kind, body) on table public.fresh_communication_messages to authenticated;
 
 drop policy if exists "fresh message sender" on public.fresh_communication_messages;
+drop policy if exists "fresh message thread owner select" on public.fresh_communication_messages;
+drop policy if exists "fresh message owner insert" on public.fresh_communication_messages;
 create policy "fresh message thread owner select"
   on public.fresh_communication_messages
   for select
