@@ -10,6 +10,8 @@
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "test:fresh-ai": "node scripts/verify-fresh-ai-unified-contract.mjs",
     "test:fresh-ai-answer-grounding": "node scripts/verify-fresh-ai-answer-grounding.mjs",
+    "prepare:fresh-learning-candidates": "node scripts/prepare-fresh-learning-candidates.mjs",
+    "test:fresh-learning-candidates": "node scripts/test-fresh-learning-candidates.mjs",
     "test:phase0-security": "node scripts/verify-phase0-messaging-security.mjs",
     "test:fresh-ai-capabilities": "node scripts/verify-fresh-ai-capability-contract.mjs",
     "test:fresh-ai-power-fabric": "node scripts/verify-fresh-ai-power-fabric.mjs",
