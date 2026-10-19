@@ -245,33 +245,41 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    if (preferredWorkspaceMode !== "personal") {
-      try {
-        const { data: existingAccounts, error: accountLookupError } = await supabase
-          .from("fresh_id_accounts")
-          .select("id")
-          .eq("owner_user_id", authUser.id)
-          .eq("account_type", preferredWorkspaceMode)
-          .limit(1);
-
-        if (accountLookupError) {
-          setMessage("Your Fresh ID was created, but workspace setup is pending. Open Settings to retry after the account service is available.");
-        } else if (!existingAccounts?.length) {
-          const { error: accountCreateError } = await supabase.rpc("create_fresh_id_account", {
-            p_account_type: preferredWorkspaceMode,
-            p_display_name: fullName.trim().slice(0, 120) || username,
-            p_slug: null,
-          });
-          if (accountCreateError) {
-            setMessage("Your Fresh ID is ready, but your selected workspace could not be created yet. You can retry from Settings.");
-          }
-        }
-      } catch {
-        setMessage("Your Fresh ID is ready, but workspace setup could not finish. You can retry from Settings.");
-      }
-    }
-
     return true;
+  }
+
+  async function ensureSelectedWorkspace(authUser: User, fullName: string) {
+    const metadata = authUser.user_metadata ?? {};
+    const selected = String(metadata.fresh_account_type ?? "personal");
+    if (!["creator", "business", "developer", "organization"].includes(selected)) return;
+
+    try {
+      const { data: existingAccounts, error: lookupError } = await supabase
+        .from("fresh_id_accounts")
+        .select("id")
+        .eq("owner_user_id", authUser.id)
+        .eq("account_type", selected)
+        .limit(1);
+
+      if (lookupError) {
+        setMessage("Your Fresh ID is ready, but workspace setup is pending. Open Settings to retry when workspace accounts are available.");
+        return;
+      }
+      if (existingAccounts?.length) return;
+
+      const { error: createError } = await supabase.rpc("create_fresh_id_account", {
+        p_account_type: selected,
+        p_display_name: fullName.trim().slice(0, 120) || String(metadata.username ?? "My Fresh workspace"),
+        p_slug: null,
+      });
+      if (createError) {
+        setMessage("Your Fresh ID is ready, but your selected workspace could not be created yet. You can retry from Settings.");
+        return;
+      }
+      setMessage("Your Fresh ID and " + selected + " workspace are ready.");
+    } catch {
+      setMessage("Your Fresh ID is ready, but workspace setup could not finish. You can retry from Settings.");
+    }
   }
 
   async function loadUserProfile(authUser: User) {
@@ -313,6 +321,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       setIsGuest(false);
       setError(null);
       setMessage("Your Fresh ID account is connected.");
+      await ensureSelectedWorkspace(authUser, currentUser.fullName);
       setLoading(false);
       return;
     }
@@ -322,6 +331,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     setUser(currentUser);
     setIsGuest(false);
     setError(null);
+    await ensureSelectedWorkspace(authUser, currentUser.fullName);
     setLoading(false);
     } catch {
       setError("We couldn't finish loading your Fresh ID profile. Check your connection and try again.");
