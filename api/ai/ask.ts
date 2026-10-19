@@ -6,7 +6,7 @@ import { createCoreFreshSkillRegistry } from "../../src/core/fresh-ai/FreshAISki
 import type { Evidence, FreshConversationTurn, FreshGoalInterpretation } from "../../src/core/fresh-ai/FreshAIArchitecture.js";
 import type { FreshMemoryRecord } from "../../src/core/fresh-ai/FreshAIKernel.js";
 import { createFreshAIWorkspaceContext, type FreshAIWorkspaceContext } from "../../src/core/fresh-ai/FreshAIWorkspaceContext.js";
-import { createFreshAIServerSupabase, generateFreshAIImage, getFreshAIPersistenceStatus, persistFreshAIMedia } from "../../src/core/fresh-ai/FreshAIServerServices.js";
+import { createFreshAIServerSupabase, generateFreshAIImage, getFreshAIPersistenceStatus, isFreshAIImageEngineConfigured, persistFreshAIMedia } from "../../src/core/fresh-ai/FreshAIServerServices.js";
 import { generateFreshNativeDimensionalArtifact } from "../../src/core/fresh-ai/FreshNativeDimensionalEngines.js";
 import "../../src/core/ara6/agents/defaultAgents.js";
 export const config = { maxDuration: 60 };
@@ -212,6 +212,9 @@ export async function POST(req: Request): Promise<Response> {
 
     let generatedImage: { dataUrl?: string; b64?: string; model: string; size: string; engine: "fresh-native" | "configured-image-engine" } | null = null;
     if (requestsImage(goal, r.interpretation, b.mode)) {
+      if (isFreshAIImageEngineConfigured() && !uid) {
+        return json({ requestId, error: "Sign in to use the configured Fresh AI image-generation service.", status: "authentication-required", intent: r.interpretation.intent }, 401);
+      }
       try {
         const image = await generateFreshAIImage(goal, { size: b.image?.size, quality: b.image?.quality });
         generatedImage = { dataUrl: `data:image/${image.outputFormat};base64,${image.b64Json}`, b64: image.b64Json, model: image.model, size: image.size, engine: image.engine };
