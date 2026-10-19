@@ -11,6 +11,22 @@ import "./FreshAIUnified.css";
 import "./FreshAIVault.css";
 import "./FreshAIArtifactPresentation.css";
 
+type SpeechRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+};
+type SpeechWindow = Window & {
+  SpeechRecognition?: new () => SpeechRecognitionLike;
+  webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+};
+
+
 type Turn = { role: "user" | "assistant"; content: string; createdAt: string };
 type Evidence = { title: string; snippet?: string };
 type Attachment = { id: string; name: string; mimeType: string; size: number; url?: string };
@@ -82,6 +98,8 @@ export default function FreshAIUnified() {
   const [source, setSource] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Record<string, number>>({});
   const [voice, setVoice] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const [constellation, setConstellation] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [vaultUnlocked, setVaultUnlocked] = useState(() => freshSecureVault.status().unlocked);
@@ -95,7 +113,7 @@ export default function FreshAIUnified() {
   const stickRef = useRef(true);
   const historyLoadedRef = useRef(false);
 
-  useEffect(() => { if (isAI) setOpen(true); }, [isAI]);
+  useEffect(() => { setOpen(isAI); setConstellation(false); }, [activeRoute, isAI]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: loading ? "auto" : "smooth" }); }, [turns, loading]);
 
   useEffect(() => {
@@ -325,7 +343,66 @@ export default function FreshAIUnified() {
       if (response.ok) setFeedback((current) => ({ ...current, [id]: rating }));
     } catch {}
   }
-  function speak(text: string) { if (!("speechSynthesis" in window)) return; window.speechSynthesis.cancel(); window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }
+  function startVoiceInput() {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setVoiceStatus("Voice input stopped.");
+      return;
+    }
+    const speechWindow = window as SpeechWindow;
+    const Recognition = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
+    if (!Recognition) {
+      setVoiceStatus("Voice input is not supported by this browser. You can still type your message.");
+      setVoice(false);
+      return;
+    }
+    setError(null);
+    setVoiceStatus("Listening… speak clearly, then stop when finished.");
+    const recognition = new Recognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = navigator.language || "en-US";
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results).map((result) => result[0]?.transcript ?? "").join(" ").trim();
+      if (transcript) setDraft((current) => `${current}${current && !current.endsWith(" ") ? " " : ""}${transcript}`);
+    };
+    recognition.onerror = (event) => {
+      const reason = event.error === "not-allowed" || event.error === "service-not-allowed"
+        ? "Microphone permission was denied. Allow microphone access and try again."
+        : event.error === "no-speech"
+          ? "No speech was detected. Tap the microphone and try again."
+          : `Voice input stopped (${event.error || "browser error"}). You can type instead.`;
+      setVoiceStatus(reason);
+      setVoice(false);
+      recognitionRef.current = null;
+    };
+    recognition.onend = () => {
+      setVoice(false);
+      recognitionRef.current = null;
+    };
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+      setVoice(true);
+    } catch {
+      recognitionRef.current = null;
+      setVoice(false);
+      setVoiceStatus("Could not start voice input. Check microphone permission and try again.");
+    }
+  }
+
+  useEffect(() => () => {
+    const recognition = recognitionRef.current;
+    if (recognition) {
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
+      recognitionRef.current = null;
+      try { recognition.stop(); } catch { /* already stopped */ }
+    }
+  }, []);
+
+  function speak(text: string) { if (!("speechSynthesis" in window)) { setVoiceStatus("Read aloud is not supported by this browser."); return; } window.speechSynthesis.cancel(); window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }
 
   const capabilityPanel = constellation ? (
     <div className="fresh-ai-constellation" role="dialog" aria-label="Fresh AI capabilities">
@@ -366,7 +443,7 @@ export default function FreshAIUnified() {
     {capabilityPanel}
     <div className="fresh-ai-unified-context"><span className="fresh-ai-context-diamond">◇</span>{context.surface}<span>·</span>{context.featureName}<span>·</span>{conversationId ? `Session ${conversationId.slice(0, 8)}` : "New session"}</div>
     <section className="fresh-ai-unified-messages" ref={messagesRef} onScroll={onScroll}>{messageList}{loading ? <div className="fresh-ai-progress"><span className="fresh-ai-progress-diamond">◇</span><div><b>Fresh is working</b><small>Understanding · retrieving · checking · preparing</small></div></div> : null}{evidencePanel}{artifactPanel}{imagePanel}{actionPanel}{errorPanel}<div ref={endRef} /></section>
-    <div className="fresh-ai-unified-composer"><div className="fresh-ai-composer-hint"><span className="fresh-ai-hint-diamond">◇</span><small>{mode} mode · Context aware</small></div>
+    <div className="fresh-ai-unified-composer"><div className="fresh-ai-composer-hint"><span className="fresh-ai-hint-diamond">◇</span><small>{mode} mode · Context aware</small>{voiceStatus ? <small role="status" aria-live="polite">{voiceStatus}</small> : null}</div>
       <div className="fresh-ai-vault-bar" aria-label="Fresh AI vault">
         <span className="fresh-ai-vault-label">{vaultUnlocked ? "🔓 Vault unlocked" : "🔒 Vault locked"}</span>
         {!vaultUnlocked ? (
@@ -386,7 +463,7 @@ export default function FreshAIUnified() {
         )}
         {vaultMessage ? <small className="fresh-ai-vault-msg">{vaultMessage}</small> : <small className="fresh-ai-vault-msg">At-rest E2EE when unlocked — live AI requests still use plaintext on the server.</small>}
       </div>
-      <form onSubmit={ask}><button className="fresh-ai-add" type="button" onClick={() => setConstellation((current) => !current)} aria-label="Open capabilities">＋</button><textarea ref={inputRef} rows={1} value={draft} onChange={(event) => { setDraft(event.target.value); resizeInput(); }} onKeyDown={keyDown} placeholder="Message Fresh AI…" /><button className={`fresh-ai-voice ${voice ? "active" : ""}`} type="button" onClick={() => setVoice((current) => !current)} aria-label="Toggle voice">{voice ? "◉" : "◌"}</button><button className="fresh-ai-send" type="submit" disabled={!draft.trim() || loading || uploading} aria-label="Send">↑</button></form>
+      <form onSubmit={ask}><button className="fresh-ai-add" type="button" onClick={() => setConstellation((current) => !current)} aria-label="Open capabilities">＋</button><textarea ref={inputRef} rows={1} value={draft} onChange={(event) => { setDraft(event.target.value); resizeInput(); }} onKeyDown={keyDown} placeholder="Message Fresh AI…" /><button className={`fresh-ai-voice ${voice ? "active" : ""}`} type="button" onClick={startVoiceInput} aria-label={voice ? "Stop voice input" : "Start voice input"} title={voice ? "Stop voice input" : "Speak to Fresh AI"}>{voice ? "◉" : "◌"}</button><button className="fresh-ai-send" type="submit" disabled={!draft.trim() || loading || uploading} aria-label="Send">↑</button></form>
       <div className="fresh-ai-composer-tools"><label className="fresh-ai-attach">⌕ {uploading ? "Uploading…" : "Attach"}<input type="file" multiple onChange={(event) => { void uploadFiles(event.target.files); event.currentTarget.value = ""; }} /></label><div className="fresh-ai-mode-strip">{modes.map((item) => { const available = isModeAvailable(item); return <button key={item} className={mode === item ? "active" : ""} type="button" disabled={!available} title={available ? `${item} mode` : `${item} mode is in development and is not executable yet`} aria-label={`${item} mode — ${available ? "available" : "in development"}`} onClick={() => setMode(item)}>{item}{available ? "" : " · Soon"}</button>; })}</div><span>{loading ? "Fresh is working…" : uploading ? "Securing files…" : "Enter to send · Shift+Enter for newline"}</span>{loading ? <button type="button" onClick={stop}>Stop</button> : null}</div>
       {attachments.length > 0 ? <div className="fresh-ai-composer-attachments" aria-label="Attached files">{attachments.map((file) => <span key={file.id}>◇ {file.name}</span>)}</div> : null}
       <small className="fresh-ai-unified-status"><span>✦</span> {source || "Fresh AI"} · Runtime evolving · Vault {vaultUnlocked ? "unlocked · at-rest E2EE" : "locked"} · Weights training-required · Beyond-SI doctrine</small>
