@@ -338,6 +338,21 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
+    if (password.length < 12) {
+      setError("Use at least 12 characters for a stronger password.");
+      setLoading(false);
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]{3,32}$/.test(username)) {
+      setError("Username must be 3–32 characters using letters, numbers or underscores.");
+      setLoading(false);
+      return;
+    }
+    if (!["personal", "creator", "business", "developer", "organization"].includes(accountType)) {
+      setError("Choose a valid Fresh account type.");
+      setLoading(false);
+      return;
+    }
 
     let data: Awaited<ReturnType<typeof supabase.auth.signUp>>["data"];
     let signUpError: Awaited<ReturnType<typeof supabase.auth.signUp>>["error"];
