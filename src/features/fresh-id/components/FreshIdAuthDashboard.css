@@ -621,3 +621,9 @@
 
 /* Responsive provider grid */
 .auth-social-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;width:100%}.auth-social-btn{min-width:0;min-height:72px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:10px 5px!important;border-radius:14px}.auth-social-symbol{width:27px;height:27px;display:grid;place-items:center}.auth-social-symbol svg{display:block;width:100%;height:100%}.auth-social-label{font-size:.8rem;line-height:1.2;font-weight:750;text-align:center;overflow-wrap:anywhere}.auth-social-btn:focus-visible{outline:3px solid #A99DFF;outline-offset:3px}@media(max-width:700px){.auth-social-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.auth-social-btn{min-height:70px!important}}@media(max-width:360px){.auth-social-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* Signup helper text and account-type selection remain readable on narrow screens. */
+.auth-field-help{display:block;color:var(--fresh-muted,#aeb5c5);font-size:.84rem;font-weight:400;line-height:1.5;margin-top:2px;}
+.auth-field select.auth-input{min-height:46px;}
+.auth-form button:disabled{opacity:.55;cursor:not-allowed;}
