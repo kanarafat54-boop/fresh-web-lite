@@ -223,7 +223,7 @@ export default function SettingsWorkspace() {
         }
         await Notification.requestPermission();
       }
-      const descriptor: PermissionName = name === "camera" ? "camera" : name === "microphone" ? "microphone" : name === "location" ? "geolocation" : "notifications";
+      const descriptor = (name === "camera" ? "camera" : name === "microphone" ? "microphone" : name === "location" ? "geolocation" : "notifications") as PermissionName;
       try {
         const result = await navigator.permissions.query({ name: descriptor });
         setDevicePermissions((current) => ({ ...current, [name]: result.state }));
