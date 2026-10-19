@@ -48,6 +48,9 @@ required.push(["Account type is distinct from privileged role", freshUserTypes.i
 required.push(["Settings sync account preferences through Fresh ID", settingsWorkspace.includes("persistPreferenceSettings") && settingsWorkspace.includes("updateUser({ preferences: { ...user.preferences, ...patch } })")]);
 required.push(["Privacy preferences are account-syncable and remain locally usable", freshUserTypes.includes("privacy?: FreshPrivacyPreferences") && settingsWorkspace.includes('persistPreferenceSettings({ privacy: next })'));
 
+required.push(["Settings do not misrepresent saved privacy preferences as enforced controls", settingsWorkspace.includes("not yet universal enforcement switches") && settingsWorkspace.includes("does not yet enforce visibility across every profile or search service")]);
+required.push(["Guest preference changes are clearly separated from registered-account persistence", settingsWorkspace.includes("if (!user || isGuest)") && settingsWorkspace.includes("saved on this device only")]);
+
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
   console.error("Fresh security contract failed:");
