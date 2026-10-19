@@ -39,7 +39,7 @@ with v(title, content) as (values
  ('Ara6','Ara6 is Fresh own programming language and agent runtime. It belongs to the Fresh Software ecosystem, which is planned. Default Ara6 agents are loaded by the Fresh AI API.'),
  ('Planned ecosystems','These are planned and not built yet: Learning, Work, Marketplace, Fresh Crypto, Digital Life Services, Business, Entertainment, Opportunity and the adults-only creator area. Fresh AI should describe them as planned, never as available.'),
  ('Fresh Intelligence data model','Fresh Intelligence stores claims, evidence, sources, arbitrations and truth decisions in dedicated tables. These tables exist but are still empty, so no learned truth data is available yet.'),
- ('Fresh own model status','The from-scratch model fresh-unified-1 is at pipeline smoke-test stage, trained on a tiny synthetic set, so its weights are not production-ready. Live answers come from Fresh AI's own kernel, grounded in Fresh knowledge, private memory and research. No outside AI model is used.')
+ ('Fresh own model status','The from-scratch model fresh-unified-1 is at pipeline smoke-test stage, trained on a tiny synthetic set, so its weights are not production-ready. Live answers come from Fresh AI''s own kernel, grounded in Fresh knowledge, private memory and research. No outside AI model is used.')
 )
 insert into public.fresh_ai_knowledge (user_id, project_id, title, content, modality, source, provenance, truth_state, confidence, metadata)
 select null, 'fresh-web-lite-platform', v.title, v.content, 'text', 'docs/FRESH_POWERS_MISSIONS_MAP.md',
