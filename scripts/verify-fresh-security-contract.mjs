@@ -5,6 +5,7 @@ const root = process.cwd();
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 const supabaseClient = fs.readFileSync(path.join(root, "src/lib/supabase.ts"), "utf8");
 const freshId = fs.readFileSync(path.join(root, "src/features/fresh-id/context/FreshIdContext.tsx"), "utf8");
+const authForm = fs.readFileSync(path.join(root, "src/features/fresh-id/components/AuthForm.tsx"), "utf8");
 const router = fs.readFileSync(path.join(root, "src/app/AppRouter.tsx"), "utf8");
 const workflow = fs.readFileSync(path.join(root, ".github/workflows/fresh-platform-build.yml"), "utf8");
 
