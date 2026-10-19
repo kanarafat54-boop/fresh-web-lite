@@ -89,3 +89,20 @@
 .fresh-settings-password-form input{width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--fresh-border);border-radius:12px;padding:12px;background:var(--fresh-surface-2);color:var(--fresh-text);font:inherit}
 .fresh-settings-password-form button{grid-column:1/-1;justify-self:start}
 @media(max-width:650px){.fresh-settings-password-form{grid-template-columns:minmax(0,1fr)}}
+
+
+/* Fresh ID device security: session controls and explicit device permission requests */
+.fresh-settings-device-sessions,.fresh-settings-device-permissions{display:grid;gap:12px;margin-top:24px;padding-top:20px;border-top:1px solid var(--fresh-border);min-width:0}
+.fresh-settings-device-sessions h3,.fresh-settings-device-permissions h3{margin:0 0 6px;font-size:1rem}
+.fresh-settings-device-sessions>div p,.fresh-settings-device-permissions>div p{line-height:1.55}
+.fresh-settings-device-session,.fresh-settings-device-permission{display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:0;padding:14px;border:1px solid var(--fresh-border);border-radius:13px;background:var(--fresh-surface-2)}
+.fresh-settings-device-session-details,.fresh-settings-device-permission>div{display:grid;gap:5px;min-width:0}
+.fresh-settings-device-session small,.fresh-settings-device-permission small{color:var(--fresh-muted);line-height:1.45;overflow-wrap:anywhere}
+.fresh-settings-device-session button,.fresh-settings-device-permission button{flex:0 0 auto;border:1px solid var(--fresh-border);border-radius:10px;background:var(--fresh-surface);color:var(--fresh-text);padding:10px 12px;min-height:44px;font:inherit;font-weight:750;cursor:pointer}
+.fresh-settings-device-session button:disabled,.fresh-settings-device-permission button:disabled{opacity:.6;cursor:wait}
+.fresh-settings-permission-state{font-size:.88rem;color:var(--fresh-muted);text-transform:capitalize}
+.fresh-settings-security-note{font-size:.88rem;line-height:1.55;color:var(--fresh-muted)}
+@media(max-width:600px){.fresh-settings-device-session,.fresh-settings-device-permission{align-items:stretch;flex-direction:column}.fresh-settings-device-session button,.fresh-settings-device-permission button{width:100%}}
+
+.fresh-settings-signout-others{justify-self:start;width:fit-content;max-width:100%;min-height:44px;padding:10px 14px;border:1px solid color-mix(in srgb,#dc2626 50%,var(--fresh-border));border-radius:12px;background:transparent;color:#dc2626;font:inherit;font-weight:800;cursor:pointer}
+@media(max-width:600px){.fresh-settings-signout-others{width:100%}}
