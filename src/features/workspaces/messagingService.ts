@@ -71,6 +71,7 @@ export async function markThreadRead(otherUserId: string): Promise<void> {
 export async function subscribeToThread(
   otherUserId: string,
   onMessage: (message: DirectMessage) => void,
+  onUnavailable?: () => void,
 ): Promise<() => void> {
   const myId = await getCurrentUserId();
   await assertMessagingAllowed(otherUserId, myId);
@@ -96,7 +97,11 @@ export async function subscribeToThread(
         if (message.sender_id === myId && message.recipient_id === otherUserId) onMessage(message);
       },
     )
-    .subscribe();
+    .subscribe((status) => {
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        onUnavailable?.();
+      }
+    });
 
   return () => {
     void supabase.removeChannel(channel);
