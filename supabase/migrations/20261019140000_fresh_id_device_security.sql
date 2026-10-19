@@ -1,6 +1,10 @@
 -- Fresh ID device/session management.
--- Session identifiers come from Supabase Auth JWT claims; no client can choose another user's session.
-create or replace function public.list_fresh_id_sessions()
+-- Public RPC wrappers are SECURITY INVOKER. Privileged reads/deletes stay in a non-exposed schema.
+create schema if not exists private;
+revoke all on schema private from public, anon, authenticated;
+grant usage on schema private to authenticated;
+
+create or replace function private.list_fresh_id_sessions()
 returns table (
   session_id uuid,
   created_at timestamptz,
@@ -28,10 +32,30 @@ as $function$
   order by s.updated_at desc nulls last, s.created_at desc;
 $function$;
 
+revoke all on function private.list_fresh_id_sessions() from public, anon;
+grant execute on function private.list_fresh_id_sessions() to authenticated;
+
+create or replace function public.list_fresh_id_sessions()
+returns table (
+  session_id uuid,
+  created_at timestamptz,
+  updated_at timestamptz,
+  user_agent text,
+  ip_address text,
+  is_current boolean
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $function$
+  select * from private.list_fresh_id_sessions();
+$function$;
+
 revoke all on function public.list_fresh_id_sessions() from public, anon;
 grant execute on function public.list_fresh_id_sessions() to authenticated;
 
-create or replace function public.revoke_fresh_id_session(p_session_id uuid)
+create or replace function private.revoke_fresh_id_session(p_session_id uuid)
 returns boolean
 language plpgsql
 security definer
@@ -44,6 +68,10 @@ declare
 begin
   if v_user_id is null then
     raise exception 'Fresh ID sign-in is required' using errcode = '42501';
+  end if;
+
+  if v_current_session_id is null then
+    raise exception 'Current session could not be identified; sign in again' using errcode = '42501';
   end if;
 
   if p_session_id is null then
@@ -61,6 +89,18 @@ begin
   get diagnostics v_deleted = row_count;
   return v_deleted = 1;
 end;
+$function$;
+
+revoke all on function private.revoke_fresh_id_session(uuid) from public, anon;
+grant execute on function private.revoke_fresh_id_session(uuid) to authenticated;
+
+create or replace function public.revoke_fresh_id_session(p_session_id uuid)
+returns boolean
+language sql
+security invoker
+set search_path = ''
+as $function$
+  select private.revoke_fresh_id_session(p_session_id);
 $function$;
 
 revoke all on function public.revoke_fresh_id_session(uuid) from public, anon;
