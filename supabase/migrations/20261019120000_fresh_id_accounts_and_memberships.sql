@@ -45,6 +45,44 @@ revoke all privileges on table public.fresh_id_account_memberships from public, 
 grant select on table public.fresh_id_accounts to authenticated;
 grant select on table public.fresh_id_account_memberships to authenticated;
 
+-- SECURITY DEFINER predicates avoid recursive RLS when the account and
+-- membership policies need to consult one another. These expose only booleans.
+create or replace function public.is_fresh_id_account_member(p_account_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path to ''
+as $function$
+  select exists (
+    select 1
+    from public.fresh_id_account_memberships membership
+    where membership.account_id = p_account_id
+      and membership.user_id = auth.uid()
+      and membership.status = 'active'
+  );
+$function$;
+
+create or replace function public.is_fresh_id_account_owner(p_account_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path to ''
+as $function$
+  select exists (
+    select 1
+    from public.fresh_id_accounts account
+    where account.id = p_account_id
+      and account.owner_user_id = auth.uid()
+  );
+$function$;
+
+revoke all on function public.is_fresh_id_account_member(uuid) from public, anon;
+revoke all on function public.is_fresh_id_account_owner(uuid) from public, anon;
+grant execute on function public.is_fresh_id_account_member(uuid) to authenticated;
+grant execute on function public.is_fresh_id_account_owner(uuid) to authenticated;
+
 drop policy if exists fresh_id_accounts_member_read on public.fresh_id_accounts;
 create policy fresh_id_accounts_member_read
   on public.fresh_id_accounts
@@ -52,13 +90,7 @@ create policy fresh_id_accounts_member_read
   to authenticated
   using (
     owner_user_id = (select auth.uid())
-    or exists (
-      select 1
-      from public.fresh_id_account_memberships membership
-      where membership.account_id = id
-        and membership.user_id = (select auth.uid())
-        and membership.status = 'active'
-    )
+    or (select public.is_fresh_id_account_member(id))
   );
 
 drop policy if exists fresh_id_memberships_self_or_owner_read on public.fresh_id_account_memberships;
@@ -68,12 +100,7 @@ create policy fresh_id_memberships_self_or_owner_read
   to authenticated
   using (
     user_id = (select auth.uid())
-    or exists (
-      select 1
-      from public.fresh_id_accounts account
-      where account.id = account_id
-        and account.owner_user_id = (select auth.uid())
-    )
+    or (select public.is_fresh_id_account_owner(account_id))
   );
 
 create or replace function public.create_fresh_id_account(
