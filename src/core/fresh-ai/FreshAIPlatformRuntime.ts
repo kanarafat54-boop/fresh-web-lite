@@ -28,7 +28,7 @@ export const FRESH_AI_PLATFORM_20: readonly FreshAIPlatformStep[] = [
   { id: 12, key: "knowledge-network", label: "Fresh Knowledge Network", boundary: "evidence, provenance and knowledge graph contracts", status: "wired" },
   { id: 13, key: "recommendation", label: "Recommendation Intelligence", boundary: "shared recommendation/reranking engine", status: "wired" },
   { id: 14, key: "media-intelligence", label: "AI Media Intelligence", boundary: "media runtime and pipeline adapters", status: "wired" },
-  { id: 15, key: "trust", label: "Trust Layer", boundary: "truth decisions, permissions and verification", status: "wired" },
+  { id: 15, key: "trust", label: "Trust Layer", boundary: "TRUEMODE truth decisions, evidence provenance, permissions and verification", status: "wired" },
   { id: 16, key: "observability", label: "AI Observability", boundary: "observable pipeline stages and persistence", status: "wired" },
   { id: 17, key: "api-boundary", label: "Secure AI API Boundary", boundary: "server-side privileged execution", status: "wired" },
   { id: 18, key: "fallbacks", label: "Provider/Runtime Fallbacks", boundary: "native reasoning first; external answer provider opt-in", status: "wired" },
