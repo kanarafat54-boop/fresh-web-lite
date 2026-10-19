@@ -69,3 +69,13 @@
 .fresh-settings-choice-row>button span{display:grid;gap:4px;min-width:0}
 .fresh-settings-choice-row>button small{color:var(--fresh-muted);font-size:.82rem;font-weight:400;line-height:1.45}
 @media(max-width:560px){.fresh-settings-choice-row{grid-template-columns:minmax(0,1fr)}.fresh-settings-choice-row>button{min-height:64px}}
+
+.fresh-settings-workspaces{display:block}
+.fresh-settings-workspace-form{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto;gap:12px;align-items:end;margin-top:18px}
+.fresh-settings-workspace-form label{display:grid;gap:7px;color:var(--fresh-muted);font-size:13px;font-weight:700}
+.fresh-settings-workspace-form input,.fresh-settings-workspace-form select{width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--fresh-border);border-radius:12px;padding:12px;background:var(--fresh-surface-2);color:var(--fresh-text);font:inherit}
+.fresh-settings-account-list{display:grid;gap:10px;margin-top:16px}
+.fresh-settings-account-item{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--fresh-border);border-radius:12px;padding:14px}
+.fresh-settings-account-item>div{display:grid;gap:4px;min-width:0}
+.fresh-settings-account-item small{color:var(--fresh-muted);overflow-wrap:anywhere}
+@media(max-width:640px){.fresh-settings-workspace-form{grid-template-columns:1fr}.fresh-settings-account-item{align-items:flex-start}.fresh-settings-page{padding-left:14px;padding-right:14px}}

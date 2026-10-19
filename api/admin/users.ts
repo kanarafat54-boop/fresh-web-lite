@@ -84,7 +84,7 @@ export async function POST(req: Request): Promise<Response> {
       const patch: Record<string, string> = {};
       if (typeof body.fullName === "string" && body.fullName.trim()) patch.full_name = body.fullName.trim();
       if (typeof body.username === "string" && body.username.trim()) patch.username = body.username.trim().toLowerCase();
-      if (typeof body.role === "string" && ["user", "creator", "developer", "business", "admin"].includes(body.role)) patch.role = body.role;
+      if (typeof body.role === "string" && ["user", "admin"].includes(body.role)) patch.role = body.role;
       if (!Object.keys(patch).length) return response({ error: "No supported fields supplied" }, 400);
 
       const { data, error } = await admin.from("users").update(patch).eq("id", body.userId).select("id, full_name, username, email, role, verified, presence, created_at").maybeSingle();

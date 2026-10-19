@@ -81,7 +81,7 @@ export function AdminPanel() {
           <div className="admin-user-card" key={target.id}>
             <input className="auth-input" value={target.full_name} onChange={(event) => setUsers((current) => current.map((item) => item.id === target.id ? { ...item, full_name: event.target.value } : item))} aria-label="Full name" />
             <input className="auth-input" value={target.username} onChange={(event) => setUsers((current) => current.map((item) => item.id === target.id ? { ...item, username: event.target.value } : item))} aria-label="Username" />
-            <select className="auth-input" value={target.role} onChange={(event) => setUsers((current) => current.map((item) => item.id === target.id ? { ...item, role: event.target.value } : item))} aria-label="Role"><option value="user">user</option><option value="creator">creator</option><option value="developer">developer</option><option value="business">business</option><option value="admin">admin</option></select>
+            <select className="auth-input" value={target.role} onChange={(event) => setUsers((current) => current.map((item) => item.id === target.id ? { ...item, role: event.target.value } : item))} aria-label="Role"><option value="user">user</option><option value="admin">admin</option></select>
             <span className="post-username">{target.email}</span>
             <button className="auth-submit-btn" onClick={() => void saveUser(target)} disabled={savingId === target.id}>{savingId === target.id ? "Saving..." : "Save"}</button>
           </div>

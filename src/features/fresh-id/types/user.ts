@@ -1,4 +1,4 @@
-export type UserRole = "user" | "creator" | "admin" | "developer" | "business";
+export type UserRole = "user" | "admin";
 export type SubscriptionTier = "free" | "plus" | "pro" | "enterprise";
 export type PresenceStatus = "online" | "away" | "offline" | "invisible";
 export type ThemePreference = "light" | "dark" | "system";
@@ -10,12 +10,24 @@ export interface UserIdentity {
   kycStatus?: KycStatus;
 }
 
+export type FreshWorkspaceMode = "personal" | "creator" | "business" | "developer" | "organization";
+
+export type FreshPrivacyPreferences = {
+  discoverable: boolean;
+  personalization: boolean;
+  announcements: boolean;
+};
+
 export interface UserPreferences {
   theme: ThemePreference;
   language: string;
   timezone: string;
   emailNotifications: boolean;
   pushNotifications: boolean;
+  preferredWorkspaceMode?: FreshWorkspaceMode;
+  experienceMode?: "simple" | "standard" | "advanced";
+  textSize?: "normal" | "large" | "larger";
+  privacy?: FreshPrivacyPreferences;
 }
 
 export interface UserStats {
