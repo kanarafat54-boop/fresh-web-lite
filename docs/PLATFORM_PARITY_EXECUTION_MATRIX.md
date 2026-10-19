@@ -1,5 +1,7 @@
 # Fresh Platform Parity — Execution Matrix
 
+**Relationship to existing documentation:** `docs/FRESH_FLOW_OPERATIONAL_READINESS.md` remains the canonical release/readiness register. This matrix extends it with cross-platform parity categories; it does not replace existing architecture or readiness documents.
+
 ## Engineering rule
 
 A route, card, mock, registry entry, or design is not proof that a capability is implemented. Mark it verified only after the real user action succeeds, persists where appropriate, handles failure, works on small screens, and passes authorization checks.
