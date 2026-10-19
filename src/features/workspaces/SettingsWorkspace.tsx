@@ -153,23 +153,24 @@ export default function SettingsWorkspace() {
 
   useEffect(() => {
     let cancelled = false;
-    if (!isAuthenticated || isGuest) { setDeviceSessions([]); return; }
+    if (!isAuthenticated || isGuest) { setDeviceSessions([]); setSessionsLoading(false); return; }
     setSessionsLoading(true);
-    void supabase.rpc("list_fresh_id_sessions").then(({ data, error: sessionsError }) => {
-      if (cancelled) return;
-      if (sessionsError) {
-        setStatus("Device session management is not available on this deployment yet. Apply the Fresh ID device-security migration first.");
-        setDeviceSessions([]);
-      } else {
-        setDeviceSessions((data ?? []) as FreshIdDeviceSession[]);
+    void (async () => {
+      try {
+        const { data, error: sessionsError } = await supabase.rpc("list_fresh_id_sessions");
+        if (cancelled) return;
+        if (sessionsError) {
+          setStatus("Device session management is not available on this deployment yet. Apply the Fresh ID device-security migration first.");
+          setDeviceSessions([]);
+        } else {
+          setDeviceSessions((data ?? []) as FreshIdDeviceSession[]);
+        }
+      } catch {
+        if (!cancelled) setStatus("Fresh ID could not load your signed-in devices. Check your connection and try again.");
+      } finally {
+        if (!cancelled) setSessionsLoading(false);
       }
-      setSessionsLoading(false);
-    }).catch(() => {
-      if (!cancelled) {
-        setStatus("Fresh ID could not load your signed-in devices. Check your connection and try again.");
-        setSessionsLoading(false);
-      }
-    });
+    })();
     return () => { cancelled = true; };
   }, [isAuthenticated, isGuest]);
 
