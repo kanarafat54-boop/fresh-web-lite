@@ -10,7 +10,7 @@ export interface UserIdentity {
   kycStatus?: KycStatus;
 }
 
-export type FreshAccountType = "personal" | "creator" | "business" | "developer" | "organization";
+export type FreshWorkspaceMode = "personal" | "creator" | "business" | "developer" | "organization";
 
 export type FreshPrivacyPreferences = {
   discoverable: boolean;
@@ -24,7 +24,7 @@ export interface UserPreferences {
   timezone: string;
   emailNotifications: boolean;
   pushNotifications: boolean;
-  accountType?: FreshAccountType;
+  preferredWorkspaceMode?: FreshWorkspaceMode;
   experienceMode?: "simple" | "standard" | "advanced";
   textSize?: "normal" | "large" | "larger";
   privacy?: FreshPrivacyPreferences;
