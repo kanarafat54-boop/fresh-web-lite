@@ -417,30 +417,14 @@ export default function StudioWorkspace() {
 
   const runFullPipeline = async () => {
     if (!sourcePreview) {
-      setMessage("Import media before running the pipeline.");
+      setMessage("Import a video before checking pipeline readiness.");
       return;
     }
-    const inputId = project?.id ?? document.source.id;
-    const job = createMediaPipelineJob(inputId);
-    setPipelineJob({ ...job, status: "running" });
-    const result = await runMediaPipeline(job, async () => {
-      // Stages are contract-ready; local smoke advances the graph without remote models.
-      await new Promise((r) => setTimeout(r, 120));
-    });
-    setPipelineJob(result);
-    if (project) {
-      const updated = updateMediaProject(project.id, {
-        pipelineStatus: result.status === "complete" ? "ready" : "draft",
-      });
-      if (updated) {
-        setProject(updated);
-        setProjects(listMediaProjects());
-      }
-    }
+    // Do not simulate model stages or mark a project ready when no end-to-end
+    // stage adapters are connected. The pipeline runner is reserved for real jobs.
+    setPipelineJob(null);
     setMessage(
-      result.status === "complete"
-        ? "Pipeline stages completed (local contract run). Remote ML adapters process when connected."
-        : result.error ?? "Pipeline failed.",
+      "The full AI media pipeline is not connected end-to-end yet. No AI stages were run. Use Edit → Render for supported local video export; Remote FFmpeg requires a reachable HTTP(S) source URL.",
     );
   };
 
