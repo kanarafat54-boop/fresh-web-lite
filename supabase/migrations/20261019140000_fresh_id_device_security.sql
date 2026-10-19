@@ -24,6 +24,7 @@ as $function$
   from auth.sessions as s
   where s.user_id = (select auth.uid())
     and (select auth.uid()) is not null
+    and (s.not_after is null or s.not_after > now())
   order by s.updated_at desc nulls last, s.created_at desc;
 $function$;
 
