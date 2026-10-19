@@ -77,7 +77,7 @@ const capabilities = [
 ] as const;
 
 export default function FreshAIUnified() {
-  const { activeRoute, setActiveRoute } = useLayout();
+  const { activeRoute } = useLayout();
   const { theme, toggle } = useTheme();
   const context = useMemo(() => createFreshAIWorkspaceContext(activeRoute ?? "/"), [activeRoute]);
   const normalizedRoute = (activeRoute ?? "").replace(/\/$/, "").toLowerCase();
