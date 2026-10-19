@@ -36,6 +36,8 @@ jobs:
         run: npm run test:fresh-native-dimensions
       - name: Fresh neural generation contract
         run: npm run test:fresh-neural
+      - name: Fresh AI image engine adapter contract
+        run: npm run test:fresh-ai-image-engine
       - name: Fresh unified inference contract
         run: npm run test:fresh-unified-inference
       - name: TRUEMODE research to Supabase contract

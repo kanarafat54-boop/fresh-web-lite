@@ -12,7 +12,9 @@ const required = [
   [runtime, "FRESH_UNIFIED_CHECKPOINT_ID"],
   [unified, 'weightsStatus: "training-required"'],
   [service, "generateFreshNeuralMedia"],
-  [service, "provider-free image-generation"],
+  [service, "FRESH_AI_IMAGE_ENGINE_URL"],
+  [service, "generateWithConfiguredImageEngine"],
+  [service, "fresh-image-v1"],
   [avatar, 'kind: "avatar"'],
   [avatar, 'model: result.modelId'],
 ];

@@ -4,6 +4,12 @@ import { generateFreshNeuralMedia } from "./FreshNeuralGenerationRuntime.js";
 
 export const FRESH_AI_IMAGE_GENERATIONS_PATH = "/v1/images/generations";
 export const FRESH_AI_MEDIA_BUCKET = "fresh-ai-media";
+const IMAGE_ENGINE_TIMEOUT_MS = 45_000;
+const MAX_IMAGE_BASE64_CHARS = 24 * 1024 * 1024;
+
+export function isFreshAIImageEngineConfigured(): boolean {
+  return Boolean(getServerEnv("FRESH_AI_IMAGE_ENGINE_URL")?.trim());
+}
 
 export type FreshAIServerConfig = {
   supabaseUrl: string | null;
@@ -32,13 +38,107 @@ export function getFreshAIPersistenceStatus(): { configured: boolean; environmen
   return { configured: true, environment: config.vercelEnvironment };
 }
 
-export type FreshAIImageResult = { b64Json: string; model: "fresh-unified-1"; outputFormat: "png"; size: string };
+export type FreshAIImageResult = {
+  b64Json: string;
+  model: "fresh-unified-1";
+  outputFormat: "png";
+  size: string;
+  engine: "fresh-native" | "configured-image-engine";
+};
 
-/** Canonical provider-free image-generation entry point owned by Fresh AI. */
+type ConfiguredImageEngineResult = { b64Json: string; mimeType: "image/png" };
+
+/**
+ * Optional compute adapter for image generation.
+ *
+ * Fresh owns the request, permissions, persistence, model identity and result
+ * contract. A separately deployed engine performs the heavy image inference.
+ * The adapter is opt-in, server-configured, bounded by a timeout and never
+ * accepts a provider URL or credential from the client.
+ *
+ * Engine response contract: { "b64Json": "<base64 PNG>", "mimeType": "image/png" }.
+ */
+async function generateWithConfiguredImageEngine(input: {
+  prompt: string;
+  size: "1024x1024" | "1024x1536" | "1536x1024" | "auto";
+  quality: "low" | "medium" | "high" | "auto";
+}): Promise<ConfiguredImageEngineResult | null> {
+  const configuredUrl = getServerEnv("FRESH_AI_IMAGE_ENGINE_URL")?.trim();
+  if (!configuredUrl) return null;
+
+  const token = getServerEnv("FRESH_AI_IMAGE_ENGINE_TOKEN")?.trim();
+  if (!token) throw new Error("Fresh AI image engine is configured without its server token.");
+
+  let endpoint: URL;
+  try {
+    endpoint = new URL(configuredUrl);
+  } catch {
+    throw new Error("Fresh AI image engine URL is invalid.");
+  }
+  const localDevelopment = endpoint.hostname === "localhost" || endpoint.hostname === "127.0.0.1";
+  if (endpoint.protocol !== "https:" && !(localDevelopment && endpoint.protocol === "http:")) {
+    throw new Error("Fresh AI image engine must use HTTPS outside localhost development.");
+  }
+  if (endpoint.username || endpoint.password || endpoint.hash) {
+    throw new Error("Fresh AI image engine URL must not contain credentials or a fragment.");
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+      accept: "application/json",
+    },
+    body: JSON.stringify({
+      contract: "fresh-image-v1",
+      modelId: "fresh-unified-1",
+      kind: "image",
+      prompt: input.prompt,
+      size: input.size,
+      quality: input.quality,
+    }),
+    cache: "no-store",
+    redirect: "error",
+    signal: AbortSignal.timeout(IMAGE_ENGINE_TIMEOUT_MS),
+  });
+  if (!response.ok) {
+    throw new Error(`Fresh AI image engine returned HTTP ${response.status}.`);
+  }
+  if (!(response.headers.get("content-type") || "").toLowerCase().includes("application/json")) {
+    throw new Error("Fresh AI image engine returned an unsupported response type.");
+  }
+
+  const payload = await response.json() as { b64Json?: unknown; mimeType?: unknown };
+  if (typeof payload.b64Json !== "string" || payload.b64Json.length === 0 || payload.b64Json.length > MAX_IMAGE_BASE64_CHARS || payload.b64Json.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(payload.b64Json)) {
+    throw new Error("Fresh AI image engine returned an invalid image payload.");
+  }
+  const imageBytes = Buffer.from(payload.b64Json, "base64");
+  const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  if (imageBytes.length < pngSignature.length || !imageBytes.subarray(0, pngSignature.length).equals(pngSignature)) {
+    throw new Error("Fresh AI image engine returned bytes that are not a PNG image.");
+  }
+  if (payload.mimeType !== undefined && payload.mimeType !== "image/png") {
+    throw new Error("Fresh AI image engine must return a PNG image.");
+  }
+  return { b64Json: payload.b64Json, mimeType: "image/png" };
+}
+
+/** Canonical Fresh-owned image-generation entry point with an explicit optional engine adapter. */
 export async function generateFreshAIImage(prompt: string, options?: { model?: string; size?: "1024x1024" | "1024x1536" | "1536x1024" | "auto"; quality?: "low" | "medium" | "high" | "auto" }): Promise<FreshAIImageResult> {
-  const result = generateFreshNeuralMedia({ kind: "image", prompt, size: options?.size });
+  const normalizedPrompt = prompt.trim();
+  if (!normalizedPrompt) throw new Error("Fresh AI image generation requires a prompt.");
+  if (normalizedPrompt.length > 4000) throw new Error("Fresh AI image prompts must be 4,000 characters or fewer.");
+  const size = options?.size || "1024x1024";
+  const quality = options?.quality || "auto";
+  const configured = await generateWithConfiguredImageEngine({ prompt: normalizedPrompt, size, quality });
+  if (configured) {
+    return { b64Json: configured.b64Json, model: "fresh-unified-1", outputFormat: "png", size, engine: "configured-image-engine" };
+  }
+
+  const result = generateFreshNeuralMedia({ kind: "image", prompt: normalizedPrompt, size });
   if (result.status !== "ready" || !result.output) throw new Error(result.reason || "Fresh neural image generation is not ready");
-  return { b64Json: result.output.b64Json, model: "fresh-unified-1", outputFormat: "png", size: options?.size || "1024x1024" };
+  return { b64Json: result.output.b64Json, model: "fresh-unified-1", outputFormat: "png", size, engine: "fresh-native" };
 }
 
 export async function persistFreshAIMedia(input: {

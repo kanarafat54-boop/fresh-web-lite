@@ -6,7 +6,7 @@ import { createCoreFreshSkillRegistry } from "../../src/core/fresh-ai/FreshAISki
 import type { Evidence, FreshConversationTurn, FreshGoalInterpretation } from "../../src/core/fresh-ai/FreshAIArchitecture.js";
 import type { FreshMemoryRecord } from "../../src/core/fresh-ai/FreshAIKernel.js";
 import { createFreshAIWorkspaceContext, type FreshAIWorkspaceContext } from "../../src/core/fresh-ai/FreshAIWorkspaceContext.js";
-import { createFreshAIServerSupabase, generateFreshAIImage, getFreshAIPersistenceStatus, persistFreshAIMedia } from "../../src/core/fresh-ai/FreshAIServerServices.js";
+import { createFreshAIServerSupabase, generateFreshAIImage, getFreshAIPersistenceStatus, isFreshAIImageEngineConfigured, persistFreshAIMedia } from "../../src/core/fresh-ai/FreshAIServerServices.js";
 import { generateFreshNativeDimensionalArtifact } from "../../src/core/fresh-ai/FreshNativeDimensionalEngines.js";
 import "../../src/core/ara6/agents/defaultAgents.js";
 export const config = { maxDuration: 60 };
@@ -210,11 +210,14 @@ export async function POST(req: Request): Promise<Response> {
       execute: true,
     });
 
-    let generatedImage: { dataUrl?: string; b64?: string; model: string; size: string } | null = null;
+    let generatedImage: { dataUrl?: string; b64?: string; model: string; size: string; engine: "fresh-native" | "configured-image-engine" } | null = null;
     if (requestsImage(goal, r.interpretation, b.mode)) {
+      if (isFreshAIImageEngineConfigured() && !uid) {
+        return json({ requestId, error: "Sign in to use the configured Fresh AI image-generation service.", status: "authentication-required", intent: r.interpretation.intent }, 401);
+      }
       try {
         const image = await generateFreshAIImage(goal, { size: b.image?.size, quality: b.image?.quality });
-        generatedImage = { dataUrl: `data:image/${image.outputFormat};base64,${image.b64Json}`, b64: image.b64Json, model: image.model, size: image.size };
+        generatedImage = { dataUrl: `data:image/${image.outputFormat};base64,${image.b64Json}`, b64: image.b64Json, model: image.model, size: image.size, engine: image.engine };
         r.result.answer = r.result.answer || "Fresh AI generated the image requested.";
       } catch (error) {
         return json({ requestId, error: error instanceof Error ? error.message : "Image generation failed", status: "failed", intent: r.interpretation.intent }, 503);
@@ -223,7 +226,7 @@ export async function POST(req: Request): Promise<Response> {
 
     const evidence = (r.result.claims ?? []).flatMap((x: any) => Array.isArray(x.evidence) ? x.evidence : []) as Evidence[];
     const conversationId = await conversationLedger(uid, b.conversationId, route, workspaceContext, model, goal, requestId, evidence, r.result.answer || "");
-    let image: { dataUrl?: string; url?: string; assetId?: string; model: string; size: string } | null = null;
+    let image: { dataUrl?: string; url?: string; assetId?: string; model: string; size: string; engine: "fresh-native" | "configured-image-engine" } | null = null;
     if (generatedImage) {
       if (uid && generatedImage.b64 && conversationId) {
         try {
@@ -236,14 +239,14 @@ export async function POST(req: Request): Promise<Response> {
             mimeType: "image/png",
             modelId: generatedImage.model,
             prompt: goal,
-            metadata: { size: generatedImage.size },
+            metadata: { size: generatedImage.size, engine: generatedImage.engine },
           });
-          image = { url: asset.signedUrl, assetId: asset.id, model: generatedImage.model, size: generatedImage.size };
+          image = { url: asset.signedUrl, assetId: asset.id, model: generatedImage.model, size: generatedImage.size, engine: generatedImage.engine };
         } catch {
-          image = { dataUrl: generatedImage.dataUrl, model: generatedImage.model, size: generatedImage.size };
+          image = { dataUrl: generatedImage.dataUrl, model: generatedImage.model, size: generatedImage.size, engine: generatedImage.engine };
         }
       } else {
-        image = { dataUrl: generatedImage.dataUrl, model: generatedImage.model, size: generatedImage.size };
+        image = { dataUrl: generatedImage.dataUrl, model: generatedImage.model, size: generatedImage.size, engine: generatedImage.engine };
       }
     }
 
