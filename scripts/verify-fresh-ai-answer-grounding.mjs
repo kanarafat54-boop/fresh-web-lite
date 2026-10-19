@@ -10,7 +10,7 @@ for (const question of ["Who is Elon Musk?", "Who was Ada Lovelace?", "What is N
 for (const question of ["Who are you?", "What can you do?"]) {
   if (publicEntityRule.test(question)) throw new Error(`Assistant identity question was incorrectly classified as an external fact: ${question}`);
 }
-if (!goal.includes("const publicEntityQuestion = /^\\s*(?:who|what|when|where|why|how)")) {
+if (!goal.includes("const publicEntityQuestion = /") || !goal.includes("publicEntityQuestion ||")) {
   throw new Error("Goal understanding must route public-entity questions to evidence retrieval.");
 }
 if (!knowledge.includes("if (EXTERNAL_FACT_QUESTION.test(goal.trim())) return [];")) {
