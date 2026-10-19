@@ -15,9 +15,18 @@ create table if not exists public.users (
 -- Bring the minimal preview users mirror up to the identity columns consumed
 -- by later profile views. Existing production columns are left unchanged.
 alter table public.users
+  add column if not exists email text,
   add column if not exists full_name text not null default '',
+  add column if not exists preferences jsonb not null default '{}'::jsonb,
+  add column if not exists role text not null default 'user',
   add column if not exists verified boolean not null default false,
-  add column if not exists presence text not null default 'offline';
+  add column if not exists presence text not null default 'offline',
+  add column if not exists identity jsonb not null default '{}'::jsonb,
+  add column if not exists stats jsonb not null default '{}'::jsonb,
+  add column if not exists security jsonb not null default '{}'::jsonb,
+  add column if not exists subscription jsonb not null default '{"tier":"free","isTrial":false}'::jsonb,
+  add column if not exists linked_accounts jsonb not null default '[]'::jsonb,
+  add column if not exists updated_at timestamptz not null default now();
 
 create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),
