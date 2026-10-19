@@ -414,7 +414,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   }
-  async function register(email: string, password: string, username: string, fullName: string, profile: { dateOfBirth: string; country: string; gender: string; consentVersion: string }) {
+  async function register(email: string, password: string, username: string, fullName: string, profile: { dateOfBirth: string; country: string; gender: string; consentVersion: string; preferredWorkspaceMode?: FreshWorkspaceMode }) {
     setError(null);
     setMessage(null);
     setLoading(true);
