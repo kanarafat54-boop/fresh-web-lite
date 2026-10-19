@@ -70,7 +70,7 @@ export function understandFreshGoal(input: string, conversation: FreshConversati
   const conversational = /^(hi|hello|hey|hiya|yo|good morning|good afternoon|good evening|let'?s chat|talk to me|what'?s up|how are you|are you there)[.!?\s]*$/i.test(raw);
   const intent = forcedIntent ?? (conversational ? "chat" : scoreIntent(text));
   const needsAction = intent === "act";
-  const needsEvidence = intent === "research" || /\b(latest|today|now|current|recent|source|sources|evidence|verify|fact[- ]?check|according to|citation|cite|proof|news|trending|happening|going on|worldwide|global|across the world|right now)\b/i.test(value);
+  const needsEvidence = intent === "research" || /\b(latest|today|now|current|recent|source|sources|evidence|verify|fact[- ]?check|according to|citation|cite|proof|news|trending|happening|going on|worldwide|global|across the world|right now)\b/i.test(value) || (/^\s*(who|what|where|when|why|how)\b/i.test(raw) && !/^\s*what\s+(can|do)\s+you\s+do\b/i.test(raw));
   const outputMode: FreshGoalInterpretation["outputMode"] = intent === "chat" ? "conversation" : intent === "research" ? "research" : intent === "create" ? "creation" : intent === "code" ? "code" : intent === "plan" ? "plan" : intent === "act" ? "action" : "answer";
   const objective = conversational ? "Have a natural conversation with the user." : raw;
   let desiredOutcome = "Directly satisfy the user's request.";
