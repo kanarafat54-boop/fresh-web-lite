@@ -44,12 +44,19 @@ const profileInsertEnd = freshId.indexOf("});", profileInsertStart);
 const profileInsert = freshId.slice(profileInsertStart, profileInsertEnd);
 required.push(["Browser cannot request privileged profile fields during provisioning", !["role:", "verified:", "identity:", "stats:", "security:", "subscription:", "linked_accounts:"].some((field) => profileInsert.includes(field))]);
 required.push(["Profile update API is typed to editable fields only", freshId.includes('type EditableProfilePatch = Pick<Partial<FreshUser>, "fullName" | "username" | "preferences">') && freshId.includes("updateUser(patch: EditableProfilePatch)")]);
-required.push(["Account type is distinct from privileged role", freshUserTypes.includes('FreshAccountType = "personal" | "creator" | "business" | "developer" | "organization"') && settingsWorkspace.includes("does not grant administrator rights")]);
+required.push(["Account type is distinct from privileged role", freshUserTypes.includes('FreshWorkspaceMode = "personal" | "creator" | "business" | "developer" | "organization"') && settingsWorkspace.includes("does not create a business or organization account or grant permissions")]);
 required.push(["Settings sync account preferences through Fresh ID", settingsWorkspace.includes("persistPreferenceSettings") && settingsWorkspace.includes("updateUser({ preferences: { ...user.preferences, ...patch } })")]);
 required.push(["Privacy preferences are account-syncable and remain locally usable", freshUserTypes.includes("privacy?: FreshPrivacyPreferences") && settingsWorkspace.includes('persistPreferenceSettings({ privacy: next })')]);
 
 required.push(["Settings do not misrepresent saved privacy preferences as enforced controls", settingsWorkspace.includes("not yet universal enforcement switches") && settingsWorkspace.includes("does not yet enforce visibility across every profile or search service")]);
 required.push(["Guest preference changes are clearly separated from registered-account persistence", settingsWorkspace.includes("if (!user || isGuest)") && settingsWorkspace.includes("saved on this device only")]);
+
+const accountMigration = fs.readFileSync(path.join(root, "supabase/migrations/20261019120000_fresh_id_accounts_and_memberships.sql"), "utf8");
+required.push(["Multi-account workspace tables have RLS enabled", accountMigration.includes("alter table public.fresh_id_accounts enable row level security") && accountMigration.includes("alter table public.fresh_id_account_memberships enable row level security")]);
+required.push(["Browser clients cannot directly mutate account or membership rows", accountMigration.includes("revoke all privileges on table public.fresh_id_accounts from public, anon, authenticated") && accountMigration.includes("revoke all privileges on table public.fresh_id_account_memberships from public, anon, authenticated")]);
+required.push(["Account creation RPC requires an authenticated owner and creates owner membership atomically", accountMigration.includes("v_user_id uuid := auth.uid()") && accountMigration.includes("Fresh ID sign-in is required") && accountMigration.includes("values (v_account_id, v_user_id, 'owner', 'active')")]);
+required.push(["Workspace account types are distinct from platform security roles", accountMigration.includes("distinct from authentication identities and privileged platform roles") && accountMigration.includes("p_account_type not in ('creator', 'business', 'developer', 'organization')")]);
+required.push(["Account and membership policies avoid recursive RLS checks", accountMigration.includes("public.is_fresh_id_account_member(id)") && accountMigration.includes("public.is_fresh_id_account_owner(account_id)")]);
 
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
