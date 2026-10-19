@@ -13,7 +13,7 @@ import {
 import type { User } from "@supabase/supabase-js";
 
 import { supabase } from "../../../lib/supabase";
-import type { FreshUser, LinkedAccount } from "../types/user";
+import type { FreshUser, FreshWorkspaceMode, LinkedAccount } from "../types/user";
 import { validateDateOfBirth } from "../utils/dateOfBirth";
 
 type Passkey = {
@@ -137,7 +137,7 @@ interface FreshIdContextValue {
   authView: AuthView;
   passkeySupported: boolean;
   setAuthView: (view: AuthView) => void;
-  register: (email: string, password: string, username: string, fullName: string, profile: { dateOfBirth: string; country: string; gender: string; consentVersion: string }) => Promise<void>;
+  register: (email: string, password: string, username: string, fullName: string, profile: { dateOfBirth: string; country: string; gender: string; consentVersion: string; preferredWorkspaceMode?: FreshWorkspaceMode }) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginWithPasskey: () => Promise<void>;
   registerPasskey: () => Promise<Passkey | null>;
@@ -296,12 +296,16 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     const username = String(metadata.username ?? `${baseUsername}_${authUser.id.slice(0, 8)}`).toLowerCase();
     const fullName = String(metadata.full_name ?? metadata.name ?? baseUsername);
 
+    const metadataWorkspaceMode = String(metadata.preferred_workspace_mode ?? "personal");
+    const preferredWorkspaceMode: FreshWorkspaceMode = ["personal", "creator", "business", "developer", "organization"].includes(metadataWorkspaceMode)
+      ? metadataWorkspaceMode as FreshWorkspaceMode
+      : "personal";
     const { error: insertError } = await supabase.from("users").insert({
       id: authUser.id,
       username,
       email,
       full_name: fullName,
-      preferences: defaults.preferences,
+      preferences: { ...defaults.preferences, preferredWorkspaceMode },
     });
 
     if (insertError) {
@@ -439,7 +443,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         password,
         options: {
           emailRedirectTo: new URL("/auth/sign-in", window.location.origin).toString(),
-          data: { username, full_name: fullName, date_of_birth: profile.dateOfBirth, country: profile.country || null, gender: profile.gender || null, signup_consent_version: profile.consentVersion, signup_consent_at: new Date().toISOString() },
+          data: { username, full_name: fullName, date_of_birth: profile.dateOfBirth, country: profile.country || null, gender: profile.gender || null, signup_consent_version: profile.consentVersion, signup_consent_at: new Date().toISOString(), preferred_workspace_mode: profile.preferredWorkspaceMode ?? "personal" },
         },
       });
       data = result.data;
