@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import "./FreshAIHome.css";
 import { createFreshAIWorkspaceContext } from "../../../core/fresh-ai/FreshAIWorkspaceContext";
 import { useLayout } from "../../../app/contexts/useLayout";
+import { supabase } from "../../../lib/supabase";
 
 type Turn = { id: string; role: "user" | "assistant"; content: string; pending?: boolean; imageUrl?: string };
 type Evidence = { title: string; snippet?: string; url?: string };
@@ -97,10 +98,15 @@ export default function FreshAIHome() {
       const imageRequest = mode === "create" && /\b(generate|create|draw|render|make|design)\b[\s\S]{0,100}\b(image|picture|photo|illustration|logo|poster|artwork|portrait|wallpaper|icon|visual|drawing|graphic)\b/i.test(text);
       if (imageRequest) {
         const goal = text.replace(/^Create:\s*/i, "").trim();
+        const { data: { session } } = await supabase.auth.getSession();
         const response = await fetch("/api/ai/ask", {
           method: "POST",
           signal: controller.signal,
-          headers: { "content-type": "application/json", accept: "application/json" },
+          headers: {
+            "content-type": "application/json",
+            accept: "application/json",
+            ...(session?.access_token ? { authorization: `Bearer ${session.access_token}` } : {}),
+          },
           body: JSON.stringify({ goal, route, mode: "image-generation" }),
         });
         const payload = await response.json().catch(() => ({})) as ApiResponse;
