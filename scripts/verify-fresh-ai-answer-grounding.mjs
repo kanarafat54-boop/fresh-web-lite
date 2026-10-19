@@ -22,12 +22,12 @@ if (!knowledge.includes("if (best <= 0) return [];") || !knowledge.includes("(Nu
 if (!knowledge.includes(".filter((s) => s.score >= 2)")) {
   throw new Error("Fallback knowledge retrieval must require meaningful lexical overlap.");
 }
-const imageUi = fs.readFileSync("src/features/ai/components/FreshAIHome.tsx", "utf8");
+const imageUi = fs.readFileSync("src/app/components/FreshAIUnified.tsx", "utf8");
 const imageApi = fs.readFileSync("api/ai/ask.ts", "utf8");
-if (!imageUi.includes('fetch("/api/ai/ask"') || !imageUi.includes('mode: "image-generation"') || !imageUi.includes("turn.imageUrl")) {
-  throw new Error("Fresh AI Create mode must call the image API and render the returned image.");
+if (!imageUi.includes('fetch("/api/ai/ask"') || !imageUi.includes("setImage(payload.image)") || !imageUi.includes("const imagePanel = image ?")) {
+  throw new Error("The active Fresh AI interface must call the ask API and render the image result when one is returned.");
 }
 if (!imageApi.includes("generateFreshAIImage") || !imageApi.includes("isFreshAIImageEngineConfigured")) {
   throw new Error("Fresh AI image API must use the guarded inference service.");
 }
-console.log("Fresh AI answer grounding and image-routing regression checks: PASS");
+console.log("Fresh AI answer grounding and active image-output contract checks: PASS");
