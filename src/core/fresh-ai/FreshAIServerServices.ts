@@ -7,6 +7,10 @@ export const FRESH_AI_MEDIA_BUCKET = "fresh-ai-media";
 const IMAGE_ENGINE_TIMEOUT_MS = 45_000;
 const MAX_IMAGE_BASE64_CHARS = 24 * 1024 * 1024;
 
+export function isFreshAIImageEngineConfigured(): boolean {
+  return Boolean(getServerEnv("FRESH_AI_IMAGE_ENGINE_URL")?.trim());
+}
+
 export type FreshAIServerConfig = {
   supabaseUrl: string | null;
   supabaseSecretKey: string | null;
@@ -106,8 +110,13 @@ async function generateWithConfiguredImageEngine(input: {
   }
 
   const payload = await response.json() as { b64Json?: unknown; mimeType?: unknown };
-  if (typeof payload.b64Json !== "string" || payload.b64Json.length === 0 || payload.b64Json.length > MAX_IMAGE_BASE64_CHARS || !/^[A-Za-z0-9+/]+={0,2}$/.test(payload.b64Json)) {
+  if (typeof payload.b64Json !== "string" || payload.b64Json.length === 0 || payload.b64Json.length > MAX_IMAGE_BASE64_CHARS || payload.b64Json.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(payload.b64Json)) {
     throw new Error("Fresh AI image engine returned an invalid image payload.");
+  }
+  const imageBytes = Buffer.from(payload.b64Json, "base64");
+  const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  if (imageBytes.length < pngSignature.length || !imageBytes.subarray(0, pngSignature.length).equals(pngSignature)) {
+    throw new Error("Fresh AI image engine returned bytes that are not a PNG image.");
   }
   if (payload.mimeType !== undefined && payload.mimeType !== "image/png") {
     throw new Error("Fresh AI image engine must return a PNG image.");
