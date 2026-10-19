@@ -170,7 +170,7 @@ export default function CommunicationWorkspace() {
     };
 
     const startFallbackRefresh = () => {
-      if (fallbackTimer) return;
+      if (!active || fallbackTimer) return;
       fallbackTimer = setInterval(() => {
         void listThread(activeThreadUserId)
           .then((messages) => { if (active) mergeMessages(messages); })
