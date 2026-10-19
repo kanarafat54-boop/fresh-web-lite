@@ -92,10 +92,16 @@ async function research(goal: string): Promise<Evidence[]> {
     const sourceByUrl = new Map(sources.map((x) => [x.url as string, x]));
     const claims = (p.claims ?? []).filter((x) => typeof x.text === "string" && x.text.trim());
     const groundedClaims = claims.flatMap((claim, index) => {
-      const sourceUrl = (claim.sourceUrls ?? []).find((url) => sourceByUrl.has(url)) || (sources[index]?.url as string | undefined);
+      const declaredUrls = Array.isArray(claim.sourceUrls) ? claim.sourceUrls.filter((url): url is string => typeof url === "string") : [];
+      // If the research service declares provenance, do not silently attach a different source
+      // when those declared URLs are invalid or absent from the returned source list.
+      const sourceUrl = declaredUrls.length
+        ? declaredUrls.find((url) => sourceByUrl.has(url))
+        : (sources[index]?.url as string | undefined);
       if (!sourceUrl) return [];
       const source = sourceByUrl.get(sourceUrl);
-      return [{ id: claim.id || `research-${p.runId || "run"}-${index + 1}`, source: sourceUrl, claim: claim.text as string, observedAt: source?.publishedAt, confidence: typeof claim.confidence === "number" ? claim.confidence : .7 }];
+      if (!source) return [];
+      return [{ id: claim.id || `research-${p.runId || "run"}-${index + 1}`, source: sourceUrl, claim: claim.text as string, observedAt: source.publishedAt, confidence: typeof claim.confidence === "number" ? claim.confidence : .7 }];
     });
     if (groundedClaims.length) return groundedClaims;
     return sources.filter(x => x.snippet || x.title).map((source, index) => ({ id: `research-${p.runId || "run"}-${index + 1}`, source: source.url as string, claim: source.snippet || source.title as string, observedAt: source.publishedAt, confidence: .6 }));
