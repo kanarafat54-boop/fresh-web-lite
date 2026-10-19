@@ -10,7 +10,7 @@ import {
   listAcceptedConnections,
   type ConnectionRequest,
 } from "./connectionService";
-import { listThread, sendMessage, markThreadRead, getUnreadCounts, type DirectMessage } from "./messagingService";
+import { listThread, sendMessage, markThreadRead, getUnreadCounts, subscribeToThread, type DirectMessage } from "./messagingService";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
 import { useLayout } from "../../app/contexts/useLayout";
 import "./WorkspacePage.css";
@@ -151,6 +151,57 @@ export default function CommunicationWorkspace() {
     void load();
   }, []);
 
+  // Keep an open conversation live. If Realtime is not enabled for this table,
+  // fall back to periodic refresh rather than leaving the UI silently stale.
+  useEffect(() => {
+    if (!activeThreadUserId || !myUserId) return;
+    let active = true;
+    let unsubscribe: (() => void) | null = null;
+    let fallbackTimer: ReturnType<typeof setInterval> | null = null;
+
+    const mergeMessages = (incoming: DirectMessage[]) => {
+      setThreadMessages((current) => {
+        const byId = new Map(current.map((message) => [message.id, message]));
+        for (const message of incoming) byId.set(message.id, message);
+        return Array.from(byId.values()).sort(
+          (left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime(),
+        );
+      });
+    };
+
+    const startFallbackRefresh = () => {
+      if (fallbackTimer) return;
+      fallbackTimer = setInterval(() => {
+        void listThread(activeThreadUserId)
+          .then((messages) => { if (active) mergeMessages(messages); })
+          .catch(() => { /* Keep the current conversation visible during transient network failures. */ });
+      }, 5000);
+    };
+
+    void subscribeToThread(activeThreadUserId, (message) => {
+      if (!active) return;
+      mergeMessages([message]);
+      if (message.sender_id !== myUserId) {
+        void markThreadRead(activeThreadUserId)
+          .then(() => setUnreadCounts((current) => ({ ...current, [activeThreadUserId]: 0 })))
+          .catch(() => { /* The next thread load will retry marking messages read. */ });
+      }
+    })
+      .then((stop) => {
+        if (active) unsubscribe = stop;
+        else stop();
+      })
+      .catch(() => {
+        if (active) startFallbackRefresh();
+      });
+
+    return () => {
+      active = false;
+      unsubscribe?.();
+      if (fallbackTimer) clearInterval(fallbackTimer);
+    };
+  }, [activeThreadUserId, myUserId]);
+
   const query: ConnectionQuery | null = viewer
     ? { viewerId: viewer.userId, minimumScore: 1, signals: [...SIGNALS] }
     : null;
@@ -223,7 +274,12 @@ export default function CommunicationWorkspace() {
     setThreadError(null);
     try {
       const message = await sendMessage(activeThreadUserId, messageDraft);
-      setThreadMessages((current) => [...current, message]);
+      setThreadMessages((current) => {
+        if (current.some((item) => item.id === message.id)) return current;
+        return [...current, message].sort(
+          (left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime(),
+        );
+      });
       setMessageDraft("");
     } catch (cause) {
       setThreadError(cause instanceof Error ? cause.message : "Unable to send message.");
