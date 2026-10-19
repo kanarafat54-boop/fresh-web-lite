@@ -5,6 +5,8 @@ const root = process.cwd();
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 const supabaseClient = fs.readFileSync(path.join(root, "src/lib/supabase.ts"), "utf8");
 const freshId = fs.readFileSync(path.join(root, "src/features/fresh-id/context/FreshIdContext.tsx"), "utf8");
+const freshUserTypes = fs.readFileSync(path.join(root, "src/features/fresh-id/types/user.ts"), "utf8");
+const settingsWorkspace = fs.readFileSync(path.join(root, "src/features/workspaces/SettingsWorkspace.tsx"), "utf8");
 const router = fs.readFileSync(path.join(root, "src/app/AppRouter.tsx"), "utf8");
 const workflow = fs.readFileSync(path.join(root, ".github/workflows/fresh-platform-build.yml"), "utf8");
 
@@ -42,6 +44,9 @@ const profileInsertEnd = freshId.indexOf("});", profileInsertStart);
 const profileInsert = freshId.slice(profileInsertStart, profileInsertEnd);
 required.push(["Browser cannot request privileged profile fields during provisioning", !["role:", "verified:", "identity:", "stats:", "security:", "subscription:", "linked_accounts:"].some((field) => profileInsert.includes(field))]);
 required.push(["Profile update API is typed to editable fields only", freshId.includes('type EditableProfilePatch = Pick<Partial<FreshUser>, "fullName" | "username" | "preferences">') && freshId.includes("updateUser(patch: EditableProfilePatch)")]);
+required.push(["Account type is distinct from privileged role", freshUserTypes.includes('FreshAccountType = "personal" | "creator" | "business" | "developer" | "organization"') && settingsWorkspace.includes("does not grant administrator rights")]);
+required.push(["Settings sync account preferences through Fresh ID", settingsWorkspace.includes("persistPreferenceSettings") && settingsWorkspace.includes("updateUser({ preferences: { ...user.preferences, ...patch } })")]);
+required.push(["Privacy preferences are account-syncable and remain locally usable", freshUserTypes.includes("privacy?: FreshPrivacyPreferences") && settingsWorkspace.includes('persistPreferenceSettings({ privacy: next })'));
 
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
