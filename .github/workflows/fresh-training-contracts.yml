@@ -42,6 +42,10 @@ jobs:
           grep -q '"checkpointCreated": false' artifacts/fresh-training/user-intake-curated-v1.manifest.json
       - name: Install Fresh training backend
         run: python3 -m pip install -r training/requirements.txt
+      - name: Test native inference artifact integrity and promotion gates
+        run: python3 -m unittest training/test_serve_fresh_unified.py
+      - name: Test authenticated native inference HTTP boundary
+        run: python3 -m unittest training/test_serve_fresh_unified_http.py
       - name: Exercise expanded authorized corpus through tokenizer and training dry-run
         run: npm run test:fresh-expanded-corpus
       - name: Verify live Fresh AI conversation endpoint
