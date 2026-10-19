@@ -243,7 +243,7 @@ export async function POST(req: Request): Promise<Response> {
           image = { dataUrl: generatedImage.dataUrl, model: generatedImage.model, size: generatedImage.size, engine: generatedImage.engine };
         }
       } else {
-        image = { dataUrl: generatedImage.dataUrl, model: generatedImage.model, size: generatedImage.size };
+        image = { dataUrl: generatedImage.dataUrl, model: generatedImage.model, size: generatedImage.size, engine: generatedImage.engine };
       }
     }
 
