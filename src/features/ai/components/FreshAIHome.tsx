@@ -4,9 +4,9 @@ import "./FreshAIHome.css";
 import { createFreshAIWorkspaceContext } from "../../../core/fresh-ai/FreshAIWorkspaceContext";
 import { useLayout } from "../../../app/contexts/useLayout";
 
-type Turn = { id: string; role: "user" | "assistant"; content: string; pending?: boolean };
+type Turn = { id: string; role: "user" | "assistant"; content: string; pending?: boolean; imageUrl?: string };
 type Evidence = { title: string; snippet?: string; url?: string };
-type ApiResponse = { answer?: string; error?: string; requestId?: string; evidence?: Evidence[]; confidence?: string; source?: string; model?: string; status?: string; workspace?: unknown; verification?: unknown };
+type ApiResponse = { answer?: string; error?: string; requestId?: string; evidence?: Evidence[]; confidence?: string; source?: string; model?: string; status?: string; workspace?: unknown; verification?: unknown; image?: { url?: string; dataUrl?: string; model?: string; size?: string; engine?: string } | null };
 type Mode = "chat" | "research" | "create" | "build" | "learn" | "act";
 type StreamEvent = { type: "start" | "token" | "done" | "error"; text?: string; error?: string; evidence?: Evidence[]; model?: string; verification?: unknown; requestId?: string; status?: string };
 const modes: Array<[Mode, string, string]> = [["chat", "Chat", "Ask anything"], ["research", "Research", "Search and verify"], ["create", "Create", "Write and generate"], ["build", "Build", "Code and ship"], ["learn", "Learn", "Learn with context"], ["act", "Act", "Use approved tools"]];
@@ -94,6 +94,24 @@ export default function FreshAIHome() {
     const controller = new AbortController(); abortRef.current = controller; userPinnedToBottomRef.current = true;
     setTurns((current) => [...current, user, pending]); setDraft(""); setError(null); setEvidence([]); setMeta({}); setLoading(true);
     try {
+      const imageRequest = mode === "create" && /\\b(generate|create|draw|render|make|design)\\b[\\s\\S]{0,100}\\b(image|picture|photo|illustration|logo|poster|artwork|portrait|wallpaper|icon|visual|drawing|graphic)\\b/i.test(text);
+      if (imageRequest) {
+        const goal = text.replace(/^Create:\\s*/i, "").trim();
+        const response = await fetch("/api/ai/ask", {
+          method: "POST",
+          signal: controller.signal,
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ goal, route, mode: "image-generation" }),
+        });
+        const payload = await response.json().catch(() => ({})) as ApiResponse;
+        if (!response.ok) throw new Error(payload.error || `Fresh AI image generation failed (${response.status}).`);
+        const imageUrl = payload.image?.url || payload.image?.dataUrl;
+        if (!imageUrl) throw new Error("Fresh AI returned no image file. Image inference may not be configured yet.");
+        setTurns((current) => current.map((turn) => turn.id === pending.id ? { ...turn, content: payload.answer || "Fresh AI generated an image.", imageUrl, pending: false } : turn));
+        setEvidence(Array.isArray(payload.evidence) ? payload.evidence : []);
+        setMeta({ requestId: payload.requestId, model: payload.model, verification: payload.verification, status: payload.status || "completed" });
+        return;
+      }
       const response = await freshPrompt(text, route, [...turns, user], mode, controller.signal);
       await readStream(response, (frame) => {
         if (frame.type === "start") setMeta({ requestId: frame.requestId, status: frame.status });
@@ -125,7 +143,7 @@ export default function FreshAIHome() {
       <div className="fresh-ai-answer-space">
         <div className="fresh-ai-context-strip"><span>LIVE CONTEXT</span><b>{context.featureName}</b><em>{context.surface}</em><small>{context.capabilities.length} capabilities · {context.toolNamespaces.length} tool spaces</small></div>
         <div className="fresh-ai-message-list" ref={messageListRef} onScroll={onMessageScroll} aria-live="polite">
-          {turns.length === 0 ? <div className="fresh-ai-empty"><div className="fresh-ai-empty-orb">F</div><h2>What are we working on?</h2><p>Chat with Fresh, research a question, create something, build software, learn, or ask Fresh to work with the space you're in.</p><div className="fresh-ai-starters">{["Help me think through an idea", "Research something for me", "Build the next step", "Explain this to me"].map((item) => <button key={item} type="button" onClick={() => { setDraft(item); composerRef.current?.focus(); }}>{item}</button>)}</div></div> : turns.map((turn) => <article className={`fresh-ai-message ${turn.role}`} key={turn.id}><div className="fresh-ai-avatar">{turn.role === "assistant" ? "F" : "You"}</div><div className="fresh-ai-message-body">{turn.pending && !turn.content ? <div className="fresh-ai-thinking"><span></span><span></span><span></span><b>Fresh is working…</b></div> : turn.role === "assistant" ? <>{renderAnswer(turn.content)}{turn.pending && <span className="fresh-ai-cursor" aria-label="Fresh is still responding">▋</span>}</> : <div className="fresh-ai-message-text">{turn.content}</div>}{turn.role === "assistant" && !turn.pending && <div className="fresh-ai-message-actions"><button type="button" onClick={() => copy(turn.content, turn.id)}>{copied === turn.id ? "Copied" : "Copy"}</button><button type="button" onClick={() => { const index = turns.findIndex((item) => item.id === turn.id); const previousUser = [...turns.slice(0, index)].reverse().find((item) => item.role === "user"); if (previousUser) void send(previousUser.content); }}>Regenerate</button><button type="button">Helpful</button><button type="button">Needs work</button></div>}</div></article>)}
+          {turns.length === 0 ? <div className="fresh-ai-empty"><div className="fresh-ai-empty-orb">F</div><h2>What are we working on?</h2><p>Chat with Fresh, research a question, create something, build software, learn, or ask Fresh to work with the space you're in.</p><div className="fresh-ai-starters">{["Help me think through an idea", "Research something for me", "Build the next step", "Explain this to me"].map((item) => <button key={item} type="button" onClick={() => { setDraft(item); composerRef.current?.focus(); }}>{item}</button>)}</div></div> : turns.map((turn) => <article className={`fresh-ai-message ${turn.role}`} key={turn.id}><div className="fresh-ai-avatar">{turn.role === "assistant" ? "F" : "You"}</div><div className="fresh-ai-message-body">{turn.pending && !turn.content ? <div className="fresh-ai-thinking"><span></span><span></span><span></span><b>Fresh is working…</b></div> : turn.role === "assistant" ? <>{renderAnswer(turn.content)}{turn.imageUrl && <figure className="fresh-ai-generated-image"><img src={turn.imageUrl} alt="Image generated by Fresh AI" loading="lazy" /><figcaption>Fresh AI · generated image</figcaption></figure>}{turn.pending && <span className="fresh-ai-cursor" aria-label="Fresh is still responding">▋</span>}</> : <div className="fresh-ai-message-text">{turn.content}</div>}{turn.role === "assistant" && !turn.pending && <div className="fresh-ai-message-actions"><button type="button" onClick={() => copy(turn.content, turn.id)}>{copied === turn.id ? "Copied" : "Copy"}</button><button type="button" onClick={() => { const index = turns.findIndex((item) => item.id === turn.id); const previousUser = [...turns.slice(0, index)].reverse().find((item) => item.role === "user"); if (previousUser) void send(previousUser.content); }}>Regenerate</button><button type="button">Helpful</button><button type="button">Needs work</button></div>}</div></article>)}
         </div>
         {error && <div className="fresh-ai-error"><b>Fresh AI couldn't complete that.</b><span>{error}</span><button type="button" onClick={() => { setError(null); void send(lastPrompt); }}>Retry</button><button type="button" onClick={() => setError(null)}>Dismiss</button></div>}
         {evidence.length > 0 && <section className="fresh-ai-evidence"><div><span>PROOF</span><b>{meta.verification ? "Cross-checked" : "Sources"} · {evidence.length} sources</b></div>{evidence.slice(0, 6).map((item, index) => <div className="fresh-ai-source" key={`${item.title}-${index}`}><strong>{item.title}</strong><small>{item.snippet || item.url || "Source used by Fresh"}</small></div>)}</section>}
