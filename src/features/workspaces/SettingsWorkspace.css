@@ -89,3 +89,17 @@
 .fresh-settings-password-form input{width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--fresh-border);border-radius:12px;padding:12px;background:var(--fresh-surface-2);color:var(--fresh-text);font:inherit}
 .fresh-settings-password-form button{grid-column:1/-1;justify-self:start}
 @media(max-width:650px){.fresh-settings-password-form{grid-template-columns:minmax(0,1fr)}}
+
+/* Fresh ID device inventory and explicit permission controls */
+.fresh-device-security{display:grid!important;gap:16px}
+.fresh-device-permissions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.fresh-device-permission{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;padding:14px;border:1px solid var(--fresh-border);border-radius:13px;background:var(--fresh-surface-2)}
+.fresh-device-permission>div,.fresh-device-row>div{display:grid;gap:5px;min-width:0}
+.fresh-device-permission small,.fresh-device-row small{color:var(--fresh-muted);line-height:1.45;overflow-wrap:anywhere}
+.fresh-device-permission button,.fresh-device-actions button{min-height:44px;padding:9px 12px;border:1px solid var(--fresh-border);border-radius:10px;background:var(--fresh-surface);color:var(--fresh-text);font:inherit;font-weight:700;cursor:pointer}
+.fresh-device-actions{display:flex;gap:10px;flex-wrap:wrap}
+.fresh-device-list{display:grid;gap:10px}
+.fresh-device-list h3{margin:0}
+.fresh-device-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;border:1px solid var(--fresh-border);border-radius:13px}
+.fresh-device-row>div{flex:1}
+@media(max-width:640px){.fresh-device-permissions{grid-template-columns:minmax(0,1fr)}.fresh-device-permission{align-items:flex-start;flex-direction:column}.fresh-device-permission button{width:100%}.fresh-device-actions{display:grid;grid-template-columns:minmax(0,1fr)}.fresh-device-row{align-items:flex-start;flex-direction:column}}
