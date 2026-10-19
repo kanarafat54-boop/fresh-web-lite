@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       deployment_url:
-        description: Full Vercel deployment URL to smoke-test
+        description: Full HTTPS Vercel deployment URL to smoke-test
         required: true
         type: string
 permissions:
@@ -16,6 +16,7 @@ jobs:
       (github.event.deployment_status.state == 'success' &&
        contains(github.event.deployment_status.target_url, '.vercel.app'))
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
