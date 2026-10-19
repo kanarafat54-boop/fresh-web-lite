@@ -248,7 +248,7 @@ export function AuthForm() {
                 type="button"
                 className={`auth-social-btn ${provider.className}`}
                 onClick={() => void handleSocialSignIn(provider.id)}
-                disabled={loading || Boolean(socialLoading)}
+                disabled={loading || Boolean(socialLoading) || ["whatsapp", "telegram", "tiktok"].includes(provider.id)}
                 aria-label={provider.title}
                 title={provider.title}
               >
@@ -273,6 +273,7 @@ export function AuthForm() {
               </button>
             ))}
           </div>
+          <p className="auth-message">WhatsApp, Telegram and TikTok sign-in are not connected yet. These options will activate only after their official identity integrations are configured.</p>
 
           <button
             className="auth-submit-btn"
