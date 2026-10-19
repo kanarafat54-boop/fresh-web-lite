@@ -70,3 +70,49 @@ The vault can seal stored turns, but the live `/api/ai/ask` inference path curre
 ## Definition of done
 
 A capability is complete only when its implementation, permissions, configured dependencies, end-to-end test, observability, verification, and truthful failure behavior are demonstrated. The overall product has no single trustworthy completion percentage.
+
+## 2026-10-19 — Repository-backed execution findings
+
+This section records inspected repository evidence; it does not upgrade any capability to production-ready.
+
+### Existing architecture adopted (preserve, do not duplicate)
+
+- `docs/FRESH_BEYOND_SUPERINTELLIGENCE.md` is the product thesis: truth, governed agency, memory, creation, work, privacy, learning, and governance—not IQ-only.
+- `docs/FRESH_AI_SOVEREIGN_INTELLIGENCE.md` and `docs/FRESH_AI_SOVEREIGN_ROADMAP.md` define the provider-independent reasoning/agent architecture.
+- `docs/FRESH_AI_CAPABILITY_PRODUCT_CONTRACT.md` defines the user capability surface and common execution contract.
+- `docs/FRESH_AI_RUNTIME_ROADMAP.md` sequences runtime capabilities.
+- `docs/FRESH_AI_LEARNING_LOOP.md` defines explicit user-consented feedback and owner review.
+- `docs/FRESH_DISTRIBUTED_COMPUTE_ARCHITECTURE.md` defines replaceable compute/worker adapters.
+- `docs/FRESH_WEB_LITE_PLATFORM_ARCHITECTURE_GOVERNANCE.md` and `docs/FRESH_WEB_LITE_PLATFORM_CONTROL_SAFETY_OPERATIONS.md` own shared platform/security invariants.
+
+These are complementary sources, not candidates for blanket deletion. This audit remains the operational readiness record; the existing doctrine and roadmap remain their domain references.
+
+### Runtime code map verified on the default branch
+
+- API entry: `api/ai/ask.ts`; gateway: `src/core/fresh-ai/FreshAIIntelligenceGateway.ts`.
+- Core orchestration: `FreshAIKernel.ts`; capability declarations: `FreshAICapabilityRegistry.ts`; runtime resolution: `FreshAICapabilityRuntime.ts`.
+- Truth and governance: `FreshTruthDecisionOrchestrator.ts`, `semanticTruthEngine.ts`, and `asi.ts`.
+- Memory/context: `FreshMemoryFabric.ts`, `FreshAIWorkspaceContext.ts`, and `semanticCognitiveFabric.ts`.
+- Skill and universal capability routing: `FreshAISkillFabric.ts`, `FreshAIUniversalCapabilityFabric.ts`, and `FreshAIUniversalPowerRouter.ts`.
+- Training and evaluation boundaries: `FreshAITrainingPipeline.ts`, `FreshUnifiedModelTraining.ts`, `FreshUnifiedEvaluation.ts`, and `training/train_fresh_unified.py`.
+- Existing CI workflows include `.github/workflows/fresh-ai-integrity.yml`, `fresh-training-contracts.yml`, and `fresh-ai-production-smoke.yml`.
+
+### Highest-priority engineering gates
+
+1. **Prove the live request path first:** authenticated request → gateway → capability/runtime resolution → truth/governance decision → response → persistence, with tests for missing configuration, unauthorized access, cancellation/timeouts, and provider-independent behavior.
+2. **Make capability truth enforceable:** the registry currently distinguishes `contracted`, `implemented`, and `training-required`. Keep this as the product contract until a compatible evidence layer exists; do not silently interpret `implemented` as production-verified. Track automated, integration, production, and operational evidence separately.
+3. **Measure intelligence rather than naming it:** create held-out evaluations for multi-step task completion, evidence-grounded answers, calibration/unknown detection, code/test outcomes, memory correctness, tool success, safety, latency and cost. Report baseline, regression and failure examples; no benchmark score may be inferred from architecture size or training loss alone.
+4. **Separate learning from self-modification:** feedback is a candidate signal, not automatic truth. Require explicit consent where user data is involved, authorization/provenance checks, human review, reproducible training/evaluation, checkpoint hashing, rollback, and approval before promotion.
+5. **Keep the model status honest:** the repository records a small CPU smoke run on synthetic examples and keeps `weightsStatus: training-required`. This is pipeline evidence, not general intelligence. A full training attempt is blocked until lawful corpus scale, appropriate compute, held-out evaluation and a working serving backend are available.
+6. **Verify actual behavior before UI expansion:** do not mark voice, vision/camera, code execution, apps, automation, 3D or robotics as working solely because types, routes, engine names or buttons exist.
+
+### Definition of evidence levels
+
+- **Contracted:** acceptance criteria and interface exist.
+- **Implemented:** code boundary exists.
+- **Automated-tested:** tests pass for the stated contract.
+- **Integration-verified:** connected dependencies and authenticated end-to-end path pass.
+- **Production-verified:** the deployed revision passes a capability-specific smoke test.
+- **Operationally-monitored:** telemetry, alerting, rollback and recovery have been demonstrated.
+
+These evidence levels supplement—not replace—the capability registry. A status change requires evidence links and review.
