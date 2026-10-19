@@ -42,7 +42,7 @@ Server-only Vercel environment variables:
 - `FRESH_AI_IMAGE_ENGINE_URL` — HTTPS URL of an engine implementing the `fresh-image-v1` request/response contract.
 - `FRESH_AI_IMAGE_ENGINE_TOKEN` — server-to-server bearer token for that engine.
 
-The engine accepts JSON with `contract`, `modelId`, `kind`, `prompt`, `size`, and `quality`; it returns `{ "b64Json": "<base64 PNG>", "mimeType": "image/png" }`. The URL and token are never accepted from the browser. Remote HTTPS, redirect rejection, a 45-second timeout, payload bounds, PNG validation, and persisted engine provenance are enforced by the Fresh server boundary.
+The engine accepts JSON with `contract`, `modelId`, `kind`, `prompt`, `size`, and `quality`; it returns `{ "b64Json": "<base64 PNG>", "mimeType": "image/png" }`. The URL and token are never accepted from the browser, and the configured inference path requires a signed-in user. Remote HTTPS, redirect rejection, a 45-second timeout, payload bounds, PNG signature validation, and persisted engine provenance are enforced by the Fresh server boundary.
 
 If the engine URL is not configured, Fresh AI tries its native generation runtime. That runtime currently truthfully reports `training-required` until actual Fresh-trained image weights and an inference backend are registered and verified. Configuring the adapter makes a real external inference engine available to Fresh AI; it does **not** mean such an engine is already deployed or that image generation has passed production smoke tests.
 
