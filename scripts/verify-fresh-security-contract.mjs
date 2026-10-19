@@ -43,6 +43,10 @@ const profileInsert = freshId.slice(profileInsertStart, profileInsertEnd);
 required.push(["Browser cannot request privileged profile fields during provisioning", !["role:", "verified:", "identity:", "stats:", "security:", "subscription:", "linked_accounts:"].some((field) => profileInsert.includes(field))]);
 required.push(["Profile update API is typed to editable fields only", freshId.includes('type EditableProfilePatch = Pick<Partial<FreshUser>, "fullName" | "username" | "preferences">') && freshId.includes("updateUser(patch: EditableProfilePatch)")]);
 
+required.push(["Passkey fallback keeps password login available", authForm.includes("signInWithPassword") && authForm.includes("Passkeys unavailable — use password")]);
+required.push(["Passkey copy supports device PIN and screen lock", authForm.includes("device PIN") && authForm.includes("screen lock")]);
+required.push(["Passkey availability is feature-detected in secure browser contexts", freshId.includes("window.isSecureContext") && freshId.includes("navigator.credentials?.create") && freshId.includes("navigator.credentials?.get")]);
+
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
   console.error("Fresh security contract failed:");
