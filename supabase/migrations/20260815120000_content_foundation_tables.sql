@@ -1,6 +1,6 @@
 -- Content foundation tables for Posts + Shorts.
--- Required so later ALTER/INDEX migrations succeed on fresh Supabase Preview DBs
--- where production already had these tables from remote history.
+-- Required so later ALTER/INDEX/policy migrations succeed on clean local
+-- replay where production already had these tables from remote history.
 -- All statements are idempotent (IF NOT EXISTS).
 
 -- Minimal public.users mirror for FK targets used by interactions/comments.
@@ -11,6 +11,22 @@ create table if not exists public.users (
   avatar_url text,
   created_at timestamptz not null default now()
 );
+
+-- Bring the minimal preview users mirror up to the identity columns consumed
+-- by later profile views. Existing production columns are left unchanged.
+alter table public.users
+  add column if not exists email text,
+  add column if not exists full_name text not null default '',
+  add column if not exists preferences jsonb not null default '{}'::jsonb,
+  add column if not exists role text not null default 'user',
+  add column if not exists verified boolean not null default false,
+  add column if not exists presence text not null default 'offline',
+  add column if not exists identity jsonb not null default '{}'::jsonb,
+  add column if not exists stats jsonb not null default '{}'::jsonb,
+  add column if not exists security jsonb not null default '{}'::jsonb,
+  add column if not exists subscription jsonb not null default '{"tier":"free","isTrial":false}'::jsonb,
+  add column if not exists linked_accounts jsonb not null default '[]'::jsonb,
+  add column if not exists updated_at timestamptz not null default now();
 
 create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),
@@ -65,6 +81,50 @@ create table if not exists public.short_comments (
   moderated_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+-- These four interaction tables existed in production but were absent from
+-- the clean-replay foundation. Their column types, keys, checks, and FK targets
+-- were recovered from the live catalog using read-only inspection.
+create table if not exists public.post_likes (
+  post_id uuid not null references public.posts (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  reaction_type text default 'like'
+    check (reaction_type = any (array['like','love','laugh','wow','sad','angry']::text[])),
+  primary key (post_id, user_id)
+);
+
+create table if not exists public.short_likes (
+  short_id uuid not null references public.shorts (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
+  created_at timestamptz default now(),
+  reaction_type text default 'like'
+    check (reaction_type = any (array['like','love','laugh','wow','sad','angry']::text[])),
+  primary key (short_id, user_id)
+);
+
+create table if not exists public.saved_posts (
+  post_id uuid not null references public.posts (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
+  created_at timestamptz default now(),
+  primary key (post_id, user_id)
+);
+
+create table if not exists public.saved_shorts (
+  short_id uuid not null references public.shorts (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
+  created_at timestamptz default now(),
+  primary key (short_id, user_id)
+);
+
+alter table public.posts enable row level security;
+alter table public.shorts enable row level security;
+alter table public.post_comments enable row level security;
+alter table public.short_comments enable row level security;
+alter table public.post_likes enable row level security;
+alter table public.short_likes enable row level security;
+alter table public.saved_posts enable row level security;
+alter table public.saved_shorts enable row level security;
 
 create index if not exists posts_author_idx on public.posts (author_id);
 create index if not exists shorts_author_idx on public.shorts (author_id);

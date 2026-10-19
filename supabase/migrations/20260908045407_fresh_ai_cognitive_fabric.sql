@@ -104,3 +104,40 @@ drop policy if exists fresh_ai_improvement_owner on public.fresh_ai_improvement_
 create policy fresh_ai_improvement_owner on public.fresh_ai_improvement_proposals for select using (auth.uid() = created_by);
 
 notify pgrst, 'reload schema';
+
+
+-- Server-only safety and serving telemetry. These records can contain
+-- operational and policy details; keep them inaccessible to client roles.
+create table if not exists public.fresh_ai_safety_events (
+  id uuid primary key default gen_random_uuid(),
+  request_id uuid null,
+  user_id uuid null references auth.users(id) on delete set null,
+  decision text not null check (decision in ('allow','refuse','clarify','escalate','approval-required')),
+  reasons jsonb not null default '[]'::jsonb,
+  policy_version text not null,
+  human_review_required boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists fresh_ai_safety_events_request_idx
+  on public.fresh_ai_safety_events (request_id, created_at desc);
+alter table public.fresh_ai_safety_events enable row level security;
+revoke all on public.fresh_ai_safety_events from anon, authenticated;
+grant all on public.fresh_ai_safety_events to service_role;
+
+create table if not exists public.fresh_ai_serving_metrics (
+  id uuid primary key default gen_random_uuid(),
+  request_id uuid null,
+  user_id uuid null references auth.users(id) on delete set null,
+  route text not null,
+  latency_ms integer null,
+  fallback_used boolean not null default false,
+  provider text null,
+  success boolean not null default true,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+create index if not exists fresh_ai_serving_metrics_route_idx
+  on public.fresh_ai_serving_metrics (route, created_at desc);
+alter table public.fresh_ai_serving_metrics enable row level security;
+revoke all on public.fresh_ai_serving_metrics from anon, authenticated;
+grant all on public.fresh_ai_serving_metrics to service_role;

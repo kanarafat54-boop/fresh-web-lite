@@ -47,3 +47,23 @@ $$;
 drop trigger if exists connection_requests_touch on public.connection_requests;
 create trigger connection_requests_touch before update on public.connection_requests
 for each row execute function public.touch_connection_request();
+
+-- Direct-message storage must exist before historical policy-cleanup migrations
+-- reference it. Later Phase 0 migrations apply the least-privilege grants/policies.
+create table if not exists public.direct_messages (
+  id uuid primary key default gen_random_uuid(),
+  sender_id uuid not null references auth.users(id) on delete cascade,
+  recipient_id uuid not null references auth.users(id) on delete cascade,
+  body text not null check (length(btrim(body)) > 0),
+  read_at timestamptz,
+  created_at timestamptz not null default now(),
+  constraint direct_messages_no_self check (sender_id <> recipient_id)
+);
+
+create index if not exists direct_messages_sender_created_idx
+  on public.direct_messages(sender_id, created_at desc);
+create index if not exists direct_messages_recipient_created_idx
+  on public.direct_messages(recipient_id, created_at desc);
+
+alter table public.direct_messages enable row level security;
+

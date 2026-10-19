@@ -1,5 +1,7 @@
 -- Fresh Web Lite security hardening applied to the production Supabase project on 2026-09-29.
 -- Data is preserved; this migration only tightens exposed API privileges.
+-- Some historical RPC signatures were later replaced; guard exact signatures so
+-- a clean replay does not grant privileges to a different overload by accident.
 
 revoke all on table public.fresh_ai_safety_events from anon, authenticated;
 revoke all on table public.fresh_ai_serving_metrics from anon, authenticated;
@@ -31,10 +33,20 @@ grant execute on function public.treasury_ensure_user_account(text,text,text) to
 revoke all on function public.treasury_resolve_recipient(text,text) from public;
 grant execute on function public.treasury_resolve_recipient(text,text) to authenticated;
 
-revoke all on function public.treasury_resolve_recipient_by_id(uuid,text) from public;
-grant execute on function public.treasury_resolve_recipient_by_id(uuid,text) to authenticated;
+-- These signatures are legacy forms. Do not fail replay or accidentally grant
+-- authenticated execution to a differently-shaped SECURITY DEFINER overload.
+do $migration$
+begin
+  if to_regprocedure('public.treasury_resolve_recipient_by_id(uuid,text)') is not null then
+    revoke all on function public.treasury_resolve_recipient_by_id(uuid,text) from public;
+    grant execute on function public.treasury_resolve_recipient_by_id(uuid,text) to authenticated;
+  end if;
 
-revoke all on function public.treasury_transfer_internal(uuid,uuid,bigint,text,text) from public;
-grant execute on function public.treasury_transfer_internal(uuid,uuid,bigint,text,text) to authenticated;
+  if to_regprocedure('public.treasury_transfer_internal(uuid,uuid,bigint,text,text)') is not null then
+    revoke all on function public.treasury_transfer_internal(uuid,uuid,bigint,text,text) from public;
+    grant execute on function public.treasury_transfer_internal(uuid,uuid,bigint,text,text) to authenticated;
+  end if;
+end
+$migration$;
 
 alter function public.treasury_asset_kind_for_currency(text) set search_path = pg_catalog;
