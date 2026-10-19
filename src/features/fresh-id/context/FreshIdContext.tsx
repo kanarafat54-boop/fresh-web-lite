@@ -334,11 +334,12 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setUser(dbRowToFreshUser(createdProfile as Record<string, unknown>));
+      const provisionedUser = dbRowToFreshUser(createdProfile as Record<string, unknown>);
+      setUser(provisionedUser);
       setIsGuest(false);
       setError(null);
       setMessage("Your Fresh ID account is connected.");
-      await ensureSelectedWorkspace(authUser, currentUser.fullName);
+      await ensureSelectedWorkspace(authUser, provisionedUser.fullName);
       setLoading(false);
       return;
     }
