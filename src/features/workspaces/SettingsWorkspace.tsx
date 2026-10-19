@@ -52,6 +52,20 @@ export default function SettingsWorkspace() {
     setLanguage(user?.preferences?.language ?? "en");
     setTimezone(user?.preferences?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
     setEmailUpdates(user?.preferences?.emailNotifications ?? window.localStorage.getItem("fresh-notifications") !== "off");
+    if (user?.preferences?.theme === "light" || user?.preferences?.theme === "dark") {
+      setTheme(user.preferences.theme);
+      document.documentElement.dataset.theme = user.preferences.theme;
+    }
+    if (user?.preferences?.experienceMode) {
+      setExperienceMode(user.preferences.experienceMode);
+    }
+    if (user?.preferences?.textSize) {
+      setTextSize(user.preferences.textSize);
+      document.documentElement.dataset.textSize = user.preferences.textSize;
+    }
+    if (user?.preferences?.privacy) {
+      setPrivacy({ ...defaultPrivacy, ...user.preferences.privacy });
+    }
   }, [user]);
 
   useEffect(() => {
@@ -61,26 +75,44 @@ export default function SettingsWorkspace() {
     return () => { cancelled = true; };
   }, [isAuthenticated, isGuest, listPasskeys]);
 
+  async function persistPreferenceSettings(patch: Partial<FreshUser["preferences"]>) {
+    if (!user || isGuest) {
+      setStatus("This choice is saved on this device only. Sign in with Fresh ID to sync it across devices.");
+      return;
+    }
+    try {
+      const saved = await updateUser({ preferences: { ...user.preferences, ...patch } });
+      setStatus(saved
+        ? "Your preference has been saved to your Fresh ID."
+        : "This preference could not be synced to your account. Your current device choice remains active.");
+    } catch {
+      setStatus("This preference could not be synced to your account. Your current device choice remains active.");
+    }
+  }
+
   const changeExperienceMode = (next: "simple" | "standard" | "advanced") => {
     setExperienceMode(next);
     window.localStorage.setItem("fresh-experience-mode", next);
-    setStatus(`Home view changed to ${next}. You can change this any time.`);
+    void persistPreferenceSettings({ experienceMode: next });
   };
 
   const changeTheme = (next: Theme) => {
     setTheme(next);
     document.documentElement.dataset.theme = next;
     window.localStorage.setItem("fresh-theme", next);
+    void persistPreferenceSettings({ theme: next });
   };
   const changeTextSize = (next: string) => {
-    setTextSize(next);
-    window.localStorage.setItem("fresh-text-size", next);
-    document.documentElement.dataset.textSize = next;
+    const normalized = next === "large" || next === "larger" ? next : "normal";
+    setTextSize(normalized);
+    window.localStorage.setItem("fresh-text-size", normalized);
+    document.documentElement.dataset.textSize = normalized;
+    void persistPreferenceSettings({ textSize: normalized });
   };
   const changePrivacy = (next: PrivacyPrefs) => {
     setPrivacy(next);
     window.localStorage.setItem("fresh-privacy-preferences", JSON.stringify(next));
-    setStatus("Privacy choices saved on this device. Account-wide sync is not enabled for these controls yet.");
+    void persistPreferenceSettings({ privacy: next });
   };
 
   async function persistProfile() {
