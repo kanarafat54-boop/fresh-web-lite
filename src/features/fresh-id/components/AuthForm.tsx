@@ -34,6 +34,7 @@ export function AuthForm() {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [country, setCountry] = useState("");
   const [gender, setGender] = useState("");
+  const [preferredWorkspaceMode, setPreferredWorkspaceMode] = useState<"personal" | "creator" | "business" | "developer" | "organization">("personal");
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -118,6 +119,7 @@ export function AuthForm() {
       country: country.trim(),
       gender,
       consentVersion: "2026-10-14",
+      preferredWorkspaceMode,
     });
   }
 
@@ -216,6 +218,7 @@ export function AuthForm() {
           <label className="auth-field"><span className="auth-field-label">Date of birth (day / month / year)</span><input className="auth-input" name="date-of-birth" autoComplete="bday" aria-label="Date of birth, day month and year" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required max={formatUtcDateInputValue()} /></label>
           <label className="auth-field"><span className="auth-field-label">Country or region (optional)</span><input className="auth-input" name="country" autoComplete="country-name" aria-label="Country or region" placeholder="Your country or region" value={country} onChange={(e) => setCountry(e.target.value)} maxLength={100} /></label>
           <label className="auth-field"><span className="auth-field-label">Gender (optional)</span><select className="auth-input" name="gender" aria-label="Gender (optional)" value={gender} onChange={(e) => setGender(e.target.value)}><option value="">Prefer not to say</option><option value="woman">Woman</option><option value="man">Man</option><option value="non_binary">Non-binary</option><option value="self_described">I describe myself another way</option></select></label>
+          <label className="auth-field"><span className="auth-field-label">Account type / starting experience</span><select className="auth-input" name="preferred-workspace-mode" aria-label="Choose your Fresh starting experience" value={preferredWorkspaceMode} onChange={(e) => setPreferredWorkspaceMode(e.target.value as typeof preferredWorkspaceMode)}><option value="personal">Personal — everyday Fresh use</option><option value="creator">Creator — publishing and audience tools</option><option value="business">Business — products and business tools</option><option value="developer">Developer — build and integrate</option><option value="organization">Organization — team collaboration</option></select><small className="auth-field-help">This personalizes your starting experience. It does not grant permissions or create a separate team workspace; you can create and manage workspaces in Settings.</small></label>
         </>
       )}
 
