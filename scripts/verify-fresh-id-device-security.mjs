@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 
 const component = await readFile("src/features/workspaces/DeviceSecurityPanel.tsx", "utf8");
 const settings = await readFile("src/features/workspaces/SettingsWorkspace.tsx", "utf8");
-const migration = await readFile("supabase/migrations/20261019150000_fresh_id_device_sessions.sql", "utf8");
+const migration = await readFile("supabase/migrations/20261019115936_fresh_id_device_sessions_20261019.sql", "utf8");
 const checks = [
   [component.includes('supabase.from("fresh_id_devices").upsert'), "signed-in devices register in the account-owned registry"],
   [component.includes('supabase.auth.signOut({ scope: "others" })'), "users can remotely sign out other Supabase Auth sessions"],
