@@ -135,7 +135,7 @@ interface FreshIdContextValue {
   authView: AuthView;
   passkeySupported: boolean;
   setAuthView: (view: AuthView) => void;
-  register: (email: string, password: string, username: string, fullName: string, accountType?: "personal" | "creator" | "business" | "developer" | "organization") => Promise<void>;
+  register: (email: string, password: string, username: string, fullName: string, accountType?: "personal" | "creator" | "business" | "developer" | "organization", profileDetails?: { birthMonth: number; birthYear: number; gender?: string; location?: string; timezone: string; primaryUseCase?: string }) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginWithPasskey: () => Promise<void>;
   registerPasskey: () => Promise<Passkey | null>;
@@ -356,7 +356,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   }
-  async function register(email: string, password: string, username: string, fullName: string, accountType: "personal" | "creator" | "business" | "developer" | "organization" = "personal", profileDetails: { birthMonth: number; birthYear: number; gender?: string; location?: string; timezone: string; primaryUseCase?: string }) {
+  async function register(email: string, password: string, username: string, fullName: string, accountType: "personal" | "creator" | "business" | "developer" | "organization" = "personal", profileDetails?: { birthMonth: number; birthYear: number; gender?: string; location?: string; timezone: string; primaryUseCase?: string }) {
     setError(null);
     setMessage(null);
     setLoading(true);
