@@ -1034,3 +1034,16 @@
     overflow: visible;
   }
 }
+
+
+/* Signup profile details: responsive, labelled fields without hiding the lower form. */
+.auth-profile-fieldset{min-width:0;margin:4px 0 2px;padding:14px;border:1px solid rgba(167,157,255,.22);border-radius:16px;background:rgba(255,255,255,.018)}
+.auth-profile-fieldset legend{padding:0 7px;font-weight:800;font-size:.95rem;color:var(--fresh-text,#f4f6fb)}
+.auth-profile-fieldset .auth-field-help{margin:0 0 12px}
+.auth-profile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.auth-profile-grid .auth-field{align-content:start}
+.auth-profile-grid .auth-input{width:100%;min-width:0;box-sizing:border-box}
+.auth-profile-fieldset .auth-field-help{line-height:1.5}
+@media(max-width:420px){.auth-profile-fieldset{padding:12px}.auth-profile-grid{grid-template-columns:minmax(0,1fr);gap:10px}}
+:root[data-theme="light"] .auth-profile-fieldset{background:rgba(17,19,24,.025);border-color:rgba(91,76,230,.22)}
+:root[data-theme="light"] .auth-profile-fieldset legend{color:#111318}
