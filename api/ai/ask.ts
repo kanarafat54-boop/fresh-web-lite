@@ -116,7 +116,7 @@ const FRESH_KB_STOP = new Set(["fresh","what","does","about","that","this","have
 function isExplicitFreshPlatformQuestion(goal: string): boolean {
   // Internal architecture notes are only relevant when the user explicitly asks about this
   // product/repository. Never inject them into ordinary chat, writing, learning or general Q&A.
-  return /\\b(?:fresh web lite|fresh ai|fresh id|fresh mail|fresh flow|fresh shorts|truemode|ara6|this platform|our platform|this project|our project|this repo|the repository|the codebase|architecture|implementation|feature status|project status|what have we built)\\b/i.test(goal);
+  return /\b(?:fresh web lite|fresh ai|fresh id|fresh mail|fresh flow|fresh shorts|truemode|ara6|this platform|our platform|this project|our project|this repo|the repository|the codebase|architecture|implementation|feature status|project status|what have we built)\b/i.test(goal);
 }
 
 async function platformKnowledge(goal: string): Promise<Awaited<ReturnType<typeof research>>> {
