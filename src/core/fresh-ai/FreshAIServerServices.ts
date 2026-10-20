@@ -191,7 +191,9 @@ export async function generateFreshAIImage(prompt: string, options?: { model?: s
   }
 
   const result = generateFreshNeuralMedia({ kind: "image", prompt: normalizedPrompt, size });
-  if (result.status !== "ready" || !result.output) throw new Error(result.reason || "Fresh neural image generation is not ready");
+  if (result.status !== "ready" || !result.output) {
+    throw new Error("Fresh AI image generation is unavailable in this deployment: no Fresh-managed image engine is configured, and the native Fresh Unified checkpoint/inference backend is not ready. No image was generated. Configure a Fresh-managed image inference worker or finish and validate native Fresh Unified serving.");
+  }
   return { b64Json: result.output.b64Json, model: "fresh-unified-1", outputFormat: "png", size, engine: "fresh-native" };
 }
 
