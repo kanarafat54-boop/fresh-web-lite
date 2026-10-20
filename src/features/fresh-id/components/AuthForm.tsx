@@ -57,6 +57,13 @@ export function AuthForm() {
   const [accountType, setAccountType] = useState<"personal" | "creator" | "business" | "developer" | "organization">("personal");
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
+  const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Africa/Kampala";
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthYear, setBirthYear] = useState("");
+  const [gender, setGender] = useState("");
+  const [location, setLocation] = useState("");
+  const [timezone, setTimezone] = useState(detectedTimezone);
+  const [primaryUseCase, setPrimaryUseCase] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
@@ -122,8 +129,23 @@ export function AuthForm() {
       setSignupError("Your passwords do not match. Please check both fields.");
       return;
     }
+    const parsedBirthYear = Number(birthYear);
+    const parsedBirthMonth = Number(birthMonth);
+    const now = new Date();
+    const ageAtMonthStart = now.getFullYear() - parsedBirthYear - (now.getMonth() + 1 < parsedBirthMonth ? 1 : 0);
+    if (!birthMonth || !birthYear || !Number.isInteger(parsedBirthYear) || ageAtMonthStart < 13 || parsedBirthYear > now.getFullYear()) {
+      setSignupError("Enter your birth month and year. You must be at least 13 to create a Fresh ID.");
+      return;
+    }
 
-    await register(email.trim(), password, username.trim(), fullName.trim(), accountType);
+    await register(email.trim(), password, username.trim(), fullName.trim(), accountType, {
+      birthMonth: parsedBirthMonth,
+      birthYear: parsedBirthYear,
+      gender: gender || undefined,
+      location: location.trim() || undefined,
+      timezone,
+      primaryUseCase: primaryUseCase || undefined,
+    });
   }
 
   function handleSubmit() {
@@ -191,6 +213,55 @@ export function AuthForm() {
         <>
           <label className="auth-field"><span className="auth-field-label">Full name</span><input className="auth-input" name="name" autoComplete="name" aria-label="Full name" placeholder="Your full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required maxLength={80} /></label>
           <label className="auth-field"><span className="auth-field-label">Username</span><input className="auth-input" name="username" autoComplete="username" aria-label="Username" placeholder="Choose a username" value={username} onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 32))} required minLength={3} maxLength={32} /></label>
+          <fieldset className="auth-profile-fieldset">
+            <legend>About you</legend>
+            <p className="auth-field-help">These details help personalize your Fresh experience. Gender and location are optional.</p>
+            <div className="auth-profile-grid">
+              <label className="auth-field">
+                <span className="auth-field-label">Birth month</span>
+                <select className="auth-input" name="birth-month" autoComplete="bday-month" value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} required>
+                  <option value="">Select month</option>
+                  {Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={String(index + 1)}>{new Date(2000, index, 1).toLocaleString("en", { month: "long" })}</option>)}
+                </select>
+              </label>
+              <label className="auth-field">
+                <span className="auth-field-label">Birth year</span>
+                <input className="auth-input" name="birth-year" autoComplete="bday-year" inputMode="numeric" type="number" min="1900" max={new Date().getFullYear()} step="1" placeholder="YYYY" value={birthYear} onChange={(e) => setBirthYear(e.target.value)} required />
+              </label>
+              <label className="auth-field">
+                <span className="auth-field-label">Gender (optional)</span>
+                <select className="auth-input" name="gender" value={gender} onChange={(e) => setGender(e.target.value)}>
+                  <option value="">Prefer not to say</option>
+                  <option value="woman">Woman</option>
+                  <option value="man">Man</option>
+                  <option value="non_binary">Non-binary</option>
+                  <option value="self_described">I describe it another way</option>
+                </select>
+              </label>
+              <label className="auth-field">
+                <span className="auth-field-label">Country or region (optional)</span>
+                <input className="auth-input" name="location" autoComplete="country-name" placeholder="Country or region" value={location} onChange={(e) => setLocation(e.target.value.slice(0, 100))} maxLength={100} />
+              </label>
+              <label className="auth-field">
+                <span className="auth-field-label">Time zone</span>
+                <select className="auth-input" name="timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} required>
+                  {[...new Set([detectedTimezone, "Africa/Kampala", "Africa/Nairobi", "Africa/Lagos", "Europe/London", "Europe/Paris", "Asia/Dubai", "Asia/Kolkata", "Asia/Tokyo", "America/New_York", "America/Chicago", "America/Los_Angeles", "Australia/Sydney"])].map((zone) => <option key={zone} value={zone}>{zone.replace(/_/g, " ") + (zone === detectedTimezone ? " (detected)" : "")}</option>)}
+                </select>
+              </label>
+              <label className="auth-field">
+                <span className="auth-field-label">What brings you to Fresh? (optional)</span>
+                <select className="auth-input" name="primary-use-case" value={primaryUseCase} onChange={(e) => setPrimaryUseCase(e.target.value)}>
+                  <option value="">Choose your main goal</option>
+                  <option value="connect">Connect with people and communities</option>
+                  <option value="create">Create and publish content</option>
+                  <option value="learn">Learn, search and research</option>
+                  <option value="work">Work, business and productivity</option>
+                  <option value="build">Build software and use AI tools</option>
+                  <option value="explore">Explore the Fresh ecosystem</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
           <label className="auth-field">
             <span className="auth-field-label">What kind of Fresh account do you need?</span>
             <select className="auth-input" name="fresh-account-type" value={accountType} onChange={(e) => setAccountType(e.target.value as typeof accountType)}>
