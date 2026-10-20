@@ -142,24 +142,9 @@ export async function POST(req: Request): Promise<Response> {
       evidence: { rating, correct: typeof body.correct === "boolean" ? body.correct : null },
     });
 
-    let shared = false;
-    if (body.share === true && rating !== null && rating <= 2) {
-      const clip = (value: unknown) => (typeof value === "string" ? value.trim().slice(0, 2000) : "");
-      const question = clip(body.question), answer = clip(body.answer), correction = clip(body.correction);
-      if (question && answer && correction) {
-        const existing = await client.from("fresh_ai_preference_pairs").select("id").eq("request_id", requestId).eq("user_id", user.id).limit(1);
-        if (!existing.error && (existing.data ?? []).length === 0) {
-          const stored = await client.from("fresh_ai_preference_pairs").insert({
-            user_id: user.id, request_id: requestId, prompt: question,
-            preferred_output: correction, rejected_output: answer,
-            rationale: "User correction shared with consent; pending owner review",
-            label: "better", safety_checked: false,
-          });
-          shared = !stored.error;
-        }
-      }
-    }
-    return json({ ok: true, requestId, evaluated: rating !== null, shared });
+    // Training preference pairs are accepted only through the explicit, versioned consent branch above.
+    // Legacy `share` flags are deliberately ignored so old clients cannot bypass that consent flow.
+    return json({ ok: true, requestId, evaluated: rating !== null, shared: false });
   } catch {
     return json({ error: "Feedback request failed" }, 500);
   }
