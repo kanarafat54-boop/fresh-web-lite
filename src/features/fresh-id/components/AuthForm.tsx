@@ -62,6 +62,13 @@ export function AuthForm() {
   const [birthYear, setBirthYear] = useState("");
   const [gender, setGender] = useState("");
   const [location, setLocation] = useState("");
+  const [locationLatitude, setLocationLatitude] = useState<number | null>(null);
+  const [locationLongitude, setLocationLongitude] = useState<number | null>(null);
+  const [locationAccuracyMeters, setLocationAccuracyMeters] = useState<number | null>(null);
+  const [locationStatus, setLocationStatus] = useState("");
+  const [locating, setLocating] = useState(false);
+  const [country, setCountry] = useState("");
+  const [language, setLanguage] = useState("en");
   const [timezone, setTimezone] = useState(detectedTimezone);
   const [primaryUseCase, setPrimaryUseCase] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -113,6 +120,62 @@ export function AuthForm() {
     { id: "tiktok" as const, label: "TikTok", symbol: "♪", className: "tiktok", title: "Continue with TikTok" },
   ];
 
+  const countryCodes = "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS XK YE YT ZA ZM ZW".split(" ");
+  const countryNames = new Intl.DisplayNames(["en"], { type: "region" });
+  const countries = countryCodes
+    .map((code) => ({ code, name: countryNames.of(code) || code }))
+    .filter((item) => item.name !== item.code)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const languageOptions = [
+    ["ar", "Arabic"], ["bn", "Bengali"], ["bg", "Bulgarian"], ["my", "Burmese"],
+    ["zh", "Chinese (Mandarin)"], ["hr", "Croatian"], ["cs", "Czech"], ["da", "Danish"],
+    ["nl", "Dutch"], ["en", "English"], ["et", "Estonian"], ["fa", "Persian (Farsi)"],
+    ["fi", "Finnish"], ["fr", "French"], ["de", "German"], ["el", "Greek"],
+    ["gu", "Gujarati"], ["ha", "Hausa"], ["he", "Hebrew"], ["hi", "Hindi"],
+    ["hu", "Hungarian"], ["id", "Indonesian"], ["it", "Italian"], ["ja", "Japanese"],
+    ["jv", "Javanese"], ["kn", "Kannada"], ["ko", "Korean"], ["sw", "Swahili"],
+    ["mr", "Marathi"], ["ms", "Malay"], ["ne", "Nepali"], ["no", "Norwegian"],
+    ["pa", "Punjabi"], ["pl", "Polish"], ["pt", "Portuguese"], ["ro", "Romanian"],
+    ["ru", "Russian"], ["sr", "Serbian"], ["si", "Sinhala"], ["sk", "Slovak"],
+    ["es", "Spanish"], ["sv", "Swedish"], ["ta", "Tamil"], ["te", "Telugu"],
+    ["th", "Thai"], ["tr", "Turkish"], ["uk", "Ukrainian"], ["ur", "Urdu"],
+    ["uz", "Uzbek"], ["vi", "Vietnamese"], ["yo", "Yoruba"], ["zu", "Zulu"],
+  ] as const;
+
+  function requestDeviceLocation() {
+    setLocationStatus("");
+    if (!("geolocation" in navigator)) {
+      setLocationStatus("This browser does not support device location. You can continue without sharing it.");
+      return;
+    }
+    if (!window.isSecureContext) {
+      setLocationStatus("Device location requires a secure HTTPS connection. You can continue without sharing it.");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        setLocationLatitude(latitude);
+        setLocationLongitude(longitude);
+        setLocationAccuracyMeters(Math.round(accuracy));
+        setLocation(`GPS coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+        setLocationStatus(`Device location received (accuracy approximately ${Math.round(accuracy)} m). Coordinates are not a verified street address.`);
+        setLocating(false);
+      },
+      (geoError) => {
+        const reason = geoError.code === geoError.PERMISSION_DENIED
+          ? "Location permission was denied. Enable it in your browser/device settings if you want to share location."
+          : geoError.code === geoError.POSITION_UNAVAILABLE
+            ? "Your device could not determine its location. Try again outdoors or check device location settings."
+            : "The location request timed out. Please try again.";
+        setLocationStatus(reason);
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }
+
   async function handleRegister() {
     setSignupError(null);
 
@@ -142,6 +205,12 @@ export function AuthForm() {
       birthYear: parsedBirthYear,
       gender: gender || undefined,
       location: location.trim() || undefined,
+      locationLatitude: locationLatitude ?? undefined,
+      locationLongitude: locationLongitude ?? undefined,
+      locationAccuracyMeters: locationAccuracyMeters ?? undefined,
+      locationSource: locationLatitude !== null && locationLongitude !== null ? "device-geolocation" : undefined,
+      country: country || undefined,
+      language,
       timezone,
       primaryUseCase: primaryUseCase || undefined,
     });
@@ -214,7 +283,7 @@ export function AuthForm() {
           <label className="auth-field"><span className="auth-field-label">Username</span><input className="auth-input" name="username" autoComplete="username" aria-label="Username" placeholder="Choose a username" value={username} onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 32))} required minLength={3} maxLength={32} /></label>
           <fieldset className="auth-profile-fieldset">
             <legend>About you</legend>
-            <p className="auth-field-help">These details help personalize your Fresh experience. Gender and location are optional.</p>
+            <p className="auth-field-help">Set your date of birth, language, country and time zone. Device location is only requested when you tap the location button. Gender and location sharing are optional.</p>
             <div className="auth-profile-grid">
               <label className="auth-field">
                 <span className="auth-field-label">Birth month</span>
@@ -225,7 +294,10 @@ export function AuthForm() {
               </label>
               <label className="auth-field">
                 <span className="auth-field-label">Birth year</span>
-                <input className="auth-input" name="birth-year" autoComplete="bday-year" inputMode="numeric" type="number" min="1900" max={new Date().getFullYear()} step="1" placeholder="YYYY" value={birthYear} onChange={(e) => setBirthYear(e.target.value)} required />
+                <select className="auth-input auth-scroll-picker" name="birth-year" autoComplete="bday-year" value={birthYear} onChange={(e) => setBirthYear(e.target.value)} required>
+                  <option value="">Scroll to choose year</option>
+                  {Array.from({ length: new Date().getFullYear() - 1899 }, (_, index) => new Date().getFullYear() - index).map((year) => <option key={year} value={String(year)}>{year}</option>)}
+                </select>
               </label>
               <label className="auth-field">
                 <span className="auth-field-label">Gender (optional)</span>
@@ -238,8 +310,26 @@ export function AuthForm() {
                 </select>
               </label>
               <label className="auth-field">
-                <span className="auth-field-label">Location (optional)</span>
-                <input className="auth-input" name="location" autoComplete="country-name" placeholder="City, region or country" value={location} onChange={(e) => setLocation(e.target.value.slice(0, 100))} maxLength={100} />
+                <span className="auth-field-label">Country or territory (optional)</span>
+                <select className="auth-input" name="country" autoComplete="country-name" value={country} onChange={(e) => setCountry(e.target.value)}>
+                  <option value="">Choose country or territory</option>
+                  {countries.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
+                </select>
+              </label>
+              <div className="auth-field">
+                <span className="auth-field-label">Device location (optional)</span>
+                <button className="auth-location-btn" type="button" onClick={requestDeviceLocation} disabled={locating}>
+                  {locating ? "Getting device location…" : locationLatitude !== null ? "Refresh device location" : "Use my current location"}
+                </button>
+                <p className="auth-field-help">Only requested after you tap the button and approve the browser/device permission. Uses the device geolocation API; it does not invent a location or guarantee GPS-only positioning.</p>
+                {locationStatus && <p className={locationLatitude !== null ? "auth-message" : "auth-error"} role="status">{locationStatus}</p>}
+                {locationLatitude !== null && locationLongitude !== null && <p className="auth-location-coordinates">Coordinates: {locationLatitude.toFixed(6)}, {locationLongitude.toFixed(6)} (±{locationAccuracyMeters ?? "unknown"} m)</p>}
+              </div>
+              <label className="auth-field">
+                <span className="auth-field-label">Language</span>
+                <select className="auth-input" name="language" value={language} onChange={(e) => setLanguage(e.target.value)} required>
+                  {languageOptions.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+                </select>
               </label>
               <label className="auth-field">
                 <span className="auth-field-label">Time zone</span>
