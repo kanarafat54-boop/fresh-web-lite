@@ -32,6 +32,7 @@ Fresh AI should improve from research outcomes, user corrections, tool failures,
 ## Current gaps
 
 - The application needs a dependable, monitored research provider in its deployment environment; the existing API intentionally returns no evidence when retrieval is unavailable.
-- Feedback capture and consent UX still need a product/API path connected to durable storage.
+- The authenticated `POST /api/ai/training-feedback` endpoint now accepts a correction only with versioned explicit training consent, records a consent ledger row, and creates a preference pair marked for human review. It does not update model weights.
+- The consent migration is committed but must be applied to the production Supabase project before the endpoint can save records. The visible Fresh AI UI still needs to present the consent control and call this endpoint; no client should send consent implicitly.
 - The reviewed candidate preparer is a guarded offline stage, not an autonomous online training daemon.
 - Fresh-native production model weights and a serving backend must be built, evaluated, and deployed separately.
