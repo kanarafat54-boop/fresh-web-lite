@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 const endpoint = await readFile(new URL("../api/ai/training-feedback.ts", import.meta.url), "utf8");
 const migration = await readFile(new URL("../supabase/migrations/20261020030000_fresh_ai_consented_feedback.sql", import.meta.url), "utf8");
 const preparer = await readFile(new URL("./prepare-fresh-learning-candidates.mjs", import.meta.url), "utf8");
+const ui = await readFile(new URL("../src/app/components/FreshAIUnified.tsx", import.meta.url), "utf8");
 
 assert.match(endpoint, /explicit-training-opt-in/, "endpoint requires explicit training opt-in");
 assert.match(endpoint, /fresh-ai-feedback-consent-v1/, "consent is versioned");
@@ -13,6 +14,9 @@ assert.match(endpoint, /training: "not-trained"/, "endpoint never claims feedbac
 assert.match(endpoint, /reviewed_by: null/, "client cannot self-approve a candidate");
 assert.match(endpoint, /fresh_ai_preference_pairs/, "approved corrections are paired with the rejected answer for later review");
 assert.match(endpoint, /MAX_BODY_BYTES/, "request body is bounded");
+assert.match(ui, /\/api\/ai\/training-feedback/, "Fresh AI UI calls the consent-gated endpoint");
+assert.match(ui, /explicit-training-opt-in/, "UI sends the explicit consent marker only after confirmation");
+assert.match(ui, /will not change model weights now/, "UI explains that consent does not immediately train the model");
 assert.match(migration, /enable row level security/i, "feedback table uses RLS");
 assert.match(migration, /auth\.uid\(\) = user_id/, "RLS owner-scopes feedback");
 assert.match(migration, /training_opt_in = true/, "RLS only accepts explicitly opted-in rows");
