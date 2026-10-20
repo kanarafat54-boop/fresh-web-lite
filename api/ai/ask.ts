@@ -220,14 +220,14 @@ export async function POST(req: Request): Promise<Response> {
       : [];
     const conversation = [...stored.turns, ...clientTurns].slice(-12);
 
-    let nativeInference: FreshUnifiedInferenceResult | null = null;
+    const nativeInferenceState: { value: FreshUnifiedInferenceResult | null } = { value: null };
     const gw = createFreshAIIntelligenceGateway({
       skills: createCoreFreshSkillRegistry(),
       memory: memory(uid),
       retrieve: async (x, i) => { const [web, kb] = await Promise.all([i.needsEvidence || i.intent === "research" ? research(x) : Promise.resolve([] as Awaited<ReturnType<typeof research>>), i.intent !== "chat" && isExplicitFreshPlatformQuestion(x) ? platformKnowledge(x) : Promise.resolve([] as Awaited<ReturnType<typeof research>>)]); return [...web, ...kb]; },
       nativeAnswer: async (input, interpretation, evidence, _reasoning, _memories, turns) => {
         const history = turns.slice(-6).map(turn => turn.role + ": " + turn.content.slice(0, 1200)).join("\n");
-        const sources = evidence.slice(0, 8).map(item => "- Claim: " + item.claim.slice(0, 700) + "\n  Source: " + (item.url || item.source || "unspecified")).join("\n");
+        const sources = evidence.slice(0, 8).map(item => "- Claim: " + item.claim.slice(0, 700) + "\n  Source: " + (item.source || "unspecified")).join("\n");
         const prompt = [
           "You are Fresh AI, the assistant of Fresh Web Lite. Answer the user's actual request directly and naturally.",
           "Do not output internal architecture documents unless the user explicitly asks about Fresh Web Lite implementation.",
@@ -238,8 +238,8 @@ export async function POST(req: Request): Promise<Response> {
           "User request:\n" + input,
           "Answer:",
         ].filter(Boolean).join("\n\n").slice(0, 12000);
-        nativeInference = await inferFreshUnified({ modality: "text", input: prompt, maxTokens: 768 });
-        return nativeInference.status === "ready" ? nativeInference.text ?? null : null;
+        nativeInferenceState.value = await inferFreshUnified({ modality: "text", input: prompt, maxTokens: 768 });
+        return nativeInferenceState.value.status === "ready" ? nativeInferenceState.value.text ?? null : null;
       },
     });
     const r: FreshAIResponse = await gw.handle({
@@ -297,7 +297,7 @@ export async function POST(req: Request): Promise<Response> {
     }
 
  const persistence = await persistPipeline(requestId, uid, r.pipeline), e = evidence.map(x => ({ title: x.source, snippet: x.claim })), verification = { uniqueSources: e.length, uniqueDomains: new Set(evidence.map(x => x.source || "unknown")).size, sourceDiversity: e.length >= 6 ? "high" : e.length >= 3 ? "medium" : "low", confidence: e.length >= 3 ? "medium" : "low", contradictionsDetected: (r.result.claims ?? []).some((x: any) => x.truth === "CONTRADICTED") }, governance = { autonomousSelfModification: false, improvementProposalsRequireApproval: true, highImpactActionsRequireApproval: true, reversibleImprovementsOnly: true };
- return json({ requestId, conversationId, answer: r.result.answer, confidence: verification.confidence, source: e.length ? "Fresh AI / verified evidence" : "Fresh AI", evidence: e, pipeline: r.pipeline, governance, verification, persistence, image, inference: nativeInference ? { modelId: nativeInference.modelId, status: nativeInference.status, checkpointId: nativeInference.checkpointId, reason: nativeInference.reason } : { modelId: "fresh-unified-1", status: "training-required", reason: "Native inference was not invoked." }, proof: { mode: "gateway", evidenceCount: e.length, provenance: "Fresh AI Intelligence Gateway → Fresh Unified inference (when configured) → Kernel → Truth/Reasoning → Verification", model }, intent: r.interpretation.intent, status: r.status, error: r.error, workspace: workspaceContext ?? null, model });
+ return json({ requestId, conversationId, answer: r.result.answer, confidence: verification.confidence, source: e.length ? "Fresh AI / verified evidence" : "Fresh AI", evidence: e, pipeline: r.pipeline, governance, verification, persistence, image, inference: nativeInferenceState.value ? { modelId: nativeInferenceState.value.modelId, status: nativeInferenceState.value.status, checkpointId: nativeInferenceState.value.checkpointId, reason: nativeInferenceState.value.reason } : { modelId: "fresh-unified-1", status: "training-required", reason: "Native inference was not invoked." }, proof: { mode: "gateway", evidenceCount: e.length, provenance: "Fresh AI Intelligence Gateway → Fresh Unified inference (when configured) → Kernel → Truth/Reasoning → Verification", model }, intent: r.interpretation.intent, status: r.status, error: r.error, workspace: workspaceContext ?? null, model });
  } catch (error) { return json({ requestId, error: error instanceof Error ? error.message : "Fresh AI request failed" }, 500); } }
 
 export default createVercelNodeHandler({ GET, POST });
