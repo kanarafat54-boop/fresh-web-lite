@@ -24,7 +24,9 @@ if (!ask.includes("platformKnowledge") || !ask.includes('"fresh_ai_knowledge"'))
 if (!ask.includes("i.intent !== \"chat\" && isExplicitFreshPlatformQuestion(x)")) fail("ordinary Fresh AI chat can still be polluted by internal platform docs");
 if (!ask.includes("External/public facts must be answered from web evidence") || !ask.includes("!isExplicitFreshPlatformQuestion(goal)")) fail("internal docs are not restricted to explicit Fresh platform questions");
 if (!ask.includes('startsWith("fresh-e2ee-v1:")')) fail("ask.ts feeds placeholder e2ee turns back as history");
-if (!kernel.includes('item.id.startsWith("kb-")')) fail("kernel does not answer directly from platform knowledge");
+if (!kernel.includes('item.id.startsWith("kb-")')) fail("kernel no longer recognizes retrieved platform knowledge");
+if (kernel.includes('return kbItems.slice(0,2).map(item=>String(item.claim)')) fail("kernel still returns raw platform documentation as the final answer");
+if (!kernel.includes("The documents are references, not a generated model response.") || !kernel.includes("native inference service is not available")) fail("kernel must explain when retrieved docs cannot be synthesized because native inference is unavailable");
 if (!treasury.includes("SUPABASE_SECRET_KEY_FRESHWEBLITE")) fail("treasury.ts does not prefer the Fresh Web Lite secret key");
 if (!/VITE_SUPABASE_ANON_KEY\s*\?\?\s*process\.env\.VITE_SUPABASE_PUBLISHABLE_KEY/.test(treasury)) fail("treasury.ts still prefers the legacy SUPABASE_PUBLISHABLE_KEY");
 if (!treasury.includes("FRESH_TREASURY_SANDBOX")) fail("treasury.ts sandbox settlement is not gated");
