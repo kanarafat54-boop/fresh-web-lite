@@ -328,20 +328,53 @@ export default function FreshAIUnified() {
     try {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
-      if (!token) return;
-      let share = false, correction = "";
+      if (!token) {
+        setError("Sign in to submit feedback to Fresh AI.");
+        return;
+      }
+      let shareTrainingCorrection = false, correction = "";
       const lastUser = [...turns].reverse().find((turn) => turn.role === "user");
       const lastAssistant = [...turns].reverse().find((turn) => turn.role === "assistant" && turn.content);
       if (rating <= 2 && lastUser && lastAssistant) {
-        const typed = window.prompt("What should Fresh AI have said? Your correction can help teach Fresh AI. Leave it empty to send only the thumbs-down.", "");
+        const typed = window.prompt("What should Fresh AI have said? Your correction is not shared unless you choose to share it.", "");
         if (typed && typed.trim()) {
           correction = typed.trim().slice(0, 2000);
-          share = window.confirm("Share this question, Fresh AI's answer and your correction with Fresh AI's owner so it can be reviewed and used to teach Fresh AI? Nothing is shared unless you press OK.");
+          shareTrainingCorrection = window.confirm("Explicit training consent: share this question, Fresh AI's answer and your correction privately for human review and possible future model training? It will remain pending review and will not change model weights now. Choose OK only if you agree.");
         }
       }
-      const response = await fetch("/api/ai/feedback", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify({ requestId: id, rating, correct: rating >= 4, share, question: share ? lastUser?.content.slice(0, 2000) : undefined, answer: share ? lastAssistant?.content.slice(0, 2000) : undefined, correction: share ? correction : undefined }) });
-      if (response.ok) setFeedback((current) => ({ ...current, [id]: rating }));
-    } catch {}
+      const headers = { "content-type": "application/json", authorization: `Bearer ${token}` };
+      const ratingResponse = await fetch("/api/ai/feedback", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ requestId: id, rating, correct: rating >= 4, share: false }),
+      });
+      if (!ratingResponse.ok) {
+        setError("Fresh AI could not save your rating. Please try again.");
+        return;
+      }
+      if (shareTrainingCorrection && lastUser && lastAssistant && correction) {
+        const trainingResponse = await fetch("/api/ai/training-feedback", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            requestId: id,
+            question: lastUser.content.slice(0, 4000),
+            answer: lastAssistant.content.slice(0, 8000),
+            correction,
+            trainingConsent: "explicit-training-opt-in",
+            consentVersion: "fresh-ai-feedback-consent-v1",
+          }),
+        });
+        if (!trainingResponse.ok) {
+          setError("Your rating was saved, but the training correction could not be stored. It has not been used for training.");
+          return;
+        }
+      }
+      setFeedback((current) => ({ ...current, [id]: rating }));
+      setError(null);
+    } catch {
+      setError("Fresh AI feedback could not be submitted. Please try again.");
+    }
   }
   function startVoiceInput() {
     if (recognitionRef.current) {
