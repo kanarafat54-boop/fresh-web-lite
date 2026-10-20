@@ -127,19 +127,26 @@ export function AuthForm() {
     .filter((item) => item.name !== item.code)
     .sort((a, b) => a.name.localeCompare(b.name));
   const languageOptions = [
-    ["ar", "Arabic"], ["bn", "Bengali"], ["bg", "Bulgarian"], ["my", "Burmese"],
-    ["zh", "Chinese (Mandarin)"], ["hr", "Croatian"], ["cs", "Czech"], ["da", "Danish"],
-    ["nl", "Dutch"], ["en", "English"], ["et", "Estonian"], ["fa", "Persian (Farsi)"],
-    ["fi", "Finnish"], ["fr", "French"], ["de", "German"], ["el", "Greek"],
-    ["gu", "Gujarati"], ["ha", "Hausa"], ["he", "Hebrew"], ["hi", "Hindi"],
-    ["hu", "Hungarian"], ["id", "Indonesian"], ["it", "Italian"], ["ja", "Japanese"],
-    ["jv", "Javanese"], ["kn", "Kannada"], ["ko", "Korean"], ["sw", "Swahili"],
-    ["mr", "Marathi"], ["ms", "Malay"], ["ne", "Nepali"], ["no", "Norwegian"],
-    ["pa", "Punjabi"], ["pl", "Polish"], ["pt", "Portuguese"], ["ro", "Romanian"],
-    ["ru", "Russian"], ["sr", "Serbian"], ["si", "Sinhala"], ["sk", "Slovak"],
-    ["es", "Spanish"], ["sv", "Swedish"], ["ta", "Tamil"], ["te", "Telugu"],
-    ["th", "Thai"], ["tr", "Turkish"], ["uk", "Ukrainian"], ["ur", "Urdu"],
-    ["uz", "Uzbek"], ["vi", "Vietnamese"], ["yo", "Yoruba"], ["zu", "Zulu"],
+    ["af", "Afrikaans"], ["am", "Amharic"], ["ar", "Arabic"], ["az", "Azerbaijani"], ["be", "Belarusian"],
+    ["bn", "Bengali"], ["bs", "Bosnian"], ["bg", "Bulgarian"], ["my", "Burmese"], ["ca", "Catalan"],
+    ["ceb", "Cebuano"], ["zh", "Chinese (Mandarin)"], ["zh-TW", "Chinese (Traditional)"], ["co", "Corsican"],
+    ["hr", "Croatian"], ["cs", "Czech"], ["da", "Danish"], ["dv", "Dhivehi"], ["nl", "Dutch"], ["en", "English"],
+    ["eo", "Esperanto"], ["et", "Estonian"], ["ee", "Ewe"], ["fil", "Filipino"], ["fi", "Finnish"], ["fr", "French"],
+    ["fy", "Frisian"], ["gl", "Galician"], ["ka", "Georgian"], ["de", "German"], ["el", "Greek"], ["gu", "Gujarati"],
+    ["ht", "Haitian Creole"], ["ha", "Hausa"], ["haw", "Hawaiian"], ["he", "Hebrew"], ["hi", "Hindi"], ["hmn", "Hmong"],
+    ["hu", "Hungarian"], ["is", "Icelandic"], ["ig", "Igbo"], ["id", "Indonesian"], ["ga", "Irish"], ["it", "Italian"],
+    ["ja", "Japanese"], ["jv", "Javanese"], ["kn", "Kannada"], ["kk", "Kazakh"], ["km", "Khmer"], ["rw", "Kinyarwanda"],
+    ["ko", "Korean"], ["ku", "Kurdish"], ["ky", "Kyrgyz"], ["lo", "Lao"], ["la", "Latin"], ["lv", "Latvian"],
+    ["lt", "Lithuanian"], ["lb", "Luxembourgish"], ["mk", "Macedonian"], ["mg", "Malagasy"], ["ms", "Malay"],
+    ["ml", "Malayalam"], ["mt", "Maltese"], ["mi", "Maori"], ["mr", "Marathi"], ["mn", "Mongolian"], ["ne", "Nepali"],
+    ["no", "Norwegian"], ["or", "Odia"], ["om", "Oromo"], ["ps", "Pashto"], ["fa", "Persian (Farsi)"], ["pl", "Polish"],
+    ["pt", "Portuguese"], ["pa", "Punjabi"], ["qu", "Quechua"], ["ro", "Romanian"], ["ru", "Russian"], ["sm", "Samoan"],
+    ["gd", "Scottish Gaelic"], ["sr", "Serbian"], ["st", "Sesotho"], ["sn", "Shona"], ["sd", "Sindhi"], ["si", "Sinhala"],
+    ["sk", "Slovak"], ["sl", "Slovenian"], ["so", "Somali"], ["es", "Spanish"], ["su", "Sundanese"], ["sw", "Swahili"],
+    ["sv", "Swedish"], ["tl", "Tagalog"], ["tg", "Tajik"], ["ta", "Tamil"], ["tt", "Tatar"], ["te", "Telugu"],
+    ["th", "Thai"], ["bo", "Tibetan"], ["ti", "Tigrinya"], ["to", "Tongan"], ["tr", "Turkish"], ["tk", "Turkmen"],
+    ["uk", "Ukrainian"], ["ur", "Urdu"], ["ug", "Uyghur"], ["uz", "Uzbek"], ["vi", "Vietnamese"], ["cy", "Welsh"],
+    ["wo", "Wolof"], ["xh", "Xhosa"], ["yi", "Yiddish"], ["yo", "Yoruba"], ["zu", "Zulu"],
   ] as const;
 
   function requestDeviceLocation() {
@@ -160,7 +167,7 @@ export function AuthForm() {
         setLocationLongitude(longitude);
         setLocationAccuracyMeters(Math.round(accuracy));
         setLocation(`GPS coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
-        setLocationStatus(`Device location received (accuracy approximately ${Math.round(accuracy)} m). Coordinates are not a verified street address.`);
+        setLocationStatus(`Fresh device position received (reported accuracy approximately ${Math.round(accuracy)} m). Coordinates are not a verified street address.`);
         setLocating(false);
       },
       (geoError) => {
@@ -283,17 +290,17 @@ export function AuthForm() {
           <label className="auth-field"><span className="auth-field-label">Username</span><input className="auth-input" name="username" autoComplete="username" aria-label="Username" placeholder="Choose a username" value={username} onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 32))} required minLength={3} maxLength={32} /></label>
           <fieldset className="auth-profile-fieldset">
             <legend>About you</legend>
-            <p className="auth-field-help">Set your date of birth, language, country and time zone. Device location is only requested when you tap the location button. Gender and location sharing are optional.</p>
+            <p className="auth-field-help">Set your date of birth, language, country and time zone. Precise device location is only requested when you tap the location button and grant permission. Gender and location sharing are optional.</p>
             <div className="auth-profile-grid">
               <label className="auth-field">
-                <span className="auth-field-label">Birth month</span>
+                <span className="auth-field-label">Birth month (scroll to choose)</span>
                 <select className="auth-input" name="birth-month" autoComplete="bday-month" value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} required>
                   <option value="">Select month</option>
                   {Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={String(index + 1)}>{new Date(2000, index, 1).toLocaleString("en", { month: "long" })}</option>)}
                 </select>
               </label>
               <label className="auth-field">
-                <span className="auth-field-label">Birth year</span>
+                <span className="auth-field-label">Birth year (scroll to choose)</span>
                 <select className="auth-input auth-scroll-picker" name="birth-year" autoComplete="bday-year" value={birthYear} onChange={(e) => setBirthYear(e.target.value)} required>
                   <option value="">Scroll to choose year</option>
                   {Array.from({ length: new Date().getFullYear() - 1899 }, (_, index) => new Date().getFullYear() - index).map((year) => <option key={year} value={String(year)}>{year}</option>)}
@@ -319,9 +326,9 @@ export function AuthForm() {
               <div className="auth-field">
                 <span className="auth-field-label">Device location (optional)</span>
                 <button className="auth-location-btn" type="button" onClick={requestDeviceLocation} disabled={locating}>
-                  {locating ? "Getting device location…" : locationLatitude !== null ? "Refresh device location" : "Use my current location"}
+                  {locating ? "Getting device location…" : locationLatitude !== null ? "Refresh device location" : "Get current device position"}
                 </button>
-                <p className="auth-field-help">Only requested after you tap the button and approve the browser/device permission. Uses the device geolocation API; it does not invent a location or guarantee GPS-only positioning.</p>
+                <p className="auth-field-help">Requests a fresh, high-accuracy device position with no cached result (GPS may be used when the device/browser exposes it). Browsers cannot guarantee GPS-only or reliably detect simulated developer/mock locations; use a trusted device with mock-location settings disabled. No coordinates are entered or substituted by this form.</p>
                 {locationStatus && <p className={locationLatitude !== null ? "auth-message" : "auth-error"} role="status">{locationStatus}</p>}
                 {locationLatitude !== null && locationLongitude !== null && <p className="auth-location-coordinates">Coordinates: {locationLatitude.toFixed(6)}, {locationLongitude.toFixed(6)} (±{locationAccuracyMeters ?? "unknown"} m)</p>}
               </div>
