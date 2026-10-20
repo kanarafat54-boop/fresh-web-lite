@@ -62,7 +62,7 @@ export async function inferFreshUnified(request: FreshUnifiedInferenceRequest): 
   if (url.protocol !== "https:" && !(local && env("NODE_ENV") !== "production")) {
     return unavailable(request.modality, checkpointId, "Fresh inference endpoint must use HTTPS.");
   }
-  url.pathname = `${url.pathname.replace(/\\/$/, "")}/v1/infer`;
+  url.pathname = url.pathname.endsWith("/") ? url.pathname + "v1/infer" : url.pathname + "/v1/infer";
   url.search = "";
   url.hash = "";
 
