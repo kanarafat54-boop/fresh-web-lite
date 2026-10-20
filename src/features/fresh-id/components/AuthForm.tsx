@@ -132,9 +132,8 @@ export function AuthForm() {
     const parsedBirthYear = Number(birthYear);
     const parsedBirthMonth = Number(birthMonth);
     const now = new Date();
-    const ageAtMonthStart = now.getFullYear() - parsedBirthYear - (now.getMonth() + 1 < parsedBirthMonth ? 1 : 0);
-    if (!birthMonth || !birthYear || !Number.isInteger(parsedBirthYear) || ageAtMonthStart < 13 || parsedBirthYear > now.getFullYear()) {
-      setSignupError("Enter your birth month and year. You must be at least 13 to create a Fresh ID.");
+    if (!birthMonth || !birthYear || !Number.isInteger(parsedBirthYear) || parsedBirthYear < 1900 || parsedBirthYear > now.getFullYear() || parsedBirthMonth < 1 || parsedBirthMonth > 12) {
+      setSignupError("Enter a valid birth month and year.");
       return;
     }
 
@@ -239,8 +238,8 @@ export function AuthForm() {
                 </select>
               </label>
               <label className="auth-field">
-                <span className="auth-field-label">Country or region (optional)</span>
-                <input className="auth-input" name="location" autoComplete="country-name" placeholder="Country or region" value={location} onChange={(e) => setLocation(e.target.value.slice(0, 100))} maxLength={100} />
+                <span className="auth-field-label">Location (optional)</span>
+                <input className="auth-input" name="location" autoComplete="country-name" placeholder="City, region or country" value={location} onChange={(e) => setLocation(e.target.value.slice(0, 100))} maxLength={100} />
               </label>
               <label className="auth-field">
                 <span className="auth-field-label">Time zone</span>
