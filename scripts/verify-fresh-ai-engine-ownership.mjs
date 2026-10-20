@@ -18,6 +18,7 @@ for (const token of [
 ]) {
   if (!services.includes(token)) throw new Error(`Fresh-owned engine readiness missing: ${token}`);
 }
+if (!services.includes("no Fresh-managed image engine is configured") || !services.includes("No image was generated.")) throw new Error("Missing actionable image-engine-unavailable failure");
 if (!status.includes("getFreshAIEngineReadiness()")) throw new Error("Fresh AI status does not expose safe engine readiness");
 if (!model.includes('weightsStatus: "training-required"')) throw new Error("Fresh Unified model status must remain truthful");
 if (!worker.includes('"fresh-media-worker"') || !worker.includes('"ffmpeg": true')) throw new Error("Media worker identity check changed");
