@@ -135,7 +135,7 @@ interface FreshIdContextValue {
   authView: AuthView;
   passkeySupported: boolean;
   setAuthView: (view: AuthView) => void;
-  register: (email: string, password: string, username: string, fullName: string, accountType?: "personal" | "creator" | "business" | "developer" | "organization") => Promise<void>;
+  register: (email: string, password: string, username: string, fullName: string, accountType?: "personal" | "creator" | "business" | "developer" | "organization", profileDetails?: { birthMonth: number; birthYear: number; gender?: string; location?: string; locationLatitude?: number; locationLongitude?: number; locationAccuracyMeters?: number; locationSource?: string; country?: string; language: string; timezone: string; primaryUseCase?: string }) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginWithPasskey: () => Promise<void>;
   registerPasskey: () => Promise<Passkey | null>;
@@ -233,7 +233,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       username,
       email,
       full_name: fullName,
-      preferences: { ...defaults.preferences, preferredWorkspaceMode },
+      preferences: { ...defaults.preferences, preferredWorkspaceMode, ...(metadata.fresh_profile && typeof metadata.fresh_profile === "object" ? metadata.fresh_profile as Record<string, unknown> : {}) },
     });
 
     if (insertError) {
@@ -356,7 +356,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   }
-  async function register(email: string, password: string, username: string, fullName: string, accountType: "personal" | "creator" | "business" | "developer" | "organization" = "personal") {
+  async function register(email: string, password: string, username: string, fullName: string, accountType: "personal" | "creator" | "business" | "developer" | "organization" = "personal", profileDetails?: { birthMonth: number; birthYear: number; gender?: string; location?: string; locationLatitude?: number; locationLongitude?: number; locationAccuracyMeters?: number; locationSource?: string; country?: string; language: string; timezone: string; primaryUseCase?: string }) {
     setError(null);
     setMessage(null);
     setLoading(true);
@@ -390,7 +390,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         password,
         options: {
           emailRedirectTo: new URL("/auth/sign-in", window.location.origin).toString(),
-          data: { username, full_name: fullName, fresh_account_type: accountType },
+          data: { username, full_name: fullName, fresh_account_type: accountType, fresh_profile: profileDetails },
         },
       });
       data = result.data;

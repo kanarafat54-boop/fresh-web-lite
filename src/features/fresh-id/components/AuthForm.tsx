@@ -8,6 +8,28 @@ import { useLayout } from "../../../app/contexts/useLayout";
 import { useFreshId } from "../context/FreshIdContext";
 import { supabase } from "../../../lib/supabase";
 
+type PasswordVisibilityIconProps = { visible: boolean };
+
+function PasswordVisibilityIcon({ visible }: PasswordVisibilityIconProps) {
+  return (
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {visible ? (
+        <>
+          <path d="M3 3l18 18" />
+          <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+          <path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c5.2 0 8.6 4.8 9.5 6.3a1.3 1.3 0 0 1 0 1.4 15 15 0 0 1-3.1 3.5" />
+          <path d="M6.2 6.2A15.4 15.4 0 0 0 2.5 11.3a1.3 1.3 0 0 0 0 1.4C3.4 14.2 6.8 19 12 19a10 10 0 0 0 3-.5" />
+        </>
+      ) : (
+        <>
+          <path d="M2.5 12s3.4-7 9.5-7 9.5 7 9.5 7-3.4 7-9.5 7-9.5-7-9.5-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 export function AuthForm() {
   const {
     login,
@@ -35,6 +57,20 @@ export function AuthForm() {
   const [accountType, setAccountType] = useState<"personal" | "creator" | "business" | "developer" | "organization">("personal");
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
+  const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Africa/Kampala";
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthYear, setBirthYear] = useState("");
+  const [gender, setGender] = useState("");
+  const [location, setLocation] = useState("");
+  const [locationLatitude, setLocationLatitude] = useState<number | null>(null);
+  const [locationLongitude, setLocationLongitude] = useState<number | null>(null);
+  const [locationAccuracyMeters, setLocationAccuracyMeters] = useState<number | null>(null);
+  const [locationStatus, setLocationStatus] = useState("");
+  const [locating, setLocating] = useState(false);
+  const [country, setCountry] = useState("");
+  const [language, setLanguage] = useState("en");
+  const [timezone, setTimezone] = useState(detectedTimezone);
+  const [primaryUseCase, setPrimaryUseCase] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
@@ -84,6 +120,69 @@ export function AuthForm() {
     { id: "tiktok" as const, label: "TikTok", symbol: "♪", className: "tiktok", title: "Continue with TikTok" },
   ];
 
+  const countryCodes = "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS XK YE YT ZA ZM ZW".split(" ");
+  const countryNames = new Intl.DisplayNames(["en"], { type: "region" });
+  const countries = countryCodes
+    .map((code) => ({ code, name: countryNames.of(code) || code }))
+    .filter((item) => item.name !== item.code)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const languageOptions = [
+    ["af", "Afrikaans"], ["am", "Amharic"], ["ar", "Arabic"], ["az", "Azerbaijani"], ["be", "Belarusian"],
+    ["bn", "Bengali"], ["bs", "Bosnian"], ["bg", "Bulgarian"], ["my", "Burmese"], ["ca", "Catalan"],
+    ["ceb", "Cebuano"], ["zh", "Chinese (Mandarin)"], ["zh-TW", "Chinese (Traditional)"], ["co", "Corsican"],
+    ["hr", "Croatian"], ["cs", "Czech"], ["da", "Danish"], ["dv", "Dhivehi"], ["nl", "Dutch"], ["en", "English"],
+    ["eo", "Esperanto"], ["et", "Estonian"], ["ee", "Ewe"], ["fil", "Filipino"], ["fi", "Finnish"], ["fr", "French"],
+    ["fy", "Frisian"], ["gl", "Galician"], ["ka", "Georgian"], ["de", "German"], ["el", "Greek"], ["gu", "Gujarati"],
+    ["ht", "Haitian Creole"], ["ha", "Hausa"], ["haw", "Hawaiian"], ["he", "Hebrew"], ["hi", "Hindi"], ["hmn", "Hmong"],
+    ["hu", "Hungarian"], ["is", "Icelandic"], ["ig", "Igbo"], ["id", "Indonesian"], ["ga", "Irish"], ["it", "Italian"],
+    ["ja", "Japanese"], ["jv", "Javanese"], ["kn", "Kannada"], ["kk", "Kazakh"], ["km", "Khmer"], ["rw", "Kinyarwanda"],
+    ["ko", "Korean"], ["ku", "Kurdish"], ["ky", "Kyrgyz"], ["lo", "Lao"], ["la", "Latin"], ["lv", "Latvian"],
+    ["lt", "Lithuanian"], ["lb", "Luxembourgish"], ["mk", "Macedonian"], ["mg", "Malagasy"], ["ms", "Malay"],
+    ["ml", "Malayalam"], ["mt", "Maltese"], ["mi", "Maori"], ["mr", "Marathi"], ["mn", "Mongolian"], ["ne", "Nepali"],
+    ["no", "Norwegian"], ["or", "Odia"], ["om", "Oromo"], ["ps", "Pashto"], ["fa", "Persian (Farsi)"], ["pl", "Polish"],
+    ["pt", "Portuguese"], ["pa", "Punjabi"], ["qu", "Quechua"], ["ro", "Romanian"], ["ru", "Russian"], ["sm", "Samoan"],
+    ["gd", "Scottish Gaelic"], ["sr", "Serbian"], ["st", "Sesotho"], ["sn", "Shona"], ["sd", "Sindhi"], ["si", "Sinhala"],
+    ["sk", "Slovak"], ["sl", "Slovenian"], ["so", "Somali"], ["es", "Spanish"], ["su", "Sundanese"], ["sw", "Swahili"],
+    ["sv", "Swedish"], ["tl", "Tagalog"], ["tg", "Tajik"], ["ta", "Tamil"], ["tt", "Tatar"], ["te", "Telugu"],
+    ["th", "Thai"], ["bo", "Tibetan"], ["ti", "Tigrinya"], ["to", "Tongan"], ["tr", "Turkish"], ["tk", "Turkmen"],
+    ["uk", "Ukrainian"], ["ur", "Urdu"], ["ug", "Uyghur"], ["uz", "Uzbek"], ["vi", "Vietnamese"], ["cy", "Welsh"],
+    ["wo", "Wolof"], ["xh", "Xhosa"], ["yi", "Yiddish"], ["yo", "Yoruba"], ["zu", "Zulu"],
+  ] as const;
+
+  function requestDeviceLocation() {
+    setLocationStatus("");
+    if (!("geolocation" in navigator)) {
+      setLocationStatus("This browser does not support device location. You can continue without sharing it.");
+      return;
+    }
+    if (!window.isSecureContext) {
+      setLocationStatus("Device location requires a secure HTTPS connection. You can continue without sharing it.");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        setLocationLatitude(latitude);
+        setLocationLongitude(longitude);
+        setLocationAccuracyMeters(Math.round(accuracy));
+        setLocation(`GPS coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+        setLocationStatus(`Fresh device position received (reported accuracy approximately ${Math.round(accuracy)} m). Coordinates are not a verified street address.`);
+        setLocating(false);
+      },
+      (geoError) => {
+        const reason = geoError.code === geoError.PERMISSION_DENIED
+          ? "Location permission was denied. Enable it in your browser/device settings if you want to share location."
+          : geoError.code === geoError.POSITION_UNAVAILABLE
+            ? "Your device could not determine its location. Try again outdoors or check device location settings."
+            : "The location request timed out. Please try again.";
+        setLocationStatus(reason);
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }
+
   async function handleRegister() {
     setSignupError(null);
 
@@ -100,8 +199,28 @@ export function AuthForm() {
       setSignupError("Your passwords do not match. Please check both fields.");
       return;
     }
+    const parsedBirthYear = Number(birthYear);
+    const parsedBirthMonth = Number(birthMonth);
+    const now = new Date();
+    if (!birthMonth || !birthYear || !Number.isInteger(parsedBirthYear) || parsedBirthYear < 1900 || parsedBirthYear > now.getFullYear() || parsedBirthMonth < 1 || parsedBirthMonth > 12) {
+      setSignupError("Enter a valid birth month and year.");
+      return;
+    }
 
-    await register(email.trim(), password, username.trim(), fullName.trim(), accountType);
+    await register(email.trim(), password, username.trim(), fullName.trim(), accountType, {
+      birthMonth: parsedBirthMonth,
+      birthYear: parsedBirthYear,
+      gender: gender || undefined,
+      location: location.trim() || undefined,
+      locationLatitude: locationLatitude ?? undefined,
+      locationLongitude: locationLongitude ?? undefined,
+      locationAccuracyMeters: locationAccuracyMeters ?? undefined,
+      locationSource: locationLatitude !== null && locationLongitude !== null ? "device-geolocation" : undefined,
+      country: country || undefined,
+      language,
+      timezone,
+      primaryUseCase: primaryUseCase || undefined,
+    });
   }
 
   function handleSubmit() {
@@ -169,6 +288,76 @@ export function AuthForm() {
         <>
           <label className="auth-field"><span className="auth-field-label">Full name</span><input className="auth-input" name="name" autoComplete="name" aria-label="Full name" placeholder="Your full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required maxLength={80} /></label>
           <label className="auth-field"><span className="auth-field-label">Username</span><input className="auth-input" name="username" autoComplete="username" aria-label="Username" placeholder="Choose a username" value={username} onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 32))} required minLength={3} maxLength={32} /></label>
+          <fieldset className="auth-profile-fieldset">
+            <legend>About you</legend>
+            <p className="auth-field-help">Set your date of birth, language, country and time zone. Precise device location is only requested when you tap the location button and grant permission. Gender and location sharing are optional.</p>
+            <div className="auth-profile-grid">
+              <label className="auth-field">
+                <span className="auth-field-label">Birth month (scroll to choose)</span>
+                <select className="auth-input" name="birth-month" autoComplete="bday-month" value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} required>
+                  <option value="">Select month</option>
+                  {Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={String(index + 1)}>{new Date(2000, index, 1).toLocaleString("en", { month: "long" })}</option>)}
+                </select>
+              </label>
+              <label className="auth-field">
+                <span className="auth-field-label">Birth year (scroll to choose)</span>
+                <select className="auth-input auth-scroll-picker" name="birth-year" autoComplete="bday-year" value={birthYear} onChange={(e) => setBirthYear(e.target.value)} required>
+                  <option value="">Scroll to choose year</option>
+                  {Array.from({ length: new Date().getFullYear() - 1899 }, (_, index) => new Date().getFullYear() - index).map((year) => <option key={year} value={String(year)}>{year}</option>)}
+                </select>
+              </label>
+              <label className="auth-field">
+                <span className="auth-field-label">Gender (optional)</span>
+                <select className="auth-input" name="gender" value={gender} onChange={(e) => setGender(e.target.value)}>
+                  <option value="">Prefer not to say</option>
+                  <option value="woman">Woman</option>
+                  <option value="man">Man</option>
+                  <option value="non_binary">Non-binary</option>
+                  <option value="self_described">I describe it another way</option>
+                </select>
+              </label>
+              <label className="auth-field">
+                <span className="auth-field-label">Country or territory (optional)</span>
+                <select className="auth-input" name="country" autoComplete="country-name" value={country} onChange={(e) => setCountry(e.target.value)}>
+                  <option value="">Choose country or territory</option>
+                  {countries.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
+                </select>
+              </label>
+              <div className="auth-field">
+                <span className="auth-field-label">Device location (optional)</span>
+                <button className="auth-location-btn" type="button" onClick={requestDeviceLocation} disabled={locating}>
+                  {locating ? "Getting device location…" : locationLatitude !== null ? "Refresh device location" : "Get current device position"}
+                </button>
+                <p className="auth-field-help">Requests a fresh, high-accuracy device position with no cached result (GPS may be used when the device/browser exposes it). Browsers cannot guarantee GPS-only or reliably detect simulated developer/mock locations; use a trusted device with mock-location settings disabled. No coordinates are entered or substituted by this form.</p>
+                {locationStatus && <p className={locationLatitude !== null ? "auth-message" : "auth-error"} role="status">{locationStatus}</p>}
+                {locationLatitude !== null && locationLongitude !== null && <p className="auth-location-coordinates">Coordinates: {locationLatitude.toFixed(6)}, {locationLongitude.toFixed(6)} (±{locationAccuracyMeters ?? "unknown"} m)</p>}
+              </div>
+              <label className="auth-field">
+                <span className="auth-field-label">Language</span>
+                <select className="auth-input" name="language" value={language} onChange={(e) => setLanguage(e.target.value)} required>
+                  {languageOptions.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+                </select>
+              </label>
+              <label className="auth-field">
+                <span className="auth-field-label">Time zone</span>
+                <select className="auth-input" name="timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} required>
+                  {[...new Set([detectedTimezone, "Africa/Kampala", "Africa/Nairobi", "Africa/Lagos", "Europe/London", "Europe/Paris", "Asia/Dubai", "Asia/Kolkata", "Asia/Tokyo", "America/New_York", "America/Chicago", "America/Los_Angeles", "Australia/Sydney"])].map((zone) => <option key={zone} value={zone}>{zone.replace(/_/g, " ") + (zone === detectedTimezone ? " (detected)" : "")}</option>)}
+                </select>
+              </label>
+              <label className="auth-field">
+                <span className="auth-field-label">What brings you to Fresh? (optional)</span>
+                <select className="auth-input" name="primary-use-case" value={primaryUseCase} onChange={(e) => setPrimaryUseCase(e.target.value)}>
+                  <option value="">Choose your main goal</option>
+                  <option value="connect">Connect with people and communities</option>
+                  <option value="create">Create and publish content</option>
+                  <option value="learn">Learn, search and research</option>
+                  <option value="work">Work, business and productivity</option>
+                  <option value="build">Build software and use AI tools</option>
+                  <option value="explore">Explore the Fresh ecosystem</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
           <label className="auth-field">
             <span className="auth-field-label">What kind of Fresh account do you need?</span>
             <select className="auth-input" name="fresh-account-type" value={accountType} onChange={(e) => setAccountType(e.target.value as typeof accountType)}>
@@ -184,9 +373,9 @@ export function AuthForm() {
       )}
 
       <label className="auth-field"><span className="auth-field-label">Email address</span><input className="auth-input" name="email" autoComplete="email" aria-label="Email address" placeholder="you@example.com" type="email" value={email} onChange={(e) => setEmail(e.target.value.trimStart())} required /></label>
-      <div className="auth-field auth-password-field"><label className="auth-field-label" htmlFor="fresh-id-password">Password</label><input id="fresh-id-password" className="auth-input" name="password" autoComplete={mode === "login" ? "current-password" : "new-password"} aria-label="Password" placeholder={mode === "login" ? "Enter your password" : "At least 12 characters"} type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "register" ? 12 : undefined} /><button className="auth-password-toggle" type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? "Hide" : "Show"}</button></div>
+      <div className="auth-field auth-password-field"><label className="auth-field-label" htmlFor="fresh-id-password">Password</label><input id="fresh-id-password" className="auth-input" name="password" autoComplete={mode === "login" ? "current-password" : "new-password"} aria-label="Password" placeholder={mode === "login" ? "Enter your password" : "At least 12 characters"} type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "register" ? 12 : undefined} /><button className="auth-password-toggle" type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"}><PasswordVisibilityIcon visible={showPassword} /></button></div>
       {mode === "register" && (
-        <div className="auth-field auth-password-field"><label className="auth-field-label" htmlFor="fresh-id-confirm-password">Confirm password</label><input id="fresh-id-confirm-password" className="auth-input" name="confirm-password" autoComplete="new-password" aria-label="Confirm password" placeholder="Enter the same password again" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={12} /><button className="auth-password-toggle" type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"}>{showConfirmPassword ? "Hide" : "Show"}</button></div>
+        <div className="auth-field auth-password-field"><label className="auth-field-label" htmlFor="fresh-id-confirm-password">Confirm password</label><input id="fresh-id-confirm-password" className="auth-input" name="confirm-password" autoComplete="new-password" aria-label="Confirm password" placeholder="Enter the same password again" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={12} /><button className="auth-password-toggle" type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"}><PasswordVisibilityIcon visible={showConfirmPassword} /></button></div>
       )}
 
       {error && <p className="auth-error">{error}</p>}

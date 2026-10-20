@@ -22,6 +22,16 @@ export interface UserPreferences {
   theme: ThemePreference;
   language: string;
   timezone: string;
+  birthMonth?: number;
+  birthYear?: number;
+  gender?: string;
+  location?: string;
+  locationLatitude?: number;
+  locationLongitude?: number;
+  locationAccuracyMeters?: number;
+  locationSource?: string;
+  country?: string;
+  primaryUseCase?: string;
   emailNotifications: boolean;
   pushNotifications: boolean;
   preferredWorkspaceMode?: FreshWorkspaceMode;
