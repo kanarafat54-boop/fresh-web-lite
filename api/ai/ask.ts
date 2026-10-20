@@ -113,9 +113,15 @@ function memory(userId: string | null) { const c = service(); return { search: a
 // Keep the active API retrieval path aligned with the shared platform-knowledge guard.
 const FRESH_EXTERNAL_FACT_QUESTION = /^\s*(?:who|what|when|where|why|how)\s+(?:is|was|are|were|did|does|do|has|have)\s+(?!you\b|your\b|fresh ai\b|fresh\b)[A-Z][A-Za-z0-9.-]*(?:\s+[A-Z][A-Za-z0-9.-]*)*/i;
 const FRESH_KB_STOP = new Set(["fresh","what","does","about","that","this","have","your","from","tell","show","explain","please","there","their","which","would","could","should","when","where","into","than","then","them","they","been","being","also","just","like","make","made","more","most","some","such","only","over","very","will","with","lite","web","work","works"]);
+function isExplicitFreshPlatformQuestion(goal: string): boolean {
+  // Internal architecture notes are only relevant when the user explicitly asks about this
+  // product/repository. Never inject them into ordinary chat, writing, learning or general Q&A.
+  return /\\b(?:fresh web lite|fresh ai|fresh id|fresh mail|fresh flow|fresh shorts|truemode|ara6|this platform|our platform|this project|our project|this repo|the repository|the codebase|architecture|implementation|feature status|project status|what have we built)\\b/i.test(goal);
+}
+
 async function platformKnowledge(goal: string): Promise<Awaited<ReturnType<typeof research>>> {
   // External/public facts must be answered from web evidence, never from FWL internal docs.
-  if (FRESH_EXTERNAL_FACT_QUESTION.test(goal.trim())) return [];
+  if (FRESH_EXTERNAL_FACT_QUESTION.test(goal.trim()) || !isExplicitFreshPlatformQuestion(goal)) return [];
   const c = service();
   if (!c) return [];
   const words = Array.from(new Set(goal.toLowerCase().split(/\s+/).map((w) => w.replace(/[^a-z0-9]/g, "")).filter((w) => w.length > 3 && !FRESH_KB_STOP.has(w)))).slice(0, 10);
@@ -212,7 +218,7 @@ export async function POST(req: Request): Promise<Response> {
     const gw = createFreshAIIntelligenceGateway({
       skills: createCoreFreshSkillRegistry(),
       memory: memory(uid),
-      retrieve: async (x, i) => { const [web, kb] = await Promise.all([i.needsEvidence || i.intent === "research" ? research(x) : Promise.resolve([] as Awaited<ReturnType<typeof research>>), platformKnowledge(x)]); return [...kb, ...web]; },
+      retrieve: async (x, i) => { const [web, kb] = await Promise.all([i.needsEvidence || i.intent === "research" ? research(x) : Promise.resolve([] as Awaited<ReturnType<typeof research>>), i.intent !== "chat" && isExplicitFreshPlatformQuestion(x) ? platformKnowledge(x) : Promise.resolve([] as Awaited<ReturnType<typeof research>>)]); return [...web, ...kb]; },
     });
     const r: FreshAIResponse = await gw.handle({
       requestId,
