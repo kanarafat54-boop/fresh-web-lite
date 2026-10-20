@@ -26,6 +26,11 @@ export interface UserPreferences {
   birthYear?: number;
   gender?: string;
   location?: string;
+  locationLatitude?: number;
+  locationLongitude?: number;
+  locationAccuracyMeters?: number;
+  locationSource?: string;
+  country?: string;
   primaryUseCase?: string;
   emailNotifications: boolean;
   pushNotifications: boolean;
