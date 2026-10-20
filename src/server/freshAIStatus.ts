@@ -1,4 +1,4 @@
-import { createFreshAIServerSupabase } from "../../src/core/fresh-ai/FreshAIServerServices.js";
+import { createFreshAIServerSupabase, getFreshAIEngineReadiness } from "../../src/core/fresh-ai/FreshAIServerServices.js";
 import { FRESH_UNIFIED_MODEL } from "../../src/core/fresh-ai/FreshUnifiedModelCore.js";
 
 // Public, non-sensitive self-report: is Fresh AI independent, and what is wired?
@@ -26,6 +26,7 @@ export async function handleFreshAIStatus(): Promise<Response> {
     outsideProviderKeysPresent: outsideKeysPresent,
     externalAnswerProviderEnabled: externalAnswerOptIn,
     model: { id: FRESH_UNIFIED_MODEL.id, weights },
+    engines: getFreshAIEngineReadiness(),
     knowledge: { platformRows: knowledge, trainingExamples: examples },
     powers,
     generatedAt: new Date().toISOString(),
