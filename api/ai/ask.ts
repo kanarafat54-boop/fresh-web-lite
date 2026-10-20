@@ -114,9 +114,13 @@ function memory(userId: string | null) { const c = service(); return { search: a
 const FRESH_EXTERNAL_FACT_QUESTION = /^\s*(?:who|what|when|where|why|how)\s+(?:is|was|are|were|did|does|do|has|have)\s+(?!you\b|your\b|fresh ai\b|fresh\b)[A-Z][A-Za-z0-9.-]*(?:\s+[A-Z][A-Za-z0-9.-]*)*/i;
 const FRESH_KB_STOP = new Set(["fresh","what","does","about","that","this","have","your","from","tell","show","explain","please","there","their","which","would","could","should","when","where","into","than","then","them","they","been","being","also","just","like","make","made","more","most","some","such","only","over","very","will","with","lite","web","work","works"]);
 function isExplicitFreshPlatformQuestion(goal: string): boolean {
-  // Internal architecture notes are only relevant when the user explicitly asks about this
-  // product/repository. Never inject them into ordinary chat, writing, learning or general Q&A.
-  return /\b(?:fresh web lite|fresh ai|fresh id|fresh mail|fresh flow|fresh shorts|truemode|ara6|this platform|our platform|this project|our project|this repo|the repository|the codebase|architecture|implementation|feature status|project status|what have we built)\b/i.test(goal);
+  // Internal architecture notes are only relevant when the user asks about the product,
+  // its status or implementation. Merely mentioning Fresh AI while asking it to write or chat
+  // is not permission to inject repository documents into the answer.
+  const asksAboutProduct = /\b(?:what|how|which|where|why|explain|describe|status|features?|built|implemented|architecture|implementation|roadmap|repository|repo|codebase|documentation|docs?)\b/i.test(goal);
+  const mentionsProduct = /\b(?:fresh web lite|fresh ai|fresh id|fresh mail|fresh flow|fresh shorts|truemode|ara6)\b/i.test(goal);
+  const refersToProject = /\b(?:this platform|our platform|this project|our project|this repo|the repository|the codebase|what have we built|project status|feature status)\b/i.test(goal);
+  return refersToProject || (mentionsProduct && asksAboutProduct);
 }
 
 async function platformKnowledge(goal: string): Promise<Awaited<ReturnType<typeof research>>> {
