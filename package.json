@@ -61,7 +61,8 @@
     "test:fresh-platform-parity": "node scripts/verify-fresh-platform-parity.mjs",
     "test:fresh-id-onboarding": "node scripts/verify-fresh-id-onboarding.mjs",
     "test:fresh-id-device-security": "node scripts/verify-fresh-id-device-security.mjs",
-    "test:fresh-id-auth-viewport": "node scripts/verify-fresh-id-auth-viewport.mjs"
+    "test:fresh-id-auth-viewport": "node scripts/verify-fresh-id-auth-viewport.mjs",
+    "test:fresh-ai-training-feedback": "node scripts/test-fresh-ai-training-feedback.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
