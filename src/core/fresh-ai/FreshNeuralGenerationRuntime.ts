@@ -53,7 +53,7 @@ export function generateFreshNeuralMedia(request: FreshNeuralGenerationRequest):
       native: true,
       status: "training-required",
       checkpointId: null,
-      reason: "No Fresh-trained checkpoint is installed. Train and register the Fresh Unified checkpoint before serving neural image generation.",
+      reason: "Fresh AI image generation is unavailable: no Fresh-trained checkpoint or validated native inference backend is installed. No image was generated. Configure the Fresh-managed image engine or complete and validate native Fresh Unified serving.",
     };
   }
   return {
