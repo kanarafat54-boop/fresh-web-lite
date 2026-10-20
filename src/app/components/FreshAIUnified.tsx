@@ -353,7 +353,7 @@ export default function FreshAIUnified() {
         return;
       }
       if (shareTrainingCorrection && lastUser && lastAssistant && correction) {
-        const trainingResponse = await fetch("/api/ai/training-feedback", {
+        const trainingResponse = await fetch("/api/ai/feedback", {
           method: "POST",
           headers,
           body: JSON.stringify({
