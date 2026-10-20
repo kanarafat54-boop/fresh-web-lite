@@ -95,6 +95,42 @@ export type FreshSessionState = {
   accessLevel: "signed-out" | "authenticated" | "guest";
 };
 
+function signUpErrorMessage(error: { message?: string; code?: string; status?: number } | null) {
+  const code = (error?.code ?? "").toLowerCase();
+  const message = (error?.message ?? "").trim();
+  const normalized = `${code} ${message}`.toLowerCase();
+
+  if (normalized.includes("user_already_exists") || normalized.includes("email_exists") || normalized.includes("already registered")) {
+    return "An account with this email may already exist. Try Log In or use Forgot password?";
+  }
+  if (normalized.includes("invalid_email") || normalized.includes("email address") && normalized.includes("invalid")) {
+    return "That email address doesn't look valid. Check it and try again.";
+  }
+  if (normalized.includes("weak_password") || normalized.includes("password should") || normalized.includes("password is too")) {
+    return "Your password doesn't meet the account service's security requirements. Use a longer password with a mix of characters and try again.";
+  }
+  if (normalized.includes("over_email_send_rate_limit") || normalized.includes("email rate limit") || normalized.includes("rate limit")) {
+    return "Too many signup or confirmation requests were made recently. Wait a few minutes before trying again.";
+  }
+  if (normalized.includes("signup_disabled") || normalized.includes("signups not allowed") || normalized.includes("sign up is disabled")) {
+    return "New account creation is currently disabled by the Fresh ID authentication service. This needs an administrator to enable signups.";
+  }
+  if (normalized.includes("captcha") || normalized.includes("security check")) {
+    return "The signup security check could not be completed. Refresh the page and try again; if it continues, the authentication security configuration needs attention.";
+  }
+  if (normalized.includes("database error saving new user") || normalized.includes("hook") || normalized.includes("trigger")) {
+    return "The authentication service failed while saving the new account. This is a server-side signup configuration or database issue, not a problem with your profile fields.";
+  }
+  if (!message) {
+    return "The authentication service did not return an account. Refresh the page and try again.";
+  }
+
+  // Supabase Auth messages are returned by the auth endpoint. Surface the
+  // actionable message so users and maintainers can diagnose rejected signup
+  // attempts instead of seeing a misleading generic failure.
+  return `Fresh ID signup failed: ${message}`;
+}
+
 function passkeyErrorMessage(error: { message?: string; code?: string } | null, action: "sign-in" | "register") {
   const code = error?.code ?? "";
   const message = error?.message ?? "";
@@ -402,7 +438,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
 
     if (signUpError || !data?.user) {
-      setError("Fresh ID couldn't create your account. Check the details and try again.");
+      setError(signUpError ? signUpErrorMessage(signUpError) : signUpErrorMessage(null));
       setLoading(false);
       return;
     }
