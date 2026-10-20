@@ -13,6 +13,8 @@ assert.match(endpoint, /reviewStatus: "pending"/, "new candidate waits for human
 assert.match(endpoint, /training: "not-trained"/, "endpoint never claims feedback trained the model");
 assert.match(endpoint, /reviewed_by: null/, "client cannot self-approve a candidate");
 assert.match(endpoint, /fresh_ai_preference_pairs/, "approved corrections are paired with the rejected answer for later review");
+assert.doesNotMatch(endpoint, /body\.share === true/, "legacy share flags cannot bypass explicit training consent");
+assert.match(endpoint, /shared: false/, "legacy feedback submissions cannot create training pairs");
 assert.match(endpoint, /MAX_BODY_BYTES/, "request body is bounded");
 assert.match(ui, /\/api\/ai\/feedback/, "Fresh AI UI calls the consent-gated endpoint");
 assert.match(ui, /explicit-training-opt-in/, "UI sends the explicit consent marker only after confirmation");
