@@ -2,8 +2,8 @@
   "schema_version": "1.0.0",
   "model_id": "fresh-image-research-0",
   "owner": "Fresh AI",
-  "status": "specification-only-not-implemented",
-  "intended_use": "bounded educational research prototype; not production image generation",
+  "status": "experimental-research-prototype-implemented-not-trained",
+  "intended_use": "bounded educational research prototype; requires an authorized local dataset and training run; not production image generation",
   "training_policy": {
     "initialization": "random-initialization-only",
     "pretrained_weights_allowed": false,
