@@ -38,12 +38,14 @@ if (datasetSchema.type !== "object" ||
 for (const token of [
   "class FreshImageResearchModel",
   "random.seed(args.seed)",
-  "review_status") {
+  "review_status",
+  "permission_evidence_uri",
+]) {
   if (!imageResearch.includes(token)) throw new Error(`Native research prototype is missing required safeguard: ${token}`);
 }
-if (!imageResearch.includes("pretrainedWeightsUsed\": False") ||
-    !imageResearch.includes("thirdPartyInferenceUsed\": False") ||
-    !imageResearch.includes("paidComputeUsed\": False") ||
+if (!imageResearch.includes('"pretrainedWeightsUsed": False') ||
+    !imageResearch.includes('"thirdPartyInferenceUsed": False') ||
+    !imageResearch.includes('"paidComputeUsed": False') ||
     !imageResearch.includes("result.verify()") ||
     !imageResearch.includes("production_ready=false")) {
   throw new Error("Native research prototype must remain from-scratch, PNG-validated, and non-production");
