@@ -9,6 +9,7 @@ const modelCore = fs.readFileSync("src/core/fresh-ai/FreshUnifiedModelCore.ts", 
 const services = fs.readFileSync("src/core/fresh-ai/FreshAIServerServices.ts", "utf8");
 const status = fs.readFileSync("src/server/freshAIStatus.ts", "utf8");
 const imageResearch = fs.readFileSync("training/fresh_image_research.py", "utf8");
+const imageRequirements = fs.readFileSync("training/requirements.txt", "utf8");
 
 for (const token of [
   "Fresh-owned native image generation plan",
@@ -53,6 +54,11 @@ if (!imageResearch.includes('"pretrainedWeightsUsed": False') ||
     !imageResearch.includes("result.verify()") ||
     !imageResearch.includes("production_ready=false")) {
   throw new Error("Native research prototype must remain from-scratch, PNG-validated, and non-production");
+}
+if (!imageRequirements.includes("download.pytorch.org/whl/cpu") ||
+    !imageRequirements.includes("numpy>=") ||
+    !imageRequirements.includes("Pillow>=")) {
+  throw new Error("Image research dependencies must use CPU-only PyTorch and explicitly install NumPy and Pillow");
 }
 if (modelSpec.architecture !== "decoder-only-causal-transformer" ||
     modelSpec.objective !== "causal-language-modeling") {
