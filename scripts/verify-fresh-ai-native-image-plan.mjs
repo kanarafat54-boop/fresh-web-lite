@@ -8,6 +8,7 @@ const datasetSchema = JSON.parse(fs.readFileSync("training/datasets/fresh-image-
 const modelCore = fs.readFileSync("src/core/fresh-ai/FreshUnifiedModelCore.ts", "utf8");
 const services = fs.readFileSync("src/core/fresh-ai/FreshAIServerServices.ts", "utf8");
 const status = fs.readFileSync("src/server/freshAIStatus.ts", "utf8");
+const imageResearch = fs.readFileSync("training/fresh_image_research.py", "utf8");
 
 for (const token of [
   "Fresh-owned native image generation plan",
@@ -33,6 +34,19 @@ if (datasetSchema.type !== "object" ||
     !datasetSchema.properties.records.items.required.includes("asset_sha256") ||
     !datasetSchema.properties.records.items.required.includes("rights_basis")) {
   throw new Error("Authorized image dataset manifest must require review, asset hashes, and rights provenance");
+}
+for (const token of [
+  "class FreshImageResearchModel",
+  "random.seed(args.seed)",
+  "review_status") {
+  if (!imageResearch.includes(token)) throw new Error(`Native research prototype is missing required safeguard: ${token}`);
+}
+if (!imageResearch.includes("pretrainedWeightsUsed\": False") ||
+    !imageResearch.includes("thirdPartyInferenceUsed\": False") ||
+    !imageResearch.includes("paidComputeUsed\": False") ||
+    !imageResearch.includes("result.verify()") ||
+    !imageResearch.includes("production_ready=false")) {
+  throw new Error("Native research prototype must remain from-scratch, PNG-validated, and non-production");
 }
 if (modelSpec.architecture !== "decoder-only-causal-transformer" ||
     modelSpec.objective !== "causal-language-modeling") {
