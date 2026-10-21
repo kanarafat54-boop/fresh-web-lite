@@ -20,7 +20,7 @@ for (const token of [
 ]) {
   if (!plan.includes(token)) throw new Error(`Native image plan is missing required gate: ${token}`);
 }
-if (imageSpec.status !== "specification-only-not-implemented" ||
+if (imageSpec.status !== "experimental-research-prototype-implemented-not-trained" ||
     imageSpec.training_policy.pretrained_weights_allowed !== false ||
     imageSpec.training_policy.third_party_inference_allowed !== false ||
     imageSpec.training_policy.paid_compute_allowed !== false ||
