@@ -3,6 +3,8 @@ import fs from "node:fs";
 const plan = fs.readFileSync("docs/FRESH_AI_NATIVE_IMAGE_MODEL_PLAN.md", "utf8");
 const deployment = fs.readFileSync("docs/FRESH_AI_ENGINE_OWNERSHIP_AND_DEPLOYMENT.md", "utf8");
 const modelSpec = JSON.parse(fs.readFileSync("training/model_spec.json", "utf8"));
+const imageSpec = JSON.parse(fs.readFileSync("training/fresh_image_model_spec.json", "utf8"));
+const datasetSchema = JSON.parse(fs.readFileSync("training/datasets/fresh-image-dataset-manifest.schema.json", "utf8"));
 const modelCore = fs.readFileSync("src/core/fresh-ai/FreshUnifiedModelCore.ts", "utf8");
 const services = fs.readFileSync("src/core/fresh-ai/FreshAIServerServices.ts", "utf8");
 const status = fs.readFileSync("src/server/freshAIStatus.ts", "utf8");
@@ -16,6 +18,21 @@ for (const token of [
   "leave generation unavailable",
 ]) {
   if (!plan.includes(token)) throw new Error(`Native image plan is missing required gate: ${token}`);
+}
+if (imageSpec.status !== "specification-only-not-implemented" ||
+    imageSpec.training_policy.pretrained_weights_allowed !== false ||
+    imageSpec.training_policy.third_party_inference_allowed !== false ||
+    imageSpec.training_policy.paid_compute_allowed !== false ||
+    imageSpec.proposed_baseline.image_width !== 16 ||
+    imageSpec.promotion.production_eligible !== false) {
+  throw new Error("Native image spec must remain experimental, from-scratch, and non-production");
+}
+if (datasetSchema.type !== "object" ||
+    !datasetSchema.required.includes("license_review") ||
+    !datasetSchema.required.includes("records") ||
+    !datasetSchema.properties.records.items.required.includes("asset_sha256") ||
+    !datasetSchema.properties.records.items.required.includes("rights_basis")) {
+  throw new Error("Authorized image dataset manifest must require review, asset hashes, and rights provenance");
 }
 if (modelSpec.architecture !== "decoder-only-causal-transformer" ||
     modelSpec.objective !== "causal-language-modeling") {
