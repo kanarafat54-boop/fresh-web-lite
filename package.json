@@ -59,7 +59,8 @@
     "test:fresh-id-onboarding": "node scripts/verify-fresh-id-onboarding.mjs",
     "test:fresh-id-device-security": "node scripts/verify-fresh-id-device-security.mjs",
     "test:fresh-id-auth-viewport": "node scripts/verify-fresh-id-auth-viewport.mjs",
-    "test:fresh-ai-engine-ownership": "node scripts/verify-fresh-ai-engine-ownership.mjs"
+    "test:fresh-ai-engine-ownership": "node scripts/verify-fresh-ai-engine-ownership.mjs",
+    "test:fresh-ai-native-image-plan": "node scripts/verify-fresh-ai-native-image-plan.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
