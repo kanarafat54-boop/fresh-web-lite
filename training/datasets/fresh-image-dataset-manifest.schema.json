@@ -72,7 +72,8 @@
           "split",
           "source_type",
           "rights_basis",
-          "personal_data_review"
+          "personal_data_review",
+          "caption"
         ],
         "properties": {
           "record_id": {
@@ -121,6 +122,11 @@
           },
           "notes": {
             "type": "string"
+          },
+          "caption": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
           }
         },
         "allOf": [
