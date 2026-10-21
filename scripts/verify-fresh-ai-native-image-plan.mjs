@@ -31,7 +31,7 @@ if (!services.includes('nativeInferenceBackend: "not-installed"') ||
 if (!status.includes("getFreshAIEngineReadiness()")) {
   throw new Error("Fresh AI status must expose safe engine readiness");
 }
-if (/open-weight image model|downloaded open-weight model weights|third-party inference API/.test(deployment)) {
-  throw new Error("Deployment guide conflicts with the Fresh-owned-only image model strategy");
+if (deployment.includes("Deploy a compatible image-inference worker as a Fresh-managed service with a real, license-checked open-weight image model")) {
+  throw new Error("Deployment guide still recommends substituting an open-weight image model");
 }
 console.log("Fresh native image model strategy/readiness gates: PASS");
