@@ -27,12 +27,13 @@ The existing FFmpeg media worker is for processing existing media. It is not an 
 - Do not report a successful generation before a valid PNG is returned, persisted, and rendered.
 - Keep credentials server-only. A checkpoint ID or configured URL alone is not a readiness signal.
 
-### Stage 1 — native research prototype
+### Stage 1 — native research prototype (code scaffold added; execution not yet verified)
 
-- Define and version a separate image-generation model spec; do not reuse the decoder-only language-model spec as if it were image-capable.
-- Define an authorized training dataset format and provenance manifest. Do not ingest copyrighted, private, or user-uploaded material without appropriate authorization.
-- Build a small reproducible training and sampling prototype using only newly trained Fresh weights and documented dependencies.
-- Label outputs as experimental. Never expose the prototype as production generation.
+- `training/fresh_image_model_spec.json` defines a separate experimental model identity.
+- `training/datasets/fresh-image-dataset-manifest.schema.json` defines the authorized caption/image record format and provenance fields.
+- `training/fresh_image_research.py` implements a small 16×16 RGB caption-conditioned pixel-bin model, initialized from random weights and trained only from a local reviewed dataset. It validates asset hashes and requires approved dataset rights review plus cleared personal-data review. Sampling verifies the written PNG.
+- Install the declared training dependencies in an existing free CPU environment, create a reviewed manifest and local dataset, run `python training/fresh_image_research.py train ...`, then `python training/fresh_image_research.py sample ...`. No dataset is bundled and the script has not yet been executed end to end in this repository.
+- This baseline is intentionally very low-resolution and experimental; it is not expected to create polished images. Do not expose it as production generation or use its existence as evidence that image generation is operational.
 
 ### Stage 2 — quality and safety gates
 
