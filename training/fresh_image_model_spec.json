@@ -13,8 +13,8 @@
     "require_dataset_manifest": true
   },
   "proposed_baseline": {
-    "family": "small conditional autoregressive pixel model",
-    "purpose": "test data authorization, training-run reproducibility, and genuine learned image sampling under tightly bounded free CPU experiments",
+    "family": "small caption-conditioned pixel-distribution MLP",
+    "purpose": "experimental 16x16 RGB research baseline that learns a low-resolution pixel-bin distribution from authorized caption/image pairs; not a quality image generator",
     "image_width": 16,
     "image_height": 16,
     "color_channels": 3,
@@ -42,6 +42,7 @@
     "This specification does not implement a model or imply image generation works.",
     "Do not reuse fresh-unified-1 language-model weights as image-model weights.",
     "Do not load downloaded pretrained or open-weight model weights.",
-    "If free compute is insufficient, stop and document the blocker; do not create paid resources."
+    "If free compute is insufficient, stop and document the blocker; do not create paid resources.",
+    "Outputs are limited to 16x16 pixels and are not intended to look polished or compete with commercial image generators."
   ]
 }
