@@ -32,7 +32,8 @@ if (datasetSchema.type !== "object" ||
     !datasetSchema.required.includes("license_review") ||
     !datasetSchema.required.includes("records") ||
     !datasetSchema.properties.records.items.required.includes("asset_sha256") ||
-    !datasetSchema.properties.records.items.required.includes("rights_basis")) {
+    !datasetSchema.properties.records.items.required.includes("rights_basis") ||
+    !datasetSchema.properties.records.items.required.includes("caption")) {
   throw new Error("Authorized image dataset manifest must require review, asset hashes, and rights provenance");
 }
 for (const token of [
@@ -40,6 +41,9 @@ for (const token of [
   "random.seed(args.seed)",
   "review_status",
   "permission_evidence_uri",
+  "def train(args: argparse.Namespace)",
+  "def sample(args: argparse.Namespace)",
+  "MAX_STEPS = 5000",
 ]) {
   if (!imageResearch.includes(token)) throw new Error(`Native research prototype is missing required safeguard: ${token}`);
 }
