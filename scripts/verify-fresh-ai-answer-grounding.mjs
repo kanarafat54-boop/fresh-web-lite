@@ -2,6 +2,7 @@ import fs from "node:fs";
 
 const goal = fs.readFileSync("src/core/fresh-ai/FreshGoalUnderstanding.ts", "utf8");
 const knowledge = fs.readFileSync("src/core/fresh-ai/FreshAIPlatformKnowledge.ts", "utf8");
+const kernel = fs.readFileSync("src/core/fresh-ai/FreshAIKernel.ts", "utf8");
 
 const publicEntityRule = /^\s*(?:who|what|when|where|why|how)\s+(?:is|was|are|were|did|does|do|has|have)\s+(?!you\b|your\b|fresh ai\b|fresh\b)[A-Z][A-Za-z0-9.-]*(?:\s+[A-Z][A-Za-z0-9.-]*)*/i;
 for (const question of ["Who is Elon Musk?", "Who was Ada Lovelace?", "What is NASA?"]) {
@@ -9,6 +10,9 @@ for (const question of ["Who is Elon Musk?", "Who was Ada Lovelace?", "What is N
 }
 for (const question of ["Who are you?", "What can you do?"]) {
   if (publicEntityRule.test(question)) throw new Error(`Assistant identity question was incorrectly classified as an external fact: ${question}`);
+}
+if (!kernel.includes("interpretation.needsEvidence)return") || !kernel.includes("won’t guess or substitute unrelated platform documentation")) {
+  throw new Error("Factual questions without evidence must fail transparently instead of guessing.");
 }
 if (!goal.includes("const publicEntityQuestion = /") || !goal.includes("publicEntityQuestion ||")) {
   throw new Error("Goal understanding must route public-entity questions to evidence retrieval.");
