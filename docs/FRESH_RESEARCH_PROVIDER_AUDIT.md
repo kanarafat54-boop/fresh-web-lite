@@ -14,7 +14,7 @@ Audit basis: repository source inspection. The Wikimedia Commons and Internet Ar
 | Fresh Flow People | Supabase `user_public_profiles` | Fresh profiles only |
 | Fresh Flow Topics | Reuses internal videos and posts | No dedicated trends index |
 | External Images | New `POST /api/research/images` adapter uses Wikimedia Commons API | Real thumbnail + source-page URL + author/license metadata; results are limited to Commons and safely filtered to provider hosts |
-| Archive Videos | New `POST /api/research/videos` adapter uses Internet Archive search + item metadata | Returns only items with a discovered MP4/WebM-compatible file, archive thumbnail, creator/date metadata, and source record; this is a focused archive, not the whole public video web |
+| Archive Videos | New `POST /api/research/videos` adapter uses Internet Archive search + item metadata | Returns only items with a discovered MP4/MPEG4-compatible file, archive thumbnail, creator/date metadata, and source record; this is a focused archive, not the whole public video web |
 | Music | URL heuristics classify music-site links found in web results | No dedicated music provider |
 
 ## Evidence-engine changes in this branch
