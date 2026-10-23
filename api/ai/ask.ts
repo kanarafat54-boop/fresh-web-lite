@@ -87,15 +87,24 @@ async function research(goal: string): Promise<Evidence[]> {
     const r = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" }, signal: ac.signal, body: JSON.stringify({ query: goal, mode, maxSources: 10 }) });
     if (!r.ok) return [];
     const p = await r.json() as { claims?: Array<{ id?: string; text?: string; confidence?: number; sourceUrls?: string[] }>; sources?: Array<{ title?: string; url?: string; snippet?: string; publishedAt?: string }>; runId?: string };
-    const claims = (p.claims ?? []).filter(x => x.text);
-    const sources = p.sources ?? [];
-    const sourceByUrl = new Map(sources.filter(x => x.url).map(x => [x.url as string, x]));
-    if (claims.length) return claims.map((claim, index) => {
-      const sourceUrl = claim.sourceUrls?.[0] || sources[index]?.url || "fresh-research";
-      const source = sourceByUrl.get(sourceUrl) || sources[index];
-      return { id: claim.id || `research-${p.runId || "run"}-${index + 1}`, source: sourceUrl, claim: claim.text as string, observedAt: source?.publishedAt, confidence: typeof claim.confidence === "number" ? claim.confidence : .7 };
+    const sources = (p.sources ?? []).filter((source) => {
+      if (!source.url) return false;
+      try { const u = new URL(source.url); return u.protocol === "https:" || u.protocol === "http:"; } catch { return false; }
     });
-    return sources.filter(x => x.url && (x.snippet || x.title)).map((source, index) => ({ id: `research-${p.runId || "run"}-${index + 1}`, source: source.url as string, claim: source.snippet || source.title as string, observedAt: source.publishedAt, confidence: .6 }));
+    const sourceByUrl = new Map(sources.map((source) => [source.url as string, source]));
+    const claims = (p.claims ?? []).filter((claim) => typeof claim.text === "string" && claim.text.trim());
+    const groundedClaims = claims.flatMap((claim, index) => {
+      const declaredUrls = Array.isArray(claim.sourceUrls) ? claim.sourceUrls.filter((url): url is string => typeof url === "string") : [];
+      const sourceUrl = declaredUrls.length
+        ? declaredUrls.find((url) => sourceByUrl.has(url))
+        : (sources[index]?.url as string | undefined);
+      if (!sourceUrl) return [];
+      const source = sourceByUrl.get(sourceUrl);
+      if (!source) return [];
+      return [{ id: claim.id || `research-${p.runId || "run"}-${index + 1}`, source: sourceUrl, claim: claim.text as string, observedAt: source.publishedAt, confidence: typeof claim.confidence === "number" ? claim.confidence : .7 }];
+    });
+    if (groundedClaims.length) return groundedClaims;
+    return sources.filter((source) => source.snippet || source.title).map((source, index) => ({ id: `research-${p.runId || "run"}-${index + 1}`, source: source.url as string, claim: source.snippet || source.title as string, observedAt: source.publishedAt, confidence: .6 }));
   } catch { return []; } finally { clearTimeout(timer); }
 }
 function memory(userId: string | null) { const c = service(); return { search: async (q: string, scope?: FreshMemoryRecord["scope"]): Promise<FreshMemoryRecord[]> => { if (!c || !userId) return []; let query = c.from("fresh_ai_memory").select("id,content,scope,created_at,source").eq("user_id", userId).order("updated_at", { ascending: false }).limit(32); if (scope) query = query.eq("scope", scope); const r = await query, words = q.toLowerCase().split(/\s+/).filter(x => x.length > 3); return (r.data ?? []).filter((x: MemoryRow) => !words.length || words.some(w => x.content.toLowerCase().includes(w))).slice(0, 8).map((x: MemoryRow) => ({ id: x.id, content: x.content, scope: x.scope, createdAt: x.created_at, source: x.source })) as FreshMemoryRecord[]; }, remember: async (x: FreshMemoryRecord) => { if (!c || !userId) return; const r = await c.from("fresh_ai_memory").upsert({ id: x.id, user_id: userId, scope: x.scope, content: x.content, source: x.source, created_at: x.createdAt, updated_at: new Date().toISOString() }); if (r.error) throw new Error(`Fresh AI memory persistence failed: ${r.error.message}`); } }; }
