@@ -14,6 +14,7 @@ import type { User } from "@supabase/supabase-js";
 
 import { supabase } from "../../../lib/supabase";
 import type { FreshUser, LinkedAccount } from "../types/user";
+import { validateDateOfBirth } from "../utils/dateOfBirth";
 
 type Passkey = {
   id: string;
@@ -171,7 +172,7 @@ interface FreshIdContextValue {
   authView: AuthView;
   passkeySupported: boolean;
   setAuthView: (view: AuthView) => void;
-  register: (email: string, password: string, username: string, fullName: string, accountType?: "personal" | "creator" | "business" | "developer" | "organization", profileDetails?: { birthMonth: number; birthYear: number; gender?: string; location?: string; locationLatitude?: number; locationLongitude?: number; locationAccuracyMeters?: number; locationSource?: string; country?: string; language: string; timezone: string; primaryUseCase?: string }) => Promise<void>;
+  register: (email: string, password: string, username: string, fullName: string, accountType?: "personal" | "creator" | "business" | "developer" | "organization", profileDetails?: { birthDay: number; birthMonth: number; birthYear: number; dateOfBirth: string; consentVersion: string; gender?: string; location?: string; locationLatitude?: number; locationLongitude?: number; locationAccuracyMeters?: number; locationSource?: string; country?: string; language: string; timezone: string; primaryUseCase?: string }) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginWithPasskey: () => Promise<void>;
   registerPasskey: () => Promise<Passkey | null>;
@@ -335,9 +336,77 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function persistPrivateSignupProfile(authUser: User): Promise<boolean> {
+    const metadata = authUser.user_metadata ?? {};
+    if (typeof metadata.date_of_birth !== "string") return true;
+    if (validateDateOfBirth(metadata.date_of_birth) !== null || typeof metadata.signup_consent_version !== "string") {
+      setError("Your private signup details could not be validated. Please contact Fresh ID support.");
+      return false;
+    }
+
+    const { data: existing, error: lookupError } = await supabase
+      .from("fresh_id_private_profiles")
+      .select("user_id")
+      .eq("user_id", authUser.id)
+      .maybeSingle();
+    if (lookupError) {
+      setError("We couldn't verify your private signup profile. Please try again.");
+      return false;
+    }
+    if (existing?.user_id === authUser.id) return true;
+
+    const { error: saveError } = await supabase.from("fresh_id_private_profiles").insert({
+      user_id: authUser.id,
+      date_of_birth: metadata.date_of_birth,
+      country: typeof metadata.country === "string" ? metadata.country : null,
+      gender: typeof metadata.gender === "string" ? metadata.gender : null,
+      signup_consent_version: metadata.signup_consent_version,
+      signup_consent_at: typeof metadata.signup_consent_at === "string" ? metadata.signup_consent_at : new Date().toISOString(),
+    });
+    if (saveError) {
+      if (saveError.code === "23505") {
+        const { data: raced, error: raceError } = await supabase
+          .from("fresh_id_private_profiles")
+          .select("user_id")
+          .eq("user_id", authUser.id)
+          .maybeSingle();
+        if (!raceError && raced?.user_id === authUser.id) return true;
+      }
+      setError("Your account is authenticated, but your private signup details could not be saved. Please retry after signing in.");
+      return false;
+    }
+    return true;
+  }
+
+  async function clearTemporarySignupMetadata(authUser: User) {
+    if (typeof authUser.user_metadata?.date_of_birth !== "string") return;
+    const { data: saved, error: lookupError } = await supabase
+      .from("fresh_id_private_profiles")
+      .select("user_id")
+      .eq("user_id", authUser.id)
+      .maybeSingle();
+    if (lookupError || saved?.user_id !== authUser.id) return;
+
+    const { error: metadataError } = await supabase.auth.updateUser({
+      data: {
+        date_of_birth: null,
+        country: null,
+        gender: null,
+        signup_consent_version: null,
+        signup_consent_at: null,
+      },
+    });
+    if (metadataError) {
+      setMessage("Your private signup details are saved, but temporary account metadata could not be cleared yet.");
+    }
+  }
+
   async function loadUserProfile(authUser: User) {
     setLoading(true);
     try {
+    const privateProfileSaved = await persistPrivateSignupProfile(authUser);
+    if (!privateProfileSaved) { setLoading(false); return; }
+    await clearTemporarySignupMetadata(authUser);
     const { data, error: fetchError } = await supabase
       .from("users")
       .select("*")
@@ -417,6 +486,11 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
+    if (!profileDetails?.dateOfBirth || validateDateOfBirth(profileDetails.dateOfBirth) !== null || profileDetails.consentVersion !== "2026-10-14") {
+      setError("Enter a valid date of birth and accept the current Fresh ID privacy notice and terms.");
+      setLoading(false);
+      return;
+    }
 
     let data: Awaited<ReturnType<typeof supabase.auth.signUp>>["data"];
     let signUpError: Awaited<ReturnType<typeof supabase.auth.signUp>>["error"];
@@ -426,7 +500,26 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
         password,
         options: {
           emailRedirectTo: new URL("/auth/sign-in", window.location.origin).toString(),
-          data: { username, full_name: fullName, fresh_account_type: accountType, fresh_profile: profileDetails },
+          data: {
+            username,
+            full_name: fullName,
+            fresh_account_type: accountType,
+            date_of_birth: profileDetails.dateOfBirth,
+            country: profileDetails.country ?? null,
+            gender: profileDetails.gender ?? null,
+            signup_consent_version: profileDetails.consentVersion,
+            signup_consent_at: new Date().toISOString(),
+            fresh_profile: {
+              location: profileDetails.location,
+              locationLatitude: profileDetails.locationLatitude,
+              locationLongitude: profileDetails.locationLongitude,
+              locationAccuracyMeters: profileDetails.locationAccuracyMeters,
+              locationSource: profileDetails.locationSource,
+              language: profileDetails.language,
+              timezone: profileDetails.timezone,
+              primaryUseCase: profileDetails.primaryUseCase,
+            },
+          },
         },
       });
       data = result.data;
