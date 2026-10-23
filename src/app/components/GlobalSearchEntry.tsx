@@ -49,18 +49,18 @@ export default function GlobalSearchEntry() {
     } finally { setLoading(false); }
   };
 
-  const selectFilter = async (next: "all" | IntelligenceSourceKind) => {
+  const selectFilter = async (next: "all" | IntelligenceSourceKind, force = false) => {
     setFilter(next);
     setMediaError(null);
     const trimmed = query.trim();
     if (!trimmed) return;
-    if (next === "image" && imagesQuery !== trimmed) {
+    if (next === "image" && (force || imagesQuery !== trimmed)) {
       setMediaLoading(true);
       try { setImages(await searchExternalImages(trimmed)); setImagesQuery(trimmed); }
       catch (reason) { setMediaError(reason instanceof Error ? reason.message : "Image search failed."); }
       finally { setMediaLoading(false); }
     }
-    if (next === "video" && videosQuery !== trimmed) {
+    if (next === "video" && (force || videosQuery !== trimmed)) {
       setMediaLoading(true);
       try { setArchiveVideos(await searchArchiveVideos(trimmed)); setVideosQuery(trimmed); }
       catch (reason) { setMediaError(reason instanceof Error ? reason.message : "Video search failed."); }
@@ -141,7 +141,7 @@ export default function GlobalSearchEntry() {
               </section>
             )}
 
-            {mediaError && (filter === "image" || filter === "video") && <div className="search-error" role="alert"><span>{mediaError}</span><button type="button" className="reply-btn" onClick={() => { if (filter === "image") setImagesQuery(""); else setVideosQuery(""); void selectFilter(filter); }}>Retry media search</button></div>}
+            {mediaError && (filter === "image" || filter === "video") && <div className="search-error" role="alert"><span>{mediaError}</span><button type="button" className="reply-btn" onClick={() => { if (filter === "image") setImagesQuery(""); else setVideosQuery(""); void selectFilter(filter, true); }}>Retry media search</button></div>}
 
             <div style={{ display: "grid", gap: 8 }}>
               {sources.map((source, index) => {
