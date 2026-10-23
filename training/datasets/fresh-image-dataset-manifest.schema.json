@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fresh-web-lite.vercel.app/schemas/fresh-image-dataset-manifest.schema.json",
+  "title": "Fresh image training dataset manifest",
+  "description": "Provenance gate for authorized training data. A schema-valid manifest is not proof of legal rights; source evidence must be reviewed separately.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "owner",
+    "created_at",
+    "license_review",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{2,127}$"
+    },
+    "owner": {
+      "const": "Fresh AI"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "license_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_status",
+        "reviewed_by",
+        "reviewed_at",
+        "evidence_uri"
+      ],
+      "properties": {
+        "review_status": {
+          "enum": [
+            "approved",
+            "rejected",
+            "pending"
+          ]
+        },
+        "reviewed_by": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "evidence_uri": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "record_id",
+          "asset_sha256",
+          "relative_path",
+          "split",
+          "source_type",
+          "rights_basis",
+          "personal_data_review",
+          "caption"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "relative_path": {
+            "type": "string",
+            "minLength": 1,
+            "not": {
+              "pattern": "(^/|(^|/)\\.\\.(?:/|$))"
+            }
+          },
+          "split": {
+            "enum": [
+              "train",
+              "validation",
+              "test"
+            ]
+          },
+          "source_type": {
+            "enum": [
+              "created_by_fresh",
+              "explicitly_licensed",
+              "documented_permission"
+            ]
+          },
+          "rights_basis": {
+            "type": "string",
+            "minLength": 1
+          },
+          "permission_evidence_uri": {
+            "type": "string",
+            "minLength": 1
+          },
+          "personal_data_review": {
+            "enum": [
+              "cleared",
+              "contains_personal_data",
+              "pending"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          },
+          "caption": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "source_type": {
+                  "const": "explicitly_licensed"
+                }
+              },
+              "required": [
+                "source_type"
+              ]
+            },
+            "then": {
+              "required": [
+                "permission_evidence_uri"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "source_type": {
+                  "const": "documented_permission"
+                }
+              },
+              "required": [
+                "source_type"
+              ]
+            },
+            "then": {
+              "required": [
+                "permission_evidence_uri"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
