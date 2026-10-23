@@ -56,3 +56,17 @@ if (!imageApi.includes("generateFreshAIImage") || !imageApi.includes("isFreshAII
   throw new Error("Fresh AI image API must use the guarded inference service.");
 }
 console.log("Fresh AI answer grounding and active image-output contract checks: PASS");
+
+const researchOrchestrator = fs.readFileSync("src/server/research/orchestrator.ts", "utf8");
+if (!researchOrchestrator.includes("function canonicalUrl") || !researchOrchestrator.includes("sourceUrls: [source.url]")) {
+  throw new Error("Fresh Research must canonicalize duplicate source URLs and bind each excerpt to its exact source URL.");
+}
+if (!researchOrchestrator.includes('status: "unverified"') || !researchOrchestrator.includes("Without claim-level verification, Fresh must not emit a high-confidence result.")) {
+  throw new Error("Fresh Research must not overstate source-excerpt verification or confidence.");
+}
+if (!imageUi.includes('Sources used ·') || imageUi.includes('✓ Verified evidence ·') || !imageUi.includes('href={item.url}')) {
+  throw new Error("Fresh AI evidence UI must display source links without falsely labeling raw excerpts as verified.");
+}
+if (!activeAskApi.includes("url: sourceUrl(x.source)")) {
+  throw new Error("Fresh AI API must preserve valid source URLs in the evidence payload.");
+}
