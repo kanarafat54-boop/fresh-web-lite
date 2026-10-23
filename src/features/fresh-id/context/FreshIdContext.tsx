@@ -279,6 +279,24 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       if (insertError.code === "23505") {
         const { data: existing } = await supabase.from("users").select("id").eq("id", authUser.id).maybeSingle();
         if (existing) return true;
+
+        // A username collision must not strand a confirmed Auth account without a profile.
+        const fallbackUsername = `fresh_${authUser.id.replace(/-/g, "").slice(0, 18)}`;
+        const fallbackInsert = await supabase.from("users").insert({
+          id: authUser.id,
+          username: fallbackUsername,
+          email,
+          full_name: fullName,
+          preferences: { ...defaults.preferences, preferredWorkspaceMode, ...(metadata.fresh_profile && typeof metadata.fresh_profile === "object" ? metadata.fresh_profile as Record<string, unknown> : {}) },
+        });
+        if (!fallbackInsert.error) {
+          setMessage(`Your requested username was unavailable, so Fresh ID assigned @${fallbackUsername} for now. You can change it in Profile.`);
+          return true;
+        }
+        if (fallbackInsert.error.code === "23505") {
+          const { data: racedProfile } = await supabase.from("users").select("id").eq("id", authUser.id).maybeSingle();
+          if (racedProfile) return true;
+        }
       }
       setError("Your sign-in succeeded, but Fresh ID could not create your profile. Please try again.");
       return false;
