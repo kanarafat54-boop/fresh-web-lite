@@ -1,5 +1,6 @@
 import type { AraAgent, AgentExecutionResult, AgentTask } from "./agent.js";
 import { toolRegistry } from "../toolRegistry.js";
+import { authorizeAgentAction } from "./agentRoles.js";
 
 class AgentRuntime {
   private agents: AraAgent[] = [];
@@ -26,6 +27,19 @@ class AgentRuntime {
     }
     const toolId = task.toolId ?? this.resolveTool(agent, task.action);
     if (!toolId) return { accepted: false, error: `No executable tool is mapped to agent '${agentId}'.` };
+
+    // Role gate: applies to explicit toolId and resolved tools alike, deny by default, always audited.
+    const tool = toolRegistry.get(toolId);
+    if (tool) {
+      const authorization = authorizeAgentAction({
+        agentId,
+        tool: { id: tool.id, category: tool.category, sideEffect: tool.policy?.sideEffect, requiresApproval: tool.policy?.requiresApproval },
+        approved: task.approved,
+        requestId: task.requestId,
+        taskId: task.taskId,
+      });
+      if (!authorization.allowed) return { accepted: false, error: `Agent role policy refused '${toolId}': ${authorization.reason}` };
+    }
 
     agent.status = "working";
     try {

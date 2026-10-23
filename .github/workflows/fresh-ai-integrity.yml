@@ -48,6 +48,8 @@ jobs:
         run: npm run test:fresh-e2ee
       - name: Production routing contract
         run: npm run test:production-routing
+      - name: Fresh agent roles and authority
+        run: npm run test:fresh-agent-roles
       - name: Repository lint
         run: npm run lint
       - name: Production build
