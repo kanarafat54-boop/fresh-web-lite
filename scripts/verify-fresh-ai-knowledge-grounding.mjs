@@ -22,6 +22,7 @@ for (const [name, text] of [["api/ai/ask.ts", ask], ["FreshAIIntelligenceGateway
   if (/\\\\[bsS]/.test(text)) fail(`${name} still contains over-escaped regex tokens (\\\\b, \\\\s or \\\\S)`);
 const sharedKb = read("src/core/fresh-ai/FreshAIPlatformKnowledge.ts");
 if (!ask.includes("platformKnowledge") || !ask.includes("retrieveFreshPlatformKnowledge")) fail("ask.ts does not retrieve platform knowledge through the shared ranked retrieval");
+if (!ask.includes('i.intent !== "chat" && isExplicitFreshPlatformQuestion(x)')) fail("ordinary chat can still be polluted by internal platform documentation");
 if (!sharedKb.includes('"search_fresh_platform_knowledge"') || !sharedKb.includes('"fresh_ai_knowledge"')) fail("shared platform-knowledge retrieval lost its ranked search or fallback");
 if (!ask.includes('startsWith("fresh-e2ee-v1:")')) fail("ask.ts feeds placeholder e2ee turns back as history");
 if (!kernel.includes('item.id.startsWith("kb-")')) fail("kernel does not answer directly from platform knowledge");

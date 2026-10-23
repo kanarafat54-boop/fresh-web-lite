@@ -5,6 +5,7 @@ const root = process.cwd();
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 const supabaseClient = fs.readFileSync(path.join(root, "src/lib/supabase.ts"), "utf8");
 const freshId = fs.readFileSync(path.join(root, "src/features/fresh-id/context/FreshIdContext.tsx"), "utf8");
+const authForm = fs.readFileSync(path.join(root, "src/features/fresh-id/components/AuthForm.tsx"), "utf8");
 const freshUserTypes = fs.readFileSync(path.join(root, "src/features/fresh-id/types/user.ts"), "utf8");
 const settingsWorkspace = fs.readFileSync(path.join(root, "src/features/workspaces/SettingsWorkspace.tsx"), "utf8");
 const router = fs.readFileSync(path.join(root, "src/app/AppRouter.tsx"), "utf8");
@@ -62,6 +63,16 @@ const adminApi = fs.readFileSync(path.join(root, "api/admin/users.ts"), "utf8");
 const adminPanel = fs.readFileSync(path.join(root, "src/features/admin/AdminPanel.tsx"), "utf8");
 required.push(["Platform security roles are only user/admin, not account modes", freshUserTypes.includes('UserRole = "user" | "admin"') && adminApi.includes('["user", "admin"].includes(body.role)') && !adminApi.includes('["user", "creator", "developer", "business", "admin"].includes(body.role)')]);
 required.push(["Admin UI does not expose workspace modes as platform roles", adminPanel.includes('<option value="user">user</option><option value="admin">admin</option>') && !adminPanel.includes('<option value="creator">creator</option>')]);
+
+required.push(["Passkey copy describes available authenticators without requiring a fingerprint sensor", fs.readFileSync(path.join(root, "src/features/fresh-id/components/AuthForm.tsx"), "utf8").includes("device PIN or screen lock") && !fs.readFileSync(path.join(root, "src/features/fresh-id/components/AuthForm.tsx"), "utf8").includes("Sign in with biometrics")]);
+required.push(["Passkey fallback remains explicit when unsupported", fs.readFileSync(path.join(root, "src/features/fresh-id/components/AuthForm.tsx"), "utf8").includes("Password sign-in remains available")]);
+
+required.push(["Password recovery requires confirmation and a 12-character minimum", authForm.includes('name="confirm-new-password"') && authForm.includes("newPassword !== confirmNewPassword") && authForm.includes("minLength={12}")]);
+
+required.push(["Fresh ID uses shared UTC date-only validation", authForm.includes("validateDateOfBirth(dateOfBirth)") && freshId.includes("validateDateOfBirth(profileDetails.dateOfBirth)")]);
+required.push(["DOB and consent are stored in the owner-scoped private profile before temporary metadata is cleared", freshId.includes("fresh_id_private_profiles") && freshId.includes("clearTemporarySignupMetadata") && freshId.includes("signup_consent_version")]);
+
+required.push(["Username uniqueness collisions recover with a collision-resistant Fresh handle", freshId.includes("fallbackInsert") && freshId.includes("fallbackUsername")]);
 
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
