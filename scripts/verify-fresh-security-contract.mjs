@@ -63,6 +63,9 @@ const adminPanel = fs.readFileSync(path.join(root, "src/features/admin/AdminPane
 required.push(["Platform security roles are only user/admin, not account modes", freshUserTypes.includes('UserRole = "user" | "admin"') && adminApi.includes('["user", "admin"].includes(body.role)') && !adminApi.includes('["user", "creator", "developer", "business", "admin"].includes(body.role)')]);
 required.push(["Admin UI does not expose workspace modes as platform roles", adminPanel.includes('<option value="user">user</option><option value="admin">admin</option>') && !adminPanel.includes('<option value="creator">creator</option>')]);
 
+required.push(["Passkey copy describes available authenticators without requiring a fingerprint sensor", fs.readFileSync(path.join(root, "src/features/fresh-id/components/AuthForm.tsx"), "utf8").includes("device PIN or screen lock") && !fs.readFileSync(path.join(root, "src/features/fresh-id/components/AuthForm.tsx"), "utf8").includes("Sign in with biometrics")]);
+required.push(["Passkey fallback remains explicit when unsupported", fs.readFileSync(path.join(root, "src/features/fresh-id/components/AuthForm.tsx"), "utf8").includes("Password sign-in remains available")]);
+
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
   console.error("Fresh security contract failed:");
