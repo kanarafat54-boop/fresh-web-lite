@@ -71,3 +71,8 @@
 .fresh-ai-capability-grid button:disabled:hover{background:rgba(100,120,170,.08)}
 .fresh-ai-capability-status{color:var(--fresh-ai-accent);font-weight:700;opacity:1!important}
 .fresh-ai-mode-strip button:disabled{border:1px dashed var(--fresh-ai-line)}
+
+/* Evidence is source-linked, and labels avoid claiming entailment verification before that stage exists. */
+.fresh-ai-unified-evidence > small { display: block; margin: 6px 0 10px; color: var(--muted, #a6a6b2); line-height: 1.45; }
+.fresh-ai-unified-evidence a { color: var(--accent, #a99aff); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.fresh-ai-unified-evidence a:focus-visible { outline: 3px solid #b7a6ff; outline-offset: 3px; }
