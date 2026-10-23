@@ -118,7 +118,8 @@ function isExplicitFreshPlatformQuestion(goal: string): boolean {
   return refersToProject || (mentionsProduct && asksAboutProduct);
 }
 async function platformKnowledge(goal: string): Promise<Awaited<ReturnType<typeof research>>> {
-  if (FRESH_EXTERNAL_FACT_QUESTION.test(goal.trim()) || !isExplicitFreshPlatformQuestion(goal)) return [];
+  if (FRESH_EXTERNAL_FACT_QUESTION.test(goal.trim())) return [];
+  if (!isExplicitFreshPlatformQuestion(goal)) return [];
   return (await retrieveFreshPlatformKnowledge(service(), goal)) as Awaited<ReturnType<typeof research>>;
 }
 
