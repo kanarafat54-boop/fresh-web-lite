@@ -25,6 +25,8 @@ jobs:
         run: node scripts/verify-profile-runtime-schema.mjs
       - name: Architecture contract
         run: npm run test:fresh-ecosystem-architecture
+      - name: Fresh platform constitution contract
+        run: npm run test:fresh-platform-constitution
       - name: Production routing contract
         run: npm run test:production-routing
       - name: Fresh AI profile and creator contract
@@ -39,6 +41,10 @@ jobs:
         run: npm run test:fresh-platform-parity
       - name: Security/auth contract
         run: npm run test:fresh-security-contract
+      - name: Fresh Protofile privacy contract
+        run: npm run test:fresh-platform-privacy
+      - name: Fresh ambient interaction privacy contract
+        run: npm run test:fresh-ambient-interaction
       - name: Fresh Flow fabric contract
         run: npm run test:fresh-flow-fabric
       - name: Media worker contract
