@@ -1,6 +1,6 @@
 # Fresh Research provider audit (source inspection)
 
-Audit basis: repository source inspection, not a live provider-credential test.
+Audit basis: repository source inspection. The Wikimedia Commons and Internet Archive adapters are implemented in this branch; live production behavior still needs runtime/browser verification.
 
 | Category | Actual retrieval path | Current limitation |
 |---|---|---|
@@ -13,8 +13,8 @@ Audit basis: repository source inspection, not a live provider-credential test.
 | Fresh Flow Posts | Supabase `posts` plus full-text RPC and text fallback | Internal posts only; no public social-network index |
 | Fresh Flow People | Supabase `user_public_profiles` | Fresh profiles only |
 | Fresh Flow Topics | Reuses internal videos and posts | No dedicated trends index |
-| External Images | No dedicated image provider in the audited external connector | General web results may contain image URLs, but no guaranteed image-result contract, thumbnail, or source-page attribution |
-| External Videos | No dedicated video provider in the audited external connector | Video-site URL classification is not video search and does not guarantee thumbnails/playback |
+| External Images | New `POST /api/research/images` adapter uses Wikimedia Commons API | Real thumbnail + source-page URL + author/license metadata; results are limited to Commons and safely filtered to provider hosts |
+| Archive Videos | New `POST /api/research/videos` adapter uses Internet Archive search + item metadata | Returns only items with a discovered MP4/WebM-compatible file, archive thumbnail, creator/date metadata, and source record; this is a focused archive, not the whole public video web |
 | Music | URL heuristics classify music-site links found in web results | No dedicated music provider |
 
 ## Evidence-engine changes in this branch
