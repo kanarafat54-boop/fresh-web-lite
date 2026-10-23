@@ -72,7 +72,8 @@
     "test:fresh-id-auth-viewport": "node scripts/verify-fresh-id-auth-viewport.mjs",
     "test:fresh-ai-engine-ownership": "node scripts/verify-fresh-ai-engine-ownership.mjs",
     "test:fresh-ai-native-image-plan": "node scripts/verify-fresh-ai-native-image-plan.mjs",
-    "test:fresh-research-synthesis": "node scripts/test-fresh-research-synthesis.mjs"
+    "test:fresh-research-synthesis": "node scripts/test-fresh-research-synthesis.mjs",
+    "test:fresh-external-media-search": "node scripts/test-fresh-external-media-search.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
