@@ -94,6 +94,7 @@ async function research(goal: string): Promise<Evidence[]> {
     const sourceByUrl = new Map(sources.map((source) => [source.url as string, source]));
     const claims = (p.claims ?? []).filter((claim) => typeof claim.text === "string" && claim.text.trim());
     const groundedClaims = claims.flatMap((claim, index) => {
+      // Do not silently attach a different source when those declared URLs are invalid or absent from the returned source list.
       const declaredUrls = Array.isArray(claim.sourceUrls) ? claim.sourceUrls.filter((url): url is string => typeof url === "string") : [];
       const sourceUrl = declaredUrls.length
         ? declaredUrls.find((url) => sourceByUrl.has(url))
