@@ -137,28 +137,28 @@ function passkeyErrorMessage(error: { message?: string; code?: string } | null, 
   const normalized = `${code} ${message}`.toLowerCase();
 
   if (normalized.includes("passkey_disabled")) {
-    return "Fresh ID biometric sign-in is not enabled for this deployment yet. Enable Passkeys in the Supabase Authentication settings, then try again.";
+    return "Fresh ID passkey sign-in is not enabled for this deployment yet. Password sign-in remains available.";
   }
   if (normalized.includes("not supported") || normalized.includes("webauthn") && normalized.includes("support")) {
     return "This browser or device does not support passkey authentication. Try a current HTTPS browser with a screen lock or biometric authenticator enabled.";
   }
   if (normalized.includes("credential_not_found")) {
-    return "No registered Fresh ID passkey was found on this device. Sign in with your password first, then enable biometric sign-in from your account security panel.";
+    return "No registered Fresh ID passkey was found. Sign in with your password, then register a passkey from your account security panel.";
   }
   if (normalized.includes("credential_exists")) {
-    return "This device is already registered for Fresh ID biometric sign-in.";
+    return "This device is already registered for Fresh ID passkey sign-in.";
   }
   if (normalized.includes("origin") || normalized.includes("rp_id") || normalized.includes("relying party")) {
-    return "The biometric security configuration does not match this website's domain. Check the Supabase WebAuthn relying-party ID and allowed origins.";
+    return "The passkey security configuration does not match this website's domain. Check the Supabase WebAuthn relying-party ID and allowed origins.";
   }
   if (normalized.includes("cancel") || normalized.includes("abort")) {
     return action === "register"
-      ? "Biometric registration was cancelled. No credential was added."
-      : "Biometric sign-in was cancelled.";
+      ? "Passkey registration was cancelled. No credential was added."
+      : "Passkey sign-in was cancelled.";
   }
   return action === "register"
-    ? "Could not register this device for Fresh ID biometric sign-in. Please try again."
-    : "Biometric sign-in failed. Please try again.";
+    ? "Could not register this device for Fresh ID passkey sign-in. Please try again."
+    : "Passkey sign-in failed. Please try again.";
 }
 
 interface FreshIdContextValue {
@@ -494,7 +494,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     setMessage(null);
 
     if (!passkeySupported) {
-      setError("Biometric sign-in is unavailable here. Use HTTPS (or localhost) and a browser/device that supports passkeys.");
+      setError("Passkey sign-in is unavailable here. Use HTTPS (or localhost) and a browser/device that supports passkeys.");
       return;
     }
 
@@ -506,7 +506,7 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       data = result.data;
       passkeyError = result.error;
     } catch {
-      setError("Biometric sign-in couldn't reach the account service. Check your connection and try again.");
+      setError("Passkey sign-in couldn't reach the account service. Check your connection and try again.");
       setLoading(false);
       return;
     }
@@ -525,12 +525,12 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
     setMessage(null);
 
     if (!user || isGuest) {
-      setError("Sign in with your Fresh ID account before registering a biometric passkey.");
+      setError("Sign in with your Fresh ID account before registering a passkey.");
       return null;
     }
 
     if (!passkeySupported) {
-      setError("Biometric setup is unavailable here. Use the deployed HTTPS Fresh Web Lite site or localhost with a supported browser/device.");
+      setError("Passkey setup is unavailable here. Use the deployed HTTPS Fresh Web Lite site or localhost with a supported browser/device.");
       return null;
     }
 
