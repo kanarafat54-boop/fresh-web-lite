@@ -60,6 +60,7 @@
     "test:fresh-user-intake-dataset": "node scripts/verify-fresh-user-intake-dataset.mjs",
     "test:fresh-expanded-corpus": "node scripts/test-fresh-expanded-corpus.mjs",
     "test:fresh-platform-constitution": "node scripts/verify-fresh-platform-constitution.mjs",
+    "test:fresh-id-date-of-birth": "node --experimental-strip-types scripts/test-fresh-id-date-of-birth.mjs",
     "test:fresh-ambient-interaction": "node scripts/verify-fresh-ambient-interaction.mjs",
     "test:fresh-platform-parity": "node scripts/verify-fresh-platform-parity.mjs",
     "test:fresh-id-onboarding": "node scripts/verify-fresh-id-onboarding.mjs",
