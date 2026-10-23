@@ -70,3 +70,14 @@ if (!imageUi.includes('Sources used ·') || imageUi.includes('✓ Verified evide
 if (!activeAskApi.includes("url: sourceUrl(x.source)")) {
   throw new Error("Fresh AI API must preserve valid source URLs in the evidence payload.");
 }
+
+const globalSearch = fs.readFileSync("src/app/components/GlobalSearchEntry.tsx", "utf8");
+if (!globalSearch.includes("searchExternalImages") || !globalSearch.includes("searchArchiveVideos") || !globalSearch.includes('href={source.url}')) {
+  throw new Error("Fresh global research must use real media providers and make result source links clickable.");
+}
+if (!globalSearch.includes("Explore related research") || !globalSearch.includes("These are suggested follow-up questions, not claims or search results.")) {
+  throw new Error("Fresh Search must expose clearly labeled follow-up research prompts without presenting them as evidence.");
+}
+if (globalSearch.includes("cross-checked") || globalSearch.includes("independent checks")) {
+  throw new Error("Fresh Proof must not overstate independent corroboration before claim-level verification.");
+}
