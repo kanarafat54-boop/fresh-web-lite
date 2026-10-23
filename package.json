@@ -54,6 +54,8 @@
     "test:fresh-research-api-dry-run": "node scripts/test-fresh-research-api-dry-run.mjs",
     "test:fresh-ai-conversation-awareness": "node scripts/verify-fresh-ai-conversation-awareness.mjs",
     "test:fresh-ai-knowledge-grounding": "node scripts/verify-fresh-ai-knowledge-grounding.mjs",
+    "test:fresh-docs-knowledge": "node scripts/verify-fresh-docs-knowledge.mjs",
+    "generate:fresh-docs-knowledge": "node scripts/generate-fresh-knowledge-from-docs.mjs supabase/migrations/20261021200000_fresh_ai_platform_docs_knowledge.sql",
     "test:fresh-user-intake-dataset": "node scripts/verify-fresh-user-intake-dataset.mjs",
     "test:fresh-expanded-corpus": "node scripts/test-fresh-expanded-corpus.mjs",
     "test:fresh-platform-parity": "node scripts/verify-fresh-platform-parity.mjs",

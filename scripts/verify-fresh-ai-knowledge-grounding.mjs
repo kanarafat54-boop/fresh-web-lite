@@ -20,7 +20,9 @@ for (const must of ["createFreshAIIntelligenceGateway", "await gw.handle", "mode
 // 2) Regressions fixed by the audit
 for (const [name, text] of [["api/ai/ask.ts", ask], ["FreshAIIntelligenceGateway.ts", gateway]])
   if (/\\\\[bsS]/.test(text)) fail(`${name} still contains over-escaped regex tokens (\\\\b, \\\\s or \\\\S)`);
-if (!ask.includes("platformKnowledge") || !ask.includes('"fresh_ai_knowledge"')) fail("ask.ts does not retrieve platform knowledge");
+const sharedKb = read("src/core/fresh-ai/FreshAIPlatformKnowledge.ts");
+if (!ask.includes("platformKnowledge") || !ask.includes("retrieveFreshPlatformKnowledge")) fail("ask.ts does not retrieve platform knowledge through the shared ranked retrieval");
+if (!sharedKb.includes('"search_fresh_platform_knowledge"') || !sharedKb.includes('"fresh_ai_knowledge"')) fail("shared platform-knowledge retrieval lost its ranked search or fallback");
 if (!ask.includes('startsWith("fresh-e2ee-v1:")')) fail("ask.ts feeds placeholder e2ee turns back as history");
 if (!kernel.includes('item.id.startsWith("kb-")')) fail("kernel does not answer directly from platform knowledge");
 if (!treasury.includes("SUPABASE_SECRET_KEY_FRESHWEBLITE")) fail("treasury.ts does not prefer the Fresh Web Lite secret key");
