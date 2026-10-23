@@ -69,6 +69,9 @@ required.push(["Passkey fallback remains explicit when unsupported", fs.readFile
 
 required.push(["Password recovery requires confirmation and a 12-character minimum", authForm.includes('name="confirm-new-password"') && authForm.includes("newPassword !== confirmNewPassword") && authForm.includes("minLength={12}")]);
 
+required.push(["Fresh ID uses shared UTC date-only validation", authForm.includes("validateDateOfBirth(dateOfBirth)") && freshId.includes("validateDateOfBirth(profileDetails.dateOfBirth)")]);
+required.push(["DOB and consent are stored in the owner-scoped private profile before temporary metadata is cleared", freshId.includes("fresh_id_private_profiles") && freshId.includes("clearTemporarySignupMetadata") && freshId.includes("signup_consent_version")]);
+
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
   console.error("Fresh security contract failed:");
