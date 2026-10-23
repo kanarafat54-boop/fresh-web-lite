@@ -27,6 +27,8 @@ jobs:
         run: npm run test:fresh-ecosystem-architecture
       - name: Fresh Research provenance and confidence regression tests
         run: npm run test:fresh-research-synthesis
+      - name: Fresh external media retrieval and attribution tests
+        run: npm run test:fresh-external-media-search
       - name: Fresh platform constitution contract
         run: npm run test:fresh-platform-constitution
       - name: Production routing contract
