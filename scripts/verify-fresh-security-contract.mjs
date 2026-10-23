@@ -66,6 +66,8 @@ required.push(["Admin UI does not expose workspace modes as platform roles", adm
 required.push(["Passkey copy describes available authenticators without requiring a fingerprint sensor", fs.readFileSync(path.join(root, "src/features/fresh-id/components/AuthForm.tsx"), "utf8").includes("device PIN or screen lock") && !fs.readFileSync(path.join(root, "src/features/fresh-id/components/AuthForm.tsx"), "utf8").includes("Sign in with biometrics")]);
 required.push(["Passkey fallback remains explicit when unsupported", fs.readFileSync(path.join(root, "src/features/fresh-id/components/AuthForm.tsx"), "utf8").includes("Password sign-in remains available")]);
 
+required.push(["Password recovery requires confirmation and a 12-character minimum", authForm.includes('name="confirm-new-password"') && authForm.includes("newPassword !== confirmNewPassword") && authForm.includes("minLength={12}")]);
+
 const failed = required.filter(([, ok]) => !ok);
 if (failed.length) {
   console.error("Fresh security contract failed:");
