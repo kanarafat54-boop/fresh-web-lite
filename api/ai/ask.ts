@@ -6,6 +6,7 @@ import { createCoreFreshSkillRegistry } from "../../src/core/fresh-ai/FreshAISki
 import type { Evidence, FreshConversationTurn, FreshGoalInterpretation } from "../../src/core/fresh-ai/FreshAIArchitecture.js";
 import type { FreshMemoryRecord } from "../../src/core/fresh-ai/FreshAIKernel.js";
 import { createFreshAIWorkspaceContext, type FreshAIWorkspaceContext } from "../../src/core/fresh-ai/FreshAIWorkspaceContext.js";
+import { retrieveFreshPlatformKnowledge } from "../../src/core/fresh-ai/FreshAIPlatformKnowledge.js";
 import { createFreshAIServerSupabase, generateFreshAIImage, getFreshAIPersistenceStatus, isFreshAIImageEngineConfigured, persistFreshAIMedia } from "../../src/core/fresh-ai/FreshAIServerServices.js";
 import { generateFreshNativeDimensionalArtifact } from "../../src/core/fresh-ai/FreshNativeDimensionalEngines.js";
 import "../../src/core/ara6/agents/defaultAgents.js";
@@ -99,28 +100,9 @@ async function research(goal: string): Promise<Evidence[]> {
 function memory(userId: string | null) { const c = service(); return { search: async (q: string, scope?: FreshMemoryRecord["scope"]): Promise<FreshMemoryRecord[]> => { if (!c || !userId) return []; let query = c.from("fresh_ai_memory").select("id,content,scope,created_at,source").eq("user_id", userId).order("updated_at", { ascending: false }).limit(32); if (scope) query = query.eq("scope", scope); const r = await query, words = q.toLowerCase().split(/\s+/).filter(x => x.length > 3); return (r.data ?? []).filter((x: MemoryRow) => !words.length || words.some(w => x.content.toLowerCase().includes(w))).slice(0, 8).map((x: MemoryRow) => ({ id: x.id, content: x.content, scope: x.scope, createdAt: x.created_at, source: x.source })) as FreshMemoryRecord[]; }, remember: async (x: FreshMemoryRecord) => { if (!c || !userId) return; const r = await c.from("fresh_ai_memory").upsert({ id: x.id, user_id: userId, scope: x.scope, content: x.content, source: x.source, created_at: x.createdAt, updated_at: new Date().toISOString() }); if (r.error) throw new Error(`Fresh AI memory persistence failed: ${r.error.message}`); } }; }
 // Fresh AI is provider-independent: this endpoint calls no outside AI model.
 // modelId: the canonical model boundary lives in the Fresh gateway (fresh-unified-1).
-const FRESH_KB_STOP = new Set(["fresh","what","does","about","that","this","have","your","from","tell","show","explain","please","there","their","which","would","could","should","when","where","into","than","then","them","they","been","being","also","just","like","make","made","more","most","some","such","only","over","very","will","with","lite","web","work","works"]);
 async function platformKnowledge(goal: string): Promise<Awaited<ReturnType<typeof research>>> {
-  const c = service();
-  if (!c) return [];
-  const words = Array.from(new Set(goal.toLowerCase().split(/\s+/).map((w) => w.replace(/[^a-z0-9]/g, "")).filter((w) => w.length > 3 && !FRESH_KB_STOP.has(w)))).slice(0, 10);
-  if (!words.length) return [];
-  const r = await c.from("fresh_ai_knowledge").select("id,title,content,source,confidence").is("user_id", null).eq("project_id", "fresh-web-lite-platform").limit(200);
-  if (r.error || !r.data) return [];
-  return (r.data as Array<{ id: string; title: string; content: string; source: string | null; confidence: number | null }>)
-    .map((x) => {
-      const title = x.title.toLowerCase(), content = x.content.toLowerCase();
-      return { x, score: words.reduce((n, w) => n + (title.includes(w) ? 2 : 0) + (content.includes(w) ? 1 : 0), 0) };
-    })
-    .filter((s) => s.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 4)
-    .map(({ x }) => ({
-      id: `kb-${x.id}`,
-      source: x.source || "fresh-platform-knowledge",
-      claim: `${x.title}: ${x.content}`.slice(0, 900),
-      confidence: Number.isFinite(Number(x.confidence)) ? Number(x.confidence) : 0.9,
-    })) as Awaited<ReturnType<typeof research>>;
+  // Ranked Postgres full-text search shared with /api/ai/stream (no outside AI model involved).
+  return (await retrieveFreshPlatformKnowledge(service(), goal)) as Awaited<ReturnType<typeof research>>;
 }
 
 async function persistPipeline(requestId: string, userId: string | null, pipeline: any[]) { const c = service(); if (!pipeline.length) return { configured: false, inserted: 0, error: "No pipeline events were produced" }; if (!c) { const status = getFreshAIPersistenceStatus(); return { configured: false, inserted: 0, error: status.reason || "Fresh AI server persistence is not configured", environment: status.environment }; } const rows = pipeline.map(x => ({ request_id: requestId, user_id: userId, stage: x.stage, status: x.status, started_at: x.startedAt, completed_at: x.completedAt ?? null, detail: x.detail ?? null, metrics: x.metrics ?? {} })); const r = await c.from("fresh_ai_pipeline_events").insert(rows); if (r.error) return { configured: true, inserted: 0, error: r.error.message }; return { configured: true, inserted: rows.length }; }

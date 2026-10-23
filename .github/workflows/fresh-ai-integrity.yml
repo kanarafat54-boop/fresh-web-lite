@@ -48,6 +48,10 @@ jobs:
         run: npm run test:fresh-e2ee
       - name: Production routing contract
         run: npm run test:production-routing
+      - name: Fresh AI knowledge grounding
+        run: npm run test:fresh-ai-knowledge-grounding
+      - name: Fresh docs knowledge pipeline
+        run: npm run test:fresh-docs-knowledge
       - name: Repository lint
         run: npm run lint
       - name: Production build
