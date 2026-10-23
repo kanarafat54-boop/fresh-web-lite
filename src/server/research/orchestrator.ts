@@ -1,5 +1,4 @@
 import type { ResearchClaim } from "../../core/research/contracts.js";
-import { compareClaims, type Claim } from "../../core/semantic/claimIntelligence.js";
 
 export type ResearchEvidence = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string };
 export type ResearchPass = { answer: string; sources: ResearchEvidence[] };
@@ -10,54 +9,90 @@ export type ResearchSynthesis = {
   verification: { passes: number; uniqueSources: number; uniqueDomains: number; sourceDiversity: "low" | "medium" | "high"; confidence: "low" | "medium" | "high"; independentPasses: number; contradictionsDetected: boolean };
 };
 
-const domainOf = (url: string): string => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; } };
-const normalize = (value: string): string => value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
-const uniqueByUrl = (sources: ResearchEvidence[]): ResearchEvidence[] => {
-  const seen = new Set<string>();
-  return sources.filter((source) => { if (seen.has(source.url)) return false; seen.add(source.url); return true; });
-};
+const TRACKING_PARAMS = /^(utm_.+|fbclid|gclid|mc_cid|mc_eid|ref_src|ref_url)$/i;
+const MULTI_PART_SUFFIXES = new Set(["co.uk", "org.uk", "gov.uk", "ac.uk", "com.au", "net.au", "org.au", "co.nz", "co.ug", "com.ug", "org.ug", "com.br", "com.sg", "co.in", "co.za"]);
 
-function detectContradictions(passes: ResearchPass[]): boolean {
-  const claims: Claim[] = passes.filter((pass) => pass.answer.trim()).map((pass, index) => ({
-    id: `research-pass-${index + 1}`,
-    statement: pass.answer.trim(),
-    normalizedStatement: normalize(pass.answer),
-    subjectEntityId: "research",
-    predicate: "research.answer",
-    object: pass.answer.trim(),
-    observedAt: new Date().toISOString(),
-    confidence: pass.sources.length >= 3 ? 0.7 : 0.5,
-  }));
-  for (let i = 0; i < claims.length; i += 1) for (let j = i + 1; j < claims.length; j += 1) {
-    const comparison = compareClaims(claims[i], claims[j]);
-    if (comparison.relation === "contradictory" && comparison.confidence >= 0.6) return true;
+function canonicalUrl(raw: string): string {
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return raw.trim();
+    url.hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+    url.hash = "";
+    for (const key of [...url.searchParams.keys()]) if (TRACKING_PARAMS.test(key)) url.searchParams.delete(key);
+    url.searchParams.sort();
+    if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/, "");
+    return url.toString();
+  } catch {
+    return raw.trim();
   }
-  return false;
 }
 
-function buildClaims(passes: ResearchPass[], contradictionsDetected: boolean): ResearchClaim[] {
-  return passes
-    .filter((pass) => pass.answer.trim())
-    .map((pass, index) => ({
-      id: `research-pass-claim-${index + 1}`,
-      text: pass.answer.trim(),
-      sourceUrls: pass.sources.map((source) => source.url),
-      confidence: contradictionsDetected ? 0.45 : pass.sources.length >= 3 ? 0.7 : 0.5,
-      status: contradictionsDetected ? "conflicted" : "supported",
-    }));
+function domainOf(raw: string): string {
+  try {
+    const host = new URL(raw).hostname.toLowerCase().replace(/^www\./, "");
+    const labels = host.split(".").filter(Boolean);
+    if (labels.length <= 2) return host;
+    const suffix = labels.slice(-2).join(".");
+    const count = MULTI_PART_SUFFIXES.has(suffix) ? 3 : 2;
+    return labels.slice(-count).join(".");
+  } catch {
+    return "unknown";
+  }
+}
+
+function deduplicateSources(sources: ResearchEvidence[]): ResearchEvidence[] {
+  const byCanonicalUrl = new Map<string, ResearchEvidence>();
+  for (const source of sources) {
+    const url = canonicalUrl(source.url);
+    if (!url) continue;
+    const normalized = { ...source, url };
+    const existing = byCanonicalUrl.get(url);
+    if (!existing) {
+      byCanonicalUrl.set(url, normalized);
+      continue;
+    }
+    // Preserve the best available attribution without counting repeated hits as new evidence.
+    byCanonicalUrl.set(url, {
+      ...existing,
+      title: existing.title.trim() || normalized.title,
+      snippet: (existing.snippet?.trim().length ?? 0) >= (normalized.snippet?.trim().length ?? 0) ? existing.snippet : normalized.snippet,
+      publishedAt: existing.publishedAt ?? normalized.publishedAt,
+      provider: existing.provider || normalized.provider,
+    });
+  }
+  return [...byCanonicalUrl.values()];
+}
+
+/**
+ * The current provider returns search-result excerpts, not independently
+ * verified propositions. Claims therefore point to exactly one source and
+ * remain unverified until a claim-entailment/checking stage exists.
+ */
+function buildClaims(sources: ResearchEvidence[]): ResearchClaim[] {
+  return sources.map((source, index) => ({
+    id: `research-source-claim-${index + 1}`,
+    text: source.snippet?.trim() || source.title.trim(),
+    sourceUrls: [source.url],
+    confidence: source.snippet?.trim() ? 0.35 : 0.2,
+    status: "unverified",
+  })).filter((claim) => claim.text.length > 0);
 }
 
 export function synthesizeResearch(passes: ResearchPass[]): ResearchSynthesis {
-  const usable = passes.filter((pass) => pass.answer || pass.sources.length > 0);
-  const sources = uniqueByUrl(usable.flatMap((pass) => pass.sources));
+  const usable = passes.filter((pass) => pass.answer.trim() || pass.sources.length > 0);
+  const sources = deduplicateSources(usable.flatMap((pass) => pass.sources));
   const domains = new Set(sources.map((source) => domainOf(source.url)).filter((domain) => domain !== "unknown"));
   const passCount = usable.length;
-  const independentPasses = new Set(usable.flatMap((pass) => pass.sources.map((source) => `${domainOf(source.url)}|${source.provider}`))).size;
+  // Two queries to one provider are not two independent confirmations.
+  const independentPasses = domains.size;
   const sourceDiversity = domains.size >= 6 ? "high" : domains.size >= 3 ? "medium" : "low";
-  const contradictionsDetected = detectContradictions(usable);
-  const confidence = !contradictionsDetected && sources.length >= 8 && domains.size >= 5 && passCount >= 2 ? "high" : sources.length >= 3 ? "medium" : "low";
+  // Do not infer factual contradictions from two long provider-generated summaries.
+  // That requires proposition-level extraction and claim-to-source entailment.
+  const contradictionsDetected = false;
+  // Without claim-level verification, Fresh must not emit a high-confidence result.
+  const confidence = sources.length >= 5 && domains.size >= 3 ? "medium" : "low";
   const primary = usable[0]?.answer ?? "Fresh found sources but could not produce a synthesized answer.";
-  const answer = contradictionsDetected ? `${primary}\n\nFresh found potentially conflicting evidence across independent research passes. Review the cited sources before treating the result as settled.` : primary;
-  const claims = buildClaims(usable, contradictionsDetected);
+  const answer = primary;
+  const claims = buildClaims(sources);
   return { answer, sources, claims, verification: { passes: passCount, uniqueSources: sources.length, uniqueDomains: domains.size, sourceDiversity, confidence, independentPasses, contradictionsDetected } };
 }

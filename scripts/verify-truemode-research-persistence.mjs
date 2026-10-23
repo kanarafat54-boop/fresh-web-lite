@@ -101,8 +101,9 @@ if (researchOrchestrator.includes('"../../src/core/')) {
   throw new Error("Research orchestrator contains invalid src/src relative imports.");
 }
 if (!researchOrchestrator.includes('from "../../core/research/contracts.js"') ||
-    !researchOrchestrator.includes('from "../../core/semantic/claimIntelligence.js"')) {
-  throw new Error("Research orchestrator must import core modules using correct relative paths.");
+    !researchOrchestrator.includes("function canonicalUrl") ||
+    !researchOrchestrator.includes("function deduplicateSources")) {
+  throw new Error("Research orchestrator must use the typed claim contract and canonical source-deduplication pipeline.");
 }
 if (!persistence.includes("observed_at: observedAt")) {
   throw new Error("Claim relation persistence must include the observed_at timestamp.");

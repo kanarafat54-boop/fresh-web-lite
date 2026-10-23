@@ -56,3 +56,28 @@ if (!imageApi.includes("generateFreshAIImage") || !imageApi.includes("isFreshAII
   throw new Error("Fresh AI image API must use the guarded inference service.");
 }
 console.log("Fresh AI answer grounding and active image-output contract checks: PASS");
+
+const researchOrchestrator = fs.readFileSync("src/server/research/orchestrator.ts", "utf8");
+if (!researchOrchestrator.includes("function canonicalUrl") || !researchOrchestrator.includes("sourceUrls: [source.url]")) {
+  throw new Error("Fresh Research must canonicalize duplicate source URLs and bind each excerpt to its exact source URL.");
+}
+if (!researchOrchestrator.includes('status: "unverified"') || !researchOrchestrator.includes("Without claim-level verification, Fresh must not emit a high-confidence result.")) {
+  throw new Error("Fresh Research must not overstate source-excerpt verification or confidence.");
+}
+if (!imageUi.includes('Sources used ·') || imageUi.includes('✓ Verified evidence ·') || !imageUi.includes('href={item.url}')) {
+  throw new Error("Fresh AI evidence UI must display source links without falsely labeling raw excerpts as verified.");
+}
+if (!activeAskApi.includes("url: sourceUrl(x.source)")) {
+  throw new Error("Fresh AI API must preserve valid source URLs in the evidence payload.");
+}
+
+const globalSearch = fs.readFileSync("src/app/components/GlobalSearchEntry.tsx", "utf8");
+if (!globalSearch.includes("searchExternalImages") || !globalSearch.includes("searchArchiveVideos") || !globalSearch.includes('href={source.url}')) {
+  throw new Error("Fresh global research must use real media providers and make result source links clickable.");
+}
+if (!globalSearch.includes("Explore related research") || !globalSearch.includes("These are suggested follow-up questions, not claims or search results.")) {
+  throw new Error("Fresh Search must expose clearly labeled follow-up research prompts without presenting them as evidence.");
+}
+if (globalSearch.includes("cross-checked") || globalSearch.includes("independent checks")) {
+  throw new Error("Fresh Proof must not overstate independent corroboration before claim-level verification.");
+}

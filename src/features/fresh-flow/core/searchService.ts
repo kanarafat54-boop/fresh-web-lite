@@ -150,3 +150,48 @@ export async function searchTopics(query: string, limit = 15): Promise<TopicResu
   ];
   return results.slice(0, limit);
 }
+
+
+export type ExternalImageResult = {
+  title: string;
+  thumbnailUrl: string;
+  imageUrl: string;
+  sourceUrl: string;
+  description: string;
+  author: string;
+  license: string;
+  provider: "Wikimedia Commons";
+};
+
+export type ArchiveVideoResult = {
+  id: string;
+  title: string;
+  description: string;
+  creator: string;
+  date: string | null;
+  thumbnailUrl: string;
+  videoUrl: string;
+  sourceUrl: string;
+  provider: "Internet Archive";
+};
+
+async function searchExternalMedia<T>(endpoint: string, query: string, limit: number): Promise<T[]> {
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ query: query.trim(), limit }),
+  });
+  const payload = await response.json().catch(() => ({})) as { error?: string; results?: T[] };
+  if (!response.ok) throw new Error(payload.error || `Search failed with HTTP ${response.status}`);
+  return Array.isArray(payload.results) ? payload.results : [];
+}
+
+/** External, attributed image results from Wikimedia Commons (not fabricated placeholders). */
+export function searchExternalImages(query: string, limit = 12): Promise<ExternalImageResult[]> {
+  return searchExternalMedia<ExternalImageResult>("/api/research/images", query, Math.min(Math.max(limit, 1), 20));
+}
+
+/** Searchable, playable archive videos with a source page and provider attribution. */
+export function searchArchiveVideos(query: string, limit = 8): Promise<ArchiveVideoResult[]> {
+  return searchExternalMedia<ArchiveVideoResult>("/api/research/videos", query, Math.min(Math.max(limit, 1), 12));
+}
