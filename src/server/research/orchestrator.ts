@@ -77,7 +77,7 @@ function buildClaims(sources: ResearchEvidence[], contradictionsDetected: boolea
     if (!key) continue;
     groups.set(key, [...(groups.get(key) ?? []), source]);
   }
-  return [...groups.entries()].map(([key, group], index) => {
+  return [...groups.values()].map((group, index) => {
     const sourceUrls = [...new Set(group.map((source) => source.url))];
     const distinctDomains = new Set(group.map((source) => domainOf(source.url))).size;
     const corroborated = distinctDomains >= 2;
