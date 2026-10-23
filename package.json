@@ -8,6 +8,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "test:fresh-agent-roles": "node scripts/verify-fresh-agent-roles.mjs",
     "test:fresh-ai": "node scripts/verify-fresh-ai-unified-contract.mjs",
     "test:phase0-security": "node scripts/verify-phase0-messaging-security.mjs",
     "test:fresh-ai-capabilities": "node scripts/verify-fresh-ai-capability-contract.mjs",
