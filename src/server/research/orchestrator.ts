@@ -10,12 +10,44 @@ export type ResearchSynthesis = {
   verification: { passes: number; uniqueSources: number; uniqueDomains: number; sourceDiversity: "low" | "medium" | "high"; confidence: "low" | "medium" | "high"; independentPasses: number; contradictionsDetected: boolean };
 };
 
-const domainOf = (url: string): string => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; } };
+const domainOf = (url: string): string => { try { return new URL(url).hostname.toLowerCase().replace(/^www\./, ""); } catch { return "unknown"; } };
 const normalize = (value: string): string => value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
-const uniqueByUrl = (sources: ResearchEvidence[]): ResearchEvidence[] => {
-  const seen = new Set<string>();
-  return sources.filter((source) => { if (seen.has(source.url)) return false; seen.add(source.url); return true; });
-};
+
+/** Canonicalize tracking variants before counting independent sources. */
+export function canonicalResearchUrl(raw: string): string {
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return "";
+    url.hash = "";
+    url.hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+    url.protocol = "https:";
+    url.port = "";
+    for (const key of [...url.searchParams.keys()]) {
+      if (/^(utm_.+|gclid|fbclid|mc_cid|mc_eid|ref_src|source)$/i.test(key)) url.searchParams.delete(key);
+    }
+    url.searchParams.sort();
+    url.pathname = url.pathname.replace(/\/{2,}/g, "/").replace(/\/$/, "") || "/";
+    return url.toString();
+  } catch { return ""; }
+}
+
+function uniqueByUrl(sources: ResearchEvidence[]): ResearchEvidence[] {
+  const unique = new Map<string, ResearchEvidence>();
+  for (const source of sources) {
+    const canonical = canonicalResearchUrl(source.url);
+    if (!canonical) continue;
+    const previous = unique.get(canonical);
+    if (!previous) unique.set(canonical, { ...source, url: canonical });
+    else unique.set(canonical, {
+      ...previous,
+      title: previous.title || source.title,
+      snippet: (previous.snippet?.length ?? 0) >= (source.snippet?.length ?? 0) ? previous.snippet : source.snippet,
+      publishedAt: previous.publishedAt || source.publishedAt,
+      provider: [...new Set([previous.provider, source.provider])].join(", "),
+    });
+  }
+  return [...unique.values()];
+}
 
 function detectContradictions(passes: ResearchPass[]): boolean {
   const claims: Claim[] = passes.filter((pass) => pass.answer.trim()).map((pass, index) => ({
@@ -35,29 +67,42 @@ function detectContradictions(passes: ResearchPass[]): boolean {
   return false;
 }
 
-function buildClaims(passes: ResearchPass[], contradictionsDetected: boolean): ResearchClaim[] {
-  return passes
-    .filter((pass) => pass.answer.trim())
-    .map((pass, index) => ({
-      id: `research-pass-claim-${index + 1}`,
-      text: pass.answer.trim(),
-      sourceUrls: pass.sources.map((source) => source.url),
-      confidence: contradictionsDetected ? 0.45 : pass.sources.length >= 3 ? 0.7 : 0.5,
-      status: contradictionsDetected ? "conflicted" : "supported",
-    }));
+/** Claims are derived from source-level snippets so each citation points to the result that supplied it. */
+function buildClaims(sources: ResearchEvidence[], contradictionsDetected: boolean): ResearchClaim[] {
+  const groups = new Map<string, ResearchEvidence[]>();
+  for (const source of sources) {
+    const text = source.snippet?.trim();
+    if (!text) continue;
+    const key = normalize(text);
+    if (!key) continue;
+    groups.set(key, [...(groups.get(key) ?? []), source]);
+  }
+  return [...groups.entries()].map(([key, group], index) => {
+    const sourceUrls = [...new Set(group.map((source) => source.url))];
+    const distinctDomains = new Set(group.map((source) => domainOf(source.url))).size;
+    const corroborated = distinctDomains >= 2;
+    return {
+      id: `research-source-claim-${index + 1}`,
+      text: group[0].snippet!.trim(),
+      sourceUrls,
+      confidence: contradictionsDetected ? 0.2 : corroborated ? 0.65 : 0.35,
+      status: contradictionsDetected ? "conflicted" : corroborated ? "supported" : "unverified",
+    };
+  });
 }
 
 export function synthesizeResearch(passes: ResearchPass[]): ResearchSynthesis {
-  const usable = passes.filter((pass) => pass.answer || pass.sources.length > 0);
+  const usable = passes.filter((pass) => pass.answer.trim() || pass.sources.length > 0);
   const sources = uniqueByUrl(usable.flatMap((pass) => pass.sources));
   const domains = new Set(sources.map((source) => domainOf(source.url)).filter((domain) => domain !== "unknown"));
   const passCount = usable.length;
-  const independentPasses = new Set(usable.flatMap((pass) => pass.sources.map((source) => `${domainOf(source.url)}|${source.provider}`))).size;
+  const independentPasses = new Set(sources.map((source) => `${domainOf(source.url)}|${source.provider}`)).size;
   const sourceDiversity = domains.size >= 6 ? "high" : domains.size >= 3 ? "medium" : "low";
   const contradictionsDetected = detectContradictions(usable);
-  const confidence = !contradictionsDetected && sources.length >= 8 && domains.size >= 5 && passCount >= 2 ? "high" : sources.length >= 3 ? "medium" : "low";
+  // Confidence reflects distinct publishers and usable sources, not number of reasoning layers or repeated passes.
+  const confidence = !contradictionsDetected && sources.length >= 8 && domains.size >= 5 ? "high" : !contradictionsDetected && sources.length >= 3 && domains.size >= 2 ? "medium" : "low";
   const primary = usable[0]?.answer ?? "Fresh found sources but could not produce a synthesized answer.";
-  const answer = contradictionsDetected ? `${primary}\n\nFresh found potentially conflicting evidence across independent research passes. Review the cited sources before treating the result as settled.` : primary;
-  const claims = buildClaims(usable, contradictionsDetected);
+  const answer = contradictionsDetected ? `${primary}\n\nFresh found potentially conflicting evidence across research passes. Review the cited sources before treating the result as settled.` : primary;
+  const claims = buildClaims(sources, contradictionsDetected);
   return { answer, sources, claims, verification: { passes: passCount, uniqueSources: sources.length, uniqueDomains: domains.size, sourceDiversity, confidence, independentPasses, contradictionsDetected } };
 }
