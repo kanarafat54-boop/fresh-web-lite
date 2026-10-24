@@ -1,6 +1,6 @@
-import type { CrawlerAdapter, CrawlResult } from "./contracts.ts";
-import { canonicalizeUrl, isPrivateOrInternalHost } from "./url.ts";
-import { isAllowed, parseRobots, selectGroup, type RobotsRules } from "./robots.ts";
+import type { CrawlerAdapter, CrawlResult } from "./contracts.js";
+import { canonicalizeUrl, isPrivateOrInternalHost } from "./url.js";
+import { isAllowed, parseRobots, selectGroup, type RobotsRules } from "./robots.js";
 
 export interface CrawlerOptions {
   userAgent: string;
@@ -28,14 +28,23 @@ const TEXT_TYPES = /^(text\/html|application\/xhtml\+xml|text\/plain)\b/i;
 export class PoliteCrawler implements CrawlerAdapter {
   private robotsCache = new Map<string, { rules: RobotsRules | null; fetchedAt: number }>();
   private lastHit = new Map<string, number>();
-  private o: Required<Omit<CrawlerOptions, "fetchImpl">> & { fetchImpl: typeof fetch };
+  private o: {
+    userAgent: string; maxBytes: number; timeoutMs: number; minDelayMs: number; maxRedirects: number;
+    allowPrivateHosts: boolean; fetchImpl: typeof fetch; now: () => number; sleep: (ms: number) => Promise<void>;
+  };
 
   constructor(options: CrawlerOptions) {
     this.o = {
-      maxBytes: 1_500_000, timeoutMs: 10_000, minDelayMs: 1_000, maxRedirects: 3, allowPrivateHosts: false,
-      now: () => Date.now(), sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
-      fetchImpl: globalThis.fetch.bind(globalThis), ...options,
-    } as never;
+      userAgent: options.userAgent,
+      maxBytes: options.maxBytes ?? 1_500_000,
+      timeoutMs: options.timeoutMs ?? 10_000,
+      minDelayMs: options.minDelayMs ?? 1_000,
+      maxRedirects: options.maxRedirects ?? 3,
+      allowPrivateHosts: options.allowPrivateHosts ?? false,
+      fetchImpl: options.fetchImpl ?? globalThis.fetch.bind(globalThis),
+      now: options.now ?? (() => Date.now()),
+      sleep: options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))),
+    };
   }
 
   private async guarded(url: string, headers: Record<string, string>): Promise<Response> {

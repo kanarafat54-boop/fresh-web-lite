@@ -1,5 +1,5 @@
-import type { ContentParser, FetchedResource, ParsedDocument, ParsedPassage } from "./contracts.ts";
-import { canonicalizeUrl } from "./url.ts";
+import type { ContentParser, FetchedResource, ParsedDocument, ParsedPassage } from "./contracts.js";
+import { canonicalizeUrl } from "./url.js";
 
 const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
 function decode(s: string): string {
@@ -12,7 +12,7 @@ function decode(s: string): string {
   });
 }
 
-function metaContent(html: string, attr: "name" | "property", key: string): string | null {
+function metaContent(html: string, attr: "name" | "property" | "http-equiv", key: string): string | null {
   const re = new RegExp(`<meta\\b[^>]*\\b${attr}\\s*=\\s*["']${key}["'][^>]*>`, "i");
   const tag = html.match(re)?.[0];
   return tag?.match(/\bcontent\s*=\s*["']([^"']*)["']/i)?.[1] ?? null;

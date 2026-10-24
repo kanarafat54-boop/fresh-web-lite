@@ -1,7 +1,7 @@
-import type { IndexedDocumentVersion, IndexWriter, ParsedDocument, RankingEngine, SearchProvider, SearchQuery, SearchResponse } from "./contracts.ts";
-import { sha256Hex } from "./url.ts";
-import { tokenize } from "./parser.ts";
-import { Bm25RankingEngine } from "./ranking.ts";
+import type { IndexedDocumentVersion, IndexWriter, ParsedDocument, RankingEngine, SearchProvider, SearchQuery, SearchResponse } from "./contracts.js";
+import { sha256Hex } from "./url.js";
+import { tokenize } from "./parser.js";
+import { Bm25RankingEngine } from "./ranking.js";
 
 interface StoredDoc { documentId: string; version: number; doc: ParsedDocument; fetchedAt: string; removed: boolean; terms: string[]; passageTerms: string[][] }
 

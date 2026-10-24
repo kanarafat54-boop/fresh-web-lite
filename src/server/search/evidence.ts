@@ -1,5 +1,5 @@
-import type { EvidenceBundle, EvidenceItem, EvidenceService, SearchProvider } from "./contracts.ts";
-import { tokenize } from "./parser.ts";
+import type { EvidenceBundle, EvidenceItem, EvidenceService, SearchProvider } from "./contracts.js";
+import { tokenize } from "./parser.js";
 
 /**
  * Retrieval-backed evidence. Every item is a verbatim indexed passage with its source URL,

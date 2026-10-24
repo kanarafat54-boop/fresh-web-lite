@@ -72,7 +72,7 @@
     "test:fresh-id-auth-viewport": "node scripts/verify-fresh-id-auth-viewport.mjs",
     "test:fresh-ai-engine-ownership": "node scripts/verify-fresh-ai-engine-ownership.mjs",
     "test:fresh-ai-native-image-plan": "node scripts/verify-fresh-ai-native-image-plan.mjs",
-    "test:fresh-web-search": "node scripts/test-fresh-web-search-slice.mjs",
+    "test:fresh-web-search": "node --import ./scripts/register-ts-js-resolver.mjs scripts/test-fresh-web-search-slice.mjs",
     "test:fresh-web-index-migration": "bash scripts/test-fresh-web-index-migration.sh"
   },
   "dependencies": {

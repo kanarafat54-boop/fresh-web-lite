@@ -1,5 +1,5 @@
-import type { ContentParser, CrawlerAdapter, CrawlOutcome, IndexWriter, StructuredError } from "./contracts.ts";
-import { canonicalizeUrl, sha256Hex } from "./url.ts";
+import type { ContentParser, CrawlerAdapter, CrawlOutcome, IndexWriter, StructuredError } from "./contracts.js";
+import { canonicalizeUrl, sha256Hex } from "./url.js";
 
 export interface IngestReport {
   url: string;
