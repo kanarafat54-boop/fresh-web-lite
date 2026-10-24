@@ -53,6 +53,7 @@ jobs:
       - name: Exercise expanded authorized corpus through tokenizer and training dry-run
         run: npm run test:fresh-expanded-corpus
       - name: Verify live Fresh AI conversation endpoint
+        if: github.event_name != 'pull_request'
         run: node scripts/smoke-fresh-ai-production.mjs
       - run: npm run test:fresh-unified-training
       - run: npm run test:fresh-unified-curriculum
