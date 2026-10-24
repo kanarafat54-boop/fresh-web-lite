@@ -1,0 +1,48 @@
+name: Fresh AI Capability Baseline
+
+on:
+  pull_request:
+    paths:
+      - "scripts/report-fresh-ai-capability-baseline.mjs"
+      - "src/core/fresh-ai/FreshAICapabilityRegistry.ts"
+      - "src/core/fresh-ai/FreshAICapabilityRuntime.ts"
+      - "src/core/fresh-ai/FreshUnifiedModelCore.ts"
+      - "package.json"
+      - ".github/workflows/fresh-ai-capability-baseline.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/report-fresh-ai-capability-baseline.mjs"
+      - "src/core/fresh-ai/FreshAICapabilityRegistry.ts"
+      - "src/core/fresh-ai/FreshAICapabilityRuntime.ts"
+      - "src/core/fresh-ai/FreshUnifiedModelCore.ts"
+      - "package.json"
+      - ".github/workflows/fresh-ai-capability-baseline.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  capability-baseline:
+    name: Generate and validate capability baseline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Generate baseline report
+        run: npm run report:fresh-ai-capability-baseline -- --json > fresh-ai-capability-baseline.json
+      - name: Upload baseline report
+        uses: actions/upload-artifact@v4
+        with:
+          name: fresh-ai-capability-baseline
+          path: fresh-ai-capability-baseline.json
+          if-no-files-found: error
+          retention-days: 14
