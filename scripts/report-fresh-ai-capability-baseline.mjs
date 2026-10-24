@@ -26,9 +26,9 @@ if (!capabilities.length) throw new Error("No Fresh AI capabilities could be par
 const ids = new Set(capabilities.map((item) => item.id));
 if (ids.size !== capabilities.length) throw new Error("Fresh AI capability registry contains duplicate IDs.");
 
-const mappingBlock = sources.runtime.match(/const UNIVERSAL_TO_PRODUCT: Record<string, FreshAICapabilityId> = \\{([\\s\\S]*?)\\n\\};/);
+const mappingBlock = sources.runtime.match(/const UNIVERSAL_TO_PRODUCT: Record<string, FreshAICapabilityId> = \{([\s\S]*?)\n\};/);
 if (!mappingBlock) throw new Error("Canonical universal-to-product mapping block was not found.");
-const mappings = [...mappingBlock[1].matchAll(/^\\s*([A-Za-z][A-Za-z0-9_-]*):\\s*"([^"]+)",?\\s*$/gm)]
+const mappings = [...mappingBlock[1].matchAll(/^\s*([A-Za-z][A-Za-z0-9_-]*):\s*"([^"]+)",?\s*$/gm)]
   .map((match) => ({ universalCapability: match[1], capabilityId: match[2] }));
 const unknownMappings = mappings.filter((mapping) => !ids.has(mapping.capabilityId));
 if (unknownMappings.length) {
