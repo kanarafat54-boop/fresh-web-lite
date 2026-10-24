@@ -38,8 +38,10 @@ function env(name: string): string | null {
   const value = getServerEnv(name)?.trim();
   return value || null;
 }
-function registeredCheckpoint(explicit?: string | null): string | null {
-  return explicit?.trim() || env(FRESH_UNIFIED_INFERENCE_RUNTIME.checkpointEnv);
+function registeredCheckpoint(): string | null {
+  // Only the server's configured checkpoint is authoritative. Never let a
+  // request choose an arbitrary checkpoint identifier for the inference service.
+  return env(FRESH_UNIFIED_INFERENCE_RUNTIME.checkpointEnv);
 }
 function unavailable(modality: FreshUnifiedModality, checkpointId: string | null, reason: string): FreshUnifiedInferenceResult {
   return { modelId: "fresh-unified-1", modality, native: true, status: "training-required", checkpointId, reason };
@@ -48,8 +50,11 @@ function unavailable(modality: FreshUnifiedModality, checkpointId: string | null
 export async function inferFreshUnified(request: FreshUnifiedInferenceRequest): Promise<FreshUnifiedInferenceResult> {
   const input = request.input.trim();
   if (!input) throw new Error("Fresh Unified inference requires input");
-  const checkpointId = registeredCheckpoint(request.checkpointId);
+  const checkpointId = registeredCheckpoint();
   if (!checkpointId) return unavailable(request.modality, null, "No Fresh-trained checkpoint is registered.");
+  if (request.checkpointId?.trim() && request.checkpointId.trim() !== checkpointId) {
+    return unavailable(request.modality, checkpointId, "Requested checkpoint does not match the server-registered Fresh checkpoint.");
+  }
   const endpoint = env(FRESH_UNIFIED_INFERENCE_RUNTIME.endpointEnv);
   const token = env(FRESH_UNIFIED_INFERENCE_RUNTIME.tokenEnv);
   if (!endpoint || !token) {
