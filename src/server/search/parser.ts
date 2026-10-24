@@ -69,7 +69,7 @@ export class HtmlContentParser implements ContentParser {
       .replace(/<!--[\s\S]*?-->/g, " ")
       .replace(/<\/(p|div|section|article|li|h[1-6]|tr|br|blockquote)>|<br\s*\/?>/gi, "\n")
       .replace(/<[^>]+>/g, " ");
-    const text = decode(body).split("\n").map((l) => l.replace(/[ \t\f\v ]+/g, " ").trim()).filter(Boolean).join("\n");
+    const text = decode(body).split("\n").map((l) => l.replace(/[ \t\f\v\u00a0]+/g, " ").trim()).filter(Boolean).join("\n");
     return { canonicalUrl, title, language: lang ? lang.toLowerCase() : null, publishedAt, text, contentHash: "", passages: splitPassages(text), outlinks: [...new Set(outlinks)], noindex };
   }
 }
