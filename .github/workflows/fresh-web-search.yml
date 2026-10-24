@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - "src/server/search/**"
+      - "src/features/web-search/**"
+      - "api/research/search.ts"
+      - "vercel.json"
       - "supabase/migrations/*fresh_web_*"
       - "scripts/test-fresh-web-*"
       - ".github/workflows/fresh-web-search.yml"
@@ -40,5 +43,15 @@ jobs:
         run: npm run typecheck
       - name: End-to-end search slice (local HTTP fixture)
         run: npm run test:fresh-web-search
+      - name: API handler and Supabase adapter tests
+        run: npm run test:fresh-web-search-api
       - name: Migration validation on scratch Postgres
         run: npm run test:fresh-web-index-migration
+      - name: Lint search sources
+        run: npx eslint src/server/search src/features/web-search api/research/search.ts
+      - name: Install Chromium for the browser test
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Browser test (Chromium)
+        run: npm run test:fresh-web-search-browser

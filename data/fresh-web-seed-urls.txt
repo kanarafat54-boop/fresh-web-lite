@@ -1,0 +1,3 @@
+# Seed URLs for the Fresh web index. One URL per line; '#' starts a comment.
+# Only add pages you are permitted to crawl and index. Nothing is crawled until an operator runs
+# scripts/seed-fresh-web-index.mjs. This list is intentionally empty until the owner approves sources.

@@ -19,7 +19,7 @@ export class IndexEvidenceService implements EvidenceService {
     let response;
     try { response = await this.provider.search({ text: query, limit: max }); }
     catch (e) { return { query, items: [], independentSourceCount: 0, duplicateGroups: [], warnings: [`Search provider ${this.provider.id} failed: ${(e as Error).message}`] }; }
-    if (!response.indexedDocuments) warnings.push("The index is empty; no sources have been crawled yet.");
+    if (response.indexedDocuments === 0) warnings.push("The index is empty; no sources have been crawled yet.");
     else if (!response.hits.length) warnings.push("No indexed source matched the query.");
 
     const items: EvidenceItem[] = [];
