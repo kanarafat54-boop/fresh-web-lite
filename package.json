@@ -73,7 +73,9 @@
     "test:fresh-ai-engine-ownership": "node scripts/verify-fresh-ai-engine-ownership.mjs",
     "test:fresh-ai-native-image-plan": "node scripts/verify-fresh-ai-native-image-plan.mjs",
     "test:fresh-ai-cognitive-diversity": "node scripts/verify-fresh-ai-cognitive-diversity.mjs",
-    "test:fresh-ai-direct-answer-quality": "node scripts/verify-fresh-ai-direct-answer-quality.mjs"
+    "test:fresh-ai-direct-answer-quality": "node scripts/verify-fresh-ai-direct-answer-quality.mjs",
+    "test:fresh-web-search": "node --import ./scripts/register-ts-js-resolver.mjs scripts/test-fresh-web-search-slice.mjs",
+    "test:fresh-web-index-migration": "bash scripts/test-fresh-web-index-migration.sh"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",

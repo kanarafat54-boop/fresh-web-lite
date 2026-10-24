@@ -1,0 +1,44 @@
+name: Fresh web search slice
+
+on:
+  pull_request:
+    paths:
+      - "src/server/search/**"
+      - "supabase/migrations/*fresh_web_*"
+      - "scripts/test-fresh-web-*"
+      - ".github/workflows/fresh-web-search.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  search-slice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: End-to-end search slice (local HTTP fixture)
+        run: npm run test:fresh-web-search
+      - name: Migration validation on scratch Postgres
+        run: npm run test:fresh-web-index-migration
