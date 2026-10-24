@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "scripts/report-fresh-ai-capability-baseline.mjs"
+      - "scripts/test-fresh-ai-web-research-adapter.mjs"
+      - "api/ai/stream.ts"
       - "src/core/fresh-ai/FreshAICapabilityRegistry.ts"
       - "src/core/fresh-ai/FreshAICapabilityRuntime.ts"
       - "src/core/fresh-ai/FreshUnifiedModelCore.ts"
@@ -37,6 +39,8 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci
+      - name: Test Fresh AI web research adapter
+        run: npm run test:fresh-ai-web-research-adapter
       - name: Generate baseline report
         run: npm run report:fresh-ai-capability-baseline -- --json > fresh-ai-capability-baseline.json
       - name: Upload baseline report
