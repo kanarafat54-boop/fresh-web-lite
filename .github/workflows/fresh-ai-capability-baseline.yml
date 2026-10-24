@@ -16,6 +16,8 @@ on:
       - main
     paths:
       - "scripts/report-fresh-ai-capability-baseline.mjs"
+      - "scripts/test-fresh-ai-web-research-adapter.mjs"
+      - "api/ai/stream.ts"
       - "src/core/fresh-ai/FreshAICapabilityRegistry.ts"
       - "src/core/fresh-ai/FreshAICapabilityRuntime.ts"
       - "src/core/fresh-ai/FreshUnifiedModelCore.ts"
