@@ -124,3 +124,6 @@ export function assertFreshCognitiveDiversityIntegrity(): void {
   }
   if (result.selected.length > MAX_PERSPECTIVES) throw new Error("Cognitive router exceeded its perspective budget.");
 }
+
+// Fail fast if a future edit removes a perspective or weakens epistemic boundaries.
+assertFreshCognitiveDiversityIntegrity();
