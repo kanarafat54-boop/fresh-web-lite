@@ -4,7 +4,7 @@ import type { Evidence } from "./FreshAIArchitecture.js";
 export function synthesizeFreshPlatformAnswer(goal: string, evidence: Evidence[]): string | null {
   const query = goal.toLowerCase();
   const stop = new Set(["what", "which", "when", "where", "explain", "about", "list", "available", "there", "this", "that", "from", "into", "have", "does", "with", "your"]);
-  const tokens = Array.from(new Set(query.split(/[^a-z0-9]+/).filter((word) => word.length > 3 && !stop.has(word)));
+  const tokens = Array.from(new Set(query.split(/[^a-z0-9]+/).filter((word) => word.length > 3 && !stop.has(word))));
   const freshFlowQuestion = /\bfresh flow\b/.test(query);
   const mediaFormatsQuestion = /media formats|formats available|types of media/.test(query);
   const ranked = evidence.map((item) => {
