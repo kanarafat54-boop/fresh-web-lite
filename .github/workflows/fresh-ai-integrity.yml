@@ -26,6 +26,8 @@ jobs:
         run: npm ci
       - name: Fresh AI unified contract
         run: npm run test:fresh-ai
+      - name: Fresh AI cognitive diversity routing
+        run: npm run test:fresh-ai-cognitive-diversity
       - name: Fresh AI capability contract
         run: npm run test:fresh-ai-capabilities
       - name: Fresh AI power fabric

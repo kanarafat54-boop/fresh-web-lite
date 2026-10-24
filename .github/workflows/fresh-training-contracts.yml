@@ -31,6 +31,8 @@ jobs:
           npm --version
           python3 --version
       - run: npm ci
+      - name: Verify direct-answer routing and creative output
+        run: npm run test:fresh-ai-direct-answer-quality
       - name: Validate curated user-intake dataset
         run: npm run test:fresh-user-intake-dataset
       - name: Verify consent-gated continuous learning candidate preparation
