@@ -97,7 +97,8 @@ export interface SearchResponse {
   query: string;
   hits: SearchHit[];
   totalCandidates: number;
-  indexedDocuments: number;
+  /** Live documents in the index, or null when the provider could not determine it. */
+  indexedDocuments: number | null;
   tookMs: number;
 }
 

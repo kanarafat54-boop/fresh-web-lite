@@ -9,6 +9,10 @@
       "dest": "/api/ai/ask?__fresh_ai_status=1"
     },
     {
+      "src": "/api/search/query",
+      "dest": "/api/research/search?__fresh_index=1"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/$1"
     },

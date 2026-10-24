@@ -56,3 +56,4 @@ FeatureRegistry.register({ id: "crypto", name: "Crypto", route: "/crypto", searc
 FeatureRegistry.register({ id: "saved", name: "Saved", route: "/saved", searchable: true, lazyLoader: () => import("../../features/saved/components/SavedModule").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "fresh-flow", name: "Fresh Flow", route: "/fresh-flow", searchable: true, lazyLoader: () => import("../../features/fresh-flow/FreshFlowHub").then((m) => ({ default: m.default })) });
 FeatureRegistry.register({ id: "settings", name: "Settings", route: "/settings", searchable: true, lazyLoader: () => import("../../features/workspaces/SettingsWorkspace").then((m) => ({ default: m.default })) });
+FeatureRegistry.register({ id: "fresh-web-search", name: "Fresh Web Search", route: "/web-search", searchable: true, lazyLoader: () => import("../../features/web-search/FreshWebSearch").then((m) => ({ default: m.default })) });

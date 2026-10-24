@@ -1,6 +1,7 @@
 import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 import { synthesizeResearch, type ResearchPass } from "../../src/server/research/orchestrator.js";
 import { persistSemanticResearch } from "../../src/server/research/persistSemanticResearchV2.js";
+import { handleFreshIndexSearch } from "../../src/server/search/route.js";
 import { reasonAcrossDimensions } from "../../src/core/fresh-ai/dimensionalIntelligence.js";
 
 type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
@@ -70,6 +71,8 @@ export function GET(): Response {
 }
 
 export async function POST(req: Request): Promise<Response> {
+  // Fresh-owned index search (authenticated); routed here by vercel.json to stay within the 12-function plan cap.
+  if (new URL(req.url, "http://localhost").searchParams.get("__fresh_index") === "1") return handleFreshIndexSearch(req);
   const runId = crypto.randomUUID();
   const requestStarted = Date.now();
   const dryRun = process.env.PERSISTENCE_DRY_RUN === "true";

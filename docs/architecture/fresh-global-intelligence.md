@@ -42,7 +42,7 @@ workers/media-worker  (ffmpeg, token-protected)       training/ + data/fresh-tra
 
 ## 4. Baseline (this session, Node 22.22.0, Linux)
 
-`npm ci` **could not run**: the sandbox network policy rejects `registry.npmjs.org` (HTTP 403 on CONNECT, DNS failure when direct). Therefore **typecheck, lint, build and any test that needs `node_modules` (esbuild) were not run**. This is an environment block, not a repository result.
+`npm ci` **could not run** in the authoring sandbox: its network policy rejects `registry.npmjs.org` (HTTP 403 on CONNECT, DNS failure when direct). The repo's own `typecheck`, `lint` and `build` therefore run only in CI. Locally, a global `tsc` and `eslint` exist, so new code is checked with `tsc` against the `tsconfig.json` and `tsconfig.app.json` settings (React/Supabase types are unavailable locally, so `.tsx` and `api/` files rely on CI). Tests that import `node_modules` packages (esbuild) were not run locally. CI on PR #135 caught two defects the local check had missed (`.ts` import specifiers and a literal NBSP flagged by ESLint); both were fixed.
 
 All 61 `npm run test:*` scripts were executed with plain Node: **52 pass, 9 fail**. The 9 failures are pre-existing/environmental and were not changed:
 
@@ -80,7 +80,8 @@ Apparent duplicates to reconcile (observed by filename, not yet diffed): researc
 
 | Capability | Status |
 |---|---|
-| Fresh-controlled crawler → index → retrieval | **Slice 1: working against a local fixture only.** Never run against the public web from this sandbox (egress blocked). Postgres adapter for `IndexWriter`/`SearchProvider` **not written** (schema validated, code pending). |
+| Fresh-controlled crawler → index → retrieval | **Slices 1-2: working against a local fixture only.** Never run against the public web from the authoring sandbox (egress blocked). Postgres adapters (`SupabaseSearchProvider`, `SupabaseIndexWriter`) are written and contract-tested against a recording double; the SQL they call is validated on a real local Postgres. **Not run against the live Supabase project: the `fresh_web_*` migrations are not applied there**, so the live API answers `503 index_unavailable` until an authorized operator applies them and seeds the index. |
+| Authenticated search API + UI | `POST /api/search/query` and the `/web-search` screen (slice 2). Request-level tests and a Chromium test pass locally; not deployed. Evidence persists to the existing `fresh_intelligence_sources/evidence` tables; there is no per-user research-run table, so rows are public-source records and the caller's identity only gates who may trigger the write. |
 | Crawl scheduling / job runner | Table exists; no scheduler or worker. Needs a free trigger (Vercel cron or GitHub Actions); not enabled. |
 | Multilingual search | Language-neutral lexical only; verified on one French fixture. No per-language stemming, CJK segmentation, or benchmark. |
 | Research orchestration with step plan and claim↔evidence stance | Existing engines unverified end to end; not wired to the new index. |
