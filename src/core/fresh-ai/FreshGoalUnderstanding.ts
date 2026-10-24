@@ -72,12 +72,18 @@ export function understandFreshGoal(input: string, conversation: FreshConversati
   const needsAction = intent === "act";
   const publicEntityQuestion = /^\s*(?:who|what|when|where|why|how)\s+(?:is|was|are|were|did|does|do|has|have)\s+(?!you\b|your\b|fresh ai\b|fresh\b)[A-Z][A-Za-z0-9.-]*(?:\s+[A-Z][A-Za-z0-9.-]*)*/i.test(raw);
   const needsEvidence = intent === "research" || publicEntityQuestion || /\b(latest|today|now|current|recent|source|sources|evidence|verify|fact[- ]?check|according to|citation|cite|proof|news|trending|happening|going on|worldwide|global|across the world|right now)\b/i.test(value);
+  const directSelfQuestion = /\b(who are you|what are you|what can you do|what is your ability|what are your abilities|what are your capabilities)\b/i.test(raw);
+  const creativeArtifactRequest = /\b(write|write me|compose|create|make)\b/i.test(raw) && /\b(song|lyrics|poem|story|letter|email|message|script)\b/i.test(raw);
+  const abstractReflectiveQuestion = /\b(understand|understanding|consciousness|meaning|know|knowledge)\b/i.test(raw) && /\b(you|your|mind|understand|understanding)\b/i.test(raw);
+
   const outputMode: FreshGoalInterpretation["outputMode"] = intent === "chat" ? "conversation" : intent === "research" ? "research" : intent === "create" ? "creation" : intent === "code" ? "code" : intent === "plan" ? "plan" : intent === "act" ? "action" : "answer";
   const objective = conversational ? "Have a natural conversation with the user." : raw;
   let desiredOutcome = "Directly satisfy the user's request.";
   if (needsAction) desiredOutcome = "Complete the requested action safely, or explain the approval/tool boundary.";
   else if (intent === "research") desiredOutcome = "Retrieve current or authoritative evidence when needed, synthesize it, and preserve uncertainty and provenance.";
-  else if (intent === "create") desiredOutcome = "Produce the requested artifact or draft.";
+  else if (intent === "create") desiredOutcome = creativeArtifactRequest ? "Produce the actual requested creative artifact, not instructions or a placeholder." : "Produce the requested artifact or draft.";
+  else if (directSelfQuestion) desiredOutcome = "Answer directly in first person using verified Fresh AI runtime status; distinguish available features from incomplete or untrained capabilities.";
+  else if (abstractReflectiveQuestion) desiredOutcome = "Engage with the actual idea, explain its meaning and tensions, and give a thoughtful, specific response rather than a generic instruction.";
   else if (intent === "code") desiredOutcome = "Provide or implement a correct technical solution.";
   else if (intent === "plan") desiredOutcome = "Turn the goal into clear, executable steps.";
   else if (intent === "chat") desiredOutcome = "Reply naturally and helpfully without forcing a workflow.";
