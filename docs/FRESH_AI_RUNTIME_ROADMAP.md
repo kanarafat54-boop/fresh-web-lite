@@ -70,3 +70,15 @@ External model providers may exist only as explicit optional tool/compute adapte
 ## Definition of production-complete
 
 A capability is complete only when its typed contract, implementation, permissions, verification, tests, observability and truthful failure/degraded behavior are present. A button alone is not an implementation.
+
+## Cognitive diversity runtime integration
+
+The bounded cognitive perspective router is implemented in `src/core/fresh-ai/FreshAICognitiveDiversity.ts` and is invoked by `FreshAIKernel.reason()`. It returns selected perspectives, their guiding questions, selection reasons, epistemic guards and the shared `fresh-unified-1` identity as part of `FreshReasoningResult.cognitivePerspectives`.
+
+Registered perspectives include analytical, creative, philosophical, empathic, pattern-based, systems, practical, reflective, concrete, abstract, lateral, probabilistic, critical, integrative, scientific, social-cultural, spatial/embodied, temporal/historical, ethical/rights-aware, Alien Mind and God-Made Mind.
+
+Selection is deterministic and capped at six perspectives per request to bound work. Explicit Alien Mind requests are treated as hypothetical exploration without fabricated extraterrestrial evidence. God-Made Mind is a user-requested theological/philosophical lens, not a claim of divine authority or revelation. The router does not infer a user's religion or claim consciousness.
+
+Contract verifier: `npm run test:fresh-ai-cognitive-diversity`.
+
+This integration establishes routing and structured perspective metadata. It does not by itself establish that a trained foundation model or all cognitive capabilities are complete. Build/typecheck and production verification must pass before this work is marked production-complete.
