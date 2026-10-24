@@ -1,2 +1,2 @@
--- Historical production migration timestamp retained for synchronization.
--- Intentionally no-op.
+-- Restored (20260903174350): PostgREST schema cache reload. Safe to repeat.
+notify pgrst, 'reload schema';

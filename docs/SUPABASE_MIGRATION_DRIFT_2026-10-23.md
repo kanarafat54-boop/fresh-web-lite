@@ -36,3 +36,39 @@ Some of the 25 may be covered by later repository migrations that create objects
 ## Suggested way to finish the job
 
 Restore one placeholder at a time, newest feature areas first (direct messages, short gifts, profile foundation, AI conversations and media assets), reading each definition back from production and writing idempotent statements. Each batch should replay cleanly in CI (`supabase-full-migration-replay`) before the next. Alternatively, take a single reviewed schema baseline from production, which is faster but loses per-feature history. Either way, no production change is needed.
+
+## Status update 2026-10-24: placeholders restored, baseline snapshot added
+
+**Restored (25 of 25).** Each placeholder now holds idempotent SQL reconstructed from production catalogs
+(final end-state, not original statement history). Production has already applied these versions, so nothing re-runs there.
+
+| Area | Versions |
+| --- | --- |
+| Connect / direct messages | 20260829100151, 20260829152409, 20260829152959 |
+| Short gifts, treasury recipient + transfer | 20260902055048, 20260902054610, 20260902055035 |
+| Short captions | 20260906061722 |
+| Universal profile, analytics views | 20260907062437, 20260907111340, 20260907120210, 20260829100138 |
+| Profile media bucket (storage) | 20260909191242 |
+| Fresh AI conversations / media assets (+ private bucket) | 20260909194622, 20260910065453 |
+| Treasury, ledger, interactions, metering, marketplace | 20260828075132, 20260827041726, 20260827041741, 20260827040648, 20260815184146 |
+| Intelligence (arbitrations, claim revisions + read policies) | 20260812125640, 20260815090615 |
+| FK performance indexes (guarded) | 20260906072645 |
+| PostgREST cache reloads (`notify pgrst, 'reload schema'`) | 20260826205154, 20260829101410, 20260903174350 |
+
+Caveats, deliberately kept visible:
+- Where an older repo migration already creates a table in an earlier shape, the restored file adds missing
+  columns with `add column if not exists`. The other Fresh Intelligence tables are *not* re-shaped at 20260812/0815
+  because `20260906090000_fresh_intelligence_foundation.sql` assumes the older shape and would break replay.
+- Foreign keys are added only if the referenced table exists at that point in the replay (otherwise skipped with a notice).
+- `20260907111340` is the twin of `20260907062437`; its content (RLS, policies, grants) is an inferred re-assertion.
+
+**Baseline snapshot.** `supabase/baseline/production_public_schema_2026-10-23.sql` is a single idempotent description of
+production's `public` schema (94 tables, 135 FKs, 162 indexes, 176 policies, 41 functions, 10 views, 20 triggers, table,
+column and function grants). It sits outside `supabase/migrations` and is never replayed. Loaded twice into a scratch
+Postgres with zero errors, and 11 catalog fingerprints match production exactly.
+
+**Replay check (scratch Postgres, Supabase stubs).** Public tables after replaying every migration: 57 on `main`,
+71 with these restorations (production: 94). The remaining 23 production-only tables (e.g. `wallets`, `notifications`,
+`reports`, `short_reposts`, `community_notes`, `fresh_universal_objects`, `fresh_media_*`) were created outside any
+repo migration version and exist only in the baseline snapshot. `20260929_security_hardening.sql` fails on a clean
+replay on `main` too (it sorts after the migration that drops the signatures it revokes); that is pre-existing and untouched.
