@@ -16,7 +16,72 @@ const event = (type: string, payload: unknown) => encoder.encode(`data: ${JSON.s
 const service = () => { const u = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL, k = process.env.SUPABASE_SECRET_KEY_FRESHWEBLITE || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY; return u && k ? createClient(u, k, { auth: { persistSession: false, autoRefreshToken: false } }) : null; };
 async function auth(req: Request) { const u = process.env.VITE_SUPABASE_URL, k = process.env.VITE_SUPABASE_ANON_KEY, a = req.headers.get("authorization") || "", t = a.startsWith("Bearer ") ? a.slice(7) : ""; if (!u || !k || !t) return null; const c = createClient(u, k, { auth: { persistSession: false, autoRefreshToken: false } }); const r = await c.auth.getUser(t); return r.data.user ?? null; }
 function memory(userId: string | null) { const c = service(); return { search: async (q: string, scope?: FreshMemoryRecord["scope"]) => { if (!c || !userId) return [] as FreshMemoryRecord[]; let query = c.from("fresh_ai_memory").select("id,content,scope,created_at,source").eq("user_id", userId).order("updated_at", { ascending: false }).limit(24); if (scope) query = query.eq("scope", scope); const r = await query; const words = q.toLowerCase().split(/\s+/).filter(x => x.length > 3); return (r.data ?? []).filter((x: MemoryRow) => !words.length || words.some(w => x.content.toLowerCase().includes(w))).slice(0, 8).map((x: MemoryRow) => ({ id: x.id, content: x.content, scope: x.scope, createdAt: x.created_at, source: x.source })) as FreshMemoryRecord[]; }, remember: async (x: FreshMemoryRecord) => { if (c && userId) await c.from("fresh_ai_memory").upsert({ id: x.id, user_id: userId, scope: x.scope, content: x.content, source: x.source, created_at: x.createdAt, updated_at: new Date().toISOString() }); } }; }
-async function research(goal: string): Promise<Evidence[]> { const key = process.env.TAVILY_API_KEY; if (!key) return []; try { const r = await fetch("https://api.tavily.com/search", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ api_key: key, query: goal, search_depth: "advanced", topic: "general", max_results: 8, include_answer: false }) }); if (!r.ok) return []; const p = await r.json() as { results?: Array<{ title?: string; url?: string; content?: string; published_date?: string }> }; return (p.results ?? []).filter(x => x.title && x.url).map((x, i) => ({ id: `web-${i + 1}`, source: x.url!, claim: `${x.title}: ${x.content || x.title}`, observedAt: x.published_date, confidence: .7 })); } catch { return []; } }
+const RESEARCH_TIMEOUT_MS = 12_000;
+const MAX_RESEARCH_RESPONSE_BYTES = 1_000_000;
+
+async function research(goal: string): Promise<Evidence[]> {
+  const key = process.env.TAVILY_API_KEY?.trim();
+  if (!key) return [];
+
+  const response = await fetch("https://api.tavily.com/search", {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify({
+      api_key: key,
+      query: goal,
+      search_depth: "advanced",
+      topic: "general",
+      max_results: 8,
+      include_answer: false,
+    }),
+    cache: "no-store",
+    redirect: "error",
+    signal: AbortSignal.timeout(RESEARCH_TIMEOUT_MS),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Fresh AI web research provider returned HTTP ${response.status}.`);
+  }
+  if (!(response.headers.get("content-type") || "").toLowerCase().includes("application/json")) {
+    throw new Error("Fresh AI web research provider returned an unsupported response type.");
+  }
+
+  const raw = await response.text();
+  if (new TextEncoder().encode(raw).byteLength > MAX_RESEARCH_RESPONSE_BYTES) {
+    throw new Error("Fresh AI web research provider response exceeded the allowed size.");
+  }
+
+  let payload: { results?: Array<{ title?: unknown; url?: unknown; content?: unknown; published_date?: unknown }> };
+  try {
+    payload = JSON.parse(raw) as typeof payload;
+  } catch {
+    throw new Error("Fresh AI web research provider returned invalid JSON.");
+  }
+  if (!Array.isArray(payload.results)) {
+    throw new Error("Fresh AI web research provider returned no valid results list.");
+  }
+
+  return payload.results.slice(0, 8).flatMap((item, index) => {
+    if (typeof item.title !== "string" || !item.title.trim() || typeof item.url !== "string") return [];
+    let source: URL;
+    try {
+      source = new URL(item.url);
+    } catch {
+      return [];
+    }
+    if (source.protocol !== "https:" || source.username || source.password) return [];
+    const title = item.title.trim().slice(0, 500);
+    const content = typeof item.content === "string" ? item.content.trim().slice(0, 4000) : "";
+    const publishedAt = typeof item.published_date === "string" ? item.published_date.slice(0, 80) : undefined;
+    return [{
+      id: `web-${index + 1}`,
+      source: source.toString(),
+      claim: `${title}: ${content || title}`,
+      observedAt: publishedAt,
+      confidence: 0.7,
+    }];
+  });
+}
 async function conversationLedger(userId: string | null, conversationId: string | undefined, route: string, workspace: FreshAIWorkspaceContext, model: string, requestId: string, answer: string) {
   const c = service();
   if (!c || !userId) return conversationId ?? null;
