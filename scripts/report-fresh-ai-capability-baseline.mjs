@@ -71,7 +71,7 @@ const report = {
 const failures = [];
 if (report.summary.withoutRuntimeMapping) failures.push("One or more registered capabilities have no universal runtime mapping.");
 if (capabilities.some((item) => !item.requiresVerification)) failures.push("Every capability must require verification.");
-if (report.model.weightsStatus !== "training-required" && report.model.weightsStatus === "unknown") {
+if (report.model.weightsStatus === "unknown") {
   failures.push("Fresh Unified model weights status could not be determined.");
 }
 
