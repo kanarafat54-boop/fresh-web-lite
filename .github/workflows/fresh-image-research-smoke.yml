@@ -1,0 +1,39 @@
+name: Fresh-owned image research smoke test
+
+on:
+  pull_request:
+    paths:
+      - "training/fresh_image_research.py"
+      - "training/fresh_image_model_spec.json"
+      - "training/datasets/fresh-image-dataset-manifest.schema.json"
+      - "training/requirements.txt"
+      - "scripts/test_fresh_image_research.py"
+      - ".github/workflows/fresh-image-research-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fresh-image-research-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cpu-smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: training/requirements.txt
+      - name: Install declared CPU research dependencies
+        run: python -m pip install --disable-pip-version-check -r training/requirements.txt
+      - name: Compile research scripts
+        run: python -m py_compile training/fresh_image_research.py scripts/test_fresh_image_research.py
+      - name: Train from scratch and validate generated PNG
+        run: python scripts/test_fresh_image_research.py

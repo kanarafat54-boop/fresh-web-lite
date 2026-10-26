@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useLayout } from "../../../app/contexts/useLayout";
 import { useFreshId } from "../context/FreshIdContext";
 import { supabase } from "../../../lib/supabase";
+import { validateDateOfBirth } from "../utils/dateOfBirth";
 
 type PasswordVisibilityIconProps = { visible: boolean };
 
@@ -58,6 +59,7 @@ export function AuthForm() {
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Africa/Kampala";
+  const [birthDay, setBirthDay] = useState("");
   const [birthMonth, setBirthMonth] = useState("");
   const [birthYear, setBirthYear] = useState("");
   const [gender, setGender] = useState("");
@@ -72,6 +74,7 @@ export function AuthForm() {
   const [timezone, setTimezone] = useState(detectedTimezone);
   const [primaryUseCase, setPrimaryUseCase] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
   const [signupError, setSignupError] = useState<string | null>(null);
@@ -199,17 +202,27 @@ export function AuthForm() {
       setSignupError("Your passwords do not match. Please check both fields.");
       return;
     }
-    const parsedBirthYear = Number(birthYear);
+    const parsedBirthDay = Number(birthDay);
     const parsedBirthMonth = Number(birthMonth);
+    const parsedBirthYear = Number(birthYear);
     const now = new Date();
-    if (!birthMonth || !birthYear || !Number.isInteger(parsedBirthYear) || parsedBirthYear < 1900 || parsedBirthYear > now.getFullYear() || parsedBirthMonth < 1 || parsedBirthMonth > 12) {
-      setSignupError("Enter a valid birth month and year.");
+    if (!birthDay || !birthMonth || !birthYear || !Number.isInteger(parsedBirthDay) || parsedBirthDay < 1 || parsedBirthDay > 31 || !Number.isInteger(parsedBirthYear) || parsedBirthYear < 1900 || parsedBirthYear > now.getFullYear() || parsedBirthMonth < 1 || parsedBirthMonth > 12) {
+      setSignupError("Enter your complete date of birth.");
+      return;
+    }
+    const dateOfBirth = `${String(parsedBirthYear).padStart(4, "0")}-${String(parsedBirthMonth).padStart(2, "0")}-${String(parsedBirthDay).padStart(2, "0")}`;
+    const dateOfBirthError = validateDateOfBirth(dateOfBirth);
+    if (dateOfBirthError) {
+      setSignupError(dateOfBirthError === "underage" ? "You must be at least 13 to create a Fresh ID. Additional age rules may apply in your region." : "Enter a valid date of birth in the past.");
       return;
     }
 
     await register(email.trim(), password, username.trim(), fullName.trim(), accountType, {
+      birthDay: parsedBirthDay,
       birthMonth: parsedBirthMonth,
       birthYear: parsedBirthYear,
+      dateOfBirth,
+      consentVersion: "2026-10-14",
       gender: gender || undefined,
       location: location.trim() || undefined,
       locationLatitude: locationLatitude ?? undefined,
@@ -221,6 +234,19 @@ export function AuthForm() {
       timezone,
       primaryUseCase: primaryUseCase || undefined,
     });
+  }
+
+  function handlePasswordUpdate() {
+    if (newPassword.length < 12) {
+      setSignupError("Use a password with at least 12 characters.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setSignupError("Your new passwords do not match.");
+      return;
+    }
+    setSignupError(null);
+    void updatePassword(newPassword);
   }
 
   function handleSubmit() {
@@ -268,9 +294,11 @@ export function AuthForm() {
       <div className="auth-form">
         <h3>Choose a new password</h3>
         <label className="auth-field"><span className="auth-field-label">New password</span><input className="auth-input" name="new-password" autoComplete="new-password" aria-label="New password" placeholder="At least 12 characters" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={12} /></label>
+        <label className="auth-field"><span className="auth-field-label">Confirm new password</span><input className="auth-input" name="confirm-new-password" autoComplete="new-password" aria-label="Confirm new password" placeholder="Enter the new password again" type="password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} required minLength={12} /></label>
+        {signupError && <p className="auth-error">{signupError}</p>}
         {error && <p className="auth-error">{error}</p>}
         {message && <p className="auth-message">{message}</p>}
-        <button className="auth-submit-btn" onClick={() => void updatePassword(newPassword)} disabled={loading}>
+        <button className="auth-submit-btn" onClick={handlePasswordUpdate} disabled={loading}>
           {loading ? "Updating..." : "Update Password"}
         </button>
       </div>
@@ -292,6 +320,13 @@ export function AuthForm() {
             <legend>About you</legend>
             <p className="auth-field-help">Set your date of birth, language, country and time zone. Precise device location is only requested when you tap the location button and grant permission. Gender and location sharing are optional.</p>
             <div className="auth-profile-grid">
+              <label className="auth-field">
+                <span className="auth-field-label">Birth day (scroll to choose)</span>
+                <select className="auth-input" name="birth-day" autoComplete="bday-day" value={birthDay} onChange={(e) => setBirthDay(e.target.value)} required>
+                  <option value="">Select day</option>
+                  {Array.from({ length: 31 }, (_, index) => <option key={index + 1} value={String(index + 1)}>{index + 1}</option>)}
+                </select>
+              </label>
               <label className="auth-field">
                 <span className="auth-field-label">Birth month (scroll to choose)</span>
                 <select className="auth-input" name="birth-month" autoComplete="bday-month" value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} required>
@@ -434,12 +469,12 @@ export function AuthForm() {
             className="auth-submit-btn"
             onClick={() => void loginWithPasskey()}
             disabled={loading || Boolean(socialLoading) || !passkeySupported}
-            title={!passkeySupported ? "Passkeys require HTTPS/localhost and browser support" : "Use your device biometric, PIN, or security key"}
+            title={!passkeySupported ? "Passkeys require HTTPS/localhost and browser support; password login remains available" : "Use fingerprint, face unlock, device PIN or screen lock, a synced password manager, or a security key"}
           >
-            {loading ? "Verifying..." : passkeySupported ? "Sign in with biometrics" : "Biometrics unavailable here"}
+            {loading ? "Verifying..." : passkeySupported ? "Sign in with a passkey" : "Passkeys unavailable here"}
           </button>
           {!passkeySupported && (
-            <p className="auth-message">Use the HTTPS Vercel deployment and enable a screen lock, fingerprint, or other passkey authenticator on this device.</p>
+            <p className="auth-message">Use the HTTPS site and a supported passkey authenticator. Password sign-in remains available when passkeys are unsupported or cancelled.</p>
           )}
           <button className="auth-tab" onClick={() => setAuthView("forgot-password")}>Forgot password?</button>
         </>

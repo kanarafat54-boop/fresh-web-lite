@@ -26,6 +26,8 @@ jobs:
         run: npm ci
       - name: Fresh AI unified contract
         run: npm run test:fresh-ai
+      - name: Fresh AI cognitive diversity routing
+        run: npm run test:fresh-ai-cognitive-diversity
       - name: Fresh AI capability contract
         run: npm run test:fresh-ai-capabilities
       - name: Fresh AI power fabric
@@ -48,8 +50,14 @@ jobs:
         run: npm run test:fresh-e2ee
       - name: Production routing contract
         run: npm run test:production-routing
+      - name: Fresh agent roles and authority
+        run: npm run test:fresh-agent-roles
       - name: Fresh AI knowledge grounding
         run: npm run test:fresh-ai-knowledge-grounding
+      - name: Fresh AI answer grounding regression
+        run: npm run test:fresh-ai-answer-grounding
+      - name: Fresh Unified inference contract
+        run: npm run test:fresh-unified-inference
       - name: Fresh docs knowledge pipeline
         run: npm run test:fresh-docs-knowledge
       - name: Repository lint

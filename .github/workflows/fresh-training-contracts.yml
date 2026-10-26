@@ -31,8 +31,14 @@ jobs:
           npm --version
           python3 --version
       - run: npm ci
+      - name: Verify direct-answer routing and creative output
+        run: npm run test:fresh-ai-direct-answer-quality
       - name: Validate curated user-intake dataset
         run: npm run test:fresh-user-intake-dataset
+      - name: Verify consent-gated continuous learning candidate preparation
+        run: npm run test:fresh-learning-candidates
+      - name: Verify authenticated explicit-consent feedback capture and review gate
+        run: npm run test:fresh-ai-training-feedback
       - name: Prepare curated user-intake manifest (no training)
         run: node scripts/prepare-fresh-unified-dataset.mjs data/fresh-training/user-intake-curated-v1.jsonl artifacts/fresh-training/user-intake-curated-v1.manifest.json
       - name: Verify curated manifest count and non-checkpoint status
