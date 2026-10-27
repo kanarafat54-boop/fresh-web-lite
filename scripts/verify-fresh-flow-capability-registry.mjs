@@ -39,12 +39,12 @@ if (!source.includes("client-supplied") && !source.includes("server must authori
   throw new Error("Capability metadata must not be treated as authorization");
 }
 const registrySource = source;
-for (const [id, status] of [
-  ["media.interactive", '"status: "planned""'],
-  ["media.data", '"status: "planned""'],
-  ["media.composite", '"status: "planned""'],
-  ["media.executable", '"status: "disabled""'],
-  ["media.live-event", '"status: "provider-required""'],
+for (const id of [
+  "media.interactive",
+  "media.data",
+  "media.composite",
+  "media.executable",
+  "media.live-event",
 ]) {
   if (!registrySource.includes(`id: "${id}"`)) throw new Error(`Missing open-world capability family: ${id}`);
 }
