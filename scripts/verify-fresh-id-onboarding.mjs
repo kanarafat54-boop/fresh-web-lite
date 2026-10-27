@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 
 const checks = [
   ["src/features/fresh-id/components/AuthForm.tsx", [
-    [/What kind of Fresh account do you need\?/, "signup offers an explicit account-type choice"],
+    [//<span className="auth-field-label">Account type<\/span>//, "signup offers an explicit account-type choice"],
     [/value="personal"/, "personal accounts are available"],
     [/value="creator"/, "creator accounts are available"],
     [/value="business"/, "business accounts are available"],
