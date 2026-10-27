@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { transformLacunaRows } from "./lib/fresh-hf-translation-transform.mjs";
+import { parseCsvRecords, transformLacunaRows } from "./lib/fresh-hf-translation-transform.mjs";
 
 function readFlag(name) {
   const index = process.argv.indexOf(name);
@@ -56,7 +56,15 @@ const sourcePath = path.resolve(inputPath);
 if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) fail("dataset export file does not exist");
 const sourceBytes = fs.readFileSync(sourcePath);
 const sourceSha256 = crypto.createHash("sha256").update(sourceBytes).digest("hex");
-const lines = sourceBytes.toString("utf8").split(/\r?\n/).filter((line) => line.trim());
+const rawText = sourceBytes.toString("utf8");
+let lines;
+try {
+  lines = path.extname(sourcePath).toLowerCase() === ".csv"
+    ? parseCsvRecords(rawText).map((row) => JSON.stringify(row))
+    : rawText.split(/\r?\n/).filter((line) => line.trim());
+} catch (error) {
+  fail(error instanceof Error ? error.message : "could not parse dataset export");
+}
 if (!lines.length) fail("dataset export is empty");
 if (lines.length > 100000) fail("dataset export exceeds the 100,000-row pilot limit");
 
