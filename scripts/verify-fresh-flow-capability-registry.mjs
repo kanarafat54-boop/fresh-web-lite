@@ -14,6 +14,11 @@ const required = [
   "media.video",
   "media.live",
   "media.spatial",
+  "media.interactive",
+  "media.data",
+  "media.composite",
+  "media.executable",
+  "media.live-event",
   "provider-required",
   "device-required",
   "rightsPolicy",
@@ -32,5 +37,18 @@ if (!source.includes("existing.version >= value.version")) {
 }
 if (!source.includes("client-supplied") && !source.includes("server must authorize each operation")) {
   throw new Error("Capability metadata must not be treated as authorization");
+}
+const registrySource = source;
+for (const [id, status] of [
+  ["media.interactive", '"status: "planned""'],
+  ["media.data", '"status: "planned""'],
+  ["media.composite", '"status: "planned""'],
+  ["media.executable", '"status: "disabled""'],
+  ["media.live-event", '"status: "provider-required""'],
+]) {
+  if (!registrySource.includes(`id: "${id}"`)) throw new Error(`Missing open-world capability family: ${id}`);
+}
+for (const token of ["metadata-preview-only", "non-executable-preview", "safe-data-visualization-renderer", "media-track-orchestration"]) {
+  if (!registrySource.includes(token)) throw new Error(`Missing safe fallback/adapter contract: ${token}`);
 }
 console.log("Fresh Flow extensible capability registry contract: PASS");
