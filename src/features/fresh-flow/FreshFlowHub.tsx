@@ -207,58 +207,7 @@ export default function FreshFlowHub() {
         </header>
       )}
 
-      {showChrome && (
-        <nav className="fresh-flow-world-nav" aria-label="Fresh Flow media worlds">
-          <button type="button" className={section === "fresh-flow" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow")}>
-            Home
-          </button>
-          <button
-            type="button"
-            className={section === "fresh-flow-long-videos" ? "active" : ""}
-            onClick={() => setActiveRoute("fresh-flow-long-videos")}
-          >
-            Long Videos
-          </button>
-          <button
-            type="button"
-            className={section === "fresh-flow-news-posts" ? "active" : ""}
-            onClick={() => setActiveRoute("fresh-flow-news-posts")}
-          >
-            News / Posts
-          </button>
-          <button type="button" className={section === "fresh-flow-ar-vr" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-ar-vr")}>
-            AR / VR
-          </button>
-          <button
-            type="button"
-            className={section === "fresh-flow-podcasts" ? "active" : ""}
-            onClick={() => setActiveRoute("fresh-flow-podcasts")}
-          >
-            Podcasts
-          </button>
-          <button type="button" className={section === "fresh-flow-more" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-more")}>
-            Others
-          </button>
-        </nav>
-      )}
-
-      {showChrome && !isOverview && (
-        <div className="fresh-flow-section-bar">
-          <button type="button" className="fresh-flow-back-button" onClick={() => setActiveRoute("fresh-flow")} aria-label="Back to Fresh Flow home">
-            <span aria-hidden="true">‹</span>
-            <span>Home</span>
-          </button>
-          <span className="fresh-flow-section-title">
-            <span aria-hidden="true">{world.icon}</span>
-            {world.label}
-          </span>
-          <button type="button" className="fresh-flow-flow-switch-trigger" onClick={() => setFlowSwitchOpen(true)} aria-label="Switch media world">
-            Switch
-          </button>
-        </div>
-      )}
-
-      {((showChrome && !isOverview) || (isOverview && shortsImmersive)) && world.discovery.length > 0 && (
+      {(showChrome || shortsImmersive) && world.discovery.length > 0 && (
         <nav
           className={shortsImmersive ? "fresh-flow-discovery-rail fresh-flow-discovery-rail-immersive" : "fresh-flow-discovery-rail"}
           aria-label={`${world.label} discovery`}
@@ -268,6 +217,9 @@ export default function FreshFlowHub() {
               {mode.label}
             </button>
           ))}
+          {!shortsImmersive && section === "fresh-flow" && (
+            <button type="button" onClick={openFreshSearch} aria-label="Explore Shorts topics">Explore</button>
+          )}
         </nav>
       )}
 
@@ -284,6 +236,26 @@ export default function FreshFlowHub() {
           />
         )}
       </main>
+
+      {!shortsImmersive && (
+        <nav className="fresh-flow-bottom-nav" aria-label="Fresh Flow primary navigation">
+          <button type="button" className={section === "fresh-flow" ? "active" : ""} aria-current={section === "fresh-flow" ? "page" : undefined} onClick={() => setActiveRoute("fresh-flow")}>
+            <span className="fresh-flow-bottom-nav-icon" aria-hidden="true">⚡</span><span>Shorts</span>
+          </button>
+          <button type="button" className={section === "fresh-flow-long-videos" ? "active" : ""} aria-current={section === "fresh-flow-long-videos" ? "page" : undefined} onClick={() => setActiveRoute("fresh-flow-long-videos")}>
+            <span className="fresh-flow-bottom-nav-icon" aria-hidden="true">▶</span><span>Videos</span>
+          </button>
+          <button type="button" className={section === "fresh-flow-news-posts" ? "active" : ""} aria-current={section === "fresh-flow-news-posts" ? "page" : undefined} onClick={() => setActiveRoute("fresh-flow-news-posts")}>
+            <span className="fresh-flow-bottom-nav-icon" aria-hidden="true">▤</span><span>Posts</span>
+          </button>
+          <button type="button" className={section === "studio" ? "active" : ""} onClick={() => setActiveRoute("studio")}>
+            <span className="fresh-flow-bottom-nav-icon" aria-hidden="true">＋</span><span>Create</span>
+          </button>
+          <button type="button" className={flowSwitchOpen ? "active" : ""} aria-haspopup="dialog" onClick={() => setFlowSwitchOpen(true)}>
+            <span className="fresh-flow-bottom-nav-icon" aria-hidden="true">☷</span><span>More</span>
+          </button>
+        </nav>
+      )}
 
       <FreshFlowSwitch
         open={flowSwitchOpen}
