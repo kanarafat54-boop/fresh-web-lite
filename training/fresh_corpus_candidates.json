@@ -46,6 +46,27 @@
       ],
       "trainingEligible": false,
       "notes": "Strong candidate for Fresh's international knowledge graph because Wikidata states that its structured data is CC0 and provides multilingual structured entities, links and references. Production training promotion remains blocked until Fresh's project-specific legal review and corpus privacy/safety/quality/deduplication checks are complete."
+    },
+    {
+      "candidateId": "hf-aceuganda-lacuna-luganda-health-corpus",
+      "datasetId": "aceuganda/lacuna-luganda-health-corpus",
+      "name": "Lacuna Luganda Health Corpus",
+      "authorityType": "huggingface-dataset",
+      "license": "CC BY 4.0",
+      "sourceUrl": "https://huggingface.co/datasets/aceuganda/lacuna-luganda-health-corpus",
+      "status": "review-required",
+      "evidenceRefs": [
+        "https://huggingface.co/datasets/aceuganda/lacuna-luganda-health-corpus",
+        "https://creativecommons.org/licenses/by/4.0/legalcode"
+      ],
+      "trainingEligible": false,
+      "reviews": {
+        "rights": "pending",
+        "privacy": "pending",
+        "safety": "pending",
+        "quality": "pending"
+      },
+      "notes": "38,644 reported English–Luganda health translation pairs with train/validation/test splits. Candidate only: project-specific commercial training and derivative-model rights, attribution, privacy, safety, and Luganda-speaker quality review must pass before authorization. Not general-purpose Luganda data."
     }
   ]
 }
