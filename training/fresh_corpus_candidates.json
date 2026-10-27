@@ -46,6 +46,78 @@
       ],
       "trainingEligible": false,
       "notes": "Strong candidate for Fresh's international knowledge graph because Wikidata states that its structured data is CC0 and provides multilingual structured entities, links and references. Production training promotion remains blocked until Fresh's project-specific legal review and corpus privacy/safety/quality/deduplication checks are complete."
+    },
+    {
+      "candidateId": "hf-oasst1",
+      "name": "OpenAssistant Conversations (oasst1)",
+      "authorityType": "public-license",
+      "license": "Apache-2.0",
+      "status": "review-required",
+      "evidenceRefs": [
+        "https://huggingface.co/datasets/OpenAssistant/oasst1"
+      ],
+      "trainingEligible": false,
+      "notes": "Human-written, human-rated assistant conversations in 35 languages. Strongest fit for the no-outside-model rule. Import only messages with review_result=true and deleted=false. Owner approval of license terms required before promotion."
+    },
+    {
+      "candidateId": "hf-dolly-15k",
+      "name": "databricks-dolly-15k",
+      "authorityType": "public-license",
+      "license": "CC-BY-SA-3.0",
+      "status": "review-required",
+      "evidenceRefs": [
+        "https://huggingface.co/datasets/databricks/databricks-dolly-15k"
+      ],
+      "trainingEligible": false,
+      "notes": "Written by Databricks employees. ShareAlike and attribution obligations need project-specific review before promotion."
+    },
+    {
+      "candidateId": "hf-wikipedia",
+      "name": "Wikimedia Wikipedia (per-language subsets)",
+      "authorityType": "public-license",
+      "license": "CC-BY-SA-3.0 / GFDL",
+      "status": "review-required",
+      "evidenceRefs": [
+        "https://huggingface.co/datasets/wikimedia/wikipedia"
+      ],
+      "trainingEligible": false,
+      "notes": "Human-written. Includes sw, lg, rw, yo, ha, zu. ShareAlike and attribution obligations need project-specific review (same as the existing Wikimedia candidate)."
+    },
+    {
+      "candidateId": "hf-common-corpus",
+      "name": "Common Corpus (PleIAs)",
+      "authorityType": "public-license",
+      "license": "Open-licensed content only; per-document license field",
+      "status": "review-required",
+      "evidenceRefs": [
+        "https://huggingface.co/datasets/PleIAs/common_corpus"
+      ],
+      "trainingEligible": false,
+      "notes": "2.27T tokens of openly licensed text and code. Per-document license must be checked and recorded; import only documents whose license permits training and derivative models."
+    },
+    {
+      "candidateId": "hf-fineweb-edu",
+      "name": "FineWeb-Edu",
+      "authorityType": "public-license",
+      "license": "ODC-By (web content per source terms)",
+      "status": "review-required",
+      "evidenceRefs": [
+        "https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu"
+      ],
+      "trainingEligible": false,
+      "notes": "Provenance concern: pages were selected with a classifier trained on Llama-3-70B annotations, and the web sources carry their own terms. Keep blocked unless the owner accepts that provenance."
+    },
+    {
+      "candidateId": "hf-the-stack-v2",
+      "name": "The Stack v2 (dedup)",
+      "authorityType": "public-license",
+      "license": "Per-file licenses; gated dataset",
+      "status": "review-required",
+      "evidenceRefs": [
+        "https://huggingface.co/datasets/bigcode/the-stack-v2-dedup"
+      ],
+      "trainingEligible": false,
+      "notes": "Gated: requires accepting terms on Hugging Face. Holds file identifiers, not content, so contents must be fetched separately. Each file's license must be checked. Not importable by this adapter yet."
     }
   ]
 }
