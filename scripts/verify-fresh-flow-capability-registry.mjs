@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 const source = readFileSync("src/features/fresh-flow/core/freshFlowCapabilityRegistry.ts", "utf8");
 const required = [
   "FreshFlowCapabilityDescriptor",
+  "export type FreshFlowMediaAction = string;",
+  "invalid action identifier",
   "FreshFlowCapabilityRegistry",
   "validateFreshFlowCapability",
   "FRESH_FLOW_BASE_CAPABILITIES",
