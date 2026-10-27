@@ -19,6 +19,23 @@
       "evidenceRef": "repo-authored-synthetic-v1",
       "restrictions": [],
       "status": "eligible"
+    },
+    {
+      "authorizationId": "hf-oasst1",
+      "name": "OpenAssistant Conversations (oasst1)",
+      "authorityType": "public-license",
+      "owner": "OpenAssistant / LAION community contributors",
+      "license": "Apache-2.0",
+      "trainingPermission": "verified",
+      "commercialTrainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "https://huggingface.co/datasets/OpenAssistant/oasst1 (dataset card: license apache-2.0; human-written, human-rated)",
+      "restrictions": [
+        "Import only messages with review_result != false and deleted == false",
+        "Keep attribution to OpenAssistant in the model card",
+        "Languages limited to the importer allowlist"
+      ],
+      "status": "eligible"
     }
   ]
 }

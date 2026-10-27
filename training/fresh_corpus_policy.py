@@ -42,6 +42,6 @@ def validate_row_authorization(row: dict, registry: dict[str, dict], line_no: in
         raise ValueError(f"row {line_no}: authorization evidence is missing")
     if metadata.get("license") != authorization.get("license"):
         raise ValueError(f"row {line_no}: license does not match authorization")
-    if metadata.get("sourceType") not in {"synthetic-starter", "internal-synthetic"}:
+    if metadata.get("sourceType") not in {"synthetic-starter", "internal-synthetic", "hf-public-dataset"}:
         raise ValueError(f"row {line_no}: source type is not permitted by this training adapter")
     return authorization_id
