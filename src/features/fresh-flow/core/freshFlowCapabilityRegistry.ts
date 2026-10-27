@@ -10,25 +10,8 @@
  * stream, or execute an adapter; the server must authorize each operation.
  */
 
-export type FreshFlowMediaAction =
-  | "discover"
-  | "create"
-  | "import"
-  | "export"
-  | "view"
-  | "play"
-  | "listen"
-  | "edit"
-  | "remix"
-  | "publish"
-  | "share"
-  | "save"
-  | "download"
-  | "embed"
-  | "live"
-  | "collaborate"
-  | "transcribe"
-  | "translate";
+/** Action identifiers are open-ended too; adapters can introduce new actions. */
+export type FreshFlowMediaAction = string;
 
 export type FreshFlowCapabilityRequirement = {
   kind: "provider" | "device" | "permission" | "codec" | "feature";
@@ -67,12 +50,6 @@ export type FreshFlowCapabilityRegistrationResult =
   | { ok: false; errors: string[] };
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9._-]{1,127}$/;
-const ACTIONS = new Set<FreshFlowMediaAction>([
-  "discover", "create", "import", "export", "view", "play", "listen",
-  "edit", "remix", "publish", "share", "save", "download", "embed",
-  "live", "collaborate", "transcribe", "translate",
-]);
-
 export function validateFreshFlowCapability(
   value: FreshFlowCapabilityDescriptor,
 ): FreshFlowCapabilityRegistrationResult {
@@ -83,7 +60,7 @@ export function validateFreshFlowCapability(
   if (!value.description.trim()) errors.push("description is required");
   if (!Array.isArray(value.actions) || value.actions.length === 0) errors.push("at least one action is required");
   for (const action of value.actions ?? []) {
-    if (!ACTIONS.has(action)) errors.push(`unsupported action: ${String(action)}`);
+    if (!ID_PATTERN.test(action)) errors.push(`invalid action identifier: ${String(action)}`);
   }
   for (const requirement of value.requirements ?? []) {
     if (!requirement.id.trim()) errors.push("requirement ids cannot be empty");
