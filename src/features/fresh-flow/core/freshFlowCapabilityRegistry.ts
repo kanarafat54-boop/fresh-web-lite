@@ -201,9 +201,98 @@ export const FRESH_FLOW_BASE_CAPABILITIES: FreshFlowCapabilityDescriptor[] = [
   },
 ];
 
+/**
+ * Open-world starter families. These descriptors make additional media shapes
+ * representable without pretending their renderers/providers are already live.
+ * Concrete codecs, genres, subtypes and future formats register independently.
+ */
+const FRESH_FLOW_EXTENDED_CAPABILITIES: FreshFlowCapabilityDescriptor[] = [
+  {
+    id: "media.interactive",
+    version: 1,
+    label: "Interactive and playable experiences",
+    description: "Games, interactive stories, quizzes, simulations, learning activities and future user-driven media.",
+    tags: ["interactive", "game", "simulation", "story", "learning"],
+    mimeTypes: ["application/vnd.fresh.interactive+json"],
+    actions: ["discover", "create", "import", "view", "play", "interact", "edit", "publish", "share", "save", "report"],
+    rendererAdapter: "sandboxed-interactive-renderer",
+    editorAdapter: "interactive-experience-editor",
+    requirements: [
+      { kind: "feature", id: "sandboxed-content-runtime", required: true, fallback: "metadata-preview-only" },
+      { kind: "permission", id: "interactive-content-consent", required: true, fallback: "metadata-preview-only" },
+    ],
+    accessibility: { altText: true, captions: true, transcript: true, keyboard: true, screenReader: true, reducedMotion: true },
+    rightsPolicy: "review-required",
+    status: "planned",
+  },
+  {
+    id: "media.data",
+    version: 1,
+    label: "Data, charts and knowledge experiences",
+    description: "Charts, maps, datasets, dashboards, explainable visualizations and data-linked stories.",
+    tags: ["data", "chart", "map", "visualization", "knowledge"],
+    mimeTypes: ["text/csv", "application/json"],
+    actions: ["discover", "create", "import", "view", "explore", "annotate", "export", "publish", "share", "save"],
+    rendererAdapter: "safe-data-visualization-renderer",
+    editorAdapter: "data-story-editor",
+    requirements: [{ kind: "feature", id: "safe-data-visualization", required: true, fallback: "download-or-structured-preview" }],
+    accessibility: { altText: true, captions: false, transcript: true, keyboard: true, screenReader: true, reducedMotion: true },
+    rightsPolicy: "review-required",
+    status: "planned",
+  },
+  {
+    id: "media.composite",
+    version: 1,
+    label: "Hybrid and synchronized media",
+    description: "Composable experiences combining multiple media tracks, timelines, annotations, translations or interactive layers.",
+    tags: ["hybrid", "multimodal", "synchronized", "composite", "timeline"],
+    mimeTypes: ["application/vnd.fresh.media-manifest+json"],
+    actions: ["discover", "create", "import", "view", "play", "edit", "synchronize", "remix", "publish", "share", "save"],
+    rendererAdapter: "composite-media-orchestrator",
+    editorAdapter: "multitrack-experience-editor",
+    requirements: [{ kind: "feature", id: "media-track-orchestration", required: true, fallback: "render-supported-tracks-individually" }],
+    accessibility: { altText: true, captions: true, transcript: true, keyboard: true, screenReader: true, reducedMotion: true },
+    rightsPolicy: "review-required",
+    status: "planned",
+  },
+  {
+    id: "media.executable",
+    version: 1,
+    label: "Executable and programmable media",
+    description: "Programmable art, interactive documents and future active media; execution requires an isolated, reviewed runtime.",
+    tags: ["executable", "programmable", "sandbox", "interactive"],
+    mimeTypes: [],
+    actions: ["discover", "submit-for-review", "inspect-metadata", "report"],
+    requirements: [
+      { kind: "feature", id: "isolated-execution-sandbox", required: true, fallback: "non-executable-preview" },
+      { kind: "feature", id: "signed-content-and-resource-budget", required: true, fallback: "non-executable-preview" },
+    ],
+    accessibility: { altText: true, captions: true, transcript: true, keyboard: true, screenReader: true, reducedMotion: true },
+    rightsPolicy: "review-required",
+    status: "disabled",
+  },
+  {
+    id: "media.live-event",
+    version: 1,
+    label: "Scheduled and ticketed live events",
+    description: "Scheduled streams, classes, performances, conferences and ticketed or RSVP-based media events.",
+    tags: ["live", "event", "schedule", "ticket", "rsvp"],
+    mimeTypes: ["application/vnd.fresh.live-event+json"],
+    actions: ["discover", "schedule", "rsvp", "join", "cancel-rsvp", "report"],
+    rendererAdapter: "live-event-details-adapter",
+    requirements: [
+      { kind: "provider", id: "live-ingest-and-egress", required: true, fallback: "event-details-and-schedule-only" },
+      { kind: "feature", id: "event-entitlement-and-ledger", required: false, fallback: "free-rsvp-only" },
+    ],
+    accessibility: { altText: true, captions: true, transcript: true, keyboard: true, screenReader: true, reducedMotion: true },
+    rightsPolicy: "provider-governed",
+    status: "provider-required",
+  },
+];
+
 export function createFreshFlowCapabilityRegistry(): FreshFlowCapabilityRegistry {
   const registry = new FreshFlowCapabilityRegistry();
-  for (const capability of FRESH_FLOW_BASE_CAPABILITIES) {
+  for (const capability of [...FRESH_FLOW_BASE_CAPABILITIES, ...FRESH_FLOW_EXTENDED_CAPABILITIES]) {
     const result = registry.register(capability);
     if (!result.ok) throw new Error(`Invalid built-in Fresh Flow capability: ${capability.id}`);
   }
