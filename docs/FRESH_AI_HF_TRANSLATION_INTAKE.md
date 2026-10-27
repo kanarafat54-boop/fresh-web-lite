@@ -11,6 +11,8 @@ This adapter prepares a locally exported Hugging Face translation split for Fres
 - Intended pilot: English-to-Luganda specialist health-text translation, not general-purpose Luganda knowledge.
 - Reported license: CC BY 4.0; verify current license text, upstream rights, attribution, and commercial model-training permission before authorizing.
 - Observed sample schema: `translation_id`, `source_statement`, `approved_translation`, `source_language`, `target_language`.
+- Reported splits: 32,710 train rows, 2,237 validation rows, 2,237 test rows, plus 1,460 flagged-and-corrected rows outside the benchmark split. Both English→Luganda and Luganda→English directions are present.
+- The dataset card says source material includes interviews, study documents/consent forms, PLABA, public Ministry of Health guidance, and public dialogues; much Luganda text is post-edited machine translation. Review upstream rights/consent and provenance, not only the top-level CC BY 4.0 label.
 - Reported splits: train, validation, and test. Only train can be transformed for training. Keep validation/test held out.
 
 ## Authorization gates
