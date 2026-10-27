@@ -29,16 +29,16 @@ export const ONBOARDING_INTERESTS = [
 /** 32-ecosystem surface map — Home grid (mockup panels 4 & 7). */
 export const HOME_ECOSYSTEMS = [
   { id: "ai", label: "Fresh AI", route: "ai", tone: "purple" },
-  { id: "flow", label: "Fresh Flow", route: "fresh-flow", tone: "blue" },
+  { id: "flow", label: "Flow", route: "fresh-flow", tone: "blue" },
   { id: "ecosystems", label: "Ecosystems", route: "discovery", tone: "cyan" },
   { id: "wallet", label: "Wallet", route: "wallet", tone: "green" },
-  { id: "design", label: "Design", route: "studio", tone: "pink" },
-  { id: "learning", label: "Learning", route: "learning", tone: "teal" },
+  { id: "design", label: "Create", route: "studio", tone: "pink" },
+  { id: "learning", label: "Academy", route: "learning", tone: "teal" },
   { id: "work", label: "Work", route: "work", tone: "indigo" },
-  { id: "communication", label: "Communication", route: "communication", tone: "sky" },
-  { id: "creation", label: "Creation", route: "creator", tone: "violet" },
-  { id: "discovery", label: "Discovery", route: "discovery", tone: "amber" },
-  { id: "trade", label: "Trade", route: "marketplace", tone: "orange" },
+  { id: "communication", label: "Connect", route: "communication", tone: "sky" },
+  { id: "creation", label: "Creator dashboard", route: "creator", tone: "violet" },
+  { id: "discovery", label: "Discover", route: "discovery", tone: "amber" },
+  { id: "trade", label: "Marketplace", route: "marketplace", tone: "orange" },
   { id: "financial", label: "Financial", route: "wallet", tone: "emerald" },
   { id: "crypto", label: "Crypto", route: "crypto", tone: "yellow" },
 ] as const;
