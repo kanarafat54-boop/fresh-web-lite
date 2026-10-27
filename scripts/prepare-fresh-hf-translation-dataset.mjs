@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { transformLacunaRows } from "./lib/fresh-hf-translation-transform.mjs";
 
 function readFlag(name) {
   const index = process.argv.indexOf(name);
@@ -59,58 +60,24 @@ const lines = sourceBytes.toString("utf8").split(/\r?\n/).filter((line) => line.
 if (!lines.length) fail("dataset export is empty");
 if (lines.length > 100000) fail("dataset export exceeds the 100,000-row pilot limit");
 
-const seen = new Set();
-const examples = [];
-let skippedReverseDirectionCount = 0;
-for (let index = 0; index < lines.length; index += 1) {
-  let row;
-  try { row = JSON.parse(lines[index]); } catch { fail(`invalid JSON on source line ${index + 1}`); }
-  const sourceId = String(row.translation_id ?? "").trim();
-  const sourceText = String(row.source_statement ?? "").trim();
-  const targetText = String(row.approved_translation ?? "").trim();
-  const sourceLanguage = String(row.source_language ?? "").trim().toLowerCase();
-  const targetLanguage = String(row.target_language ?? "").trim().toLowerCase();
-  if (!sourceId || !sourceText || !targetText) fail(`source line ${index + 1} is missing a translation ID or text`);
-  if (seen.has(sourceId)) fail(`duplicate translation ID: ${sourceId}`);
-  seen.add(sourceId);
-  if (row.split && row.split !== "train") fail(`source line ${index + 1} claims split ${row.split}; refusing leakage into train`);
-  if (sourceText.length > 50000 || targetText.length > 50000) fail(`source line ${index + 1} exceeds the text length limit`);
-  if (sourceLanguage === "luganda" && targetLanguage === "english") {
-    skippedReverseDirectionCount += 1;
-    continue;
-  }
-  if (sourceLanguage !== "english" || targetLanguage !== "luganda") {
-    fail(`source line ${index + 1} has an unsupported language direction`);
-  }
-  examples.push({
-    id: `hf-lacuna-luganda-${sourceId}`,
-    input: `Translate the following English health text into Luganda. Preserve the source meaning and uncertainty. This is translation training material, not medical advice.\n\nEnglish: ${sourceText}`,
-    target: targetText,
-    metadata: {
-      domain: "translation-health",
-      direction: "en-to-lg",
-      sourceType: "huggingface-dataset",
-      datasetId,
-      datasetRevision: revision,
-      datasetConfig: config,
-      split,
-      sourceRowId: sourceId,
-      candidateId,
-      authorizationId,
-      license: candidate.license,
-      evidenceRef: authorization.evidenceRef,
-      sourceLicenseEvidenceRef: authorization.sourceLicenseEvidenceRef,
-      sourceSha256,
-      transformation: "fresh-hf-translation-v1",
-      rightsReview: "passed",
-      privacyReview: "passed",
-      safetyReview: "passed",
-      qualityReview: "passed",
-      reviewStatus: "authorized-reviewed",
-    },
+let transformed;
+try {
+  transformed = transformLacunaRows(lines, {
+    datasetId,
+    revision,
+    config,
+    split,
+    sourceSha256,
+    candidateId,
+    authorizationId,
+    license: candidate.license,
+    evidenceRef: authorization.evidenceRef,
+    sourceLicenseEvidenceRef: authorization.sourceLicenseEvidenceRef,
   });
+} catch (error) {
+  fail(error instanceof Error ? error.message : "dataset transformation failed");
 }
-if (!examples.length) fail("no English-to-Luganda rows were found in the training split");
+const { examples, skippedReverseDirectionCount } = transformed;
 const canonical = examples.map((example) => JSON.stringify(example)).join("\n") + "\n";
 const outputSha256 = crypto.createHash("sha256").update(canonical).digest("hex");
 const manifest = {
