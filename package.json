@@ -71,6 +71,7 @@
     "test:fresh-id-device-security": "node scripts/verify-fresh-id-device-security.mjs",
     "test:fresh-id-auth-viewport": "node scripts/verify-fresh-id-auth-viewport.mjs",
     "test:fresh-ai-engine-ownership": "node scripts/verify-fresh-ai-engine-ownership.mjs",
+    "test:fresh-ai-smoke-assertions": "node scripts/test-fresh-ai-smoke-assertions.mjs",
     "test:fresh-ai-native-image-plan": "node scripts/verify-fresh-ai-native-image-plan.mjs",
     "test:fresh-ai-cognitive-diversity": "node scripts/verify-fresh-ai-cognitive-diversity.mjs",
     "test:fresh-ai-direct-answer-quality": "node scripts/verify-fresh-ai-direct-answer-quality.mjs"
