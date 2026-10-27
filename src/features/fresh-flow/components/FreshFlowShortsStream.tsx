@@ -597,7 +597,7 @@ export default function FreshFlowShortsStream({
           </div>
           <div className="fresh-flow-picks-rail">
             {[
-              { title: "Gaming Live", sub: "2.1K watching", tone: "ai", live: true },
+              { title: "Live Experiences", sub: "Streaming setup required", tone: "ai", live: false },
               { title: "AI & Tech News", sub: "Latest updates", tone: "ai", live: false },
               { title: "Travel Diaries", sub: "Beautiful places", tone: "travel", live: false },
               { title: "Mindset Podcast", sub: "New Episode", tone: "pod", live: false },
