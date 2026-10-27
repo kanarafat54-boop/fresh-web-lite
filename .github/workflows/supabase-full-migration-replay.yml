@@ -1,8 +1,10 @@
 name: Supabase full migration replay (isolated)
 
 on:
+  # Run for stacked PRs too (for example a search API PR based on its
+  # migration-foundation PR). The isolated replay needs no Supabase preview
+  # branch, credentials, or production database access.
   pull_request:
-    branches: [main]
     paths:
       - "supabase/migrations/**"
       - "supabase/config.toml"
