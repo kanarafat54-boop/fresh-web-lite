@@ -3,6 +3,7 @@ import { BellIcon, ChevronDownIcon, SearchIcon, SettingsIcon } from "../../compo
 import { useLayout } from "../contexts/useLayout";
 import { useFreshId } from "../../features/fresh-id/context/FreshIdContext";
 import "../../features/fresh-flow/components/FreshFlowReferenceShell.css";
+import { OPEN_MORE_EVENT } from "./BottomNav";
 import "./TopBar.css";
 
 export default function TopBar() {
@@ -33,6 +34,11 @@ export default function TopBar() {
     if (isAuthenticated) setActiveRoute("profile");
     else openAuth();
   }
+  function openMenu() {
+    toggleSidebar();
+    // On narrow screens the sidebar is hidden, so open the full grouped menu instead.
+    if (window.matchMedia("(max-width: 900px)").matches) window.dispatchEvent(new CustomEvent(OPEN_MORE_EVENT));
+  }
   function openCreate() {
     setActiveRoute("studio");
   }
@@ -40,7 +46,7 @@ export default function TopBar() {
   return (
     <header className="fresh-universal-topbar" aria-label="Fresh universal navigation">
       <div className="fresh-universal-brand">
-        <button className="fresh-universal-menu" type="button" onClick={toggleSidebar} aria-label="Open Fresh ecosystem navigation">
+        <button className="fresh-universal-menu" type="button" onClick={openMenu} aria-label="Open Fresh ecosystem navigation">
           <span>☰</span>
         </button>
         <button className="fresh-universal-logo" type="button" onClick={() => setActiveRoute("feed")} aria-label="Fresh home">

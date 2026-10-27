@@ -1,0 +1,80 @@
+/* Fresh ID auth clarity pass: structure, spacing and hierarchy only.
+   Loaded after FreshIdAuthDashboard.css so it wins on equal specificity. */
+
+.fresh-id-sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* Standalone /auth/* pages: a small brand row instead of the large hero. */
+.fresh-id-auth-identity-compact{display:flex;align-items:center;justify-content:center;padding:0;margin:0}
+.fresh-id-auth-identity-compact .fresh-id-gateway-brand{display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:1.05rem}
+.fresh-id-standalone-auth .fresh-id-auth-shell{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:16px;min-height:auto;padding-top:clamp(8px,4vh,40px)}
+.fresh-id-standalone-auth .fresh-id-form-stage{width:min(480px,100%);margin-inline:auto}
+@media (max-width:760px){
+  .fresh-id-standalone-auth .fresh-id-screen-form{padding-top:max(14px,env(safe-area-inset-top));padding-bottom:max(24px,env(safe-area-inset-bottom))}
+}
+
+.auth-form .auth-heading{margin:2px 0 4px}
+.auth-form .auth-heading h2{margin:0;font-size:1.5rem;line-height:1.2;letter-spacing:-.02em}
+.auth-form .auth-heading p{margin:6px 0 0;color:var(--auth-muted,#a8a8b8);font-size:.92rem;line-height:1.45}
+
+.auth-form .auth-tabs .auth-tab{min-height:44px;font-size:.95rem;opacity:.7}
+.auth-form .auth-tabs .auth-tab.active{opacity:1}
+
+.auth-form .auth-section{display:grid;gap:12px;margin:6px 0 0;padding:0;border:0;min-width:0}
+.auth-form .auth-section-title{display:flex;align-items:center;gap:10px;margin:6px 0 0;font-size:1rem;letter-spacing:0}
+.auth-form .auth-section-title span{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:rgba(139,124,255,.2);color:#cfc9ff;font-size:.78rem;font-weight:800}
+
+.auth-form .auth-dob{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.4fr) minmax(0,1fr);gap:8px;margin:0;padding:0;border:0;min-width:0}
+.auth-form .auth-dob legend{padding:0;margin-bottom:6px;float:none}
+.auth-form .auth-dob .auth-field-help{grid-column:1/-1;margin-top:0}
+.auth-form .auth-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:420px){.auth-form .auth-pair{grid-template-columns:minmax(0,1fr)}}
+
+.auth-form .auth-optional{border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:0 14px}
+.auth-form .auth-optional>summary{cursor:pointer;min-height:46px;display:flex;align-items:center;gap:8px;font-weight:700;list-style-position:inside}
+.auth-form .auth-optional>summary small{font-weight:500;color:var(--auth-muted,#a8a8b8)}
+.auth-form .auth-optional[open]>summary{border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:12px}
+.auth-form .auth-optional[open]{padding-bottom:14px;display:block}
+.auth-form .auth-optional .auth-pair,.auth-form .auth-optional .auth-field{margin-bottom:12px}
+
+.auth-form .auth-location-btn{width:100%;min-height:46px;border:1px solid rgba(140,130,255,.45);border-radius:12px;background:rgba(99,91,255,.1);color:inherit;font:inherit;font-weight:700;cursor:pointer}
+.auth-form .auth-location-btn:disabled{opacity:.55;cursor:progress}
+.auth-form .auth-location-coordinates{margin:6px 0 0;font-size:.82rem;color:var(--auth-muted,#a8a8b8)}
+
+.auth-form .auth-strength{margin-top:-4px}
+.auth-form .auth-strength.ok{color:#7ee2a8}
+
+.auth-form .auth-forgot-row{display:flex;justify-content:flex-end;margin-top:-6px}
+.auth-form .auth-link-btn{border:0;background:transparent;color:#b8afff;font:inherit;font-weight:700;font-size:.88rem;min-height:44px;padding:0 4px;cursor:pointer}
+.auth-form .auth-link-btn:hover{text-decoration:underline}
+
+.auth-form .auth-policy{display:grid;gap:8px}
+.auth-form .auth-policy-details{border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:0 14px;font-size:.88rem;line-height:1.5}
+.auth-form .auth-policy-details>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:700}
+.auth-form .auth-policy-details h4{margin:10px 0 2px;font-size:.9rem}
+.auth-form .auth-policy-details p{margin:0 0 8px;color:var(--auth-muted,#a8a8b8)}
+.auth-form .auth-policy-details[open]{padding-bottom:8px}
+.auth-form .auth-policy-check{align-items:center;font-size:.88rem;min-height:44px}
+
+.auth-form .auth-secondary-btn{width:100%;min-height:48px;border:1px solid rgba(140,130,255,.5);border-radius:14px;background:transparent;color:inherit;font:inherit;font-weight:750;cursor:pointer}
+.auth-form .auth-secondary-btn:hover:not(:disabled){background:rgba(99,91,255,.12)}
+.auth-form .auth-secondary-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Social providers: one tidy row-set, with not-yet-connected ones clearly marked. */
+.auth-form .auth-social-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.auth-form .auth-social-btn{position:relative;min-height:64px!important;padding:8px 4px!important;gap:3px}
+.auth-form .auth-social-symbol{width:24px;height:24px}
+.auth-form .auth-social-label{font-size:.74rem}
+.auth-form .auth-social-btn.is-soon{opacity:.62}
+.auth-form .auth-social-soon{position:static;padding:1px 6px;border-radius:999px;background:rgba(255,255,255,.12);font-size:.58rem;font-weight:800;letter-spacing:.03em;text-transform:uppercase}
+@media (max-width:340px){.auth-form .auth-social-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.auth-form .auth-footer-links{display:flex;justify-content:center;margin-top:2px}
+.auth-form .guest-btn{min-height:44px;font-size:.9rem;color:var(--auth-muted,#a8a8b8);text-decoration:underline;text-underline-offset:3px}
+
+/* Collapsible rows: visible chevron since the global reset removes list markers. */
+.auth-form .auth-optional>summary,.auth-form .auth-policy-details>summary{list-style:none;justify-content:space-between;flex-wrap:wrap;column-gap:8px}
+.auth-form .auth-optional>summary::-webkit-details-marker,.auth-form .auth-policy-details>summary::-webkit-details-marker{display:none}
+.auth-form .auth-optional>summary::after,.auth-form .auth-policy-details>summary::after{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin-left:auto;margin-right:4px;opacity:.7;transition:transform .15s}
+.auth-form details[open]>summary::after{transform:rotate(-135deg)}
+.auth-form .auth-optional>summary small{flex-basis:100%;order:3;margin-top:-10px;padding-bottom:8px}
+.auth-form .auth-optional>summary{padding-top:4px}

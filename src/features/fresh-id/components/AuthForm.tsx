@@ -8,6 +8,7 @@ import { useLayout } from "../../../app/contexts/useLayout";
 import { useFreshId } from "../context/FreshIdContext";
 import { supabase } from "../../../lib/supabase";
 import { validateDateOfBirth } from "../utils/dateOfBirth";
+import "./AuthFormClarity.css";
 
 type PasswordVisibilityIconProps = { visible: boolean };
 
@@ -114,13 +115,13 @@ export function AuthForm() {
   }
 
   const socialProviders = [
-    { id: "google" as const, label: "Google", symbol: "G", className: "google", title: "Continue with Google" },
-    { id: "apple" as const, label: "Apple", symbol: "●", className: "apple", title: "Continue with Apple" },
-    { id: "meta" as const, label: "Meta", symbol: "∞", className: "meta", title: "Continue with Meta" },
-    { id: "x" as const, label: "X", symbol: "𝕏", className: "x", title: "Continue with X" },
-    { id: "whatsapp" as const, label: "WhatsApp", symbol: "◔", className: "whatsapp", title: "Continue with WhatsApp" },
-    { id: "telegram" as const, label: "Telegram", symbol: "➤", className: "telegram", title: "Continue with Telegram" },
-    { id: "tiktok" as const, label: "TikTok", symbol: "♪", className: "tiktok", title: "Continue with TikTok" },
+    { id: "google" as const, label: "Google", symbol: "G", className: "google", title: "Continue with Google", soon: false },
+    { id: "apple" as const, label: "Apple", symbol: "●", className: "apple", title: "Continue with Apple", soon: false },
+    { id: "meta" as const, label: "Meta", symbol: "∞", className: "meta", title: "Continue with Meta", soon: false },
+    { id: "x" as const, label: "X", symbol: "𝕏", className: "x", title: "Continue with X", soon: false },
+    { id: "whatsapp" as const, label: "WhatsApp", symbol: "◔", className: "whatsapp", title: "Continue with WhatsApp", soon: true },
+    { id: "telegram" as const, label: "Telegram", symbol: "➤", className: "telegram", title: "Continue with Telegram", soon: true },
+    { id: "tiktok" as const, label: "TikTok", symbol: "♪", className: "tiktok", title: "Continue with TikTok", soon: true },
   ];
 
   const countryCodes = "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS XK YE YT ZA ZM ZW".split(" ");
@@ -305,68 +306,68 @@ export function AuthForm() {
     );
   }
 
+  const isRegister = mode === "register";
+  const switchMode = (next: "login" | "register") => {
+    setMode(next);
+    setSignupError(null);
+    const target = next === "login" ? "/auth/sign-in" : "/auth/sign-up";
+    if (window.location.pathname !== target) window.history.replaceState({ freshRoute: next === "login" ? "auth-signin" : "auth-signup" }, "", target);
+  };
+
   return (
     <div className="auth-form">
-      <div className="auth-tabs" aria-label="Fresh ID account access">
-        <button className={mode === "login" ? "auth-tab active" : "auth-tab"} onClick={() => { setMode("login"); setSignupError(null); if (window.location.pathname !== "/auth/sign-in") window.history.replaceState({ freshRoute: "auth-signin" }, "", "/auth/sign-in"); }}>Log In</button>
-        <button className={mode === "register" ? "auth-tab active" : "auth-tab"} onClick={() => { setMode("register"); setSignupError(null); if (window.location.pathname !== "/auth/sign-up") window.history.replaceState({ freshRoute: "auth-signup" }, "", "/auth/sign-up"); }}>Sign Up</button>
+      <div className="auth-tabs" role="tablist" aria-label="Fresh ID account access">
+        <button type="button" role="tab" aria-selected={!isRegister} className={!isRegister ? "auth-tab active" : "auth-tab"} onClick={() => switchMode("login")}>Log in</button>
+        <button type="button" role="tab" aria-selected={isRegister} className={isRegister ? "auth-tab active" : "auth-tab"} onClick={() => switchMode("register")}>Sign up</button>
       </div>
 
-      {mode === "register" && (
-        <>
+      <header className="auth-heading">
+        <h2>{isRegister ? "Create your Fresh ID" : "Welcome back"}</h2>
+        <p>{isRegister ? "One account for everything in Fresh. It takes about a minute." : "Log in to continue to Fresh."}</p>
+      </header>
+
+      {isRegister && (
+        <section className="auth-section" aria-labelledby="auth-section-account">
+          <h3 className="auth-section-title" id="auth-section-account"><span aria-hidden="true">1</span>Your account</h3>
           <label className="auth-field"><span className="auth-field-label">Full name</span><input className="auth-input" name="name" autoComplete="name" aria-label="Full name" placeholder="Your full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required maxLength={80} /></label>
-          <label className="auth-field"><span className="auth-field-label">Username</span><input className="auth-input" name="username" autoComplete="username" aria-label="Username" placeholder="Choose a username" value={username} onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 32))} required minLength={3} maxLength={32} /></label>
-          <fieldset className="auth-profile-fieldset">
-            <legend>About you</legend>
-            <p className="auth-field-help">Set your date of birth, language, country and time zone. Precise device location is only requested when you tap the location button and grant permission. Gender and location sharing are optional.</p>
-            <div className="auth-profile-grid">
-              <label className="auth-field">
-                <span className="auth-field-label">Birth day (scroll to choose)</span>
-                <select className="auth-input" name="birth-day" autoComplete="bday-day" value={birthDay} onChange={(e) => setBirthDay(e.target.value)} required>
-                  <option value="">Select day</option>
-                  {Array.from({ length: 31 }, (_, index) => <option key={index + 1} value={String(index + 1)}>{index + 1}</option>)}
-                </select>
-              </label>
-              <label className="auth-field">
-                <span className="auth-field-label">Birth month (scroll to choose)</span>
-                <select className="auth-input" name="birth-month" autoComplete="bday-month" value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} required>
-                  <option value="">Select month</option>
-                  {Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={String(index + 1)}>{new Date(2000, index, 1).toLocaleString("en", { month: "long" })}</option>)}
-                </select>
-              </label>
-              <label className="auth-field">
-                <span className="auth-field-label">Birth year (scroll to choose)</span>
-                <select className="auth-input auth-scroll-picker" name="birth-year" autoComplete="bday-year" value={birthYear} onChange={(e) => setBirthYear(e.target.value)} required>
-                  <option value="">Scroll to choose year</option>
-                  {Array.from({ length: new Date().getFullYear() - 1899 }, (_, index) => new Date().getFullYear() - index).map((year) => <option key={year} value={String(year)}>{year}</option>)}
-                </select>
-              </label>
-              <label className="auth-field">
-                <span className="auth-field-label">Gender (optional)</span>
-                <select className="auth-input" name="gender" value={gender} onChange={(e) => setGender(e.target.value)}>
-                  <option value="">Prefer not to say</option>
-                  <option value="woman">Woman</option>
-                  <option value="man">Man</option>
-                  <option value="non_binary">Non-binary</option>
-                  <option value="self_described">I describe it another way</option>
-                </select>
-              </label>
-              <label className="auth-field">
-                <span className="auth-field-label">Country or territory (optional)</span>
-                <select className="auth-input" name="country" autoComplete="country-name" value={country} onChange={(e) => setCountry(e.target.value)}>
-                  <option value="">Choose country or territory</option>
-                  {countries.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
-                </select>
-              </label>
-              <div className="auth-field">
-                <span className="auth-field-label">Device location (optional)</span>
-                <button className="auth-location-btn" type="button" onClick={requestDeviceLocation} disabled={locating}>
-                  {locating ? "Getting device location…" : locationLatitude !== null ? "Refresh device location" : "Get current device position"}
-                </button>
-                <p className="auth-field-help">Requests a fresh, high-accuracy device position with no cached result (GPS may be used when the device/browser exposes it). Browsers cannot guarantee GPS-only or reliably detect simulated developer/mock locations; use a trusted device with mock-location settings disabled. No coordinates are entered or substituted by this form.</p>
-                {locationStatus && <p className={locationLatitude !== null ? "auth-message" : "auth-error"} role="status">{locationStatus}</p>}
-                {locationLatitude !== null && locationLongitude !== null && <p className="auth-location-coordinates">Coordinates: {locationLatitude.toFixed(6)}, {locationLongitude.toFixed(6)} (±{locationAccuracyMeters ?? "unknown"} m)</p>}
-              </div>
+          <label className="auth-field"><span className="auth-field-label">Username</span><input className="auth-input" name="username" autoComplete="username" aria-label="Username" placeholder="Choose a username" value={username} onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 32))} required minLength={3} maxLength={32} /><small className="auth-field-help">3–32 letters, numbers or underscores.</small></label>
+        </section>
+      )}
+
+      <label className="auth-field"><span className="auth-field-label">Email address</span><input className="auth-input" name="email" autoComplete="email" aria-label="Email address" placeholder="you@example.com" type="email" value={email} onChange={(e) => setEmail(e.target.value.trimStart())} required /></label>
+      <div className="auth-field auth-password-field"><label className="auth-field-label" htmlFor="fresh-id-password">Password</label><input id="fresh-id-password" className="auth-input" name="password" autoComplete={mode === "login" ? "current-password" : "new-password"} aria-label="Password" placeholder={mode === "login" ? "Enter your password" : "At least 12 characters"} type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={isRegister ? 12 : undefined} /><button className="auth-password-toggle" type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"}><PasswordVisibilityIcon visible={showPassword} /></button></div>
+      {isRegister && (
+        <>
+          <div className="auth-field auth-password-field"><label className="auth-field-label" htmlFor="fresh-id-confirm-password">Confirm password</label><input id="fresh-id-confirm-password" className="auth-input" name="confirm-password" autoComplete="new-password" aria-label="Confirm password" placeholder="Repeat your password" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={12} /><button className="auth-password-toggle" type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"}><PasswordVisibilityIcon visible={showConfirmPassword} /></button></div>
+          <small className={password.length >= 12 ? "auth-field-help auth-strength ok" : "auth-field-help auth-strength"} aria-live="polite">{password.length >= 12 ? "Password length looks good." : `Use at least 12 characters (${password.length}/12).`}</small>
+        </>
+      )}
+
+      {!isRegister && (
+        <div className="auth-forgot-row"><button type="button" className="auth-link-btn" onClick={() => setAuthView("forgot-password")}>Forgot password?</button></div>
+      )}
+
+      {isRegister && (
+        <>
+          <section className="auth-section" aria-labelledby="auth-section-about">
+            <h3 className="auth-section-title" id="auth-section-about"><span aria-hidden="true">2</span>About you</h3>
+            <fieldset className="auth-dob">
+              <legend className="auth-field-label">Date of birth</legend>
+              <select className="auth-input" name="birth-day" aria-label="Birth day" autoComplete="bday-day" value={birthDay} onChange={(e) => setBirthDay(e.target.value)} required>
+                <option value="">Day</option>
+                {Array.from({ length: 31 }, (_, index) => <option key={index + 1} value={String(index + 1)}>{index + 1}</option>)}
+              </select>
+              <select className="auth-input" name="birth-month" aria-label="Birth month" autoComplete="bday-month" value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} required>
+                <option value="">Month</option>
+                {Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={String(index + 1)}>{new Date(2000, index, 1).toLocaleString("en", { month: "long" })}</option>)}
+              </select>
+              <select className="auth-input auth-scroll-picker" name="birth-year" aria-label="Birth year" autoComplete="bday-year" value={birthYear} onChange={(e) => setBirthYear(e.target.value)} required>
+                <option value="">Year</option>
+                {Array.from({ length: new Date().getFullYear() - 1899 }, (_, index) => new Date().getFullYear() - index).map((year) => <option key={year} value={String(year)}>{year}</option>)}
+              </select>
+              <small className="auth-field-help">You must be at least 13 to create a Fresh ID.</small>
+            </fieldset>
+            <div className="auth-pair">
               <label className="auth-field">
                 <span className="auth-field-label">Language</span>
                 <select className="auth-input" name="language" value={language} onChange={(e) => setLanguage(e.target.value)} required>
@@ -379,69 +380,122 @@ export function AuthForm() {
                   {[...new Set([detectedTimezone, "Africa/Kampala", "Africa/Nairobi", "Africa/Lagos", "Europe/London", "Europe/Paris", "Asia/Dubai", "Asia/Kolkata", "Asia/Tokyo", "America/New_York", "America/Chicago", "America/Los_Angeles", "Australia/Sydney"])].map((zone) => <option key={zone} value={zone}>{zone.replace(/_/g, " ") + (zone === detectedTimezone ? " (detected)" : "")}</option>)}
                 </select>
               </label>
-              <label className="auth-field">
-                <span className="auth-field-label">What brings you to Fresh? (optional)</span>
-                <select className="auth-input" name="primary-use-case" value={primaryUseCase} onChange={(e) => setPrimaryUseCase(e.target.value)}>
-                  <option value="">Choose your main goal</option>
-                  <option value="connect">Connect with people and communities</option>
-                  <option value="create">Create and publish content</option>
-                  <option value="learn">Learn, search and research</option>
-                  <option value="work">Work, business and productivity</option>
-                  <option value="build">Build software and use AI tools</option>
-                  <option value="explore">Explore the Fresh ecosystem</option>
-                </select>
-              </label>
             </div>
-          </fieldset>
-          <label className="auth-field">
-            <span className="auth-field-label">What kind of Fresh account do you need?</span>
-            <select className="auth-input" name="fresh-account-type" value={accountType} onChange={(e) => setAccountType(e.target.value as typeof accountType)}>
-              <option value="personal">Personal — social, search and everyday use</option>
-              <option value="creator">Creator — publish and grow an audience</option>
-              <option value="business">Business — manage a business presence</option>
-              <option value="developer">Developer — build and integrate tools</option>
-              <option value="organization">Organization — collaborate with a team</option>
-            </select>
-            <small className="auth-field-help">Creator, business, developer and organization choices create a workspace after your Fresh ID is authenticated. You can add more workspaces later.</small>
-          </label>
+            <details className="auth-optional">
+              <summary>Optional details <small>gender, country, device location</small></summary>
+              <div className="auth-pair">
+                <label className="auth-field">
+                  <span className="auth-field-label">Gender</span>
+                  <select className="auth-input" name="gender" value={gender} onChange={(e) => setGender(e.target.value)}>
+                    <option value="">Prefer not to say</option>
+                    <option value="woman">Woman</option>
+                    <option value="man">Man</option>
+                    <option value="non_binary">Non-binary</option>
+                    <option value="self_described">I describe it another way</option>
+                  </select>
+                </label>
+                <label className="auth-field">
+                  <span className="auth-field-label">Country or territory</span>
+                  <select className="auth-input" name="country" autoComplete="country-name" value={country} onChange={(e) => setCountry(e.target.value)}>
+                    <option value="">Choose country or territory</option>
+                    {countries.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
+                  </select>
+                </label>
+              </div>
+              <div className="auth-field">
+                <span className="auth-field-label">Device location</span>
+                <button className="auth-location-btn" type="button" onClick={requestDeviceLocation} disabled={locating}>
+                  {locating ? "Getting device location…" : locationLatitude !== null ? "Refresh device location" : "Get current device position"}
+                </button>
+                <p className="auth-field-help">Only requested when you tap this button and grant permission. Requests a fresh, high-accuracy device position with no cached result. Browsers cannot guarantee GPS-only positioning or detect mock locations, so use a trusted device. Nothing is entered or substituted for you, and coordinates are not a verified street address.</p>
+                {locationStatus && <p className={locationLatitude !== null ? "auth-message" : "auth-error"} role="status">{locationStatus}</p>}
+                {locationLatitude !== null && locationLongitude !== null && <p className="auth-location-coordinates">Coordinates: {locationLatitude.toFixed(6)}, {locationLongitude.toFixed(6)} (±{locationAccuracyMeters ?? "unknown"} m)</p>}
+              </div>
+            </details>
+          </section>
+
+          <section className="auth-section" aria-labelledby="auth-section-use">
+            <h3 className="auth-section-title" id="auth-section-use"><span aria-hidden="true">3</span>How you will use Fresh</h3>
+            <label className="auth-field">
+              <span className="auth-field-label">Account type</span>
+              <select className="auth-input" name="fresh-account-type" value={accountType} onChange={(e) => setAccountType(e.target.value as typeof accountType)}>
+                <option value="personal">Personal — social, search and everyday use</option>
+                <option value="creator">Creator — publish and grow an audience</option>
+                <option value="business">Business — manage a business presence</option>
+                <option value="developer">Developer — build and integrate tools</option>
+                <option value="organization">Organization — collaborate with a team</option>
+              </select>
+              <small className="auth-field-help">Creator, business, developer and organization accounts create a workspace after you sign in. You can add more later.</small>
+            </label>
+            <label className="auth-field">
+              <span className="auth-field-label">Main goal (optional)</span>
+              <select className="auth-input" name="primary-use-case" value={primaryUseCase} onChange={(e) => setPrimaryUseCase(e.target.value)}>
+                <option value="">What brings you to Fresh?</option>
+                <option value="connect">Connect with people and communities</option>
+                <option value="create">Create and publish content</option>
+                <option value="learn">Learn, search and research</option>
+                <option value="work">Work, business and productivity</option>
+                <option value="build">Build software and use AI tools</option>
+                <option value="explore">Explore the Fresh ecosystem</option>
+              </select>
+            </label>
+          </section>
         </>
       )}
 
-      <label className="auth-field"><span className="auth-field-label">Email address</span><input className="auth-input" name="email" autoComplete="email" aria-label="Email address" placeholder="you@example.com" type="email" value={email} onChange={(e) => setEmail(e.target.value.trimStart())} required /></label>
-      <div className="auth-field auth-password-field"><label className="auth-field-label" htmlFor="fresh-id-password">Password</label><input id="fresh-id-password" className="auth-input" name="password" autoComplete={mode === "login" ? "current-password" : "new-password"} aria-label="Password" placeholder={mode === "login" ? "Enter your password" : "At least 12 characters"} type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "register" ? 12 : undefined} /><button className="auth-password-toggle" type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"}><PasswordVisibilityIcon visible={showPassword} /></button></div>
-      {mode === "register" && (
-        <div className="auth-field auth-password-field"><label className="auth-field-label" htmlFor="fresh-id-confirm-password">Confirm password</label><input id="fresh-id-confirm-password" className="auth-input" name="confirm-password" autoComplete="new-password" aria-label="Confirm password" placeholder="Enter the same password again" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={12} /><button className="auth-password-toggle" type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"}><PasswordVisibilityIcon visible={showConfirmPassword} /></button></div>
-      )}
+      {error && <p className="auth-error" role="alert">{error}</p>}
+      {signupError && <p className="auth-error" role="alert">{signupError}</p>}
 
-      {error && <p className="auth-error">{error}</p>}
-      {signupError && <p className="auth-error">{signupError}</p>}
-
-      {mode === "register" && (
-        <label className="auth-policy-check">
-          <input type="checkbox" checked={policyAccepted} onChange={(e) => setPolicyAccepted(e.target.checked)} />
-          <span>I have reviewed the <strong>Privacy</strong> and <strong>Policy</strong> sections on this page.</span>
-        </label>
+      {isRegister && (
+        <div className="auth-policy">
+          <details className="auth-policy-details">
+            <summary>Read the Privacy and Policy summary</summary>
+            <h4>Account data</h4>
+            <p>Fresh ID may use account information required for authentication and profile creation. Passwords and authentication secrets are handled by the authentication system and are never displayed.</p>
+            <h4>Surface data</h4>
+            <p>Your local Human Surface ID is a browser-generated identifier for this device. It is not a government ID, reputation score, biometric score, or identity verification.</p>
+            <h4>Policy</h4>
+            <p>Use Fresh lawfully, protect your credentials, do not impersonate others, abuse authentication systems, or attempt to circumvent security controls. Material policy changes will be presented for review.</p>
+          </details>
+          <label className="auth-policy-check">
+            <input type="checkbox" checked={policyAccepted} onChange={(e) => setPolicyAccepted(e.target.checked)} />
+            <span>I have reviewed the <strong>Privacy</strong> and <strong>Policy</strong> summary above.</span>
+          </label>
+        </div>
       )}
       {message && <p className="auth-message">{message}</p>}
-      {socialError && <p className="auth-error">Sign-in provider: {socialError}</p>}
+      {socialError && <p className="auth-error" role="alert">Sign-in provider: {socialError}</p>}
 
-      <button className="auth-submit-btn" onClick={handleSubmit} disabled={loading || Boolean(socialLoading)}>
-        {loading ? "Please wait..." : mode === "login" ? "Log In" : "Create Account"}
+      <button type="button" className="auth-submit-btn" onClick={handleSubmit} disabled={loading || Boolean(socialLoading)}>
+        {loading ? "Please wait..." : isRegister ? "Create account" : "Log in"}
       </button>
 
-      {mode === "login" && (
+      {!isRegister && (
         <>
+          <button
+            type="button"
+            className="auth-secondary-btn"
+            onClick={() => void loginWithPasskey()}
+            disabled={loading || Boolean(socialLoading) || !passkeySupported}
+            title={!passkeySupported ? "Passkeys require HTTPS/localhost and browser support; password login remains available" : "Use fingerprint, face unlock, device PIN or screen lock, a synced password manager, or a security key"}
+          >
+            {loading ? "Verifying..." : passkeySupported ? "Sign in with a passkey" : "Passkeys unavailable here"}
+          </button>
+          {!passkeySupported && (
+            <p className="auth-message">Passkeys need the HTTPS site and a supported authenticator. Password sign-in still works.</p>
+          )}
+
           <div className="auth-social-divider"><span>or continue with</span></div>
           <div className="auth-social-grid" aria-label="Social sign-in providers">
             {socialProviders.map((provider) => (
               <button
                 key={provider.id}
                 type="button"
-                className={`auth-social-btn ${provider.className}`}
+                className={`auth-social-btn ${provider.className}${provider.soon ? " is-soon" : ""}`}
                 onClick={() => void handleSocialSignIn(provider.id)}
                 disabled={loading || Boolean(socialLoading)}
-                aria-label={provider.title}
-                title={provider.title}
+                aria-label={provider.soon ? `${provider.title} (coming soon)` : provider.title}
+                title={provider.soon ? `${provider.label} sign-in is coming soon` : provider.title}
               >
                 <span className="auth-social-symbol" aria-hidden="true">
                   {provider.id === "google" ? (
@@ -461,26 +515,16 @@ export function AuthForm() {
                   )}
                 </span>
                 <span className="auth-social-label">{provider.label}</span>
+                {provider.soon && <span className="auth-social-soon">Soon</span>}
               </button>
             ))}
           </div>
-
-          <button
-            className="auth-submit-btn"
-            onClick={() => void loginWithPasskey()}
-            disabled={loading || Boolean(socialLoading) || !passkeySupported}
-            title={!passkeySupported ? "Passkeys require HTTPS/localhost and browser support; password login remains available" : "Use fingerprint, face unlock, device PIN or screen lock, a synced password manager, or a security key"}
-          >
-            {loading ? "Verifying..." : passkeySupported ? "Sign in with a passkey" : "Passkeys unavailable here"}
-          </button>
-          {!passkeySupported && (
-            <p className="auth-message">Use the HTTPS site and a supported passkey authenticator. Password sign-in remains available when passkeys are unsupported or cancelled.</p>
-          )}
-          <button className="auth-tab" onClick={() => setAuthView("forgot-password")}>Forgot password?</button>
         </>
       )}
 
-      <button className="guest-btn" onClick={loginAsGuest}>Continue as Guest</button>
+      <div className="auth-footer-links">
+        <button type="button" className="guest-btn" onClick={loginAsGuest}>Continue as guest</button>
+      </div>
     </div>
   );
 }

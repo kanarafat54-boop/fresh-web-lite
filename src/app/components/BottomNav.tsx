@@ -1,48 +1,74 @@
-import { HomeIcon, FeedIcon, AIIcon, PlusIcon, ProfileIcon } from "../../components/Icons";
+import { useCallback, useEffect, useState } from "react";
+import { HomeIcon, FeedIcon, AIIcon, PlusIcon, MoreIcon } from "../../components/Icons";
 import { useLayout } from "../contexts/useLayout";
+import { ALL_NAV_ITEMS, isMobilePrimaryRoute, isNavItemActive } from "../navigation/navModel";
+import MoreSheet from "./MoreSheet";
 import "./BottomNav.css";
 
-/** Primary mobile destinations: Home · Flow · Create · AI · Profile */
-type BottomDestination = { id: string; label: string; icon: typeof HomeIcon; route: string };
+/** Mobile bar: Home · Flow · Create · AI · More. "More" opens every other workspace, grouped by purpose. */
+type BottomDestination = { id: string; label: string; icon: typeof HomeIcon };
 const primaryDestinations: BottomDestination[] = [
-  { id: "feed", label: "Home", icon: HomeIcon, route: "feed" },
-  { id: "fresh-flow", label: "Flow", icon: FeedIcon, route: "fresh-flow" },
-  { id: "studio", label: "Create", icon: PlusIcon, route: "studio" },
-  { id: "ai", label: "AI", icon: AIIcon, route: "ai" },
-  { id: "profile", label: "Profile", icon: ProfileIcon, route: "profile" },
+  { id: "feed", label: "Home", icon: HomeIcon },
+  { id: "fresh-flow", label: "Flow", icon: FeedIcon },
+  { id: "studio", label: "Create", icon: PlusIcon },
+  { id: "ai", label: "AI", icon: AIIcon },
 ];
+
+/** Window event other controls (e.g. the top-bar menu) can fire to open the same sheet. */
+export const OPEN_MORE_EVENT = "fresh-nav-more-open";
 
 export default function BottomNav() {
   const { activeRoute, setActiveRoute } = useLayout();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const closeMore = useCallback(() => setMoreOpen(false), []);
+
+  useEffect(() => {
+    const open = () => setMoreOpen(true);
+    window.addEventListener(OPEN_MORE_EVENT, open);
+    return () => window.removeEventListener(OPEN_MORE_EVENT, open);
+  }, []);
+
+  const moreActive = !isMobilePrimaryRoute(activeRoute);
+
   return (
-    <nav className="fresh-bottom-nav" aria-label="Fresh primary navigation">
-      <div className="fresh-bottom-nav-scroll">
-        {primaryDestinations.map(({ id, label, icon: Icon, route }) => {
-          const active =
-            id === "feed"
-              ? activeRoute === "feed" || !activeRoute
-              : id === "fresh-flow"
-                ? typeof activeRoute === "string" && activeRoute.startsWith("fresh-flow")
-                : id === "studio"
-                  ? activeRoute === "studio" || activeRoute === "creator"
-                  : activeRoute === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              className={`fresh-nav-item${active ? " active" : ""}`}
-              aria-current={active ? "page" : undefined}
-              aria-label={label}
-              onClick={() => setActiveRoute(route)}
-            >
-              <span className="fresh-nav-icon" aria-hidden="true">
-                <Icon size={24} />
-              </span>
-              <span className="fresh-nav-label">{label}</span>
-            </button>
-          );
-        })}
-      </div>
-    </nav>
+    <>
+      <nav className="fresh-bottom-nav" aria-label="Fresh primary navigation">
+        <div className="fresh-bottom-nav-scroll">
+          {primaryDestinations.map(({ id, label, icon: Icon }) => {
+            const item = ALL_NAV_ITEMS.find((candidate) => candidate.id === id);
+            const active = item ? isNavItemActive(item, activeRoute) : false;
+            return (
+              <button
+                key={id}
+                type="button"
+                className={`fresh-nav-item${active ? " active" : ""}`}
+                aria-current={active ? "page" : undefined}
+                aria-label={label}
+                onClick={() => setActiveRoute(id)}
+              >
+                <span className="fresh-nav-icon" aria-hidden="true">
+                  <Icon size={24} />
+                </span>
+                <span className="fresh-nav-label">{label}</span>
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            className={`fresh-nav-item${moreActive ? " active" : ""}`}
+            aria-haspopup="dialog"
+            aria-expanded={moreOpen}
+            aria-label="More: all Fresh workspaces"
+            onClick={() => setMoreOpen(true)}
+          >
+            <span className="fresh-nav-icon" aria-hidden="true">
+              <MoreIcon size={24} />
+            </span>
+            <span className="fresh-nav-label">More</span>
+          </button>
+        </div>
+      </nav>
+      <MoreSheet open={moreOpen} onClose={closeMore} />
+    </>
   );
 }
