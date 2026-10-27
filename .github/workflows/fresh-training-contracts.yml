@@ -35,6 +35,8 @@ jobs:
         run: npm run test:fresh-ai-direct-answer-quality
       - name: Validate curated user-intake dataset
         run: npm run test:fresh-user-intake-dataset
+      - name: Verify fail-closed Hugging Face translation intake
+        run: npm run test:fresh-hf-translation-intake
       - name: Verify consent-gated continuous learning candidate preparation
         run: npm run test:fresh-learning-candidates
       - name: Verify authenticated explicit-consent feedback capture and review gate
