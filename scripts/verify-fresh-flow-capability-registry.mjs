@@ -23,8 +23,9 @@ const required = [
 for (const token of required) {
   if (!source.includes(token)) throw new Error(`Fresh Flow capability registry contract missing: ${token}`);
 }
-if (/type\s+\w*(MediaType|CapabilityId)\s*=\s*[\s\S]{0,200}\|/.test(source)) {
-  throw new Error("Capability identifiers must remain open-ended, not a closed union");
+const sharedContracts = readFileSync("src/features/fresh-flow/core/freshFlowContracts.ts", "utf8");
+if (!sharedContracts.includes("KnownFreshFlowMediaType") || !sharedContracts.includes("FreshFlowMediaType = KnownFreshFlowMediaType | (string & {})")) {
+  throw new Error("Shared runtime media types must preserve built-in autocomplete and accept future identifiers");
 }
 if (!source.includes("existing.version >= value.version")) {
   throw new Error("Capability registration must reject duplicate or older versions");
