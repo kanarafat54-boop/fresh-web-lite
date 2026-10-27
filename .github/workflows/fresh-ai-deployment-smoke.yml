@@ -26,3 +26,7 @@ jobs:
         env:
           DEPLOYMENT_URL: ${{ github.event.inputs.deployment_url || github.event.deployment_status.target_url }}
         run: node scripts/smoke-fresh-ai-deployment.mjs "$DEPLOYMENT_URL"
+      - name: Verify Fresh Flow knowledge response on this deployment
+        env:
+          DEPLOYMENT_URL: ${{ github.event.inputs.deployment_url || github.event.deployment_status.target_url }}
+        run: FRESH_AI_SMOKE_URL="${DEPLOYMENT_URL%/}/api/ai/ask" node scripts/smoke-fresh-ai-production.mjs
