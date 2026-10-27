@@ -28,6 +28,7 @@
     "test:fresh-platform-privacy": "node scripts/verify-fresh-platform-privacy.mjs",
     "test:fresh-flow-fabric": "node scripts/verify-fresh-flow-fabric.mjs",
     "test:fresh-flow-capability-registry": "node scripts/verify-fresh-flow-capability-registry.mjs",
+    "test:fresh-flow-system-registry": "node scripts/verify-fresh-flow-system-registry.mjs",
     "test:fresh-media-worker-contract": "node scripts/verify-fresh-media-worker-contract.mjs",
     "test:remote-media-worker-contract": "node scripts/verify-remote-media-worker-contract.mjs",
     "test:fresh-media-runtime": "node scripts/verify-fresh-media-runtime.mjs",
