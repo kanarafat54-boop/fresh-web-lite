@@ -67,6 +67,49 @@
         "quality": "pending"
       },
       "notes": "38,644 reported English–Luganda health translation pairs with train/validation/test splits. Candidate only: project-specific commercial training and derivative-model rights, attribution, privacy, safety, and Luganda-speaker quality review must pass before authorization. Not general-purpose Luganda data."
+    },
+    {
+      "candidateId": "hf-craneailabs-luganda-fln-training-data",
+      "datasetId": "CraneAILabs/luganda-fln-training-data",
+      "name": "Luganda Foundational Literacy and Numeracy Training Data",
+      "authorityType": "huggingface-dataset",
+      "license": "Apache-2.0 (dataset card; upstream source rights still require review)",
+      "sourceUrl": "https://huggingface.co/datasets/CraneAILabs/luganda-fln-training-data",
+      "status": "review-required",
+      "evidenceRefs": [
+        "https://huggingface.co/datasets/CraneAILabs/luganda-fln-training-data",
+        "https://www.apache.org/licenses/LICENSE-2.0"
+      ],
+      "trainingEligible": false,
+      "reviews": {
+        "rights": "pending",
+        "privacy": "pending",
+        "safety": "pending",
+        "quality": "pending"
+      },
+      "notes": "Small, domain-specific bilingual education dataset with 1,368 reported examples across synthetic, weak-section, short-form and content subsets. Card describes textbooks, teacher assessments and AI-generated Luganda content. Verify rights to source textbooks/assessments and attribution, audit synthetic and weak-section examples with Luganda educators, and keep its scope limited to foundational literacy pedagogy."
+    },
+    {
+      "candidateId": "hf-sagepond-luganda-sentences",
+      "datasetId": "sagepond/luganda",
+      "name": "Luganda Sentences Corpus",
+      "authorityType": "huggingface-dataset",
+      "license": "Mixed/source-dependent; no single license confirmed",
+      "sourceUrl": "https://huggingface.co/datasets/sagepond/luganda",
+      "status": "review-required",
+      "evidenceRefs": [
+        "https://huggingface.co/datasets/sagepond/luganda",
+        "https://creativecommons.org/licenses/by-sa/4.0/",
+        "https://opendatacommons.org/licenses/by/1-0/"
+      ],
+      "trainingEligible": false,
+      "reviews": {
+        "rights": "pending",
+        "privacy": "pending",
+        "safety": "pending",
+        "quality": "pending"
+      },
+      "notes": "Approximately 986,379 Luganda sentence rows plus 8,126 paragraph rows. The dataset card explicitly says reuse and redistribution conditions depend on original source licenses, including Wikipedia, GlotCC/Glot500 and FineWeb-2. Do not acquire or train until row-level/source-level license provenance and obligations can be resolved; dataset-level public availability is not permission."
     }
   ]
 }
