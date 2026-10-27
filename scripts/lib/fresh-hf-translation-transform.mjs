@@ -1,3 +1,56 @@
+export function parseCsvRecords(text) {
+  if (typeof text !== "string" || !text.length) throw new Error("CSV export is empty");
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+  const pushRow = () => {
+    row.push(field);
+    if (row.some((cell) => cell.trim() !== "")) rows.push(row);
+    row = [];
+    field = "";
+  };
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (quoted) {
+      if (char === '"' && text[i + 1] === '"') {
+        field += '"';
+        i += 1;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        field += char;
+      }
+      continue;
+    }
+    if (char === '"' && field.length === 0) {
+      quoted = true;
+    } else if (char === ",") {
+      row.push(field);
+      field = "";
+    } else if (char === "\n") {
+      pushRow();
+    } else if (char === "\r") {
+      if (text[i + 1] === "\n") i += 1;
+      pushRow();
+    } else {
+      field += char;
+    }
+  }
+  if (quoted) throw new Error("CSV export has an unterminated quoted field");
+  if (field.length || row.length) pushRow();
+  if (!rows.length) throw new Error("CSV export has no header row");
+  const headers = rows.shift().map((header) => header.trim());
+  if (headers.some((header) => !header)) throw new Error("CSV export has an empty column name");
+  if (new Set(headers).size !== headers.length) throw new Error("CSV export has duplicate column names");
+  return rows.map((cells, index) => {
+    if (cells.length > headers.length) throw new Error(`CSV row ${index + 2} has more fields than the header`);
+    const record = {};
+    for (let column = 0; column < headers.length; column += 1) record[headers[column]] = cells[column] ?? "";
+    return record;
+  });
+}
+
 export function transformLacunaRows(lines, metadata) {
   const { datasetId, revision, config, split, sourceSha256, candidateId, authorizationId, license, evidenceRef, sourceLicenseEvidenceRef } = metadata;
   if (split !== "train") throw new Error("only the train split may be transformed for training; validation/test are held out");
