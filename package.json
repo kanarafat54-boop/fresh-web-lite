@@ -42,6 +42,7 @@
     "test:fresh-training-model": "node scripts/test-fresh-training-model.mjs",
     "test:fresh-corpus-authorization": "node scripts/verify-fresh-corpus-authorization.mjs",
     "test:fresh-corpus-candidates": "node scripts/verify-fresh-corpus-candidates.mjs",
+    "test:fresh-hf-translation-intake": "node scripts/test-fresh-hf-translation-intake.mjs",
     "test:fresh-corpus-ingestion": "node scripts/verify-fresh-corpus-ingestion.mjs",
     "test:fresh-training-promotion": "node scripts/verify-fresh-training-promotion.mjs",
     "test:fresh-tokenizer-training": "node scripts/test-fresh-tokenizer-training.mjs",
