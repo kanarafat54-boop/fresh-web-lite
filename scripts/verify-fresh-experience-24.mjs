@@ -15,7 +15,7 @@ const checks = [
   ["Fresh Camera permission is user initiated", "src/features/workspaces/StudioWorkspace.tsx", ["const openCamera = async () =>", "navigator.mediaDevices.getUserMedia", "facingMode: { ideal: cameraFacing }"]],
   ["Fresh Camera can capture and download a photo", "src/features/workspaces/StudioWorkspace.tsx", ["const capturePhoto = () =>", "video.videoWidth", 'download="fresh-camera-photo.jpg"', "Photo captured at"]],
   ["Fresh Camera stops its stream when closed", "src/features/workspaces/StudioWorkspace.tsx", ["const closeCamera = () =>", "cameraStream.getTracks().forEach((track) => track.stop())", "useEffect(() => () => cameraStream?.getTracks().forEach((track) => track.stop()), [cameraStream])"]],
-  ["Studio route loads the actual Studio workspace", "src/app/registry/FeatureRegistry.ts", ['id: "studio"', 'name: "Fresh Studio"', 'import("../../features/workspaces/StudioWorkspace")']],
+  ["Studio route loads the actual Studio workspace", "src/app/registry/FeatureRegistry.ts", ['id: "studio"', 'name: "Create"', 'import("../../features/workspaces/StudioWorkspace")']],
   ["Flow dedicated surface", "src/app/AppRouter.css", [".fresh-flow-app-shell .fresh-desktop-sidebar{display:none}"]],
   ["Flow media worlds remain available", "src/features/fresh-flow/FreshFlowHub.tsx", ["Shorts", "Long Videos", "News / Posts", "AR / VR", "Podcasts", "Others"]],
   ["Topbar has universal search", "src/app/components/TopBar.tsx", ["Search anything across Fresh"]],
