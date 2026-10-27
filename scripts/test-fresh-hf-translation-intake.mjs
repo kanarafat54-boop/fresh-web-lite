@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { transformLacunaRows } from "./lib/fresh-hf-translation-transform.mjs";
+import { parseCsvRecords, transformLacunaRows } from "./lib/fresh-hf-translation-transform.mjs";
 
 const transformMetadata = {
   datasetId: "aceuganda/lacuna-luganda-health-corpus",
@@ -33,6 +33,12 @@ const lgToEn = {
   target_language: "english",
   split: "train"
 };
+const csv = 'translation_id,source_statement,approved_translation,source_language,target_language,split\nfixture-csv,"Wash, then ""dry"" your hands.","Naaba engalo zo.",english,luganda,train\n';
+const parsedCsv = parseCsvRecords(csv);
+assert.equal(parsedCsv.length, 1, "CSV parser should return the data row");
+assert.equal(parsedCsv[0].source_statement, 'Wash, then "dry" your hands.', "CSV parser should preserve commas and escaped quotes");
+const csvTransformed = transformLacunaRows(parsedCsv.map((row) => JSON.stringify(row)), transformMetadata);
+assert.equal(csvTransformed.examples.length, 1, "native CSV rows should transform after authorization");
 const transformed = transformLacunaRows([JSON.stringify(enToLg), JSON.stringify(lgToEn)], transformMetadata);
 assert.equal(transformed.examples.length, 1, "pilot should keep only English-to-Luganda rows");
 assert.equal(transformed.skippedReverseDirectionCount, 1, "reverse direction should be counted, not silently mixed");
