@@ -53,6 +53,21 @@
       "transformation": "fresh-unified-jsonl-v1",
       "productionTrainingEligible": false,
       "notes": "Deterministic union of 46 starter and 37 curated Fresh-authored synthetic examples; authorized for pipeline smoke testing, not sufficient for production training."
+    },
+    {
+      "sourceId": "hf-oasst1",
+      "authorizationId": "hf-oasst1",
+      "sourceType": "hf-public-dataset",
+      "status": "eligible",
+      "contentLocation": "data/fresh-training/oasst1.jsonl.gz",
+      "contentSha256": "9af70b4db877e6f46c173519a7324693b07e3476754999674b6ad9b5c319dbb3",
+      "license": "Apache-2.0",
+      "trainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "https://huggingface.co/datasets/OpenAssistant/oasst1 (dataset card: license apache-2.0; human-written, human-rated)",
+      "transformation": "fresh-unified-jsonl-v1 via training/import_hf_dataset.py (oasst1, langs en/es/de/fr/ar kept; 39,857 pairs)",
+      "productionTrainingEligible": false,
+      "notes": "Gzip of the canonical JSONL; contentSha256 is of the .gz bytes. Uncompressed sha256 = 8974d2d26a649aa904646149fd5fd212543d120f83a28fe97ae5c7381e745bcf (50,175,984 bytes). Decompress before training. Human-written, human-rated; not yet screened for privacy/safety or deduplicated against the rest of the corpus."
     }
   ]
 }
