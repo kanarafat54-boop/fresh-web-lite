@@ -41,7 +41,7 @@ if (!source.includes('status: "planned"')) {
   throw new Error("System status must not imply implementation without evidence");
 }
 const inventory = readFileSync("docs/FRESH_FLOW_24_SYSTEM_ARCHITECTURE.md", "utf8");
-for (const token of ["24 independent", "Global Fresh Web Lite Home", "Filters/Models", "left-swipe-to-next", "All Systems"]) {
+for (const token of ["24 independent", "global Fresh Web Lite Home", "Filters/Models", "left-swipe-to-next", "All Systems"]) {
   if (!inventory.includes(token)) throw new Error(`Fresh Flow architecture inventory missing: ${token}`);
 }
 console.log("Fresh Flow 24-system architecture contract: PASS");
