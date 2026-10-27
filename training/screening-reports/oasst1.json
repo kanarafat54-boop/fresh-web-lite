@@ -1,0 +1,17 @@
+{
+  "schema": "fresh-screening-report-v1",
+  "input": "data/fresh-training/oasst1.jsonl.gz",
+  "output": "data/fresh-training/oasst1.screened.jsonl.gz",
+  "inputRows": 39857,
+  "keptRows": 38981,
+  "counts": {
+    "kept": 38912,
+    "outside-ai-provenance": 715,
+    "duplicate-exact": 51,
+    "duplicate-near": 45,
+    "kept-redacted": 69,
+    "secret:password-assignment": 53,
+    "secret:card-number": 12
+  },
+  "outputSha256": "cfdad0dd2cf73ebf0eacb0248075b3260e3117f47c050b874944016e42dfcfb2"
+}
