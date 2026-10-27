@@ -9,7 +9,7 @@ const checks = [
   ["Home universal command", "src/features/home/HomeDashboard.tsx", ["UniversalCommandBar"]],
   ["Home feed remains visible", "src/features/home/HomeDashboard.tsx", ["FeedModule"]],
   ["Flow remains a first-class route", "src/app/components/BottomNav.tsx", ['id: "fresh-flow"']],
-  ["Create is visibly labeled and opens Studio", "src/app/components/BottomNav.tsx", ['label: "Create"', 'route: "studio"', "setActiveRoute(id)"]],
+  ["Create is visibly labeled and opens Studio", "src/app/components/BottomNav.tsx", ['label: "Create"', 'id: "studio"', "setActiveRoute(id)"]],
   ["Fresh Studio creation home", "src/features/workspaces/StudioWorkspace.tsx", ["What would you like to create?", "Edit a video", "Create with Fresh AI", "Design a post", "Advanced tools", 'useState<StudioMode>("start")']],
   ["Fresh Studio photo editor", "src/features/workspaces/StudioWorkspace.tsx", ["Edit a photo", "importPhoto", "photoBrightness", "photoContrast", "photoSaturation", "exportPhoto", "Export PNG copy", "The original file remains unchanged"]],
   ["Fresh Camera permission is user initiated", "src/features/workspaces/StudioWorkspace.tsx", ["const openCamera = async () =>", "navigator.mediaDevices.getUserMedia", "facingMode: { ideal: cameraFacing }"]],
