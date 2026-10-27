@@ -68,6 +68,21 @@
       "transformation": "fresh-unified-jsonl-v1 via training/import_hf_dataset.py (oasst1, langs en/es/de/fr/ar kept; 39,857 pairs)",
       "productionTrainingEligible": false,
       "notes": "Gzip of the canonical JSONL; contentSha256 is of the .gz bytes. Uncompressed sha256 = 8974d2d26a649aa904646149fd5fd212543d120f83a28fe97ae5c7381e745bcf (50,175,984 bytes). Decompress before training. Human-written, human-rated; not yet screened for privacy/safety or deduplicated against the rest of the corpus."
+    },
+    {
+      "sourceId": "hf-oasst1-screened",
+      "authorizationId": "hf-oasst1",
+      "sourceType": "hf-public-dataset",
+      "status": "eligible",
+      "contentLocation": "data/fresh-training/oasst1.screened.jsonl.gz",
+      "contentSha256": "cfdad0dd2cf73ebf0eacb0248075b3260e3117f47c050b874944016e42dfcfb2",
+      "license": "Apache-2.0",
+      "trainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "https://huggingface.co/datasets/OpenAssistant/oasst1 (dataset card: license apache-2.0; human-written, human-rated)",
+      "transformation": "fresh-unified-jsonl-v1 + training/screen_corpus.py (fresh-screen-v1)",
+      "productionTrainingEligible": false,
+      "notes": "38,981 of 39,857 rows kept after screening (715 outside-AI-style text, 65 secrets/card numbers, 96 duplicates dropped; 69 rows had emails/phones/public IPs redacted). Report: training/screening-reports/oasst1.json. Contentsha256 is of the .gz bytes. Not yet promoted to production training."
     }
   ]
 }
