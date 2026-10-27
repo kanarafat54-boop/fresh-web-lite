@@ -10,7 +10,7 @@ LONG = "This is a sufficiently long assistant answer about Fresh Web Lite featur
 class ImportHfDatasetTest(unittest.TestCase):
     def test_unauthorized_source_is_blocked(self):
         with self.assertRaises(SystemExit):
-            imp.require_authorization("dolly")  # candidates are not authorizations
+            imp.require_authorization("fineweb-edu")  # candidates are not authorizations
 
     def test_oasst_pairs_prompter_to_assistant_only(self):
         msgs = [
@@ -38,7 +38,7 @@ class ImportHfDatasetTest(unittest.TestCase):
 
     def test_candidates_never_in_registry(self):
         reg = load_authorization_registry()
-        promoted = {"hf-oasst1"}  # Apache-2.0, human-written; owner-approved
+        promoted = {"hf-oasst1", "hf-dolly-15k", "hf-wikipedia"}  # owner-approved
         for spec in imp.SOURCES.values():
             if spec["authorizationId"] not in promoted:
                 self.assertNotIn(spec["authorizationId"], reg)

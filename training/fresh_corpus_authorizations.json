@@ -36,6 +36,40 @@
         "Languages limited to the importer allowlist"
       ],
       "status": "eligible"
+    },
+    {
+      "authorizationId": "hf-dolly-15k",
+      "name": "databricks-dolly-15k",
+      "authorityType": "public-license",
+      "owner": "Databricks employees (CC-BY-SA-3.0 release)",
+      "license": "CC-BY-SA-3.0",
+      "trainingPermission": "verified",
+      "commercialTrainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "https://huggingface.co/datasets/databricks/databricks-dolly-15k (dataset card: usable for any purpose, academic or commercial, under CC-BY-SA-3.0)",
+      "restrictions": [
+        "Owner (Fresh project) accepted CC-BY-SA-3.0 attribution and share-alike obligations on 2026-10-27",
+        "Credit Databricks in the model card and dataset documentation",
+        "Keep derived dataset releases under CC-BY-SA-3.0"
+      ],
+      "status": "eligible"
+    },
+    {
+      "authorizationId": "hf-wikipedia",
+      "name": "Wikimedia Wikipedia (per-language subsets)",
+      "authorityType": "public-license",
+      "owner": "Wikimedia Foundation and Wikipedia contributors",
+      "license": "CC-BY-SA-3.0 / GFDL",
+      "trainingPermission": "verified",
+      "commercialTrainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "https://huggingface.co/datasets/wikimedia/wikipedia (dataset card: cc-by-sa-3.0 and gfdl; human-written)",
+      "restrictions": [
+        "Owner (Fresh project) accepted CC-BY-SA/GFDL attribution and share-alike obligations on 2026-10-27",
+        "Credit Wikipedia contributors in the model card and dataset documentation",
+        "Keep derived dataset releases under CC-BY-SA-3.0"
+      ],
+      "status": "eligible"
     }
   ]
 }
