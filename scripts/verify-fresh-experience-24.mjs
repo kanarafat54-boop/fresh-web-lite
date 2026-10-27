@@ -3,19 +3,19 @@ import path from "node:path";
 
 const root = process.cwd();
 const checks = [
-  ["primary mobile navigation", "src/app/components/BottomNav.tsx", ["label: \"Home\"", "label: \"Flow\"", "label: \"Create\"", "label: \"AI\"", "label: \"Profile\"", 'route: "studio"']],
+  ["primary mobile navigation", "src/app/components/BottomNav.tsx", ["label: \"Home\"", "label: \"Flow\"", "label: \"Create\"", "label: \"AI\"", "<span className=\"fresh-nav-label\">More</span>", 'id: "studio"']],
   ["Home command center", "src/features/home/HomeDashboard.tsx", ["YOUR FRESH HOME", "What do you want to do?", "Pick up where you left off"]],
   ["Home Ask Fresh action", "src/features/home/HomeDashboard.tsx", ['setActiveRoute("ai")']],
   ["Home universal command", "src/features/home/HomeDashboard.tsx", ["UniversalCommandBar"]],
   ["Home feed remains visible", "src/features/home/HomeDashboard.tsx", ["FeedModule"]],
   ["Flow remains a first-class route", "src/app/components/BottomNav.tsx", ['id: "fresh-flow"']],
-  ["Create is visibly labeled and opens Studio", "src/app/components/BottomNav.tsx", ['label: "Create"', 'route: "studio"', 'activeRoute === "studio"']],
+  ["Create is visibly labeled and opens Studio", "src/app/components/BottomNav.tsx", ['label: "Create"', 'id: "studio"', "setActiveRoute(id)"]],
   ["Fresh Studio creation home", "src/features/workspaces/StudioWorkspace.tsx", ["What would you like to create?", "Edit a video", "Create with Fresh AI", "Design a post", "Advanced tools", 'useState<StudioMode>("start")']],
   ["Fresh Studio photo editor", "src/features/workspaces/StudioWorkspace.tsx", ["Edit a photo", "importPhoto", "photoBrightness", "photoContrast", "photoSaturation", "exportPhoto", "Export PNG copy", "The original file remains unchanged"]],
   ["Fresh Camera permission is user initiated", "src/features/workspaces/StudioWorkspace.tsx", ["const openCamera = async () =>", "navigator.mediaDevices.getUserMedia", "facingMode: { ideal: cameraFacing }"]],
   ["Fresh Camera can capture and download a photo", "src/features/workspaces/StudioWorkspace.tsx", ["const capturePhoto = () =>", "video.videoWidth", 'download="fresh-camera-photo.jpg"', "Photo captured at"]],
   ["Fresh Camera stops its stream when closed", "src/features/workspaces/StudioWorkspace.tsx", ["const closeCamera = () =>", "cameraStream.getTracks().forEach((track) => track.stop())", "useEffect(() => () => cameraStream?.getTracks().forEach((track) => track.stop()), [cameraStream])"]],
-  ["Studio route loads the actual Studio workspace", "src/app/registry/FeatureRegistry.ts", ['id: "studio"', 'name: "Fresh Studio"', 'import("../../features/workspaces/StudioWorkspace")']],
+  ["Studio route loads the actual Studio workspace", "src/app/registry/FeatureRegistry.ts", ['id: "studio"', 'name: "Create"', 'import("../../features/workspaces/StudioWorkspace")']],
   ["Flow dedicated surface", "src/app/AppRouter.css", [".fresh-flow-app-shell .fresh-desktop-sidebar{display:none}"]],
   ["Flow media worlds remain available", "src/features/fresh-flow/FreshFlowHub.tsx", ["Shorts", "Long Videos", "News / Posts", "AR / VR", "Podcasts", "Others"]],
   ["Topbar has universal search", "src/app/components/TopBar.tsx", ["Search anything across Fresh"]],
