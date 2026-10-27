@@ -60,7 +60,7 @@ function buildGroundedAnswer(input:string,evidence:Evidence[],dimensions:ReturnT
   return "I’ll answer the request directly. "+interpretation.desiredOutcome;
  }
  const kbItems=safeEvidence.filter(item=>typeof item.id==="string"&&item.id.startsWith("kb-"));
- if(kbItems.length&&!interpretation.needsEvidence)return "I found relevant Fresh Web Lite project documentation, but Fresh AI cannot reliably synthesize those notes into an answer because its native inference service is not available. The documents are references, not a generated model response. A verified Fresh-owned inference endpoint and trained checkpoint are required for natural synthesis.";
+ if(kbItems.length&&!interpretation.needsEvidence){const evidenceLines=safeEvidence.slice(0,6).map((item,index)=>(index+1)+". "+item.claim).join(" ");return "From Fresh Web Lite’s retrieved project documentation (source-grounded notes, not a trained-model response): "+evidenceLines;}
  const dimensionalSummary=safeDimensions.length?" using "+safeDimensions.length+" reasoning layers":"";
  const evidenceLines=safeEvidence.slice(0,6).map((item,index)=>(index+1)+". "+item.claim).join(" ");
  const freshness=interpretation.needsEvidence?" The answer is grounded in retrieved evidence; source dates and uncertainty should be considered where provided.":"";
