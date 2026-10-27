@@ -9,20 +9,39 @@ The user's principle is sound: **keep the most-used media destinations easy to r
 
 Do not permanently expose every route, tool, creator setting, moderation action, media type, and experimental feature at once. That would create clutter, especially on small screens. But contextual visibility must never become a dead end: every supported feature needs a predictable, accessible route through search, a hub, a menu, a profile/studio, or a contextual action.
 
-## Three navigation layers
+## Two persistent navigation bars plus contextual tools
 
-### 1. Primary navigation — frequent destinations
+Fresh Flow should use **both top and bottom navigation on mobile**, with different responsibilities. This is a refinement of the earlier three-layer model, not a replacement for contextual controls or universal discovery.
+
+### Top navigation — identity, search, and in-world discovery
+
+The top area should contain Fresh Flow identity, prominent universal search, and compact access to notifications/profile. A media-world switch (Flow Switch) remains available for moving between the six current worlds and future formats. Wallet and appearance controls should not crowd the narrowest viewport; they can remain available through their existing routes/settings when space is constrained.
+
+A second, horizontally scrollable **in-world discovery row** may sit below the header and change with the active world:
+- Shorts: For You, Following.
+- Long videos: Discover, Following, Live (only when live is operational).
+- News/Posts: News, Posts, Following, Topics.
+- Podcasts: Discover, Following, Episodes, Shows.
+- AR/VR and Others: relevant experience categories.
+
+Do not hide a required item behind an undisclosed horizontal scroll. Use clear overflow affordance or wrap/scroll behavior that is discoverable and accessible. In immersive playback, chrome may recede, but essential exit and safety controls must remain accessible.
+
+### Bottom navigation — stable, thumb-friendly destinations
+
+Use a stable bottom bar on narrow/mobile screens with no more than five clear destinations. The initial proposal is:
+- **Home** — the Fresh Flow overview / default short-feed entry (keep the existing route stable until the overview-vs-Shorts behavior is deliberately resolved).
+- **Videos** — long-form video world.
+- **Posts** — News / Posts world.
+- **Create** — opens the existing creation/studio route only if its handler and route are confirmed; otherwise it must not appear as a dead button.
+- **More** — opens the Flow Switch / full media directory, including Podcasts, AR/VR, Others, and future formats.
+
+This is a starting hypothesis to validate, not a claim that these are Fresh Flow's measured most-used destinations. If the existing Create route cannot be safely opened from this shell, use **Explore** as the fourth destination until that route is verified. Keep labels visible alongside icons on common phone widths where feasible; use adequate touch targets, safe-area padding, active-route state, and accessible names. Do not duplicate the same six-world list in both bars.
+
+### 1. Primary destinations — frequent tasks
 
 Keep this small and stable. The first launch should use a deliberate default based on common cross-platform behavior, not pretend we already know Fresh Flow's own usage data.
 
-Suggested initial mobile structure:
-- **Flow Home / Discover** — a media overview and user-steerable discovery.
-- **Shorts** — quick vertical viewing.
-- **Videos** — long-form viewing and series.
-- **Posts** — news, articles, images, and community posts.
-- **More / Explore** — Podcasts, AR/VR, emerging formats, and the full media directory.
-
-Search should remain conspicuous in the Fresh Flow header. Create, profile/library, and live discovery should be easy to find but should not all compete for permanent bottom-bar slots on narrow screens. The exact primary set should be validated against the existing app layout and actual usage before implementation.
+Search stays conspicuous in the top bar. The bottom bar owns the most stable destinations, while the top discovery row changes with the selected media world. Create, profile/library, and live discovery should be easy to find but should not all compete for permanent bottom-bar slots on narrow screens. The exact set must be checked against existing route handlers and the actual app layout before implementation.
 
 This is a proposed default, not a claim that those are already Fresh Flow's most-used destinations. When real usage data becomes available, evaluate aggregate navigation opens, successful task completion, repeat use, and user feedback. Avoid tracking sensitive content unnecessarily; provide privacy controls and minimum aggregation thresholds.
 
@@ -83,17 +102,18 @@ A future personalization layer may allow users to pin, reorder, or hide selected
 
 ## Current implementation evidence and gaps
 
-The current code already has several helpful foundations:
-- `src/features/fresh-flow/core/freshFlowArchitecture.ts` describes a layered architecture (“Massive underneath. Minimal on the surface.”) and models six media worlds.
-- `src/features/fresh-flow/FreshFlowHub.tsx` currently renders a persistent six-destination world navigation and also provides a Flow Switch, universal search entry, appearance controls, wallet, and profile.
-- `src/app/navigation/navModel.ts` keeps Fresh Flow separate from global Home and places secondary global destinations in the global “More” navigation on mobile.
+The current code already has useful foundations:
+- `src/features/fresh-flow/core/freshFlowArchitecture.ts` describes “Massive underneath. Minimal on the surface.” and models six media worlds with per-world discovery modes.
+- `src/features/fresh-flow/FreshFlowHub.tsx` renders a top header and a six-destination horizontal world row, plus Flow Switch, search, appearance, wallet, and profile. It currently has no persistent bottom bar in this shell; its “Home” route is also the Shorts experience, which must be handled deliberately rather than silently redefined.
+- `src/app/navigation/navModel.ts` keeps Fresh Flow separate from global Home. The global Home and its Fresh Flow entry must not change.
 
-Therefore the principle does not require a new architecture from scratch. The next task is to inspect the actual responsive CSS and interaction behavior, determine whether all six persistent world links fit comfortably on small screens, and prototype a compact primary navigation plus accessible full-world picker/Explore directory. Do not change the global `feed`/Home route or its Fresh Flow entry.
+Implementation must first confirm the actual route/handler for Create, verify where Explore/full-world selection belongs, then add the bottom bar and make the top row contextual. Preserve all six existing world routes and deep links. Avoid a second redundant six-item row. Do not change the global `feed`/Home route or its Fresh Flow entry.
 
 ## Required verification before shipping
 
 - Test at 320, 360, 390, 430 CSS-pixel widths and desktop.
-- Verify navigation labels do not clip, wrap unpredictably, or become tiny; all controls have clear accessible names and usable touch targets.
+- Verify both top and bottom navigation at 320, 360, 390, 430 CSS-pixel widths and desktop; labels must not clip, wrap unpredictably, or become tiny, and controls need clear accessible names and usable touch targets.
+- Verify the bottom bar respects Android safe-area insets, does not cover media captions/action controls, and is hidden or transformed safely during immersive playback.
 - Verify keyboard focus, screen-reader order, contrast, reduced motion, and safe-area spacing.
 - Test route transitions, browser/back behavior, deep links, active-route highlighting, and Flow Switch dismissal.
 - Confirm every supported destination has a real route/handler and sensible loading, empty, offline, error, and permission-denied states.
