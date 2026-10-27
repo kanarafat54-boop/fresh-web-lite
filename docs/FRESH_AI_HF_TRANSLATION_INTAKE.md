@@ -23,7 +23,7 @@ The candidate remains `review-required` and `trainingEligible: false` until all 
 4. The authorization registry contains a distinct eligible record bound to this candidate, with verified training, commercial-training, and derivative-model permission.
 5. The authorization evidence reference and source-license evidence URL match the candidate registry.
 
-The adapter refuses to transform the dataset unless the candidate and authorization records satisfy those gates. It requires an immutable 40-character dataset revision, the reviewed config, and `--split train`. It checks IDs, language direction, duplicate rows, row count, text length, and any embedded split field.
+The adapter refuses to transform the dataset unless the candidate and authorization records satisfy those gates. It requires an immutable 40-character dataset revision, the reviewed config, and `--split train`. It checks IDs, duplicate rows, row count, text length, and any embedded split field. The pilot keeps only English-to-Luganda rows; reverse Luganda-to-English rows are counted in the manifest and excluded rather than mixed into the target direction.
 
 ## Example after approval only
 
