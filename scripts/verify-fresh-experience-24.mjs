@@ -3,7 +3,7 @@ import path from "node:path";
 
 const root = process.cwd();
 const checks = [
-  ["primary mobile navigation", "src/app/components/BottomNav.tsx", ["label: \"Home\"", "label: \"Flow\"", "label: \"Create\"", "label: \"AI\"", "label: \"More\"", 'route: "studio"']],
+  ["primary mobile navigation", "src/app/components/BottomNav.tsx", ["label: \"Home\"", "label: \"Flow\"", "label: \"Create\"", "label: \"AI\"", "<span className=\\\"fresh-nav-label\\\">More</span>", 'route: "studio"']],
   ["Home command center", "src/features/home/HomeDashboard.tsx", ["YOUR FRESH HOME", "What do you want to do?", "Pick up where you left off"]],
   ["Home Ask Fresh action", "src/features/home/HomeDashboard.tsx", ['setActiveRoute("ai")']],
   ["Home universal command", "src/features/home/HomeDashboard.tsx", ["UniversalCommandBar"]],
