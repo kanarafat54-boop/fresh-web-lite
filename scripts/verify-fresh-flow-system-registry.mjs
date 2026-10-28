@@ -48,4 +48,5 @@ for (const token of ["system.label", "system.description", "system.capabilities"
 for (const token of ["<FreshFlowHome", "<FreshFlowShortsExperience", "<FreshFlowSystemExperience", "fresh-flow-system-"]) {
   if (!hub.includes(token)) throw new Error(`Fresh Flow hub missing route integration: ${token}`);
 }
-\nconsole.log("Fresh Flow 24-system architecture and landing UI contract: PASS");
+
+console.log("Fresh Flow 24-system architecture and landing UI contract: PASS");
