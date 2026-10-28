@@ -58,8 +58,12 @@ if (home.includes("fresh-flow-home-shortcuts") || hub.includes(">Flow Home</butt
 for (const token of ["@media(max-width:720px)", "prefers-reduced-motion", "focus-visible"]) {
   if (!homeStyles.includes(token)) throw new Error(`Fresh Flow landing page missing responsive/accessibility support: ${token}`);
 }
-for (const token of ["system.label", "system.description", "system.capabilities", "Experience scaffold", "Planned"]) {
-  if (!systemExperience.includes(token)) throw new Error(`Independent system experience missing system-specific contract: ${token}`);
+for (const token of ["system.label", "system.description", "system.capabilities", "LiveWorkspace", "MusicWorkspace", "Discover live", "Safety & controls", "Create playlist", "fresh-music-playlists", "service connection"]) {
+  if (!systemExperience.includes(token)) throw new Error(`Independent system experience missing system-specific contract or feature: ${token}`);
+}
+const mediaWorkspace = readFileSync("src/features/fresh-flow/components/FreshFlowMediaWorkspace.tsx", "utf8");
+for (const token of ["Start AR", "Object Library", "Learn AR/VR", "setSpatialTool", "fresh-flow-vr-tool-panel"]) {
+  if (!mediaWorkspace.includes(token)) throw new Error(`VR/AR workspace missing actionable feature: ${token}`);
 }
 for (const token of ['setActiveRoute("fresh-flow-system-fresh-music")', "onClick={goBack}", "<FreshFlowHome", "<FreshFlowShortsExperience", "<FreshFlowSystemExperience", "fresh-flow-system-"]) {
   if (!hub.includes(token)) throw new Error(`Fresh Flow hub missing route integration: ${token}`);

@@ -208,3 +208,9 @@
 .fresh-flow-bottom-nav .fresh-flow-nav-glyph{font-size:1.12rem;line-height:1.1;}
 .fresh-flow-bottom-nav .fresh-nav-label{font-size:clamp(.58rem,2.5vw,.72rem);line-height:1.1;white-space:normal;overflow-wrap:anywhere;}
 @media(max-width:360px){.fresh-flow-bottom-nav .fresh-nav-label{font-size:.56rem}.fresh-flow-bottom-nav .fresh-flow-nav-item{min-height:46px}}
+
+
+/* Fresh Flow tucks away both navigation bars during active scrolling. */
+.fresh-flow-bottom-nav.flow-navigation-hidden{opacity:0;transform:translate(-50%,calc(100% + 16px));pointer-events:none;visibility:hidden;}
+.fresh-flow-bottom-nav{transition:opacity 180ms ease,transform 180ms ease,visibility 180ms ease;}
+@media(prefers-reduced-motion:reduce){.fresh-flow-bottom-nav{transition:none;}}

@@ -20,12 +20,21 @@ export const OPEN_MORE_EVENT = "fresh-nav-more-open";
 export default function BottomNav() {
   const { activeRoute, setActiveRoute } = useLayout();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [flowNavigationVisible, setFlowNavigationVisible] = useState(true);
   const closeMore = useCallback(() => setMoreOpen(false), []);
 
   useEffect(() => {
     const open = () => setMoreOpen(true);
+    const visibility = (event: Event) => {
+      const detail = (event as CustomEvent<{ visible?: boolean }>).detail;
+      setFlowNavigationVisible(detail?.visible !== false);
+    };
     window.addEventListener(OPEN_MORE_EVENT, open);
-    return () => window.removeEventListener(OPEN_MORE_EVENT, open);
+    window.addEventListener("fresh-flow-navigation-visibility", visibility);
+    return () => {
+      window.removeEventListener(OPEN_MORE_EVENT, open);
+      window.removeEventListener("fresh-flow-navigation-visibility", visibility);
+    };
   }, []);
 
   const moreActive = !isMobilePrimaryRoute(activeRoute);
@@ -41,7 +50,7 @@ export default function BottomNav() {
 
   return (
     <>
-      <nav className={`fresh-bottom-nav${isFreshFlowRoute ? " fresh-flow-bottom-nav" : ""}`} aria-label={isFreshFlowRoute ? "Fresh Flow navigation" : "Fresh primary navigation"}>
+      <nav className={`fresh-bottom-nav${isFreshFlowRoute ? " fresh-flow-bottom-nav" : ""}${isFreshFlowRoute && !flowNavigationVisible ? " flow-navigation-hidden" : ""}`} aria-label={isFreshFlowRoute ? "Fresh Flow navigation" : "Fresh primary navigation"}>
         <div className="fresh-bottom-nav-scroll">
           {isFreshFlowRoute ? freshFlowDestinations.map(({ id, label, icon }) => {
             const active = id === "feed" ? activeRoute === "feed" : id === "fresh-flow-shorts" ? activeRoute === "fresh-flow-shorts" : activeRoute === id || (id === "fresh-flow-long-videos" && activeRoute === id);
