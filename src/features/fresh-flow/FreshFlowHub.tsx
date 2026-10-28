@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useLayout } from "../../app/contexts/useLayout";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
-import { getWalletSummary, formatWalletBalance, type WalletSummary } from "./core/walletService";
 import {
   worldByRouteId,
   type FreshFlowRouteId,
@@ -49,19 +48,6 @@ const SECTION_COPY = {
     kind: "others" as const,
   },
 };
-
-function readInitialTheme(): "dark" | "light" {
-  try {
-    const saved = window.localStorage.getItem("fresh-theme");
-    if (saved === "light" || saved === "dark") return saved;
-  } catch {
-    // ignore storage errors
-  }
-  if (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: light)").matches) {
-    return "light";
-  }
-  return "dark";
-}
 
 /**
  * Fresh Flow Hub — media operating shell.
@@ -125,40 +111,9 @@ export default function FreshFlowHub() {
   }, [section]);
   const goBack = () => setActiveRoute(previousRoute.current !== section ? previousRoute.current : "fresh-flow");
   const [discoveryId, setDiscoveryId] = useState(world.discovery[0]?.id ?? "for-you");
-  const [theme, setTheme] = useState<"dark" | "light">(readInitialTheme);
-
   useEffect(() => {
     setDiscoveryId(world.discovery[0]?.id ?? "for-you");
   }, [world.id]);
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    try {
-      window.localStorage.setItem("fresh-theme", theme);
-    } catch {
-      // ignore
-    }
-  }, [theme]);
-
-  const [wallet, setWallet] = useState<WalletSummary | null | undefined>(undefined);
-  useEffect(() => {
-    if (!user?.id || isGuest) {
-      setWallet(null);
-      return;
-    }
-    let cancelled = false;
-    getWalletSummary(user.id)
-      .then((summary) => {
-        if (!cancelled) setWallet(summary);
-      })
-      .catch(() => {
-        if (!cancelled) setWallet(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, isGuest]);
-  const walletLabel = wallet === undefined ? "Loading…" : wallet ? formatWalletBalance(wallet) : "Open wallet";
 
   const openTopicSearch = (tag: string) => {
     setSearchSeed({ tab: "topics", query: tag });
@@ -209,7 +164,6 @@ export default function FreshFlowHub() {
         </header>
       )}
 
-}
 
       {showChrome && !isOverview && (
         <div className="fresh-flow-section-bar">
