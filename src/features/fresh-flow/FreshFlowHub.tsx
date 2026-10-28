@@ -77,13 +77,13 @@ export default function FreshFlowHub() {
   const systemRoutePrefix = "fresh-flow-system-";
   const independentSystem = section.startsWith(systemRoutePrefix) ? getFreshFlowSystem(section.slice(systemRoutePrefix.length)) : undefined;
 
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
+  const [shortsImmersive, setShortsImmersive] = useState(false);
   useEffect(() => {
     if (!isShortsRoute) setShortsImmersive(false);
   }, [isShortsRoute]);
 
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
-  const [shortsImmersive, setShortsImmersive] = useState(false);
   const [flowSwitchOpen, setFlowSwitchOpen] = useState(false);
   const [discoveryId, setDiscoveryId] = useState(world.discovery[0]?.id ?? "for-you");
   const [theme, setTheme] = useState<"dark" | "light">(readInitialTheme);
