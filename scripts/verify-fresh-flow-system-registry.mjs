@@ -39,11 +39,17 @@ const hub = readFileSync("src/features/fresh-flow/FreshFlowHub.tsx", "utf8");
 for (const token of ["Discover. Connect. Create.", "What’s happening? Create something...", "Recommended for you", "Example content — not a live feed", "Messages", "Fresh Mail", "All Systems"]) {
   if (!home.includes(token)) throw new Error(`Fresh Flow landing page missing required element: ${token}`);
 }
-for (const token of ['onOpenRoute("feed")', 'onOpenSystem("fresh-shorts")', 'onOpenRoute("communication")', 'onOpenRoute("fresh-mail")']) {
-  if (!home.includes(token)) throw new Error(`Fresh Flow navigation is missing a distinct destination: ${token}`);
+if (!home.includes('onOpenSystem("fresh-shorts")')) {
+  throw new Error("Fresh Flow recommendations must link to the Shorts experience");
 }
-if (home.includes('<small>Following</small>') || home.includes('aria-label="Choose your feed"')) {
-  throw new Error("Fresh Flow must not duplicate Following as a primary navigation destination");
+if (home.includes('<small>Following</small>') || home.includes('aria-label="Choose your feed"') || home.includes('fresh-flow-home-bottom-nav')) {
+  throw new Error("Fresh Flow must not duplicate navigation at the bottom of the landing page");
+}
+for (const token of ['setActiveRoute("feed")', 'setActiveRoute("communication")', 'setActiveRoute("fresh-mail")']) {
+  if (!hub.includes(token)) throw new Error(`Fresh Flow top navigation is missing a distinct destination: ${token}`);
+}
+if (hub.includes(">Flow Home</button>") || hub.includes(">News</button>") || hub.includes(">Posts</button>")) {
+  throw new Error("Fresh Flow must have no duplicate Flow Home button or separate News/Posts navigation buttons");
 }
 for (const token of ["@media(max-width:720px)", "prefers-reduced-motion", "focus-visible"]) {
   if (!homeStyles.includes(token)) throw new Error(`Fresh Flow landing page missing responsive/accessibility support: ${token}`);
