@@ -100,10 +100,10 @@ export default function FreshFlowHome({ onOpenSystem, onOpenRoute, onOpenSearch 
               <button type="button" className="fresh-flow-feed-search" onClick={onOpenSearch} aria-label="Search Fresh Flow">⌕</button>
             </div>
             <div className="fresh-flow-section-heading">
-              <div><span className="fresh-flow-section-kicker">"A LITTLE OF EVERYTHING"</span><h2 id="fresh-flow-feed-title">"Recommended for you"</h2></div>
+              <div><span className="fresh-flow-section-kicker">A LITTLE OF EVERYTHING</span><h2 id="fresh-flow-feed-title">Recommended for you</h2></div>
               <button type="button" className="fresh-flow-text-action" onClick={() => setShowDirectory(true)}>All systems <span aria-hidden="true">→</span></button>
             </div>
-            <p className="fresh-flow-feed-description">"A personalized mix of creators, useful discoveries, and content from across Fresh Flow."</p>
+            <p className="fresh-flow-feed-description">A personalized mix of creators, useful discoveries, and content from across Fresh Flow.</p>
             <div className="fresh-flow-example-notice"><span aria-hidden="true">ⓘ</span><span><strong>Example content — not a live feed.</strong> Real recommendations will appear when the feed and content sources are connected.</span></div>
             <div className="fresh-flow-recommendation-grid">
                 <button type="button" className="fresh-flow-recommendation-card feature-card" onClick={() => onOpenSystem("learn")}>
