@@ -200,3 +200,11 @@
   .fresh-nav-icon svg { width: 20px; height: 20px; }
   .fresh-nav-label { font-size: .68rem; }
 }
+
+/* Fresh Flow uses its own six destinations while the rest of Fresh keeps global navigation. */
+.fresh-bottom-nav.fresh-flow-bottom-nav{width:min(calc(100% - 12px),900px);bottom:max(5px,env(safe-area-inset-bottom));padding:5px;border-radius:18px;}
+.fresh-flow-bottom-nav .fresh-bottom-nav-scroll{grid-template-columns:repeat(6,minmax(0,1fr));grid-auto-flow:row;gap:3px;overflow:visible;}
+.fresh-flow-bottom-nav .fresh-flow-nav-item{min-width:0;min-height:50px;padding:4px 2px;border-radius:12px;gap:3px;}
+.fresh-flow-bottom-nav .fresh-flow-nav-glyph{font-size:1.12rem;line-height:1.1;}
+.fresh-flow-bottom-nav .fresh-nav-label{font-size:clamp(.58rem,2.5vw,.72rem);line-height:1.1;white-space:normal;overflow-wrap:anywhere;}
+@media(max-width:360px){.fresh-flow-bottom-nav .fresh-nav-label{font-size:.56rem}.fresh-flow-bottom-nav .fresh-flow-nav-item{min-height:46px}}
