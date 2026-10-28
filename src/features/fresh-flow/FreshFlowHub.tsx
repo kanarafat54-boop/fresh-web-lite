@@ -226,11 +226,8 @@ export default function FreshFlowHub() {
       {showChrome && (
         <nav className="fresh-flow-world-nav" aria-label="Fresh Flow navigation">
           <button type="button" onClick={() => setActiveRoute("feed")} aria-label="Return to Fresh Web Lite home">⌂ Home</button>
-          <button type="button" className={isOverview ? "active" : ""} onClick={() => setActiveRoute("fresh-flow")}>Flow Home</button>
           <button type="button" className={isShortsRoute ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-shorts")}>Shorts</button>
           <button type="button" className={section === "fresh-flow-long-videos" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-long-videos")}>Videos</button>
-          <button type="button" className={section === "fresh-flow-news-posts" && discoveryId === "news" ? "active" : ""} onClick={() => { setActiveRoute("fresh-flow-news-posts"); setDiscoveryId("news"); }}>News</button>
-          <button type="button" className={section === "fresh-flow-news-posts" && discoveryId === "posts" ? "active" : ""} onClick={() => { setActiveRoute("fresh-flow-news-posts"); setDiscoveryId("posts"); }}>Posts</button>
           <div className="fresh-flow-live-nav">
             <button type="button" className={section === "fresh-flow-system-live-creation" || section === "fresh-flow-system-radio-audio-live" ? "active" : ""} onClick={() => setLiveMenuOpen((open) => !open)} aria-expanded={liveMenuOpen} aria-haspopup="menu">● Live ▾</button>
             {liveMenuOpen && <div className="fresh-flow-live-menu" role="menu" aria-label="Live experiences">
@@ -252,7 +249,7 @@ export default function FreshFlowHub() {
         <div className="fresh-flow-section-bar">
           <button type="button" className="fresh-flow-back-button" onClick={goBack} aria-label="Back to previous experience">
             <span aria-hidden="true">‹</span>
-            <span>Home</span>
+            <span>Back</span>
           </button>
           <span className="fresh-flow-section-title">
             <span aria-hidden="true">{world.icon}</span>
