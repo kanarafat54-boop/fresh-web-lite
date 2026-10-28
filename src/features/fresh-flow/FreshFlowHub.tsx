@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useLayout } from "../../app/contexts/useLayout";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
 import { getWalletSummary, formatWalletBalance, type WalletSummary } from "./core/walletService";
@@ -102,11 +102,11 @@ export default function FreshFlowHub() {
     }).catch(() => { if (!cancelled) setMainProfileAvatarUrl(null); });
     return () => { cancelled = true; };
   }, [user?.id, isGuest]);
-  const handleFlowAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFlowAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = "";
     if (!file || !file.type.startsWith("image/")) return;
-    if (file.size > 4 * 1024 * 1024) { window.alert("Choose an image smaller than 4 MB for your Fresh Flow avatar."); return; }
+    if (file.size > 2 * 1024 * 1024) { window.alert("Choose an image smaller than 2 MB for your Fresh Flow avatar."); return; }
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result !== "string") return;
