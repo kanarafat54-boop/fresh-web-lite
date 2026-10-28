@@ -8,20 +8,10 @@ import "./FreshFlowHome.css";
 
 type Props = {
   onOpenSystem: (systemId: string) => void;
-  onOpenRoute: (routeId: string) => void;
   onOpenSearch: () => void;
 };
 
-const SHORTCUTS = [
-  { id: "fresh-shorts", label: "Shorts", icon: "▶", tone: "violet" },
-  { id: "long-video", label: "Videos", icon: "▻", tone: "blue" },
-  { id: "fresh-live", label: "Live", icon: "●", tone: "coral" },
-  { id: "vr-ar-spatial", label: "VR / AR", icon: "◇", tone: "mint" },
-  { id: "fresh-podcasts", label: "Podcasts", icon: "♫", tone: "amber" },
-  { id: "all-systems", label: "Others", icon: "⋯", tone: "slate" },
-];
-
-export default function FreshFlowHome({ onOpenSystem, onOpenRoute, onOpenSearch }: Props) {
+export default function FreshFlowHome({ onOpenSystem, onOpenSearch }: Props) {
   const [showDirectory, setShowDirectory] = useState(false);
   const [directoryQuery, setDirectoryQuery] = useState("");
   const filteredSystems = useMemo(() => {
