@@ -59,7 +59,6 @@
 .fresh-flow-header-world-nav button{min-height:44px;padding-inline:12px}
 @media(max-width:760px){.fresh-flow-brand-wordmark{display:none}.fresh-flow-header-world-nav button{min-height:44px;padding-inline:10px;font-size:.78rem}}
 @media(max-width:420px){.fresh-flow-header-actions{gap:3px}.fresh-flow-header-actions .fresh-flow-search-icon-button{display:grid}.fresh-flow-header-actions .fresh-flow-search-icon-button,.fresh-flow-header-actions .fresh-flow-unified-profile{flex-basis:36px;width:36px;height:36px}.fresh-flow-header-world-nav button{padding-inline:8px;font-size:.74rem}}
-}
 
 /* The Fresh Flow masthead remains anchored and visible; only the bottom navigation auto-hides. */
 .fresh-flow-unified-header{position:sticky;top:0;z-index:80;transform:none;opacity:1;visibility:visible;}
