@@ -36,7 +36,7 @@ const home = readFileSync("src/features/fresh-flow/components/FreshFlowHome.tsx"
 const homeStyles = readFileSync("src/features/fresh-flow/components/FreshFlowHome.css", "utf8");
 const systemExperience = readFileSync("src/features/fresh-flow/components/FreshFlowSystemExperience.tsx", "utf8");
 const hub = readFileSync("src/features/fresh-flow/FreshFlowHub.tsx", "utf8");
-for (const token of ["Discover. Connect. Create.", "What’s happening? Create something...", "Recommended for you", "Example content — not a live feed", "Messages", "Fresh Mail", "All Systems"]) {
+for (const token of ["Discover. Connect. Create.", "What’s happening? Create something...", "Recommended for you", "Example content — not a live feed", "All Systems"]) {
   if (!home.includes(token)) throw new Error(`Fresh Flow landing page missing required element: ${token}`);
 }
 if (!home.includes('onOpenSystem("fresh-shorts")')) {
@@ -45,11 +45,15 @@ if (!home.includes('onOpenSystem("fresh-shorts")')) {
 if (home.includes('<small>Following</small>') || home.includes('aria-label="Choose your feed"') || home.includes('fresh-flow-home-bottom-nav')) {
   throw new Error("Fresh Flow must not duplicate navigation at the bottom of the landing page");
 }
-for (const token of ['setActiveRoute("feed")', 'setActiveRoute("communication")', 'setActiveRoute("fresh-mail")']) {
-  if (!hub.includes(token)) throw new Error(`Fresh Flow top navigation is missing a distinct destination: ${token}`);
+for (const token of [">Live</button>", ">VR / AR</button>", ">Podcasts</button>", ">Music</button>", ">Others</button>", "fresh-flow-unified-profile", "flowAvatarInputRef", "flowCameraInputRef", "setActiveRoute(\"profile\")"]) {
+  if (!hub.includes(token)) throw new Error(`Fresh Flow masthead is missing a required destination or profile action: ${token}`);
 }
-if (hub.includes(">Flow Home</button>") || hub.includes(">News</button>") || hub.includes(">Posts</button>")) {
-  throw new Error("Fresh Flow must have no duplicate Flow Home button or separate News/Posts navigation buttons");
+const bottomNav = readFileSync("src/app/components/BottomNav.tsx", "utf8");
+for (const token of ["fresh-flow-bottom-nav", "label: \"Home\"", "label: \"Shorts\"", "label: \"Creator Studio\"", "label: \"Video\"", "label: \"Messages\"", "label: \"Fresh Mail\""]) {
+  if (!bottomNav.includes(token)) throw new Error(`Fresh Flow bottom navigation is missing: ${token}`);
+}
+if (home.includes("fresh-flow-home-shortcuts") || hub.includes(">Flow Home</button>") || hub.includes(">News</button>") || hub.includes(">Posts</button>")) {
+  throw new Error("Fresh Flow must not duplicate the Flow Home button or top-level News/Posts navigation");
 }
 for (const token of ["@media(max-width:720px)", "prefers-reduced-motion", "focus-visible"]) {
   if (!homeStyles.includes(token)) throw new Error(`Fresh Flow landing page missing responsive/accessibility support: ${token}`);
@@ -57,7 +61,7 @@ for (const token of ["@media(max-width:720px)", "prefers-reduced-motion", "focus
 for (const token of ["system.label", "system.description", "system.capabilities", "Experience scaffold", "Planned"]) {
   if (!systemExperience.includes(token)) throw new Error(`Independent system experience missing system-specific contract: ${token}`);
 }
-for (const token of ['setActiveRoute("feed")', 'setActiveRoute("fresh-mail")', 'setLiveMenuOpen((open) => !open)', 'role="menuitem"', "onClick={goBack}", "<FreshFlowHome", "<FreshFlowShortsExperience", "<FreshFlowSystemExperience", "fresh-flow-system-"]) {
+for (const token of ['setActiveRoute("fresh-flow-system-fresh-music")', 'setActiveRoute("fresh-mail")', "onClick={goBack}", "<FreshFlowHome", "<FreshFlowShortsExperience", "<FreshFlowSystemExperience", "fresh-flow-system-"]) {
   if (!hub.includes(token)) throw new Error(`Fresh Flow hub missing route integration: ${token}`);
 }
 
