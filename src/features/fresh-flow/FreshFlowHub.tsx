@@ -82,9 +82,9 @@ export default function FreshFlowHub() {
   useEffect(() => {
     let cancelled = false;
     if (!user?.id || isGuest) { setMainProfileAvatarUrl(null); return; }
-    void supabase.from("profile_details").select("avatar_url").eq("user_id", user.id).maybeSingle().then(({ data }) => {
-      if (!cancelled) setMainProfileAvatarUrl(data?.avatar_url ?? null);
-    }).catch(() => { if (!cancelled) setMainProfileAvatarUrl(null); });
+    void supabase.from("profile_details").select("avatar_url").eq("user_id", user.id).maybeSingle().then(({ data, error }) => {
+      if (!cancelled) setMainProfileAvatarUrl(error ? null : (data?.avatar_url ?? null));
+    });
     return () => { cancelled = true; };
   }, [user?.id, isGuest]);
   const handleFlowAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -140,10 +140,10 @@ export default function FreshFlowHub() {
             <span className="fresh-flow-brand-wordmark"><strong>Fresh Flow</strong><small>Discover. Connect. Create.</small></span>
           </div>
           <nav className="fresh-flow-header-world-nav" aria-label="Fresh Flow media">
-            <button type="button" className={section === "fresh-flow-system-live-creation" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-system-live-creation")}>Live</button>
+            <button type="button" className={independentSystem?.id === "live-creation" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-system-live-creation")}>Live</button>
             <button type="button" className={section === "fresh-flow-ar-vr" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-ar-vr")}>VR / AR</button>
             <button type="button" className={section === "fresh-flow-podcasts" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-podcasts")}>Podcasts</button>
-            <button type="button" className={section === "fresh-flow-system-fresh-music" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-system-fresh-music")}>Music</button>
+            <button type="button" className={independentSystem?.id === "fresh-music" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-system-fresh-music")}>Music</button>
             <button type="button" className={section === "fresh-flow-more" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-more")}>Others</button>
           </nav>
           <button type="button" className="fresh-flow-search-icon-button" onClick={openFreshSearch} aria-label="Search Fresh Flow" title="Search">⌕</button>
