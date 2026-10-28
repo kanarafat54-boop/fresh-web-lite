@@ -402,7 +402,7 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
           {spatialTool && (
             <section className="fresh-flow-vr-tool-panel" aria-live="polite">
               <button type="button" className="fresh-flow-vr-tool-close" onClick={() => setSpatialTool(null)} aria-label="Close spatial tools">×</button>
-              {spatialTool === "ar" && <><h3>Start an AR experience</h3><p>Camera-based AR requires browser/device support and permission. This preview does not start a camera or claim a spatial session is active.</p><button type="button" onClick={() => { setSpatialTool(null); setError("AR session launch is not connected yet. You can still explore published media below."); }}>Check launch readiness</button></>}
+              {spatialTool === "ar" && <><h3>Start an AR experience</h3><p>Camera-based AR requires browser/device support and permission. This preview does not start a camera or claim a spatial session is active.</p><p className="fresh-flow-feature-honesty">Launch readiness cannot be verified until the spatial runtime is connected. Published media remains available below.</p></>}
               {spatialTool === "objects" && <><h3>Object Library</h3><p>3D objects and downloadable spatial assets will appear here when the Fresh spatial asset library is connected.</p><span className="fresh-flow-spatial-status">Library connection needed</span></>}
               {spatialTool === "learn" && <><h3>AR / VR basics</h3><ul><li>AR adds digital objects to a real-world camera view.</li><li>VR places you inside a simulated environment.</li><li>Use a 2D fallback when a device cannot run immersive content.</li></ul></>}
             </section>
