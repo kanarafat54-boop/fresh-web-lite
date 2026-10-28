@@ -49,7 +49,7 @@ for (const token of [">Live</button>", ">VR / AR</button>", ">Podcasts</button>"
   if (!hub.includes(token)) throw new Error(`Fresh Flow masthead is missing a required destination or profile action: ${token}`);
 }
 const bottomNav = readFileSync("src/app/components/BottomNav.tsx", "utf8");
-for (const token of ["fresh-flow-bottom-nav", "label: \"Home\"", "label: \"Shorts\"", "label: \"Creator Studio\"", "label: \"Video\"", "label: \"Messages\"", "label: \"Fresh Mail\""]) {
+for (const token of ["fresh-flow-bottom-nav", "label: \"Home\"", "label: \"Shorts\"", "label: \"Creator Studio\"", "label: \"Video\"", "label: \"Messages\"", "label: \"Fresh Mail\"", 'id: "fresh-mail"']) {
   if (!bottomNav.includes(token)) throw new Error(`Fresh Flow bottom navigation is missing: ${token}`);
 }
 if (home.includes("fresh-flow-home-shortcuts") || hub.includes(">Flow Home</button>") || hub.includes(">News</button>") || hub.includes(">Posts</button>")) {
@@ -61,7 +61,7 @@ for (const token of ["@media(max-width:720px)", "prefers-reduced-motion", "focus
 for (const token of ["system.label", "system.description", "system.capabilities", "Experience scaffold", "Planned"]) {
   if (!systemExperience.includes(token)) throw new Error(`Independent system experience missing system-specific contract: ${token}`);
 }
-for (const token of ['setActiveRoute("fresh-flow-system-fresh-music")', 'setActiveRoute("fresh-mail")', "onClick={goBack}", "<FreshFlowHome", "<FreshFlowShortsExperience", "<FreshFlowSystemExperience", "fresh-flow-system-"]) {
+for (const token of ['setActiveRoute("fresh-flow-system-fresh-music")', "onClick={goBack}", "<FreshFlowHome", "<FreshFlowShortsExperience", "<FreshFlowSystemExperience", "fresh-flow-system-"]) {
   if (!hub.includes(token)) throw new Error(`Fresh Flow hub missing route integration: ${token}`);
 }
 
