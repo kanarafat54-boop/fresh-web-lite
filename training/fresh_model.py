@@ -63,9 +63,8 @@ class CausalSelfAttention(nn.Module):
         cos = self.rope_cos[:, :, :t].to(dtype=q.dtype, device=q.device)
         sin = self.rope_sin[:, :, :t].to(dtype=q.dtype, device=q.device)
         q, k = apply_rope(q, cos, sin), apply_rope(k, cos, sin)
-        scores = (q @ k.transpose(-2, -1)) / math.sqrt(self.head_dim)
-        scores = scores.masked_fill(~self.mask[:t, :t], torch.finfo(scores.dtype).min)
-        y = torch.softmax(scores, dim=-1) @ v
+        # Fused causal attention: same math as softmax(QK^T/sqrt(d) + causal mask) V, far less memory.
+        y = torch.nn.functional.scaled_dot_product_attention(q, k, v, is_causal=True)
         return self.out(y.transpose(1, 2).contiguous().view(b, t, c))
 
 

@@ -113,6 +113,21 @@
       "transformation": "fresh-unified-jsonl-v1 + training/screen_corpus.py (fresh-screen-v1)",
       "productionTrainingEligible": false,
       "notes": "14,959 screened Swahili Wikipedia articles (20231101.sw, prompt 'Write an article about: <title>', text truncated to 8,000 chars). contentSha256 is of the .gz bytes. CC-BY-SA-3.0/GFDL: credit Wikipedia contributors; derived releases stay share-alike. Not yet promoted to production training."
+    },
+    {
+      "sourceId": "hf-wikipedia-en-screened",
+      "authorizationId": "hf-wikipedia",
+      "sourceType": "hf-public-dataset",
+      "status": "eligible",
+      "contentLocation": "data/fresh-training/wikipedia-en.screened.jsonl.gz",
+      "contentSha256": "9b54ce5de291c15d1dd1b79e73aa6e0e5fe1ac434a07144d4e24333e032e6b69",
+      "license": "CC-BY-SA-3.0 / GFDL",
+      "trainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "https://huggingface.co/datasets/wikimedia/wikipedia (dataset card: cc-by-sa-3.0 and gfdl; human-written)",
+      "transformation": "fresh-unified-jsonl-v1 + training/screen_corpus.py (fresh-screen-v1)",
+      "productionTrainingEligible": false,
+      "notes": "14,912 screened English Wikipedia articles (20231101.en, prompt 'Write an article about: <title>', text truncated to 8,000 chars). contentSha256 is of the .gz bytes. CC-BY-SA-3.0/GFDL: credit Wikipedia contributors; derived releases stay share-alike. Not yet promoted to production training."
     }
   ]
 }
