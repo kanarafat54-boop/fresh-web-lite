@@ -24,7 +24,6 @@ const SHORTCUTS = [
 export default function FreshFlowHome({ onOpenSystem, onOpenRoute, onOpenSearch }: Props) {
   const [showDirectory, setShowDirectory] = useState(false);
   const [directoryQuery, setDirectoryQuery] = useState("");
-  const [activeFeed, setActiveFeed] = useState<"for-you" | "following">("for-you");
   const filteredSystems = useMemo(() => {
     const query = directoryQuery.trim().toLowerCase();
     if (!query) return FRESH_FLOW_INDEPENDENT_SYSTEMS;
@@ -96,19 +95,17 @@ export default function FreshFlowHome({ onOpenSystem, onOpenRoute, onOpenSearch 
       ) : (
         <>
           <section className="fresh-flow-feed-section" aria-labelledby="fresh-flow-feed-title">
-            <div className="fresh-flow-feed-tabs" role="tablist" aria-label="Choose your feed">
-              <button type="button" role="tab" aria-selected={activeFeed === "for-you"} className={activeFeed === "for-you" ? "active" : ""} onClick={() => setActiveFeed("for-you")}>For you</button>
-              <button type="button" role="tab" aria-selected={activeFeed === "following"} className={activeFeed === "following" ? "active" : ""} onClick={() => setActiveFeed("following")}>Following</button>
+            <div className="fresh-flow-feed-tabs" aria-label="Fresh Flow discovery">
+              <span className="active">For you</span>
               <button type="button" className="fresh-flow-feed-search" onClick={onOpenSearch} aria-label="Search Fresh Flow">⌕</button>
             </div>
             <div className="fresh-flow-section-heading">
-              <div><span className="fresh-flow-section-kicker">{activeFeed === "for-you" ? "A LITTLE OF EVERYTHING" : "YOUR PEOPLE"}</span><h2 id="fresh-flow-feed-title">{activeFeed === "for-you" ? "Recommended for you" : "From creators you follow"}</h2></div>
+              <div><span className="fresh-flow-section-kicker">"A LITTLE OF EVERYTHING"</span><h2 id="fresh-flow-feed-title">"Recommended for you"</h2></div>
               <button type="button" className="fresh-flow-text-action" onClick={() => setShowDirectory(true)}>All systems <span aria-hidden="true">→</span></button>
             </div>
-            <p className="fresh-flow-feed-description">{activeFeed === "for-you" ? "A personalized mix of creators, useful discoveries, and content from across Fresh Flow." : "Updates from creators and communities you choose to follow."}</p>
+            <p className="fresh-flow-feed-description">"A personalized mix of creators, useful discoveries, and content from across Fresh Flow."</p>
             <div className="fresh-flow-example-notice"><span aria-hidden="true">ⓘ</span><span><strong>Example content — not a live feed.</strong> Real recommendations will appear when the feed and content sources are connected.</span></div>
-            {activeFeed === "for-you" ? (
-              <div className="fresh-flow-recommendation-grid">
+            <div className="fresh-flow-recommendation-grid">
                 <button type="button" className="fresh-flow-recommendation-card feature-card" onClick={() => onOpenSystem("learn")}>
                   <span className="fresh-flow-recommendation-art art-learn" aria-hidden="true"><span>LEARN</span><b>Small steps.<br />Big ideas.</b><i>✦</i></span>
                   <span className="fresh-flow-recommendation-copy"><strong>Learn something new</strong><small>Courses, explainers and practical skills</small></span>
@@ -122,14 +119,6 @@ export default function FreshFlowHome({ onOpenSystem, onOpenRoute, onOpenSearch 
                   <span className="fresh-flow-recommendation-copy"><strong>Research & knowledge</strong><small>Sources, ideas and deeper context</small></span>
                 </button>
               </div>
-            ) : (
-              <div className="fresh-flow-following-empty">
-                <span aria-hidden="true">♡</span>
-                <h3>Your Following feed starts with your people.</h3>
-                <p>Follow creators and communities to see their updates here. This feed is not connected to live follow data yet.</p>
-                <button type="button" onClick={() => setShowDirectory(true)}>Explore creators and systems <span aria-hidden="true">→</span></button>
-              </div>
-            )}
           </section>
           <section className="fresh-flow-home-footer-cta">
             <div><strong>Have an idea worth sharing?</strong><span>Make it yours in Fresh Studio.</span></div>
