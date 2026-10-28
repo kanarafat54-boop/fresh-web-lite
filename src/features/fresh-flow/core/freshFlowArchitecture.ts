@@ -23,6 +23,7 @@ export type FreshFlowMediaWorldId =
 /** App route ids kept stable for routing / deep links. */
 export type FreshFlowRouteId =
   | "fresh-flow"
+  | "fresh-flow-shorts"
   | "fresh-flow-long-videos"
   | "fresh-flow-news-posts"
   | "fresh-flow-ar-vr"
