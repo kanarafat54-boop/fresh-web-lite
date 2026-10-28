@@ -52,7 +52,7 @@
 }
 
 
-/* Hide the fixed-position masthead during active scroll, then restore it. */
-.fresh-flow-hub.flow-navigation-hidden .fresh-flow-unified-header{opacity:0;transform:translateY(-110%);pointer-events:none;visibility:hidden;}
-.fresh-flow-hub .fresh-flow-unified-header{transition:opacity 180ms ease,transform 180ms ease,visibility 180ms ease;}
-@media(prefers-reduced-motion:reduce){.fresh-flow-hub .fresh-flow-unified-header{transition:none;}}
+}
+
+/* The Fresh Flow masthead remains anchored and visible; only the bottom navigation auto-hides. */
+.fresh-flow-unified-header{position:sticky;top:0;z-index:80;transform:none;opacity:1;visibility:visible;}
