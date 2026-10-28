@@ -149,7 +149,7 @@ export default function FreshFlowHub() {
 
   return (
     <div
-      className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}${shortsImmersive ? " immersive-shorts" : ""}${navigationVisible ? " flow-navigation-visible" : " flow-navigation-hidden"}`}
+      className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}${shortsImmersive ? " immersive-shorts" : ""}`}
       aria-label="Fresh Flow"
       data-media-world={world.id}
       data-surface={world.surface}
