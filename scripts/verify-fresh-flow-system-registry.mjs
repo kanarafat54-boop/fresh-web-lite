@@ -55,4 +55,13 @@ for (const token of ['setActiveRoute("feed")', 'setActiveRoute("fresh-mail")', '
   if (!hub.includes(token)) throw new Error(`Fresh Flow hub missing route integration: ${token}`);
 }
 
+const featureRegistry = readFileSync("src/app/registry/FeatureRegistry.ts", "utf8");
+const freshMailWorkspace = readFileSync("src/features/workspaces/FreshMailWorkspace.tsx", "utf8");
+for (const token of ['id: "fresh-mail"', 'route: "/fresh-mail"', 'FreshMailWorkspace']) {
+  if (!featureRegistry.includes(token)) throw new Error(`Fresh Mail must have its own registered destination: ${token}`);
+}
+for (const token of ["FreshMailPanel", 'setActiveRoute("fresh-flow")', "Fresh Mail"]) {
+  if (!freshMailWorkspace.includes(token)) throw new Error(`Fresh Mail workspace is missing a required element: ${token}`);
+}
+
 console.log("Fresh Flow 24-system architecture and landing UI contract: PASS");
