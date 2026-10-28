@@ -70,7 +70,6 @@ export default function FreshFlowHub() {
   const [navigationVisible, setNavigationVisible] = useState(true);
   const scrollIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    const root = document.querySelector(".fresh-flow-hub");
     const setVisibility = (visible: boolean) => {
       setNavigationVisible(visible);
       window.dispatchEvent(new CustomEvent("fresh-flow-navigation-visibility", { detail: { visible } }));
@@ -80,9 +79,11 @@ export default function FreshFlowHub() {
       if (scrollIdleTimer.current) clearTimeout(scrollIdleTimer.current);
       scrollIdleTimer.current = setTimeout(() => setVisibility(true), 700);
     };
-    root?.addEventListener("scroll", markScrolling, { passive: true, capture: true });
+    document.addEventListener("scroll", markScrolling, { passive: true, capture: true });
+    window.addEventListener("scroll", markScrolling, { passive: true });
     return () => {
-      root?.removeEventListener("scroll", markScrolling, true);
+      document.removeEventListener("scroll", markScrolling, true);
+      window.removeEventListener("scroll", markScrolling);
       if (scrollIdleTimer.current) clearTimeout(scrollIdleTimer.current);
       window.dispatchEvent(new CustomEvent("fresh-flow-navigation-visibility", { detail: { visible: true } }));
     };
