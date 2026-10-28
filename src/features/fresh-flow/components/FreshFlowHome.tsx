@@ -43,19 +43,7 @@ export default function FreshFlowHome({ onOpenSystem, onOpenRoute, onOpenSearch 
           <span>What’s happening? Create something...</span>
           <span className="fresh-flow-compose-arrow" aria-hidden="true">↗</span>
         </button>
-        <div className="fresh-flow-home-shortcuts" aria-label="Explore Fresh Flow">
-          {SHORTCUTS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`fresh-flow-home-shortcut tone-${item.tone}`}
-              onClick={() => item.id === "all-systems" ? setShowDirectory(true) : item.id === "fresh-live" ? onOpenSystem("live-creation") : onOpenSystem(item.id)}
-            >
-              <span className="fresh-flow-shortcut-icon" aria-hidden="true">{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </div>
+
         <button type="button" className="fresh-flow-all-systems-link" onClick={() => setShowDirectory((open) => !open)} aria-expanded={showDirectory}>
           {showDirectory ? "Close All Systems" : "Explore all 24 systems"} <span aria-hidden="true">{showDirectory ? "↑" : "→"}</span>
         </button>
