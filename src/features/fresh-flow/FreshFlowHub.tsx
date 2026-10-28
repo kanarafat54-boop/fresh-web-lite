@@ -76,9 +76,9 @@ export default function FreshFlowHub() {
       scrollIdleTimer.current = setTimeout(() => setNavigationVisible(true), 700);
     };
     const root = document.querySelector(".fresh-flow-media-content");
-    root?.addEventListener("scroll", markScrolling, { passive: true });
+    root?.addEventListener("scroll", markScrolling, { passive: true, capture: true });
     return () => {
-      root?.removeEventListener("scroll", markScrolling);
+      root?.removeEventListener("scroll", markScrolling, true);
       if (scrollIdleTimer.current) clearTimeout(scrollIdleTimer.current);
     };
   }, [section]);
