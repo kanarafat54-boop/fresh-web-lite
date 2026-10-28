@@ -71,9 +71,9 @@ export default function FreshFlowHub() {
   const { activeRoute, setActiveRoute, openSearch } = useLayout();
   const { isAuthenticated, user, isGuest } = useFreshId();
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
-  const world = isShortsRoute ? worldByRouteId("fresh-flow") : worldByRouteId(section);
   const isOverview = section === "fresh-flow";
   const isShortsRoute = section === "fresh-flow-shorts";
+  const world = isShortsRoute ? worldByRouteId("fresh-flow") : worldByRouteId(section);
   const systemRoutePrefix = "fresh-flow-system-";
   const independentSystem = section.startsWith(systemRoutePrefix) ? getFreshFlowSystem(section.slice(systemRoutePrefix.length)) : undefined;
 
