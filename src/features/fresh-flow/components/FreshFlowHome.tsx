@@ -15,10 +15,10 @@ type Props = {
 const SHORTCUTS = [
   { id: "fresh-shorts", label: "Shorts", icon: "▶", tone: "violet" },
   { id: "long-video", label: "Videos", icon: "▻", tone: "blue" },
-  { id: "fresh-news", label: "News / Posts", icon: "▤", tone: "coral" },
+  { id: "fresh-live", label: "Live", icon: "●", tone: "coral" },
   { id: "vr-ar-spatial", label: "VR / AR", icon: "◇", tone: "mint" },
   { id: "fresh-podcasts", label: "Podcasts", icon: "♫", tone: "amber" },
-  { id: "all-systems", label: "Others", icon: "▦", tone: "slate" },
+  { id: "all-systems", label: "Others", icon: "⋯", tone: "slate" },
 ];
 
 export default function FreshFlowHome({ onOpenSystem, onOpenRoute, onOpenSearch }: Props) {
@@ -49,7 +49,7 @@ export default function FreshFlowHome({ onOpenSystem, onOpenRoute, onOpenSearch 
               key={item.id}
               type="button"
               className={`fresh-flow-home-shortcut tone-${item.tone}`}
-              onClick={() => item.id === "all-systems" ? setShowDirectory(true) : onOpenSystem(item.id)}
+              onClick={() => item.id === "all-systems" ? setShowDirectory(true) : item.id === "fresh-live" ? onOpenSystem("live-creation") : onOpenSystem(item.id)}
             >
               <span className="fresh-flow-shortcut-icon" aria-hidden="true">{item.icon}</span>
               <span>{item.label}</span>
@@ -127,13 +127,7 @@ export default function FreshFlowHome({ onOpenSystem, onOpenRoute, onOpenSearch 
         </>
       )}
 
-      <nav className="fresh-flow-home-bottom-nav" aria-label="Fresh Flow shortcuts">
-        <button type="button" onClick={() => onOpenRoute("feed")} aria-label="Return to Fresh Web Lite home"><span aria-hidden="true">⌂</span><small>Home</small></button>
-        <button type="button" onClick={() => onOpenSystem("fresh-shorts")}><span aria-hidden="true">▶</span><small>Shorts</small></button>
-        <button type="button" onClick={() => onOpenSystem("fresh-studio")}><span aria-hidden="true">＋</span><small>Create</small></button>
-        <button type="button" onClick={() => onOpenRoute("communication")}><span aria-hidden="true">▤</span><small>Messages</small></button>
-        <button type="button" onClick={() => onOpenRoute("fresh-mail")}><span aria-hidden="true">✉</span><small>Fresh Mail</small></button>
-      </nav>
+
     </div>
   );
 }
