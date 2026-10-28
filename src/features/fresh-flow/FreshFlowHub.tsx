@@ -78,8 +78,8 @@ export default function FreshFlowHub() {
   const independentSystem = section.startsWith(systemRoutePrefix) ? getFreshFlowSystem(section.slice(systemRoutePrefix.length)) : undefined;
 
   useEffect(() => {
-    if (!isOverview) setShortsImmersive(false);
-  }, [isOverview]);
+    if (!isShortsRoute) setShortsImmersive(false);
+  }, [isShortsRoute]);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
