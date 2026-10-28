@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useLayout } from "../../app/contexts/useLayout";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
+import { useTheme } from "../../app/providers/ThemeProvider";
 import { supabase } from "../../lib/supabase";
 import type { FreshUser } from "../fresh-id/types/user";
 import DeviceSecurityPanel from "./DeviceSecurityPanel";
@@ -21,6 +22,7 @@ const prettyDate = (value?: string | null) => {
 
 export default function SettingsWorkspace() {
   const { setActiveRoute } = useLayout();
+  const { theme: globalTheme, setTheme: setGlobalTheme } = useTheme();
   const { user, isAuthenticated, isGuest, loading, error, message, updateUser, logout, requestPasswordReset, passkeySupported, registerPasskey, listPasskeys, removePasskey, session } = useFreshId();
   const [theme, setTheme] = useState<Theme>("dark");
   const [experienceMode, setExperienceMode] = useState<"simple" | "standard" | "advanced">("simple");
@@ -170,6 +172,7 @@ export default function SettingsWorkspace() {
 
   const changeTheme = (next: Theme) => {
     setTheme(next);
+    setGlobalTheme(next);
     document.documentElement.dataset.theme = next;
     window.localStorage.setItem("fresh-theme", next);
     window.localStorage.setItem("fresh_theme", next);
