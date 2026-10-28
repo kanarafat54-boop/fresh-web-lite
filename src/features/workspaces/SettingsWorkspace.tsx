@@ -22,7 +22,7 @@ const prettyDate = (value?: string | null) => {
 
 export default function SettingsWorkspace() {
   const { setActiveRoute } = useLayout();
-  const { theme: globalTheme, setTheme: setGlobalTheme } = useTheme();
+  const { setTheme: setGlobalTheme } = useTheme();
   const { user, isAuthenticated, isGuest, loading, error, message, updateUser, logout, requestPasswordReset, passkeySupported, registerPasskey, listPasskeys, removePasskey, session } = useFreshId();
   const [theme, setTheme] = useState<Theme>("dark");
   const [experienceMode, setExperienceMode] = useState<"simple" | "standard" | "advanced">("simple");
@@ -51,6 +51,7 @@ export default function SettingsWorkspace() {
     const stored = window.localStorage.getItem("fresh_theme") ?? window.localStorage.getItem("fresh-theme");
     const next: Theme = stored === "light" || stored === "dark" ? stored : window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
     setTheme(next);
+    setGlobalTheme(next);
     document.documentElement.dataset.theme = next;
     const size = window.localStorage.getItem("fresh-text-size");
     if (size === "large" || size === "larger") setTextSize(size);
@@ -67,6 +68,7 @@ export default function SettingsWorkspace() {
     setEmailUpdates(user?.preferences?.emailNotifications ?? window.localStorage.getItem("fresh-notifications") !== "off");
     if (user?.preferences?.theme === "light" || user?.preferences?.theme === "dark") {
       setTheme(user.preferences.theme);
+      setGlobalTheme(user.preferences.theme);
       document.documentElement.dataset.theme = user.preferences.theme;
     }
     if (user?.preferences?.preferredWorkspaceMode) {
