@@ -142,7 +142,7 @@ export default function FreshFlowHome({ onOpenSystem, onOpenRoute, onOpenSearch 
         <button type="button" className="active" aria-current="page" onClick={() => { setShowDirectory(false); setActiveFeed("for-you"); }}><span aria-hidden="true">⌂</span><small>Home</small></button>
         <button type="button" onClick={() => { setShowDirectory(false); setActiveFeed("following"); }}><span aria-hidden="true">♡</span><small>Following</small></button>
         <button type="button" onClick={() => onOpenSystem("fresh-studio")}><span aria-hidden="true">＋</span><small>Create</small></button>
-        <button type="button" onClick={() => onOpenRoute("messages")}><span aria-hidden="true">▤</span><small>Messages</small></button>
+        <button type="button" onClick={() => onOpenRoute("communication")}><span aria-hidden="true">▤</span><small>Messages</small></button>
         <button type="button" onClick={() => onOpenRoute("profile")}><span aria-hidden="true">◉</span><small>Profile</small></button>
       </nav>
     </div>
