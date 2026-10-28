@@ -46,7 +46,7 @@ export default function SettingsWorkspace() {
   const [accountBusy, setAccountBusy] = useState(false);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("fresh-theme");
+    const stored = window.localStorage.getItem("fresh_theme") ?? window.localStorage.getItem("fresh-theme");
     const next: Theme = stored === "light" || stored === "dark" ? stored : window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
     setTheme(next);
     document.documentElement.dataset.theme = next;
@@ -172,6 +172,7 @@ export default function SettingsWorkspace() {
     setTheme(next);
     document.documentElement.dataset.theme = next;
     window.localStorage.setItem("fresh-theme", next);
+    window.localStorage.setItem("fresh_theme", next);
     void persistPreferenceSettings({ theme: next });
   };
   const changeTextSize = (next: string) => {
