@@ -66,3 +66,23 @@ The initial screens are editable wireframes and the live-session CTA has a URL a
 - Extensible capability registry: https://github.com/kanarafat54-boop/fresh-web-lite/blob/plan/fresh-flow-whole-media-platform/src/features/fresh-flow/core/freshFlowCapabilityRegistry.ts
 - Capability registry contract test: https://github.com/kanarafat54-boop/fresh-web-lite/blob/plan/fresh-flow-whole-media-platform/scripts/verify-fresh-flow-capability-registry.mjs
 - Review PR #153: https://github.com/kanarafat54-boop/fresh-web-lite/pull/153
+
+## Whole-media system expansion (approved architecture)
+
+The 24 independent systems are defined in [FRESH_FLOW_24_SYSTEM_ARCHITECTURE.md](./FRESH_FLOW_24_SYSTEM_ARCHITECTURE.md) and registered in `src/features/fresh-flow/core/freshFlowSystemRegistry.ts`. The six families are directory/grouping layers only; each system needs its own product experience and implementation contract.
+
+### Required design coverage
+
+- **Fresh Flow Home:** personalized cross-media discovery, universal search, create entry point, system shortcuts and All Systems.
+- **All Systems directory:** six family sections, all 24 system entries, system search, pinned/favorite systems, clear unavailable/provider-required states and accessible mobile layout. Do not compress all systems into one tiny navigation strip.
+- **24 independent system entry/landing experiences:** create editable frames or a reusable system-page template with distinct system-specific content, navigation and primary actions. Reuse shared tokens/components without turning these into one generic screen.
+- **System-specific journeys:** Shorts playback/discovery; long video player; movies/series catalog and episode playback; live viewer; sports/events discovery; posts; communities; stories; creator channels; music; podcasts; radio/audio live; audiobooks; news; books/reading; learning; research/knowledge; images/art; VR/AR/spatial; interactive experiences; gaming/esports; Studio; live production; events/performances.
+- **Shared service patterns:** Fresh ID/permissions, search, Fresh AI, accessibility, media processing, reporting/moderation, creator analytics and monetization states must be represented where relevant.
+
+### Shorts-specific preservation
+
+Keep the full discovery contract: For You, Following/Social, Trending, Fresh Picks, Learn, Relax, Filters/Models. Do not map Fresh Picks silently to More or treat Filters/Models as deleted. Preserve the requested left-swipe-to-next and right-swipe-to-previous interaction pending an audit of the current implementation. The immersive Shorts experience owns its UI and must retain a clear, accessible exit back to Fresh Flow.
+
+### Status discipline
+
+Existing frames and the capability registry are not proof that each system is implemented. Record every system as Planned, Partial, Provider/device required or Verified based on implementation evidence. Each system's frame must map to a route contract, domain/API boundary, permissions, empty/offline/error/retry states and tests. Do not mark a prototype complete until native transitions and main actions are actually connected and tested.
