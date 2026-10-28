@@ -92,6 +92,19 @@ class FreshUnifiedLM(nn.Module):
         self.norm = RMSNorm(hidden_size)
         self.lm_head = nn.Linear(hidden_size, vocab_size, bias=False)
         self.lm_head.weight = self.token_embedding.weight
+        self.apply(self._init_weights)
+        # Scale residual-branch output projections by depth so the residual stream stays stable.
+        residual_std = 0.02 / math.sqrt(2 * layers)
+        for name, param in self.named_parameters():
+            if name.endswith("attn.out.weight") or name.endswith("ff.down.weight"):
+                nn.init.normal_(param, mean=0.0, std=residual_std)
+
+    @staticmethod
+    def _init_weights(module: nn.Module) -> None:
+        """GPT-style init (std 0.02). PyTorch's default Embedding init (std 1) with tied output
+        weights gave initial loss ~480 instead of ~ln(vocab) in run 2."""
+        if isinstance(module, (nn.Linear, nn.Embedding)):
+            nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
     def forward(self, input_ids: torch.Tensor, labels: torch.Tensor | None = None):
         _, t = input_ids.shape
