@@ -147,7 +147,7 @@ def main() -> int:
             with autocast():
                 _, loss = model(x, y)
             scaler.scale(loss / args.accum).backward()
-            total += float(loss) / args.accum
+            total += float(loss.detach()) / args.accum
         scaler.unscale_(opt)
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         scaler.step(opt)
