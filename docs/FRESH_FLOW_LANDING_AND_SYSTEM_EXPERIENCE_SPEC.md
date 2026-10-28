@@ -166,3 +166,14 @@ Systems may reuse shared design tokens, identity, search, media processing, acce
 - The landing bottom bar removes the duplicate Following item and provides distinct Home, Shorts, Create, Messages and Fresh Mail destinations.
 - Fresh Mail is registered as a separate `/fresh-mail` workspace backed by the existing Fresh Mail panel. This makes the destination separate; the underlying mail provider/backend gate and end-to-end send/receive behavior must still be verified before claiming the service is production-ready.
 - Automated CI and manual device/browser validation are pending for these latest navigation commits.
+
+
+## 8. Masthead, avatar separation and six-item media navigation
+
+- The Fresh Flow masthead is one compact horizontal row. Its left brand is a wordmark, not a duplicate Flow Home button.
+- Masthead destinations are Live, VR / AR, Podcasts, Music and Others. Search is a compact icon action where space allows. The main account avatar sits at the right and opens the existing main Fresh ID profile.
+- The plus control selects an image for a distinct Fresh Flow avatar. The camera control requests a photo for that Flow avatar only and must never write to the main profile avatar.
+- Current Fresh Flow avatar persistence is device-local browser storage. It is not account-synced or uploaded to Supabase until a separate Flow-avatar storage contract and RLS policy are implemented.
+- The Fresh Flow bottom bar has exactly six destinations: Home (global Fresh Web Lite Home), Shorts, Creator Studio, Video, Messages and Fresh Mail.
+- Creator Studio opens the Fresh Flow media-creation system. Messages and Fresh Mail remain separate workspaces. News and Posts appear as recommendation/discovery content rather than primary navigation.
+- On narrow Android screens the masthead remains a single row; its media links scroll horizontally while the brand and profile actions remain visible.
