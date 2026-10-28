@@ -50,3 +50,9 @@
  .fresh-flow-unified-profile{width:27px;height:27px;flex-basis:27px;}
  .fresh-flow-avatar-action,.fresh-flow-avatar-camera{width:20px;height:20px;flex-basis:20px;font-size:.75rem;}
 }
+
+
+/* Hide the fixed-position masthead during active scroll, then restore it. */
+.fresh-flow-hub.flow-navigation-hidden .fresh-flow-unified-header{opacity:0;transform:translateY(-110%);pointer-events:none;visibility:hidden;}
+.fresh-flow-hub .fresh-flow-unified-header{transition:opacity 180ms ease,transform 180ms ease,visibility 180ms ease;}
+@media(prefers-reduced-motion:reduce){.fresh-flow-hub .fresh-flow-unified-header{transition:none;}}
