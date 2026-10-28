@@ -45,6 +45,7 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [commentsFor, setCommentsFor] = useState<string | null>(null);
+  const [spatialTool, setSpatialTool] = useState<"ar" | "objects" | "learn" | null>(null);
   const { state: runtimeState, replaceQueue, setActive: setRuntimeActive } = useFreshFlowRuntime();
   const activeId = runtimeState.activeId;
 
@@ -393,11 +394,19 @@ export default function FreshFlowMediaWorkspace({ kind, title, description, icon
             <h3>Welcome to Virtual Reality</h3>
             <p>Choose an experience — UI recedes once you enter.</p>
             <div className="fresh-flow-vr-enter-actions">
-              <span>Start AR</span>
-              <span>Object Library</span>
-              <span>Learn AR/VR</span>
+              <button type="button" onClick={() => setSpatialTool("ar")}>Start AR</button>
+              <button type="button" onClick={() => setSpatialTool("objects")}>Object Library</button>
+              <button type="button" onClick={() => setSpatialTool("learn")}>Learn AR/VR</button>
             </div>
           </div>
+          {spatialTool && (
+            <section className="fresh-flow-vr-tool-panel" aria-live="polite">
+              <button type="button" className="fresh-flow-vr-tool-close" onClick={() => setSpatialTool(null)} aria-label="Close spatial tools">×</button>
+              {spatialTool === "ar" && <><h3>Start an AR experience</h3><p>Camera-based AR requires browser/device support and permission. This preview does not start a camera or claim a spatial session is active.</p><button type="button" onClick={() => { setSpatialTool(null); setError("AR session launch is not connected yet. You can still explore published media below."); }}>Check launch readiness</button></>}
+              {spatialTool === "objects" && <><h3>Object Library</h3><p>3D objects and downloadable spatial assets will appear here when the Fresh spatial asset library is connected.</p><span className="fresh-flow-spatial-status">Library connection needed</span></>}
+              {spatialTool === "learn" && <><h3>AR / VR basics</h3><ul><li>AR adds digital objects to a real-world camera view.</li><li>VR places you inside a simulated environment.</li><li>Use a 2D fallback when a device cannot run immersive content.</li></ul></>}
+            </section>
+          )}
           <div className="fresh-flow-media-feed fresh-flow-media-feed-vr">
             {posts.map((post) => (
               <article key={post.id} className="fresh-flow-media-card fresh-flow-media-card-vr">
