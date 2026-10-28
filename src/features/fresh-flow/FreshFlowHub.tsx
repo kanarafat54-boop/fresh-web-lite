@@ -83,11 +83,9 @@ export default function FreshFlowHub() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
   const [shortsImmersive, setShortsImmersive] = useState(false);
-  const [navigationVisible, setNavigationVisible] = useState(true);
   const scrollIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const setVisibility = (visible: boolean) => {
-      setNavigationVisible(visible);
       window.dispatchEvent(new CustomEvent("fresh-flow-navigation-visibility", { detail: { visible } }));
     };
     const markScrolling = () => {
@@ -156,7 +154,7 @@ export default function FreshFlowHub() {
 
   return (
     <div
-      className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}${shortsImmersive ? " immersive-shorts" : ""}${navigationVisible ? " flow-navigation-visible" : " flow-navigation-hidden"}`}
+      className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}${shortsImmersive ? " immersive-shorts" : ""}`}
       aria-label="Fresh Flow"
       data-media-world={world.id}
       data-surface={world.surface}
