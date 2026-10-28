@@ -131,7 +131,7 @@ export default function FreshFlowHub() {
     setSearchOpen(true);
   };
 
-  const showChrome = !shortsImmersive;
+  const showChrome = !shortsImmersive && !independentSystem;
 
   return (
     <div
