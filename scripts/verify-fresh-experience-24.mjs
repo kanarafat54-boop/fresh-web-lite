@@ -17,7 +17,7 @@ const checks = [
   ["Fresh Camera stops its stream when closed", "src/features/workspaces/StudioWorkspace.tsx", ["const closeCamera = () =>", "cameraStream.getTracks().forEach((track) => track.stop())", "useEffect(() => () => cameraStream?.getTracks().forEach((track) => track.stop()), [cameraStream])"]],
   ["Studio route loads the actual Studio workspace", "src/app/registry/FeatureRegistry.ts", ['id: "studio"', 'name: "Create"', 'import("../../features/workspaces/StudioWorkspace")']],
   ["Flow dedicated surface", "src/app/AppRouter.css", [".fresh-flow-app-shell .fresh-desktop-sidebar{display:none}"]],
-  ["Flow media worlds remain available", "src/features/fresh-flow/FreshFlowHub.tsx", ["Shorts", "Long Videos", "News / Posts", "VR / AR", "Podcasts", "Others"]],
+  ["Flow navigation has distinct destinations", "src/features/fresh-flow/FreshFlowHub.tsx", ['setActiveRoute("feed")', 'setActiveRoute("fresh-flow")', "Shorts", "Videos", ">News<", ">Posts<", "Live", "Messages", "Fresh Mail", "VR / AR", "Podcasts", "Others", "setLiveMenuOpen((open) => !open)"]],
   ["Topbar has universal search", "src/app/components/TopBar.tsx", ["Search anything across Fresh"]],
   ["Topbar has Fresh AI", "src/app/components/TopBar.tsx", ["Open Fresh AI"]],
   ["Topbar has notifications", "src/app/components/TopBar.tsx", ["Notifications"]],
