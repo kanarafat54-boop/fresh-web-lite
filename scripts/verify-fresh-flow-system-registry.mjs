@@ -58,8 +58,14 @@ if (home.includes("fresh-flow-home-shortcuts") || hub.includes(">Flow Home</butt
 for (const token of ["@media(max-width:720px)", "prefers-reduced-motion", "focus-visible"]) {
   if (!homeStyles.includes(token)) throw new Error(`Fresh Flow landing page missing responsive/accessibility support: ${token}`);
 }
-for (const token of ["system.label", "system.description", "system.capabilities", "LiveWorkspace", "MusicWorkspace", "Discover live", "Safety & controls", "Create playlist", "fresh-music-playlists", "service connection"]) {
+for (const token of ["system.label", "system.description", "system.capabilities", "LiveWorkspace", "MusicWorkspace", "Discover live", "Safety & controls", "Create playlist", "fresh-music-playlists"]) {
   if (!systemExperience.includes(token)) throw new Error(`Independent system experience missing system-specific contract or feature: ${token}`);
+}
+// The honesty label is user-facing copy ("Service connection needed"); match it
+// case-insensitively so a casing change does not fail the gate while removing
+// the label (which would let unconnected capabilities look live) still does.
+if (!/service connection needed/i.test(systemExperience)) {
+  throw new Error("Independent system experience must label unconnected capabilities as needing a service connection");
 }
 const mediaWorkspace = readFileSync("src/features/fresh-flow/components/FreshFlowMediaWorkspace.tsx", "utf8");
 for (const token of ["Start AR", "Object Library", "Learn AR/VR", "setSpatialTool", "fresh-flow-vr-tool-panel"]) {
