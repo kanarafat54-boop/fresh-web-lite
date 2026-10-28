@@ -72,7 +72,6 @@ export default function FreshFlowHub() {
   }, [isShortsRoute]);
 
   const [flowSwitchOpen, setFlowSwitchOpen] = useState(false);
-  const [liveMenuOpen, setLiveMenuOpen] = useState(false);
   const flowAvatarInputRef = useRef<HTMLInputElement>(null);
   const flowCameraInputRef = useRef<HTMLInputElement>(null);
   const [freshFlowAvatarUrl, setFreshFlowAvatarUrl] = useState<string | null>(null);
