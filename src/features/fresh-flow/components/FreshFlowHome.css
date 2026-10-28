@@ -2,3 +2,5 @@
 
 /* The Flow landing page owns its Home / Following / Create / Messages / Profile bar. */
 .fresh-flow-app-shell:has(.fresh-flow-overview) > .fresh-bottom-nav{display:none}
+
+.fresh-flow-following-empty{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-top:16px;padding:clamp(20px,4vw,34px);border:1px dashed rgba(255,255,255,.18);border-radius:20px;background:rgba(255,255,255,.025)}.fresh-flow-following-empty>span{display:grid;place-items:center;width:46px;height:46px;border-radius:15px;background:rgba(99,91,255,.16);color:#c4c0ff;font-size:1.5rem}.fresh-flow-following-empty h3{margin:0;font-size:1.05rem}.fresh-flow-following-empty p{margin:0;max-width:560px;color:#aab2bf;font-size:.85rem;line-height:1.6}.fresh-flow-following-empty button{min-height:44px;margin-top:5px;padding:10px 13px;border:1px solid rgba(165,161,255,.25);border-radius:12px;background:rgba(99,91,255,.12);color:#c7c3ff;font:inherit;font-size:.8rem;font-weight:750;cursor:pointer}
