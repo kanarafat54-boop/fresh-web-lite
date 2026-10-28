@@ -44,7 +44,7 @@ export default function FreshFlowSwitch({ open, activeRouteId, onSelect, onClose
                   className={`fresh-flow-switch-item${active ? " active" : ""}`}
                   aria-current={active ? "page" : undefined}
                   onClick={() => {
-                    onSelect(world.routeId);
+                    onSelect(world.routeId === "fresh-flow" ? "fresh-flow-shorts" : world.routeId);
                     onClose();
                   }}
                 >
