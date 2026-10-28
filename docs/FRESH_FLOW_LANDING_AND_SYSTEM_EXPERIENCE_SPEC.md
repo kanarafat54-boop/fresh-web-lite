@@ -35,12 +35,12 @@ The landing page is the cross-media home for Fresh Flow, not the global Fresh We
    - Render mixed media cards only when there is actual content available. Show explicit loading, empty, offline, and retry states.
    - A demo, fixture, mock, or placeholder feed must be visibly labelled "Example content — not a live feed". Never present fixture content as live, personalized, or sourced from real accounts.
 5. **Persistent bottom navigation**
-   - Home
-   - Following
+   - Home (returns to the global Fresh Web Lite Home)
+   - Shorts
    - Create
-   - Messages
-   - Profile
-   - Home returns to the Fresh Flow landing page. Following opens the user's followed creators/content stream. Create opens the creation chooser/studio entry point. Messages opens communication. Profile opens the current user's profile/workspace.
+   - Messages (real-time communication workspace)
+   - Fresh Mail (separate email workspace)
+   - The Fresh Flow brand / Flow Home control returns to Fresh Flow discovery. Do not duplicate Following as a primary navigation destination. Profile remains available from the global product header. Create opens the creation chooser/studio entry point. Messages and Fresh Mail must never route to the same screen.
    - Keep labels visible and tap targets comfortably usable on small Android screens. Respect safe-area insets and do not cover content or player controls.
    - If the current implementation has other bottom-navigation labels, reconcile them against this approved five-item contract instead of silently deleting existing functionality. Any displaced destination must remain discoverable through an appropriate menu or system directory.
 
@@ -66,7 +66,7 @@ The landing page is the cross-media home for Fresh Flow, not the global Fresh We
 >
 > Example content — not a live feed
 >
-> **Home · Following · Create · Messages · Profile**
+> **Home · Shorts · Create · Messages · Fresh Mail**
 
 The wireframe explains hierarchy only. It is not a screenshot or proof of the current implementation. Do not hard-code the sample text as live content or fabricate real creators, engagement metrics, availability, or recommendations.
 
@@ -112,7 +112,11 @@ Systems may reuse shared design tokens, identity, search, media processing, acce
 
 ## 3. Navigation and state rules
 
-- Fresh Flow Home is a cross-system landing page.
+- Fresh Flow Home is a cross-system landing page; the primary Home control exits to the global Fresh Web Lite Home (`feed`). The separate Flow Home control returns to Fresh Flow discovery.
+- Shorts and long Videos are separate destinations. News and Posts are separate selectable destinations even if they share underlying information architecture.
+- Live opens a menu of distinct directions: video broadcast, audio live/rooms, events/performances, and gaming/esports live.
+- Messages opens the communication workspace; Fresh Mail opens its own registered `/fresh-mail` workspace and is not a Messages tab.
+- Back uses the previous Fresh Flow destination when known, with Flow Home as a safe fallback.
 - All Systems is a directory, not a substitute for individual system screens.
 - Opening a system must route to that system's own experience, not merely change a heading in a generic page.
 - Switching systems should preserve valid independent state where appropriate (for example, audio playback), while never leaking private drafts or account data across profiles/workspaces.
@@ -141,7 +145,11 @@ Systems may reuse shared design tokens, identity, search, media processing, acce
 ## 6. Acceptance checklist
 
 - [ ] Fresh Flow landing page follows the hierarchy and exact core copy above.
-- [ ] Bottom navigation uses Home / Following / Create / Messages / Profile and works at small Android widths.
+- [ ] Bottom navigation uses Home / Shorts / Create / Messages / Fresh Mail, with Home returning to global Fresh Web Lite Home.
+- [ ] Following is not duplicated as a primary navigation item.
+- [ ] Live opens distinct, keyboard-accessible directions; Back returns to the previous destination.
+- [ ] News and Posts are separate navigation choices.
+- [ ] Messages and Fresh Mail open separate workspaces.
 - [ ] The six primary shortcuts launch their intended distinct experiences; Others opens All Systems.
 - [ ] All Systems lists all 24 systems in six families without merging system entries.
 - [ ] Each of the 24 systems has an independently addressable route and purpose-built experience.
@@ -149,3 +157,12 @@ Systems may reuse shared design tokens, identity, search, media processing, acce
 - [ ] Fresh Shorts discovery modes and gesture requirements are preserved and tested.
 - [ ] Existing routes, permissions, profile/workspace boundaries, and global Home remain intact.
 - [ ] Automated tests, typecheck, lint, production build, responsive/browser checks and available Android-device checks are recorded before declaring completion.
+
+
+## 7. Navigation correction in progress (PR #163)
+
+- The Fresh Flow system bar now distinguishes global Home, Flow Home, Shorts, Videos, News, Posts, Live, Messages, Fresh Mail, VR / AR, Podcasts and Others.
+- Live provides a submenu for video broadcasting, audio live/rooms, events/performances and gaming/esports live.
+- The landing bottom bar removes the duplicate Following item and provides distinct Home, Shorts, Create, Messages and Fresh Mail destinations.
+- Fresh Mail is registered as a separate `/fresh-mail` workspace backed by the existing Fresh Mail panel. This makes the destination separate; the underlying mail provider/backend gate and end-to-end send/receive behavior must still be verified before claiming the service is production-ready.
+- Automated CI and manual device/browser validation are pending for these latest navigation commits.
