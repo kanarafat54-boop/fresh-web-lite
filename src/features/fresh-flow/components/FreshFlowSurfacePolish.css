@@ -112,7 +112,7 @@
 .fresh-flow-live-nav{position:relative;flex:0 0 auto;}
 .fresh-flow-live-nav > button{white-space:nowrap;}
 .fresh-flow-live-menu{
-  position:absolute;z-index:80;top:calc(100% + 8px);left:0;min-width:230px;
+  position:fixed;z-index:120;top:170px;left:12px;min-width:230px;
   display:flex;flex-direction:column;gap:4px;padding:8px;
   background:#12121a;border:1px solid rgba(139,124,255,.32);border-radius:14px;
   box-shadow:0 18px 48px rgba(0,0,0,.55);
