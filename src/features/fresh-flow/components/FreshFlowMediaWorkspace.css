@@ -155,10 +155,17 @@
 .fresh-flow-vr-enter-banner h3{margin:0 0 8px;font-size:1.2rem;color:#f5e6a3}
 .fresh-flow-vr-enter-banner p{margin:0 0 14px;opacity:.7;font-size:.88rem}
 .fresh-flow-vr-enter-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-.fresh-flow-vr-enter-actions span{
-  padding:8px 14px;border-radius:12px;border:1px solid rgba(212,175,55,.4);
-  background:rgba(212,175,55,.08);font-size:.78rem;font-weight:650;color:#f5e6a3;
+.fresh-flow-vr-enter-actions button{
+  min-height:42px;padding:8px 14px;border-radius:12px;border:1px solid rgba(212,175,55,.4);
+  background:rgba(212,175,55,.08);font:inherit;font-size:.82rem;font-weight:750;color:#f5e6a3;cursor:pointer;
 }
+.fresh-flow-vr-tool-panel{position:relative;margin:14px 0 20px;padding:20px;border:1px solid rgba(99,91,255,.3);border-radius:16px;background:#10131b;color:#f4f6fb}
+.fresh-flow-vr-tool-panel h3{margin:0 28px 8px 0}
+.fresh-flow-vr-tool-panel p,.fresh-flow-vr-tool-panel li{color:#b6becd;font-size:.88rem;line-height:1.65}
+.fresh-flow-vr-tool-panel>button:not(.fresh-flow-vr-tool-close){min-height:42px;padding:9px 13px;border:0;border-radius:10px;background:#635bff;color:white;font:inherit;font-weight:750}
+.fresh-flow-vr-tool-close{position:absolute;right:10px;top:10px;width:36px;height:36px;border:1px solid rgba(255,255,255,.14);border-radius:10px;background:transparent;color:#fff;font-size:1.3rem}
+.fresh-flow-spatial-status{display:inline-flex;padding:6px 9px;border-radius:999px;background:rgba(251,191,36,.08);color:#fcd34d;font-size:.75rem;font-weight:750}
+.fresh-flow-vr-enter-actions button:focus-visible,.fresh-flow-vr-tool-panel button:focus-visible{outline:3px solid #a5a1ff;outline-offset:3px}
 .fresh-flow-media-feed-vr{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
 .fresh-flow-media-card-vr{border-color:rgba(212,175,55,.2)}
 .fresh-flow-vr-enter-btn{
