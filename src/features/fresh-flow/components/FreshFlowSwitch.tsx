@@ -36,7 +36,7 @@ export default function FreshFlowSwitch({ open, activeRouteId, onSelect, onClose
         </header>
         <ul className="fresh-flow-switch-list">
           {FRESH_FLOW_MEDIA_WORLDS.map((world) => {
-            const active = world.routeId === activeRouteId;
+            const active = world.routeId === activeRouteId || (world.id === "short" && activeRouteId === "fresh-flow-shorts");
             return (
               <li key={world.id}>
                 <button
