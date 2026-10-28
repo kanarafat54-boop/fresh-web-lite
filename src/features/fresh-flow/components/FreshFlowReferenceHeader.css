@@ -40,8 +40,13 @@
  .fresh-flow-profile-actions{gap:2px;}
 }
 @media(max-width:420px){
- .fresh-flow-unified-header{flex-wrap:wrap;}
- .fresh-flow-unified-brand{flex:1 0 auto;}
- .fresh-flow-header-world-nav{order:3;flex:1 0 100%;width:100%;padding-bottom:2px;}
- .fresh-flow-search-icon-button{margin-left:auto;}
+ .fresh-flow-unified-header{flex-wrap:nowrap;gap:3px;padding-inline:5px;}
+ .fresh-flow-unified-brand{gap:5px;flex:0 0 auto;}
+ .fresh-flow-brand-wordmark strong{font-size:.78rem;}
+ .fresh-flow-unified-mark{width:25px;height:25px;flex-basis:25px;border-radius:7px;}
+ .fresh-flow-header-world-nav{flex:1 1 0;min-width:0;width:auto;padding:0;}
+ .fresh-flow-header-world-nav button{padding-inline:5px;font-size:.62rem;}
+ .fresh-flow-search-icon-button{display:none;}
+ .fresh-flow-unified-profile{width:27px;height:27px;flex-basis:27px;}
+ .fresh-flow-avatar-action,.fresh-flow-avatar-camera{width:20px;height:20px;flex-basis:20px;font-size:.75rem;}
 }
