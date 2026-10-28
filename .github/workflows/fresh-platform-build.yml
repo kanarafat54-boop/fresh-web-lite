@@ -49,6 +49,8 @@ jobs:
         run: npm run test:fresh-ambient-interaction
       - name: Fresh Flow fabric contract
         run: npm run test:fresh-flow-fabric
+      - name: Fresh Flow 24-system and landing UI contract
+        run: npm run test:fresh-flow-system-registry
       - name: Media worker contract
         run: npm run test:fresh-media-worker-contract
       - name: Remote media worker client contract
