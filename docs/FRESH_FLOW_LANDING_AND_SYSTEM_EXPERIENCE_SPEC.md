@@ -1,6 +1,6 @@
 # Fresh Flow Landing Page & Independent System Experiences
 
-**Status:** Product/design contract for implementation; not evidence that the UI is already implemented.
+**Status:** Product/design contract. Initial landing UI and system-specific scaffold routing are now implemented on draft PR #163; full workflows, canonical URL routing, CI, browser/device validation, and production behavior remain unverified.
 **Parent:** Fresh Web Lite
 **Reference viewport:** Android-first mobile, 390 × 844 CSS px baseline, responsive down to 320 px.
 **Visual direction:** Dark premium interface using existing Fresh Flow design tokens; readable, high-contrast, low-bandwidth aware.
@@ -128,7 +128,16 @@ Systems may reuse shared design tokens, identity, search, media processing, acce
 - Mark a system "verified" only after its dedicated UI, routes, primary journeys, failure states, accessibility checks, automated checks and production behavior have evidence.
 - Provider-dependent, rights-dependent, or hardware-dependent features must show accurate setup/availability states rather than simulated success.
 
-## 5. Acceptance checklist
+## 5. Current implementation progress
+
+- Fresh Flow Home now renders the specified hero, creation prompt, six primary shortcuts, For you / Following tabs, clearly labelled example cards, and the five-item Home / Following / Create / Messages / Profile navigation.
+- The All Systems directory renders the six families and all 24 registry entries, with a searchable list.
+- Fresh Shorts now has a separate in-app route from Fresh Flow Home. Other registry entries route either to an existing legacy experience or to a dedicated system-specific scaffold showing its own description and capability areas.
+- The system-specific scaffold is a starting point, not a claim that the listed capabilities are functional. All registry statuses remain Planned until the relevant workflows and checks pass.
+- The Figma file has been created in the Fresh Web Lite team; its editable frame population is still pending.
+- CI, TypeScript typecheck, lint, build, interactive browser/device checks, and production verification must pass before this work is considered complete.
+
+## 6. Acceptance checklist
 
 - [ ] Fresh Flow landing page follows the hierarchy and exact core copy above.
 - [ ] Bottom navigation uses Home / Following / Create / Messages / Profile and works at small Android widths.
