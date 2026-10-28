@@ -135,7 +135,8 @@ Systems may reuse shared design tokens, identity, search, media processing, acce
 - Fresh Shorts now has a separate in-app route from Fresh Flow Home. Other registry entries route either to an existing legacy experience or to a dedicated system-specific scaffold showing its own description and capability areas.
 - The system-specific scaffold is a starting point, not a claim that the listed capabilities are functional. All registry statuses remain Planned until the relevant workflows and checks pass.
 - The Figma file has been created in the Fresh Web Lite team: https://www.figma.com/design/rqDDcS2YkPWY757MVbwA5u. Its editable frame population is still pending.
-- CI, TypeScript typecheck, lint, build, interactive browser/device checks, and production verification must pass before this work is considered complete.
+- The Fresh Web Lite build gate passed on the current PR head, including the new 24-system/landing contract, TypeScript typecheck, build, lint, and profile-schema drift check. Fresh Shorts Production Gate, Fresh ID Auth Viewport Gate, Fresh ID Device Security Gate, Fresh AI integrity, and TRUEMODE Chain Verification also passed; Vercel and Netlify preview checks are successful.
+- Fresh Mail Backend Gate and Fresh AI training contracts are still running. Manual browser/device journey checks remain outstanding. The Figma file exists, but its editable frames and prototypes remain unpopulated.
 
 ## 6. Acceptance checklist
 
