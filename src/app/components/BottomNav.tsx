@@ -29,7 +29,7 @@ export default function BottomNav() {
   }, []);
 
   const moreActive = !isMobilePrimaryRoute(activeRoute);
-  const isFreshFlowRoute = activeRoute === "fresh-flow" || activeRoute.startsWith("fresh-flow-");
+  const isFreshFlowRoute = activeRoute === "fresh-flow" || (activeRoute?.startsWith("fresh-flow-") ?? false);
   const freshFlowDestinations = [
     { id: "feed", label: "Home", icon: "⌂" },
     { id: "fresh-flow-shorts", label: "Shorts", icon: "▶" },
