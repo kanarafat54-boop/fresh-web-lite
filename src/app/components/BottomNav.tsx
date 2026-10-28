@@ -70,6 +70,7 @@ export default function BottomNav() {
               </button>
             );
           })}
+          {!isFreshFlowRoute && (
           <button
             type="button"
             className={`fresh-nav-item${moreActive ? " active" : ""}`}
@@ -83,6 +84,7 @@ export default function BottomNav() {
             </span>
             <span className="fresh-nav-label">More</span>
           </button>
+          )}
         </div>
       </nav>
       <MoreSheet open={moreOpen} onClose={closeMore} />
