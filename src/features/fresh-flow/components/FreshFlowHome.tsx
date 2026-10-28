@@ -138,12 +138,12 @@ export default function FreshFlowHome({ onOpenSystem, onOpenRoute, onOpenSearch 
         </>
       )}
 
-      <nav className="fresh-flow-home-bottom-nav" aria-label="Fresh Flow navigation">
-        <button type="button" className={activeFeed === "for-you" ? "active" : ""} aria-current={activeFeed === "for-you" ? "page" : undefined} onClick={() => { setShowDirectory(false); setActiveFeed("for-you"); }}><span aria-hidden="true">⌂</span><small>Home</small></button>
-        <button type="button" className={activeFeed === "following" ? "active" : ""} aria-current={activeFeed === "following" ? "page" : undefined} onClick={() => { setShowDirectory(false); setActiveFeed("following"); }}><span aria-hidden="true">♡</span><small>Following</small></button>
+      <nav className="fresh-flow-home-bottom-nav" aria-label="Fresh Flow shortcuts">
+        <button type="button" onClick={() => onOpenRoute("feed")} aria-label="Return to Fresh Web Lite home"><span aria-hidden="true">⌂</span><small>Home</small></button>
+        <button type="button" onClick={() => onOpenSystem("fresh-shorts")}><span aria-hidden="true">▶</span><small>Shorts</small></button>
         <button type="button" onClick={() => onOpenSystem("fresh-studio")}><span aria-hidden="true">＋</span><small>Create</small></button>
         <button type="button" onClick={() => onOpenRoute("communication")}><span aria-hidden="true">▤</span><small>Messages</small></button>
-        <button type="button" onClick={() => onOpenRoute("profile")}><span aria-hidden="true">◉</span><small>Profile</small></button>
+        <button type="button" onClick={() => onOpenRoute("fresh-mail")}><span aria-hidden="true">✉</span><small>Fresh Mail</small></button>
       </nav>
     </div>
   );
