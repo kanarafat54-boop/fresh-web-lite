@@ -83,6 +83,36 @@
       "transformation": "fresh-unified-jsonl-v1 + training/screen_corpus.py (fresh-screen-v1)",
       "productionTrainingEligible": false,
       "notes": "38,981 of 39,857 rows kept after screening (715 outside-AI-style text, 65 secrets/card numbers, 96 duplicates dropped; 69 rows had emails/phones/public IPs redacted). Report: training/screening-reports/oasst1.json. Contentsha256 is of the .gz bytes. Not yet promoted to production training."
+    },
+    {
+      "sourceId": "hf-dolly-15k-screened",
+      "authorizationId": "hf-dolly-15k",
+      "sourceType": "hf-public-dataset",
+      "status": "eligible",
+      "contentLocation": "data/fresh-training/dolly.screened.jsonl.gz",
+      "contentSha256": "758ba5beb75c0f3177a3cc783edaef276ce11a6370cc584bf9e0242464798d75",
+      "license": "CC-BY-SA-3.0",
+      "trainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "https://huggingface.co/datasets/databricks/databricks-dolly-15k (dataset card: usable for any purpose, academic or commercial, under CC-BY-SA-3.0)",
+      "transformation": "fresh-unified-jsonl-v1 + training/screen_corpus.py (fresh-screen-v1)",
+      "productionTrainingEligible": false,
+      "notes": "13,190 screened instruction pairs (human-written by Databricks employees). contentSha256 is of the .gz bytes. CC-BY-SA-3.0: credit Databricks; derived dataset releases stay CC-BY-SA-3.0. Not yet promoted to production training."
+    },
+    {
+      "sourceId": "hf-wikipedia-sw-screened",
+      "authorizationId": "hf-wikipedia",
+      "sourceType": "hf-public-dataset",
+      "status": "eligible",
+      "contentLocation": "data/fresh-training/wikipedia-sw.screened.jsonl.gz",
+      "contentSha256": "21b9a47558281f3591a1713d20bc70f59fb60f58ef12fe1c877aa64d9e53ad70",
+      "license": "CC-BY-SA-3.0 / GFDL",
+      "trainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "https://huggingface.co/datasets/wikimedia/wikipedia (dataset card: cc-by-sa-3.0 and gfdl; human-written)",
+      "transformation": "fresh-unified-jsonl-v1 + training/screen_corpus.py (fresh-screen-v1)",
+      "productionTrainingEligible": false,
+      "notes": "14,959 screened Swahili Wikipedia articles (20231101.sw, prompt 'Write an article about: <title>', text truncated to 8,000 chars). contentSha256 is of the .gz bytes. CC-BY-SA-3.0/GFDL: credit Wikipedia contributors; derived releases stay share-alike. Not yet promoted to production training."
     }
   ]
 }
