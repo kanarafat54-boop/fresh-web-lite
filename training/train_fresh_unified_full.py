@@ -55,6 +55,7 @@ def main() -> int:
     ap.add_argument("--eval-blocks", type=int, default=128)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--mix-manifest", default=None)
+    ap.add_argument("--compile", action="store_true", help="torch.compile the training forward pass (try in the smoke test first)")
     args = ap.parse_args()
 
     import torch
@@ -95,6 +96,7 @@ def main() -> int:
 
     last = out / "last.pt"
     step = 0
+    resumed_loss = float("nan")
     if last.exists():
         ck = torch.load(last, map_location=device)
         model.load_state_dict(ck["model"])
@@ -102,6 +104,7 @@ def main() -> int:
         if ck.get("scaler"):
             scaler.load_state_dict(ck["scaler"])
         step = ck["step"]
+        resumed_loss = ck.get("train_loss", float("nan"))
         print(f"resumed from step {step}")
 
     def autocast():
@@ -127,12 +130,14 @@ def main() -> int:
 
     def save_last():
         tmp = out / "last.pt.tmp"
-        torch.save({"model": model.state_dict(), "optimizer": opt.state_dict(), "scaler": scaler.state_dict(), "step": step}, tmp)
+        torch.save({"model": model.state_dict(), "optimizer": opt.state_dict(), "scaler": scaler.state_dict(), "step": step,
+                    "train_loss": train_loss}, tmp)
         os.replace(tmp, last)
 
     model.train()
+    train_model = torch.compile(model) if args.compile else model
     batches = fp.iter_batches(train, args.seq_len, batch_blocks, step, args.seed)
-    t0, tok_seen, train_loss, val_loss = time.time(), 0, float("nan"), float("nan")
+    t0, session_tokens, train_loss, val_loss = time.time(), 0, resumed_loss, float("nan")
     while step < max_steps:
         xs, ys = next(batches)
         lr = fp.cosine_lr(step, warmup=args.warmup, max_steps=max_steps, peak=args.lr)
@@ -145,7 +150,7 @@ def main() -> int:
             x = torch.from_numpy(xs[sl]).to(device)
             y = torch.from_numpy(ys[sl]).to(device)
             with autocast():
-                _, loss = model(x, y)
+                _, loss = train_model(x, y)
             scaler.scale(loss / args.accum).backward()
             total += float(loss.detach()) / args.accum
         scaler.unscale_(opt)
@@ -153,12 +158,12 @@ def main() -> int:
         scaler.step(opt)
         scaler.update()
         step += 1
-        tok_seen += tokens_per_step
+        session_tokens += tokens_per_step
         train_loss = total
         if not math.isfinite(total):
             raise SystemExit(f"non-finite loss at step {step}; stopping (checkpoint kept at last save)")
         if step % 10 == 0 or step == 1:
-            rate = tok_seen / max(1e-9, time.time() - t0)
+            rate = session_tokens / max(1e-9, time.time() - t0)
             print(f"step {step}/{max_steps} loss {total:.4f} lr {lr:.2e} {rate:,.0f} tok/s")
         if step % args.eval_every == 0 or step == max_steps:
             val_loss = evaluate()
@@ -177,7 +182,8 @@ def main() -> int:
         "trainBinSha256": sha256_file(Path(args.train_bin)), "valBinSha256": sha256_file(Path(args.val_bin)),
         "mixManifestSha256": sha256_file(Path(args.mix_manifest)) if args.mix_manifest else None,
         "checkpointSha256": sha256_file(final), "parameters": n_params, "steps": step, "seqLen": args.seq_len,
-        "tokensSeen": tok_seen, "finalTrainLoss": train_loss, "heldOutLoss": val_loss,
+        "tokensSeen": step * tokens_per_step,
+        "finalTrainLoss": train_loss if math.isfinite(train_loss) else None, "heldOutLoss": val_loss,
         "heldOutPerplexity": math.exp(val_loss) if math.isfinite(val_loss) else None, "device": device,
         "pipelineSmokeTest": smoke, "productionReady": False,
         "evaluation": {"heldOutLM": "done" if math.isfinite(val_loss) else "missing", "safetyReview": "pending",
