@@ -16,6 +16,9 @@ import "./components/FreshFlowReferenceShell.css";
 import "./components/FreshFlowReferenceHeader.css";
 import "./components/FreshFlowSwitch.css";
 import "./components/FreshFlowSurfacePolish.css";
+import FreshFlowHome from "./components/FreshFlowHome";
+import FreshFlowSystemExperience from "./components/FreshFlowSystemExperience";
+import { getFreshFlowSystem } from "./core/freshFlowSystemRegistry";
 
 type FreshFlowSection = FreshFlowRouteId;
 
@@ -68,8 +71,11 @@ export default function FreshFlowHub() {
   const { activeRoute, setActiveRoute, openSearch } = useLayout();
   const { isAuthenticated, user, isGuest } = useFreshId();
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
-  const world = worldByRouteId(section);
+  const world = isShortsRoute ? worldByRouteId("fresh-flow") : worldByRouteId(section);
   const isOverview = section === "fresh-flow";
+  const isShortsRoute = section === "fresh-flow-shorts";
+  const systemRoutePrefix = "fresh-flow-system-";
+  const independentSystem = section.startsWith(systemRoutePrefix) ? getFreshFlowSystem(section.slice(systemRoutePrefix.length)) : undefined;
 
   useEffect(() => {
     if (!isOverview) setShortsImmersive(false);
@@ -208,37 +214,14 @@ export default function FreshFlowHub() {
       )}
 
       {showChrome && (
-        <nav className="fresh-flow-world-nav" aria-label="Fresh Flow media worlds">
-          <button type="button" className={section === "fresh-flow" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow")}>
-            Home
-          </button>
-          <button
-            type="button"
-            className={section === "fresh-flow-long-videos" ? "active" : ""}
-            onClick={() => setActiveRoute("fresh-flow-long-videos")}
-          >
-            Long Videos
-          </button>
-          <button
-            type="button"
-            className={section === "fresh-flow-news-posts" ? "active" : ""}
-            onClick={() => setActiveRoute("fresh-flow-news-posts")}
-          >
-            News / Posts
-          </button>
-          <button type="button" className={section === "fresh-flow-ar-vr" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-ar-vr")}>
-            AR / VR
-          </button>
-          <button
-            type="button"
-            className={section === "fresh-flow-podcasts" ? "active" : ""}
-            onClick={() => setActiveRoute("fresh-flow-podcasts")}
-          >
-            Podcasts
-          </button>
-          <button type="button" className={section === "fresh-flow-more" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-more")}>
-            Others
-          </button>
+        <nav className="fresh-flow-world-nav" aria-label="Fresh Flow systems">
+          <button type="button" className={isOverview ? "active" : ""} onClick={() => setActiveRoute("fresh-flow")}>Home</button>
+          <button type="button" className={isShortsRoute ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-shorts")}>Shorts</button>
+          <button type="button" className={section === "fresh-flow-long-videos" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-long-videos")}>Videos</button>
+          <button type="button" className={section === "fresh-flow-news-posts" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-news-posts")}>News / Posts</button>
+          <button type="button" className={section === "fresh-flow-ar-vr" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-ar-vr")}>VR / AR</button>
+          <button type="button" className={section === "fresh-flow-podcasts" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-podcasts")}>Podcasts</button>
+          <button type="button" className={section === "fresh-flow-more" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-more")}>Others</button>
         </nav>
       )}
 
@@ -258,7 +241,7 @@ export default function FreshFlowHub() {
         </div>
       )}
 
-      {((showChrome && !isOverview) || (isOverview && shortsImmersive)) && world.discovery.length > 0 && (
+      {((showChrome && !isOverview) || (isShortsRoute && shortsImmersive)) && world.discovery.length > 0 && (
         <nav
           className={shortsImmersive ? "fresh-flow-discovery-rail fresh-flow-discovery-rail-immersive" : "fresh-flow-discovery-rail"}
           aria-label={`${world.label} discovery`}
@@ -272,8 +255,31 @@ export default function FreshFlowHub() {
       )}
 
       <main className="fresh-flow-media-content">
-        {section === "fresh-flow" ? (
+        {isOverview ? (
+          <FreshFlowHome
+            onOpenSearch={openFreshSearch}
+            onOpenRoute={setActiveRoute}
+            onOpenSystem={(systemId) => {
+              const routeMap: Record<string, string> = {
+                "fresh-shorts": "fresh-flow-shorts",
+                "long-video": "fresh-flow-long-videos",
+                "fresh-news": "fresh-flow-news-posts",
+                "fresh-posts": "fresh-flow-news-posts",
+                "vr-ar-spatial": "fresh-flow-ar-vr",
+                "fresh-podcasts": "fresh-flow-podcasts",
+                "fresh-studio": "fresh-flow-system-fresh-studio",
+              };
+              setActiveRoute(routeMap[systemId] ?? `fresh-flow-system-${systemId}`);
+            }}
+          />
+        ) : isShortsRoute ? (
           <FreshFlowShortsExperience onOpenTopic={openTopicSearch} onImmersiveChange={setShortsImmersive} />
+        ) : independentSystem ? (
+          <FreshFlowSystemExperience
+            system={independentSystem}
+            onBack={() => setActiveRoute("fresh-flow")}
+            onOpenStudio={() => setActiveRoute("fresh-flow-system-fresh-studio")}
+          />
         ) : section === "fresh-flow-news-posts" ? (
           <FreshFlowNewsPosts discoveryId={discoveryId} />
         ) : (
