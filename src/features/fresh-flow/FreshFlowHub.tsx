@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLayout } from "../../app/contexts/useLayout";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
 import { getWalletSummary, formatWalletBalance, type WalletSummary } from "./core/walletService";
@@ -85,6 +85,16 @@ export default function FreshFlowHub() {
   }, [isShortsRoute]);
 
   const [flowSwitchOpen, setFlowSwitchOpen] = useState(false);
+  const [liveMenuOpen, setLiveMenuOpen] = useState(false);
+  const previousRoute = useRef<string>("fresh-flow");
+  const currentRoute = useRef<string>(section);
+  useEffect(() => {
+    if (section !== currentRoute.current) {
+      previousRoute.current = currentRoute.current;
+      currentRoute.current = section;
+    }
+  }, [section]);
+  const goBack = () => setActiveRoute(previousRoute.current !== section ? previousRoute.current : "fresh-flow");
   const [discoveryId, setDiscoveryId] = useState(world.discovery[0]?.id ?? "for-you");
   const [theme, setTheme] = useState<"dark" | "light">(readInitialTheme);
 
@@ -214,11 +224,24 @@ export default function FreshFlowHub() {
       )}
 
       {showChrome && (
-        <nav className="fresh-flow-world-nav" aria-label="Fresh Flow systems">
-          <button type="button" className={isOverview ? "active" : ""} onClick={() => setActiveRoute("fresh-flow")}>Home</button>
+        <nav className="fresh-flow-world-nav" aria-label="Fresh Flow navigation">
+          <button type="button" onClick={() => setActiveRoute("feed")} aria-label="Return to Fresh Web Lite home">⌂ Home</button>
+          <button type="button" className={isOverview ? "active" : ""} onClick={() => setActiveRoute("fresh-flow")}>Flow Home</button>
           <button type="button" className={isShortsRoute ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-shorts")}>Shorts</button>
           <button type="button" className={section === "fresh-flow-long-videos" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-long-videos")}>Videos</button>
-          <button type="button" className={section === "fresh-flow-news-posts" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-news-posts")}>News / Posts</button>
+          <button type="button" className={section === "fresh-flow-news-posts" && discoveryId === "news" ? "active" : ""} onClick={() => { setActiveRoute("fresh-flow-news-posts"); setDiscoveryId("news"); }}>News</button>
+          <button type="button" className={section === "fresh-flow-news-posts" && discoveryId === "posts" ? "active" : ""} onClick={() => { setActiveRoute("fresh-flow-news-posts"); setDiscoveryId("posts"); }}>Posts</button>
+          <div className="fresh-flow-live-nav">
+            <button type="button" className={section === "fresh-flow-system-live-creation" || section === "fresh-flow-system-radio-audio-live" ? "active" : ""} onClick={() => setLiveMenuOpen((open) => !open)} aria-expanded={liveMenuOpen} aria-haspopup="menu">● Live ▾</button>
+            {liveMenuOpen && <div className="fresh-flow-live-menu" role="menu" aria-label="Live experiences">
+              <button type="button" role="menuitem" onClick={() => { setActiveRoute("fresh-flow-system-live-creation"); setLiveMenuOpen(false); }}>Video Live & Broadcast</button>
+              <button type="button" role="menuitem" onClick={() => { setActiveRoute("fresh-flow-system-radio-audio-live"); setLiveMenuOpen(false); }}>Audio Live & Rooms</button>
+              <button type="button" role="menuitem" onClick={() => { setActiveRoute("fresh-flow-system-events-performances"); setLiveMenuOpen(false); }}>Events & Performances</button>
+              <button type="button" role="menuitem" onClick={() => { setActiveRoute("fresh-flow-system-gaming-esports"); setLiveMenuOpen(false); }}>Gaming & Esports Live</button>
+            </div>}
+          </div>
+          <button type="button" onClick={() => setActiveRoute("communication")}>Messages</button>
+          <button type="button" onClick={() => setActiveRoute("fresh-mail")}>Fresh Mail</button>
           <button type="button" className={section === "fresh-flow-ar-vr" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-ar-vr")}>VR / AR</button>
           <button type="button" className={section === "fresh-flow-podcasts" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-podcasts")}>Podcasts</button>
           <button type="button" className={section === "fresh-flow-more" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-more")}>Others</button>
@@ -227,7 +250,7 @@ export default function FreshFlowHub() {
 
       {showChrome && !isOverview && (
         <div className="fresh-flow-section-bar">
-          <button type="button" className="fresh-flow-back-button" onClick={() => setActiveRoute("fresh-flow")} aria-label="Back to Fresh Flow home">
+          <button type="button" className="fresh-flow-back-button" onClick={goBack} aria-label="Back to previous experience">
             <span aria-hidden="true">‹</span>
             <span>Home</span>
           </button>
