@@ -67,11 +67,9 @@ export default function FreshFlowHub() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
   const [shortsImmersive, setShortsImmersive] = useState(false);
-  const [navigationVisible, setNavigationVisible] = useState(true);
   const scrollIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const setVisibility = (visible: boolean) => {
-      setNavigationVisible(visible);
       window.dispatchEvent(new CustomEvent("fresh-flow-navigation-visibility", { detail: { visible } }));
     };
     const markScrolling = () => {
