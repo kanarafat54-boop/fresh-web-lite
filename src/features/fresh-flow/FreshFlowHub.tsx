@@ -170,7 +170,7 @@ export default function FreshFlowHub() {
     setSearchOpen(true);
   };
 
-  const showChrome = !shortsImmersive && !independentSystem;
+  const showChrome = !shortsImmersive;
 
   return (
     <div
@@ -181,10 +181,10 @@ export default function FreshFlowHub() {
     >
       {showChrome && (
         <header className="fresh-flow-reference-header fresh-flow-unified-header">
-          <button type="button" className="fresh-flow-unified-brand" onClick={() => setActiveRoute("fresh-flow")} aria-label="Fresh Flow home">
+          <div className="fresh-flow-unified-brand" aria-label="Fresh Flow">
             <span className="fresh-flow-unified-mark" aria-hidden="true">F</span>
             <span className="fresh-flow-brand-wordmark"><strong>Fresh Flow</strong><small>Discover. Connect. Create.</small></span>
-          </button>
+          </div>
           <nav className="fresh-flow-header-world-nav" aria-label="Fresh Flow media">
             <button type="button" className={section === "fresh-flow-system-live-creation" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-system-live-creation")}>Live</button>
             <button type="button" className={section === "fresh-flow-ar-vr" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-ar-vr")}>VR / AR</button>
