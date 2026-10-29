@@ -7,6 +7,8 @@ on:
       - "src/app/components/BottomNav.*"
       - "src/app/AppShell.tsx"
       - "scripts/browser-test-fresh-flow-navigation.mjs"
+      - "scripts/browser-test-fresh-shorts.mjs"
+      - "scripts/test-fresh-short-watch-signals.mjs"
       - ".github/workflows/fresh-flow-navigation.yml"
   push:
     branches: [main]
@@ -14,6 +16,8 @@ on:
       - "src/features/fresh-flow/**"
       - "src/app/components/BottomNav.*"
       - "scripts/browser-test-fresh-flow-navigation.mjs"
+      - "scripts/browser-test-fresh-shorts.mjs"
+      - "scripts/test-fresh-short-watch-signals.mjs"
       - ".github/workflows/fresh-flow-navigation.yml"
 
 permissions:
@@ -45,3 +49,9 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Two-navigation layout at 320/360/390/430px
         run: node scripts/browser-test-fresh-flow-navigation.mjs dist
+      - name: Short watch-signal logic
+        run: node scripts/test-fresh-short-watch-signals.mjs
+      - name: Install ffmpeg (synthetic test clips)
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Shorts pager behavior at 320/390/430px
+        run: node scripts/browser-test-fresh-shorts.mjs dist
