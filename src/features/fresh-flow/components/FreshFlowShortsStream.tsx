@@ -12,7 +12,6 @@ import {
   releaseDistantMedia,
   retryVideo,
   shouldFetchNextPage,
-  syncVideoPlayback,
 } from "../../shorts/core/FreshShortsRuntime";
 import { sendGift, getGiftTotals, type GiftTotal } from "../core/giftService";
 import { interactWithShort, removeShortInteraction } from "../../shorts/core/ShortsUniversalInteractionAdapter";
@@ -21,7 +20,8 @@ import type { Short } from "../../shorts/types/short";
 import { getSocialAuthorIds, setAuthorFollow } from "../core/social";
 import { useFreshFlowFeedRefresh } from "../core/useFreshFlowFeedRefresh";
 import { useFreshFlowRuntime } from "../core/useFreshFlowRuntime";
-import { FreshFlowTelemetryBuffer } from "../core/freshFlowTelemetry";
+import { FreshFlowTelemetryBuffer, type FreshFlowTelemetryEvent } from "../core/freshFlowTelemetry";
+import { WatchTracker } from "../core/shortWatchSignals";
 import { recordFreshFlowEvents } from "../../../core/platform/freshPlatformRuntime";
 import {
   SHORT_DISCOVERY_TABS,
@@ -60,6 +60,8 @@ const ADVANCED_ACTIONS: Array<{ id: AdvancedAction; label: string; icon: string;
 ];
 
 const FRESH_FLOW_POSITION_KEY = "fresh-flow-position";
+const FRESH_FLOW_SOUND_KEY = "fresh-flow-sound";
+const DOUBLE_TAP_MS = 280;
 
 function normalizeSubTab(raw: unknown): SubTab {
   if (raw === "fresh-picks") return "more";
@@ -112,6 +114,21 @@ export default function FreshFlowShortsStream({
   const telemetryRef = useRef(new FreshFlowTelemetryBuffer());
   const sessionIdRef = useRef<string>(crypto.randomUUID());
   const { replaceQueue, appendQueue, setActive: setRuntimeActive } = useFreshFlowRuntime();
+  const [soundOn, setSoundOn] = useState<boolean>(() => {
+    try { return window.localStorage.getItem(FRESH_FLOW_SOUND_KEY) !== "off"; } catch { return true; }
+  });
+  const [soundBlocked, setSoundBlocked] = useState(false);
+  const [playFlash, setPlayFlash] = useState<{ id: string; paused: boolean; key: number } | null>(null);
+  const [heartBurst, setHeartBurst] = useState<{ id: string; key: number } | null>(null);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const lastTapRef = useRef<{ id: string; at: number } | null>(null);
+  const tapTimerRef = useRef<number | null>(null);
+  const flashKeyRef = useRef(0);
+
+  const track = (event: FreshFlowTelemetryEvent, mediaId: string, positionMs?: number, durationMs?: number) => {
+    telemetryRef.current.push({ event, mediaId, world: "short", sessionId: sessionIdRef.current, positionMs, durationMs });
+    if (telemetryRef.current.size() >= 10) void flushTelemetry();
+  };
 
   const flushTelemetry = async () => {
     if (!user || isGuest || telemetryRef.current.size() === 0) return;
@@ -156,6 +173,7 @@ export default function FreshFlowShortsStream({
             ? rankForYou(candidates, viewedRef.current)
             : rankFreshFlow(candidates);
       setShorts(ranked);
+      setSavedIds(new Set(result.savedIds));
       replaceQueue(ranked.map((short) => ({
         id: short.id,
         kind: "short",
@@ -277,6 +295,7 @@ export default function FreshFlowShortsStream({
 
   useEffect(() => {
     return () => {
+      if (tapTimerRef.current !== null) window.clearTimeout(tapTimerRef.current);
       void flushTelemetry();
     };
   }, [user?.id, isGuest]);
@@ -301,6 +320,8 @@ export default function FreshFlowShortsStream({
     return () => container.removeEventListener("scroll", onScroll);
   }, [currentIndex, shorts.length, hasMore, subTab, filterMode]);
 
+  // Exactly one video plays. Sound is on after the first gesture; if the browser
+  // blocks unmuted autoplay we fall back to muted playback and say so.
   useEffect(() => {
     const nodes = containerRef.current?.querySelectorAll<HTMLVideoElement>("video[data-short-id]") ?? [];
     const videos = new Map<number, HTMLVideoElement>();
@@ -308,9 +329,87 @@ export default function FreshFlowShortsStream({
       const index = Number(video.closest<HTMLElement>(".fresh-flow-item")?.dataset.index);
       if (Number.isFinite(index)) videos.set(index, video);
     });
-    syncVideoPlayback(videos, currentIndex, true);
+    videos.forEach((video, index) => {
+      if (index !== currentIndex) {
+        video.muted = true;
+        if (!video.paused) video.pause();
+      }
+    });
     releaseDistantMedia(videos, currentIndex, FRESH_SHORTS_PREFETCH_RADIUS + 2);
-  }, [currentIndex, shorts]);
+    const active = videos.get(currentIndex);
+    if (!active) return;
+    let cancelled = false;
+    active.muted = !soundOn;
+    void active.play().then(() => {
+      if (!cancelled) setSoundBlocked(false);
+    }).catch(async () => {
+      if (cancelled || active.muted) return;
+      active.muted = true;
+      if (soundOn) setSoundBlocked(true);
+      try { await active.play(); } catch { /* playback needs a tap; the tap layer starts it */ }
+    });
+    return () => { cancelled = true; };
+  }, [currentIndex, shorts, soundOn]);
+
+  // Pause when the tab/app is hidden; resume the active video when it returns.
+  useEffect(() => {
+    const onVisibility = () => {
+      const video = containerRef.current?.querySelector<HTMLVideoElement>(`.fresh-flow-item[data-index="${currentIndex}"] video`);
+      if (!video) return;
+      if (document.hidden) { video.pause(); void flushTelemetry(); }
+      else void video.play().catch(() => undefined);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [currentIndex, user?.id, isGuest]);
+
+  // Watch behavior for the active Short: quartiles, loop completions and skips.
+  const activeShortId = shorts[currentIndex]?.id;
+  useEffect(() => {
+    if (!activeShortId) return;
+    const item = containerRef.current?.querySelector<HTMLElement>(`.fresh-flow-item[data-index="${currentIndex}"]`);
+    const video = item?.querySelector<HTMLVideoElement>("video");
+    if (!item || !video) return;
+    const fill = item.querySelector<HTMLElement>(".fresh-flow-progress-fill");
+    const tracker = new WatchTracker();
+    let started = false;
+    const onTime = () => {
+      const durationMs = video.duration * 1000;
+      const positionMs = video.currentTime * 1000;
+      if (!Number.isFinite(durationMs) || durationMs <= 0) return;
+      if (fill) fill.style.width = `${Math.min(100, (positionMs / durationMs) * 100)}%`;
+      if (video.paused) return;
+      if (!started) { started = true; track("play_start", activeShortId, positionMs, durationMs); }
+      const tick = tracker.update(positionMs, durationMs);
+      for (const milestone of tick.milestones) track(milestone, activeShortId, positionMs, durationMs);
+      if (tick.completedLoop) track("complete", activeShortId, positionMs, durationMs);
+    };
+    video.addEventListener("timeupdate", onTime);
+    return () => {
+      video.removeEventListener("timeupdate", onTime);
+      if (!started) return;
+      const durationMs = video.duration * 1000;
+      if (tracker.leave(durationMs) === "skip") track("skip", activeShortId, Math.round(video.currentTime * 1000), Number.isFinite(durationMs) ? Math.round(durationMs) : undefined);
+    };
+  }, [activeShortId]);
+
+  // Desktop/keyboard paging: ↓ / PageDown / J next, ↑ / PageUp / K previous.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && (target.closest("input, textarea, select, [contenteditable='true']") || target.closest("[role='dialog']"))) return;
+      const container = containerRef.current;
+      if (!container) return;
+      const next = event.key === "ArrowDown" || event.key === "PageDown" || event.key.toLowerCase() === "j";
+      const previous = event.key === "ArrowUp" || event.key === "PageUp" || event.key.toLowerCase() === "k";
+      if (!next && !previous) return;
+      event.preventDefault();
+      const target_index = Math.max(0, Math.min(shorts.length - 1, currentIndex + (next ? 1 : -1)));
+      container.scrollTo({ top: target_index * container.clientHeight, behavior: "smooth" });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [currentIndex, shorts.length]);
 
   useEffect(() => {
     if (restoreIndexRef.current != null && shorts.length > restoreIndexRef.current) {
@@ -351,6 +450,7 @@ export default function FreshFlowShortsStream({
       }
 
       await interactWithShort(user.id, shortId, "react", { reaction: kind });
+      track("like", shortId);
       setShorts((prev) =>
         prev.map((s) =>
           s.id === shortId
@@ -415,6 +515,118 @@ export default function FreshFlowShortsStream({
     } catch (error) {
       pushNotification({ title: "Follow failed", message: error instanceof Error ? error.message : "Fresh could not update the follow right now." });
     }
+  }
+
+  function activeVideo(index: number): HTMLVideoElement | null {
+    return containerRef.current?.querySelector<HTMLVideoElement>(`.fresh-flow-item[data-index="${index}"] video`) ?? null;
+  }
+
+  function togglePlayback(short: Short, index: number) {
+    const video = activeVideo(index);
+    if (!video) return;
+    flashKeyRef.current += 1;
+    if (video.paused) {
+      void video.play().catch(() => undefined);
+      setPlayFlash({ id: short.id, paused: false, key: flashKeyRef.current });
+    } else {
+      video.pause();
+      setPlayFlash({ id: short.id, paused: true, key: flashKeyRef.current });
+    }
+  }
+
+  /** Single tap = play/pause, double tap = like (never un-like), like TikTok. */
+  function handleTap(short: Short, index: number) {
+    const now = Date.now();
+    const last = lastTapRef.current;
+    if (last && last.id === short.id && now - last.at < DOUBLE_TAP_MS) {
+      lastTapRef.current = null;
+      if (tapTimerRef.current !== null) { window.clearTimeout(tapTimerRef.current); tapTimerRef.current = null; }
+      flashKeyRef.current += 1;
+      setHeartBurst({ id: short.id, key: flashKeyRef.current });
+      if (short.myReaction !== "like") void handleReaction(short.id, "like" as UniversalReactionKind);
+      return;
+    }
+    lastTapRef.current = { id: short.id, at: now };
+    if (tapTimerRef.current !== null) window.clearTimeout(tapTimerRef.current);
+    tapTimerRef.current = window.setTimeout(() => {
+      tapTimerRef.current = null;
+      lastTapRef.current = null;
+      togglePlayback(short, index);
+    }, DOUBLE_TAP_MS);
+  }
+
+  function toggleSound() {
+    const next = !soundOn;
+    setSoundOn(next);
+    setSoundBlocked(false);
+    try { window.localStorage.setItem(FRESH_FLOW_SOUND_KEY, next ? "on" : "off"); } catch { /* ignore */ }
+  }
+
+  /** Called from a real tap, so the browser allows unmuted playback now. */
+  function enableSound(index: number) {
+    const video = activeVideo(index);
+    setSoundOn(true);
+    setSoundBlocked(false);
+    try { window.localStorage.setItem(FRESH_FLOW_SOUND_KEY, "on"); } catch { /* ignore */ }
+    if (video) { video.muted = false; void video.play().catch(() => undefined); }
+  }
+
+  async function handleSave(short: Short) {
+    if (!user || isGuest) { pushNotification({ title: "Sign in to save", message: "Sign in to save Shorts to your collection." }); return; }
+    const saved = savedIds.has(short.id);
+    try {
+      if (saved) await removeShortInteraction(user.id, short.id, "save");
+      else await interactWithShort(user.id, short.id, "save");
+      setSavedIds((current) => { const next = new Set(current); if (saved) next.delete(short.id); else next.add(short.id); return next; });
+      if (!saved) track("save", short.id);
+    } catch (error) {
+      pushNotification({ title: "Save failed", message: error instanceof Error ? error.message : "Fresh could not update your saved Shorts.", type: "error" });
+    }
+  }
+
+  async function handleRepost(short: Short) {
+    setAdvancedOpen(false);
+    if (!user || isGuest) { pushNotification({ title: "Sign in to repost", message: "Sign in to share Shorts with your followers." }); return; }
+    if (short.authorId === user.id) { pushNotification({ title: "Repost unavailable", message: "You cannot repost your own Short." }); return; }
+    const reposted = Boolean(short.repostedByMe);
+    try {
+      if (reposted) await removeShortInteraction(user.id, short.id, "repost");
+      else await interactWithShort(user.id, short.id, "repost");
+      setShorts((prev) => prev.map((item) => item.id === short.id ? { ...item, repostedByMe: !reposted, repostCount: Math.max(0, item.repostCount + (reposted ? -1 : 1)) } : item));
+    } catch (error) {
+      pushNotification({ title: "Repost failed", message: error instanceof Error ? error.message : "Fresh could not update your repost.", type: "error" });
+    }
+  }
+
+  async function handleShare(short: Short) {
+    setAdvancedOpen(false);
+    // There is no per-Short deep link yet, so we share the Fresh Flow entry point with the caption.
+    const url = `${window.location.origin}/fresh-flow`;
+    const text = short.caption ? `${short.caption} — @${short.authorUsername} on Fresh` : `A Short by @${short.authorUsername} on Fresh`;
+    let channel = "copy";
+    try {
+      if (typeof navigator.share === "function") {
+        channel = "native";
+        await navigator.share({ title: "Fresh Short", text, url });
+      } else {
+        await navigator.clipboard.writeText(`${text} ${url}`);
+        pushNotification({ title: "Link copied", message: "Paste it anywhere to share this Short.", type: "success" });
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      pushNotification({ title: "Share failed", message: "Fresh could not open sharing on this device.", type: "error" });
+      return;
+    }
+    track("share", short.id);
+    if (user && !isGuest) void interactWithShort(user.id, short.id, "share", { payload: { channel } }).catch(() => undefined);
+  }
+
+  function handleNotInterested(short: Short) {
+    setAdvancedOpen(false);
+    // Recorded as a skip so ranking learns from it; hides the item for this session.
+    track("skip", short.id);
+    setShorts((prev) => prev.filter((item) => item.id !== short.id));
+    pushNotification({ title: "Hidden", message: "This Short is hidden for now." });
   }
 
   function openFreshAI(prompt: string) {
@@ -518,15 +730,22 @@ export default function FreshFlowShortsStream({
               data-short-id={short.id}
             >
               <video
+                className="fresh-flow-video"
                 data-short-id={short.id}
                 src={short.videoUrl}
                 playsInline
-                muted={index !== currentIndex}
+                muted={!soundOn || index !== currentIndex}
                 loop
                 preload={Math.abs(index - currentIndex) <= FRESH_SHORTS_PREFETCH_RADIUS ? "auto" : "none"}
                 onError={(e) => retryVideo(e.currentTarget, 0)}
               />
-              <span className="fresh-flow-badge-short">FRESH SHORT</span>
+              <button type="button" className="fresh-flow-tap-layer" onClick={() => handleTap(short, index)} aria-label="Play or pause. Double tap to like." />
+              {playFlash?.id === short.id && <span key={playFlash.key} className="fresh-flow-play-flash" aria-hidden="true">{playFlash.paused ? "❚❚" : "▶"}</span>}
+              {heartBurst?.id === short.id && <span key={heartBurst.key} className="fresh-flow-heart-burst" aria-hidden="true">❤</span>}
+              {index === currentIndex && soundBlocked && (
+                <button type="button" className="fresh-flow-sound-pill" onClick={() => enableSound(index)} aria-label="Turn sound on">🔇 Tap for sound</button>
+              )}
+              <div className="fresh-flow-progress" aria-hidden="true"><i className="fresh-flow-progress-fill" /></div>
               <div className="fresh-flow-overlay">
                 <div className="fresh-flow-meta">
                   <h3>{short.caption || "Fresh Short"}</h3>
@@ -547,18 +766,23 @@ export default function FreshFlowShortsStream({
                     variant="short"
                     onReact={(kind) => void handleReaction(short.id, kind as UniversalReactionKind)}
                   />
-                  <button type="button" onClick={() => setOpenCommentsFor(short.id)} aria-label="Comments">
+                  <button type="button" onClick={() => { setOpenCommentsFor(short.id); track("comment_open", short.id); }} aria-label="Comments">
                     <span>💬</span>
                     <span>{short.commentCount}</span>
+                  </button>
+                  <button type="button" onClick={() => void handleSave(short)} aria-label={savedIds.has(short.id) ? "Remove from saved" : "Save"} aria-pressed={savedIds.has(short.id)} className={savedIds.has(short.id) ? "saved" : ""}>
+                    <span>{savedIds.has(short.id) ? "🔖" : "🏷"}</span>
+                    <span>{savedIds.has(short.id) ? "Saved" : "Save"}</span>
+                  </button>
+                  <button type="button" onClick={() => void handleShare(short)} aria-label="Share">
+                    <span>↗</span>
+                    <span>Share</span>
                   </button>
                   <button type="button" onClick={() => void handleGift(short, "100")} aria-label="Send gift" className="gift">
                     <span>🎁</span>
                     <span>{giftTotals.get(short.id)?.count ?? 0}</span>
                   </button>
-                  <button type="button" onClick={() => setFreshAiPanelOpen((v) => !v)} aria-label="Fresh AI" className="fresh-flow-ai-action">
-                    <span>✦</span><span>Fresh AI</span>
-                  </button>
-                  <button type="button" onClick={() => setAdvancedOpen((v) => !v)} aria-label="More">
+                  <button type="button" onClick={() => setAdvancedOpen((v) => !v)} aria-label="More" aria-expanded={advancedOpen && index === currentIndex}>
                     <span>⋯</span>
                   </button>
                 </div>
@@ -573,12 +797,24 @@ export default function FreshFlowShortsStream({
                   </div>
                 )}
                 {advancedOpen && index === currentIndex && (
-                  <div className="fresh-flow-advanced">
+                  <div className="fresh-flow-advanced" role="group" aria-label="More actions">
+                    <button type="button" onClick={() => void handleRepost(short)}>
+                      <span>🔁</span> {short.repostedByMe ? "Undo repost" : "Repost"}{short.repostCount ? ` · ${short.repostCount}` : ""}
+                    </button>
+                    <button type="button" onClick={() => { setAdvancedOpen(false); setFreshAiPanelOpen(true); }}>
+                      <span>✦</span> Ask Fresh AI
+                    </button>
+                    <button type="button" onClick={toggleSound}>
+                      <span>{soundOn ? "🔊" : "🔇"}</span> {soundOn ? "Mute sound" : "Turn sound on"}
+                    </button>
                     {ADVANCED_ACTIONS.map((a) => (
                       <button key={a.id} type="button" onClick={() => openAdvanced(a.id, short)} title={a.description}>
                         <span>{a.icon}</span> {a.label}
                       </button>
                     ))}
+                    <button type="button" onClick={() => handleNotInterested(short)}>
+                      <span>🚫</span> Not interested
+                    </button>
                   </div>
                 )}
               </div>
@@ -587,38 +823,6 @@ export default function FreshFlowShortsStream({
         )}
       </div>
 
-      {(subTab === "for-you" || subTab === "more") && (
-        <section className="fresh-flow-picks" aria-label="Fresh Picks for You">
-          <div className="fresh-flow-picks-header">
-            <h2>✦ Fresh Picks for You</h2>
-            <button type="button" className="fresh-flow-picks-see-all" onClick={() => setSubTab("more")}>
-              See all
-            </button>
-          </div>
-          <div className="fresh-flow-picks-rail">
-            {[
-              { title: "Gaming Live", sub: "2.1K watching", tone: "ai", live: true },
-              { title: "AI & Tech News", sub: "Latest updates", tone: "ai", live: false },
-              { title: "Travel Diaries", sub: "Beautiful places", tone: "travel", live: false },
-              { title: "Mindset Podcast", sub: "New Episode", tone: "pod", live: false },
-              { title: "VR Adventure", sub: "Explore Worlds", tone: "vr", live: false },
-              { title: "Creator Hub", sub: "Tools & Tips", tone: "hub", live: false },
-            ].map((pick) => (
-              <button
-                key={pick.title}
-                type="button"
-                className={`fresh-flow-pick-card tone-${pick.tone}`}
-                onClick={() => onOpenTopic?.(pick.title)}
-                aria-label={`Discover ${pick.title} in Fresh Flow`}
-              >
-                {pick.live && <span className="fresh-flow-pick-live">Live Now</span>}
-                <strong>{pick.title}</strong>
-                <small>{pick.sub}</small>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
       {openCommentsFor && (
         <CommentPanel targetType="short" targetId={openCommentsFor} onClose={() => setOpenCommentsFor(null)} />
       )}

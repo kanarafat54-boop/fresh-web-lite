@@ -82,13 +82,14 @@ export default function FreshFlowHub() {
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
-  const [shortsImmersive, setShortsImmersive] = useState(false);
   const scrollIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const setVisibility = (visible: boolean) => {
       window.dispatchEvent(new CustomEvent("fresh-flow-navigation-visibility", { detail: { visible } }));
     };
     const markScrolling = () => {
+      // Shorts pages like a vertical pager; both navigations stay put while it scrolls.
+      if (isShortsRoute) return;
       setVisibility(false);
       if (scrollIdleTimer.current) clearTimeout(scrollIdleTimer.current);
       scrollIdleTimer.current = setTimeout(() => setVisibility(true), 700);
@@ -101,10 +102,7 @@ export default function FreshFlowHub() {
       if (scrollIdleTimer.current) clearTimeout(scrollIdleTimer.current);
       window.dispatchEvent(new CustomEvent("fresh-flow-navigation-visibility", { detail: { visible: true } }));
     };
-  }, [section]);
-  useEffect(() => {
-    if (!isShortsRoute) setShortsImmersive(false);
-  }, [isShortsRoute]);
+  }, [section, isShortsRoute]);
 
   const [flowSwitchOpen, setFlowSwitchOpen] = useState(false);
   const flowAvatarInputRef = useRef<HTMLInputElement>(null);
@@ -150,17 +148,14 @@ export default function FreshFlowHub() {
     setSearchOpen(true);
   };
 
-  const showChrome = !shortsImmersive;
-
   return (
     <div
-      className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}${shortsImmersive ? " immersive-shorts" : ""}`}
+      className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}`}
       aria-label="Fresh Flow"
       data-media-world={world.id}
       data-surface={world.surface}
     >
-      {showChrome && (
-        <header className="fresh-flow-reference-header fresh-flow-unified-header" data-navigation="top">
+      <header className="fresh-flow-reference-header fresh-flow-unified-header" data-navigation="top">
           <button type="button" className="fresh-flow-unified-brand" onClick={() => setActiveRoute("fresh-flow")} aria-label="Fresh Flow home">
             <span className="fresh-flow-unified-mark" aria-hidden="true">F</span>
             <span className="fresh-flow-brand-wordmark"><strong>Fresh Flow</strong><small>Discover. Connect. Create.</small></span>
@@ -181,9 +176,8 @@ export default function FreshFlowHub() {
             </button>
           </div>
         </header>
-      )}
 
-      {showChrome && !isOverview && !isShortsRoute && !independentSystem && world.discovery.length > 0 && (
+      {!isOverview && !isShortsRoute && !independentSystem && world.discovery.length > 0 && (
         <div className="fresh-flow-discovery-rail" role="group" aria-label={`${world.label} filters`}>
           {world.discovery.map((mode) => (
             <button key={mode.id} type="button" className={discoveryId === mode.id ? "active" : ""} aria-pressed={discoveryId === mode.id} onClick={() => setDiscoveryId(mode.id)}>
@@ -212,7 +206,7 @@ export default function FreshFlowHub() {
             }}
           />
         ) : isShortsRoute ? (
-          <FreshFlowShortsExperience onOpenTopic={openTopicSearch} onImmersiveChange={setShortsImmersive} />
+          <FreshFlowShortsExperience onOpenTopic={openTopicSearch} />
         ) : independentSystem ? (
           <FreshFlowSystemExperience
             system={independentSystem}
