@@ -5,6 +5,10 @@
 **Operating mode:** parallel discovery/design/contracts, integrated through reviewed vertical slices
 **Status semantics:** Proposed ≠ implemented; implemented ≠ verified; verified requires recorded evidence.
 
+## Canonical all-media architecture
+
+The complete open-world taxonomy, universal media object, live topology catalogue, domain/data-plane architecture, lifecycle, security, extensibility and phased acceptance gates are defined in [`FRESH_FLOW_UNIVERSAL_MEDIA_ARCHITECTURE.md`](./FRESH_FLOW_UNIVERSAL_MEDIA_ARCHITECTURE.md). This is the scope contract: workstream sequencing may prioritize slices, but must not turn the six navigation destinations into a media limit. Keep the capability registry, runtime fabric, Figma mapping and operational readiness register aligned with it.
+
 ## Mission
 
 Deliver Fresh Flow as an extensible media ecosystem, not a fixed menu. The existing six destinations remain entry points only. The capability system must allow new formats and experiences to be added through adapters and policy-checked registrations rather than a redesign of navigation or a closed TypeScript union.
