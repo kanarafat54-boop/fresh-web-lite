@@ -22,6 +22,22 @@ import { supabase } from "../../lib/supabase";
 
 type FreshFlowSection = FreshFlowRouteId;
 
+/**
+ * Top navigation (1 of exactly 2): which media you are in.
+ * Bottom navigation (2 of 2, BottomNav.tsx): platform destinations.
+ * Shorts is the bottom bar's Flow entry, so it is intentionally not repeated here.
+ */
+const TOP_NAVIGATION: Array<{ label: string; route: string; isActive: (section: string, systemId?: string) => boolean }> = [
+  { label: "Discover", route: "fresh-flow", isActive: (section) => section === "fresh-flow" },
+  { label: "Videos", route: "fresh-flow-long-videos", isActive: (section) => section === "fresh-flow-long-videos" },
+  { label: "News / Posts", route: "fresh-flow-news-posts", isActive: (section) => section === "fresh-flow-news-posts" },
+  { label: "Live", route: "fresh-flow-system-live-creation", isActive: (_section, systemId) => systemId === "live-creation" || systemId === "fresh-live" },
+  { label: "VR / AR", route: "fresh-flow-ar-vr", isActive: (section) => section === "fresh-flow-ar-vr" },
+  { label: "Podcasts", route: "fresh-flow-podcasts", isActive: (section) => section === "fresh-flow-podcasts" },
+  { label: "Music", route: "fresh-flow-system-fresh-music", isActive: (_section, systemId) => systemId === "fresh-music" },
+  { label: "Others", route: "fresh-flow-more", isActive: (section) => section === "fresh-flow-more" },
+];
+
 const SECTION_COPY = {
   "fresh-flow-long-videos": {
     name: "Long Videos",
@@ -119,15 +135,6 @@ export default function FreshFlowHub() {
     };
     reader.readAsDataURL(file);
   };
-  const previousRoute = useRef<string>("fresh-flow");
-  const currentRoute = useRef<string>(section);
-  useEffect(() => {
-    if (section !== currentRoute.current) {
-      previousRoute.current = currentRoute.current;
-      currentRoute.current = section;
-    }
-  }, [section]);
-  const goBack = () => setActiveRoute(previousRoute.current !== section ? previousRoute.current : "fresh-flow");
   const [discoveryId, setDiscoveryId] = useState(world.discovery[0]?.id ?? "for-you");
   useEffect(() => {
     setDiscoveryId(world.discovery[0]?.id ?? "for-you");
@@ -153,63 +160,37 @@ export default function FreshFlowHub() {
       data-surface={world.surface}
     >
       {showChrome && (
-        <header className="fresh-flow-reference-header fresh-flow-unified-header">
-          <div className="fresh-flow-unified-brand" aria-label="Fresh Flow">
+        <header className="fresh-flow-reference-header fresh-flow-unified-header" data-navigation="top">
+          <button type="button" className="fresh-flow-unified-brand" onClick={() => setActiveRoute("fresh-flow")} aria-label="Fresh Flow home">
             <span className="fresh-flow-unified-mark" aria-hidden="true">F</span>
             <span className="fresh-flow-brand-wordmark"><strong>Fresh Flow</strong><small>Discover. Connect. Create.</small></span>
-          </div>
+          </button>
           <nav className="fresh-flow-header-world-nav" aria-label="Fresh Flow media">
-            <button type="button" className={independentSystem?.id === "live-creation" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-system-live-creation")}>Live</button>
-            <button type="button" className={section === "fresh-flow-ar-vr" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-ar-vr")}>VR / AR</button>
-            <button type="button" className={section === "fresh-flow-podcasts" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-podcasts")}>Podcasts</button>
-            <button type="button" className={independentSystem?.id === "fresh-music" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-system-fresh-music")}>Music</button>
-            <button type="button" className={section === "fresh-flow-more" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-more")}>Others</button>
+            {TOP_NAVIGATION.map((item) => {
+              const active = item.isActive(section, independentSystem?.id);
+              return (
+                <button key={item.label} type="button" className={active ? "active" : ""} aria-current={active ? "page" : undefined} onClick={() => setActiveRoute(item.route)}>{item.label}</button>
+              );
+            })}
           </nav>
-          <button type="button" className="fresh-flow-search-icon-button" onClick={openFreshSearch} aria-label="Search Fresh Flow" title="Search">⌕</button>
-          <div className="fresh-flow-profile-actions">
+          <div className="fresh-flow-header-actions">
+            <button type="button" className="fresh-flow-search-icon-button" onClick={openFreshSearch} aria-label="Search Fresh Flow" title="Search">⌕</button>
+            <button type="button" className="fresh-flow-search-icon-button fresh-flow-switch-open" onClick={() => setFlowSwitchOpen(true)} aria-label="All media worlds and Flow profile photo" title="All media worlds">⊞</button>
             <button type="button" className="fresh-flow-unified-profile" onClick={() => setActiveRoute("profile")} aria-label="Open your main Fresh ID profile">
               {mainProfileAvatarUrl ? <img src={mainProfileAvatarUrl} alt="" /> : <span>{isAuthenticated ? (user?.email?.slice(0, 1).toUpperCase() || "M") : "?"}</span>}
             </button>
-            <button type="button" className="fresh-flow-avatar-action" onClick={() => flowAvatarInputRef.current?.click()} aria-label="Upload or create your Fresh Flow avatar" title="Upload Fresh Flow avatar">
-              {freshFlowAvatarUrl ? <img src={freshFlowAvatarUrl} alt="" /> : <span aria-hidden="true">+</span>}
-            </button>
-            <button type="button" className="fresh-flow-avatar-camera" onClick={() => flowCameraInputRef.current?.click()} aria-label="Take a photo for your Fresh Flow avatar only" title="Camera for Fresh Flow avatar">
-              <span aria-hidden="true">⌾</span>
-            </button>
-            <input ref={flowAvatarInputRef} className="fresh-flow-hidden-avatar-input" type="file" accept="image/*" onChange={handleFlowAvatarChange} aria-label="Choose a Fresh Flow avatar image" />
-            <input ref={flowCameraInputRef} className="fresh-flow-hidden-avatar-input" type="file" accept="image/*" capture="user" onChange={handleFlowAvatarChange} aria-label="Take a Fresh Flow avatar photo" />
           </div>
         </header>
       )}
 
-
-      {showChrome && !isOverview && (
-        <div className="fresh-flow-section-bar">
-          <button type="button" className="fresh-flow-back-button" onClick={goBack} aria-label="Back to previous experience">
-            <span aria-hidden="true">‹</span>
-            <span>Back</span>
-          </button>
-          <span className="fresh-flow-section-title">
-            <span aria-hidden="true">{world.icon}</span>
-            {world.label}
-          </span>
-          <button type="button" className="fresh-flow-flow-switch-trigger" onClick={() => setFlowSwitchOpen(true)} aria-label="Switch media world">
-            Switch
-          </button>
-        </div>
-      )}
-
-      {((showChrome && !isOverview) || (isShortsRoute && shortsImmersive)) && world.discovery.length > 0 && (
-        <nav
-          className={shortsImmersive ? "fresh-flow-discovery-rail fresh-flow-discovery-rail-immersive" : "fresh-flow-discovery-rail"}
-          aria-label={`${world.label} discovery`}
-        >
+      {showChrome && !isOverview && !isShortsRoute && !independentSystem && world.discovery.length > 0 && (
+        <div className="fresh-flow-discovery-rail" role="group" aria-label={`${world.label} filters`}>
           {world.discovery.map((mode) => (
-            <button key={mode.id} type="button" className={discoveryId === mode.id ? "active" : ""} onClick={() => setDiscoveryId(mode.id)}>
+            <button key={mode.id} type="button" className={discoveryId === mode.id ? "active" : ""} aria-pressed={discoveryId === mode.id} onClick={() => setDiscoveryId(mode.id)}>
               {mode.label}
             </button>
           ))}
-        </nav>
+        </div>
       )}
 
       <main className="fresh-flow-media-content">
@@ -254,7 +235,14 @@ export default function FreshFlowHub() {
         activeRouteId={section}
         onSelect={(routeId) => setActiveRoute(routeId)}
         onClose={() => setFlowSwitchOpen(false)}
+        avatar={{
+          url: freshFlowAvatarUrl,
+          onUpload: () => flowAvatarInputRef.current?.click(),
+          onCamera: () => flowCameraInputRef.current?.click(),
+        }}
       />
+      <input ref={flowAvatarInputRef} className="fresh-flow-hidden-avatar-input" type="file" accept="image/*" onChange={handleFlowAvatarChange} aria-label="Choose a Fresh Flow avatar image" />
+      <input ref={flowCameraInputRef} className="fresh-flow-hidden-avatar-input" type="file" accept="image/*" capture="user" onChange={handleFlowAvatarChange} aria-label="Take a Fresh Flow avatar photo" />
 
       {searchOpen && (
         <FreshFlowSearchSurface

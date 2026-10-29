@@ -6,13 +6,15 @@ type Props = {
   activeRouteId: FreshFlowRouteId | string;
   onSelect: (routeId: FreshFlowRouteId) => void;
   onClose: () => void;
+  /** Optional Fresh Flow-only avatar controls (stored on this device). */
+  avatar?: { url: string | null; onUpload: () => void; onCamera: () => void };
 };
 
 /**
  * Flow Switch — Layer A (Media Director), summoned on demand.
  * Keeps the six media worlds off permanent chrome so the experience stays clean.
  */
-export default function FreshFlowSwitch({ open, activeRouteId, onSelect, onClose }: Props) {
+export default function FreshFlowSwitch({ open, activeRouteId, onSelect, onClose, avatar }: Props) {
   if (!open) return null;
 
   return (
@@ -61,6 +63,14 @@ export default function FreshFlowSwitch({ open, activeRouteId, onSelect, onClose
             );
           })}
         </ul>
+        {avatar && (
+          <section className="fresh-flow-switch-avatar" aria-label="Fresh Flow profile photo">
+            <span className="fresh-flow-switch-avatar-preview" aria-hidden="true">{avatar.url ? <img src={avatar.url} alt="" /> : "F"}</span>
+            <span className="fresh-flow-switch-avatar-copy"><strong>Fresh Flow photo</strong><small>Saved on this device only. Your main Fresh ID photo is unchanged.</small></span>
+            <button type="button" onClick={avatar.onUpload}>Upload</button>
+            <button type="button" onClick={avatar.onCamera}>Camera</button>
+          </section>
+        )}
       </div>
     </div>
   );
