@@ -27,3 +27,6 @@
 
 .fresh-flow-home-page{padding-bottom:96px;}
 @media(max-width:560px){.fresh-flow-home-page{padding-bottom:88px;}}
+
+/* Phones: one recommendation per row so the copy column is readable. */
+@media(max-width:560px){.fresh-flow-recommendation-grid{grid-template-columns:1fr}}
