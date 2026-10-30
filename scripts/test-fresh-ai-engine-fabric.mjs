@@ -6,7 +6,7 @@ import {
 
 const empty = getFreshAIEngineInventory();
 const find = (inventory, id) => inventory.find((engine) => engine.id === id);
-assert.equal(find(empty, "fresh-unified").state, "training-required");
+assert.equal(find(empty, "fresh-unified").state, "evaluation-required");
 assert.equal(find(empty, "video-generation").state, "configuration-required");
 assert.equal(find(empty, "simulation").state, "simulation-only");
 assert.equal(find(empty, "robotics").state, "blocked");
