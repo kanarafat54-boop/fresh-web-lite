@@ -208,6 +208,7 @@ for (const width of WIDTHS) {
   await page.waitForSelector(".creator-editor", { timeout: 10000 });
   const longVideoMode = page.locator(".creator-mode-switch button", { hasText: "Long Video" });
   await longVideoMode.waitFor({ state: "visible", timeout: 10000 });
+  await page.waitForFunction(() => document.querySelector(".creator-mode-switch button.active")?.textContent?.trim() === "Long Video", { timeout: 10000 });
   check(await longVideoMode.evaluate((element) => element.classList.contains("active")), `${tag} Creator Studio opens with Long Video mode active`);
   const creatorAccept = await page.locator(".creator-editor input[type=file]").getAttribute("accept");
   check(creatorAccept === "video/mp4,video/webm,video/quicktime", `${tag} Long Video publishing accepts video files only`);
