@@ -146,7 +146,7 @@ export default function FreshFlowLongVideos() {
   const visible = useMemo(() => videos.filter((video) => {
     const matchesCategory = category === "For You" ||
       (category === "Following" ? followingIds.includes(video.authorId) : categoryFor(video) === category);
-    const text = (video.title + " " + video.authorName + " " + video.username).toLowerCase();
+    const text = (video.title + " " + video.description + " " + video.authorName + " " + video.username).toLowerCase();
     return matchesCategory && (!query.trim() || text.includes(query.toLowerCase().trim()));
   }), [videos, category, query, followingIds]);
   const resume = libraryVideos.filter((video) => (progress[video.id] ?? 0) > 0).slice(0, 8);
