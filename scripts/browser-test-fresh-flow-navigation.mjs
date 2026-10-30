@@ -152,6 +152,7 @@ for (const width of WIDTHS) {
   const featuredTitle = page.getByText("The Long Journey — Chapter One").first();
   await featuredTitle.waitFor({ state: "visible", timeout: 10000 });
   check(await featuredTitle.isVisible(), `${tag} fixture-backed published-video contract renders featured content`);
+  check(await page.getByRole("heading", { name: "Latest long videos" }).isVisible(), `${tag} default discovery does not claim personalized ranking`);
   check(await page.locator(".fresh-long-feature-copy button[aria-pressed]").first().isVisible(), `${tag} video reactions are available`);
   await page.locator(".fresh-long-feature-copy button", { hasText: "Share" }).click();
   const sharedUrl = await page.evaluate(() => window.__lastSharePayload?.url ?? "");
