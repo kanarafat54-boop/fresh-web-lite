@@ -19,7 +19,7 @@
 5. **Video Details** — title, description, creator entry, reactions, share, watch-later and comments.
 6. **Creator Channel** — dedicated channel surface with the creator's published long videos, follow/unfollow action and a handoff to the main Fresh ID profile.
 7. **Your Library** — Watch Later, Continue Watching, Recently Watched and personal playlists. Saved posts, watch progress, history and playlist items sync for signed-in users; guest saves/progress remain device-local.
-8. **Upload & Publish** — opens existing Creator Studio with a long-video create intent. Long-video publishing now stores title, description, category, tags, custom thumbnail URL, public/unlisted visibility, and an optional scheduled timestamp on the existing post row. Scheduled posts remain owner-visible and become publicly discoverable after their timestamp. Uploads use the existing `post-videos` bucket and `posts.video_url` contract.
+8. **Upload & Publish** — opens existing Creator Studio with a long-video create intent. Long-video publishing now stores title, description, category, tags, custom thumbnail URL, public/unlisted visibility, and an optional scheduled timestamp on the existing post row. Scheduled posts remain owner-visible and become publicly discoverable after their timestamp. Uploads use the existing `post-videos` bucket and `posts.video_url` contract. Long Video transfers use Supabase Storage TUS with 6 MiB chunks, server-confirmed offsets, same-tab session recovery and visible progress; the current Free bucket cap is 50 MiB.
 9. **Creator Studio** — existing creator dashboard; long-video entry opens the Publish tab.
 10. **Movies & Series** — currently a discovery category only. Season/episode metadata and a licensed film catalog are not present in the connected schema.
 11. **Fresh AI** — uses the existing global Fresh AI entry; long-video-specific assistant context is future work.
@@ -56,7 +56,7 @@ These are contextual product surfaces, not fourteen new global navigation destin
 
 ## Explicitly not claimed
 
-No licensing/catalogue provider, seasons/episodes, adaptive bitrate streaming, offline downloads, long-video creator analytics, resumable TUS upload, or dedicated long-form media transcoding pipeline is connected by this PR. The current Free project has a 50 MiB per-video upload ceiling. Private video delivery is not supported while uploads use the public bucket; unlisted videos remain accessible to anyone with the link. Audience/age-gating controls are not implemented.
+No licensing/catalogue provider, seasons/episodes, adaptive bitrate streaming, offline downloads, long-video creator analytics, or dedicated long-form media transcoding pipeline is connected by this PR. The current Free project has a 50 MiB per-video upload ceiling. Private video delivery is not supported while uploads use the public bucket; unlisted videos remain accessible to anyone with the link. Audience/age-gating controls are not implemented.
 
 ## Validation and merge rules
 
