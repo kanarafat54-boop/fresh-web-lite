@@ -21,6 +21,7 @@ export type FreshAIEngineState =
   | "configuration-required"
   | "configured-not-verified"
   | "training-required"
+  | "evaluation-required"
   | "simulation-only"
   | "blocked";
 
@@ -79,10 +80,10 @@ export function getFreshAIEngineInventory(config: FreshAIEngineConfiguration = {
 
   return [
     descriptor("fresh-unified", "Fresh Unified Neural Engine", "inference",
-      unifiedConfigured ? "configured-not-verified" : "training-required",
+      unifiedConfigured ? "configured-not-verified" : "evaluation-required",
       unifiedConfigured
-        ? "Checkpoint and endpoint are configured, but live inference, checkpoint identity and evaluation have not been verified."
-        : "Existing Fresh Unified training is preserved; a verified serving endpoint and registered checkpoint are still required."),
+        ? "The existing trained checkpoint and endpoint are configured, but live inference, checkpoint identity, grounding and safety evaluation have not been verified."
+        : "Fresh Unified Run 3 training is completed and preserved; checkpoint promotion, evaluation and a verified serving endpoint remain outstanding."),
     descriptor("image-generation", "Fresh Image Generation Engine", "generation",
       imageConfigured ? "configured-not-verified" : "configuration-required",
       imageConfigured ? "Image engine configuration exists; authenticated generation and output persistence still require live verification." : "No complete Fresh-owned image generation worker is configured."),
