@@ -171,7 +171,10 @@ for (const width of WIDTHS) {
   check(await videoDetails.getByRole("button", { name: "Saved" }).isVisible(), `${tag} watch-later action updates state`);
   await videoDetails.getByRole("button", { name: "Watch now" }).click();
   check(await page.locator(".fresh-long-player").isVisible(), `${tag} cinema player opens from details`);
-  await page.locator(".fresh-long-player-bar button[aria-label='Close cinema player']").click();
+  await page.locator(".fresh-long-player-meta button", { hasText: "Open discussion" }).click();
+  check(await page.locator(".fresh-long-player").count() === 0, `${tag} opening discussion closes cinema player`);
+  check(await page.locator(".fresh-long-comments").isVisible(), `${tag} video discussion panel opens`);
+  await page.locator(".fresh-long-comments button", { hasText: "Close discussion" }).click();
   await page.locator(".fresh-long-feature-copy .fresh-long-author-link").click();
   check(await page.getByRole("heading", { name: "Fresh Cinema Creator" }).isVisible(), `${tag} dedicated creator channel opens`);
   check(await page.getByText("Videos from @cinemacreator").isVisible(), `${tag} creator channel lists its videos`);
