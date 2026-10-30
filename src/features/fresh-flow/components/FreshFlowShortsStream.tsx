@@ -146,7 +146,7 @@ export default function FreshFlowShortsStream({
     const index = shortsRef.current.findIndex((item) => item.id === id);
     const container = containerRef.current;
     if (index >= 0) {
-      container?.scrollTo({ top: index * container.clientHeight, behavior: "auto" });
+      container?.scrollTo({ top: index * container.clientHeight, behavior: "instant" });
       setCurrentIndex(index);
       return;
     }
@@ -155,7 +155,7 @@ export default function FreshFlowShortsStream({
       if (result.shorts.length === 0) return;
       setShorts((current) => [result.shorts[0], ...current.filter((item) => item.id !== id)]);
       setCurrentIndex(0);
-      containerRef.current?.scrollTo({ top: 0, behavior: "auto" });
+      containerRef.current?.scrollTo({ top: 0, behavior: "instant" });
     } catch { /* keep the current feed */ }
   };
 

@@ -214,12 +214,14 @@ for (const width of WIDTHS) {
   await search.locator(".shorts-explore-tabs button", { hasText: "Trending" }).click();
   await search.locator(".shorts-explore-grid .shorts-explore-card").first().waitFor({ timeout: 8000 });
   await search.locator(".shorts-explore-grid .shorts-explore-card", { hasText: "Fixture clip 3" }).first().click();
-  await page.waitForTimeout(1200);
   check(!(await search.isVisible().catch(() => false)), `${tag} opening a card closes search`);
-  const nowPlaying = await page.evaluate(() => {
+  // Slower machines (CI) need longer to settle the scroll and start playback; wait for the state, not a fixed time.
+  const playingTitle = () => page.evaluate(() => {
     const playing = [...document.querySelectorAll("video[data-short-id]")].find((v) => !v.paused);
     return playing?.closest(".fresh-flow-item")?.querySelector("h3")?.textContent ?? null;
   });
+  await page.waitForFunction(() => { const p = [...document.querySelectorAll("video[data-short-id]")].find((v) => !v.paused); return p?.closest(".fresh-flow-item")?.querySelector("h3")?.textContent === "Fixture clip 3"; }, null, { timeout: 8000 }).catch(() => undefined);
+  const nowPlaying = await playingTitle();
   check(nowPlaying === "Fixture clip 3", `${tag} the feed starts on the Short opened from Explore (got ${nowPlaying})`);
 
   // Creator profile from the author row.
