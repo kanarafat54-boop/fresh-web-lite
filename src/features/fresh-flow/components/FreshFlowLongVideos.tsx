@@ -12,6 +12,7 @@ type VideoItem = {
   videoUrl: string; posterUrl: string | null; createdAt: string;
   authorName: string; username: string; likes: number; comments: number; category: string | null;
 };
+type VideoPlaylist = { id: string; title: string; description: string; visibility: string; created_at: string };
 type Category = "Discover" | "Movies & Series" | "Documentaries" | "Education" | "Events" | "Following";
 const CATEGORIES: Category[] = ["Discover", "Movies & Series", "Documentaries", "Education", "Events", "Following"];
 const SAVED_KEY = "fresh-flow-long-video-saved-v1";
@@ -74,6 +75,11 @@ export default function FreshFlowLongVideos() {
   });
   const [shareNotice, setShareNotice] = useState("");
   const [saved, setSaved] = useState<string[]>(() => readIds(SAVED_KEY));
+  const [watchHistoryIds, setWatchHistoryIds] = useState<string[]>([]);
+  const [playlists, setPlaylists] = useState<VideoPlaylist[]>([]);
+  const [playlistItems, setPlaylistItems] = useState<Record<string, string[]>>({});
+  const [newPlaylistTitle, setNewPlaylistTitle] = useState("");
+  const [playlistSelection, setPlaylistSelection] = useState("");
   const [likedIds, setLikedIds] = useState<string[]>([]);
   const [progress, setProgress] = useState<Record<string, number>>(() => readProgress());
   const [durations, setDurations] = useState<Record<string, number>>(() => readDurations());
@@ -93,7 +99,7 @@ export default function FreshFlowLongVideos() {
     setLoading(true); setError("");
     try {
       const videoColumns = "id, author_id, content, image_url, video_url, like_count, comment_count, created_at, video_title, video_description, video_category, video_tags, video_thumbnail_url, video_duration_seconds, video_visibility, video_status, video_scheduled_at";
-      const [{ data, error: loadError }, followIds, savedResult, followingResult, watchResult] = await Promise.all([
+      const [{ data, error: loadError }, followIds, savedResult, followingResult, watchResult, playlistResult] = await Promise.all([
         supabase.from("posts").select(videoColumns)
           .not("video_url", "is", null).in("video_status", ["published", "scheduled"])
           .eq("video_visibility", "public")
@@ -107,16 +113,36 @@ export default function FreshFlowLongVideos() {
           ? supabase.from("follows").select("followed_id").eq("follower_id", user.id)
           : Promise.resolve({ data: null, error: null }),
         user && !isGuest
-          ? supabase.from("fresh_long_video_watch_history").select("post_id,progress_seconds,duration_seconds,completed_at").eq("user_id", user.id).order("last_watched_at", { ascending: false }).limit(200)
+          ? supabase.from("fresh_long_video_watch_history").select("post_id,progress_seconds,duration_seconds,completed_at,last_watched_at").eq("user_id", user.id).order("last_watched_at", { ascending: false }).limit(200)
+          : Promise.resolve({ data: null, error: null }),
+        user && !isGuest
+          ? supabase.from("fresh_video_playlists").select("id,title,description,visibility,created_at").eq("user_id", user.id).order("updated_at", { ascending: false }).limit(100)
           : Promise.resolve({ data: null, error: null }),
       ]);
       if (loadError) throw loadError;
       if (savedResult.error) throw savedResult.error;
       if (followingResult.error) throw followingResult.error;
       if (watchResult.error) throw watchResult.error;
+      if (playlistResult.error) throw playlistResult.error;
+      const historyRows = watchResult.data ?? [];
+      setWatchHistoryIds(historyRows.map((row: any) => row.post_id));
+      const nextPlaylists = (playlistResult.data ?? []) as VideoPlaylist[];
+      setPlaylists(nextPlaylists);
+      if (nextPlaylists.length) {
+        const itemResult = await supabase.from("fresh_video_playlist_items").select("playlist_id,post_id,position")
+          .in("playlist_id", nextPlaylists.map((playlist) => playlist.id)).order("position", { ascending: true });
+        if (itemResult.error) throw itemResult.error;
+        const grouped: Record<string, string[]> = {};
+        for (const item of itemResult.data ?? []) (grouped[item.playlist_id] ??= []).push(item.post_id);
+        setPlaylistItems(grouped);
+        setPlaylistSelection((current) => current || nextPlaylists[0].id);
+      } else {
+        setPlaylistItems({});
+        setPlaylistSelection("");
+      }
       const nextProgress = { ...readProgress() };
       const nextDurations = { ...readDurations() };
-      for (const row of watchResult.data ?? []) {
+      for (const row of historyRows) {
         if (row.completed_at) delete nextProgress[row.post_id];
         else if (Number.isFinite(Number(row.progress_seconds))) nextProgress[row.post_id] = Number(row.progress_seconds);
         if (Number.isFinite(Number(row.duration_seconds)) && Number(row.duration_seconds) > 0) nextDurations[row.post_id] = Number(row.duration_seconds);
@@ -125,7 +151,7 @@ export default function FreshFlowLongVideos() {
       try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(nextProgress)); localStorage.setItem(DURATION_KEY, JSON.stringify(nextDurations)); } catch { /* device storage unavailable */ }
       const recentRows = (data ?? []).filter((row: any) => typeof row.video_url === "string" && /^https?:\/\//i.test(row.video_url));
       const savedIds = user && !isGuest ? (savedResult.data ?? []).map((row: any) => row.post_id) : readIds(SAVED_KEY);
-      const libraryIds = [...new Set([...savedIds, ...Object.keys(nextProgress), ...(requestedVideoId ? [requestedVideoId] : [])])];
+      const libraryIds = [...new Set([...savedIds, ...Object.keys(nextProgress), ...historyRows.map((row: any) => row.post_id), ...(requestedVideoId ? [requestedVideoId] : [])])];
       const recentIds = new Set(recentRows.map((row: any) => row.id));
       const missingLibraryIds = libraryIds.filter((id) => !recentIds.has(id));
       let extraRows: any[] = [];
@@ -262,6 +288,7 @@ export default function FreshFlowLongVideos() {
   function clearProgress(videoId: string) {
     const next = { ...progress }; delete next[videoId];
     setProgress(next);
+    setWatchHistoryIds((current) => current.includes(videoId) ? current : [videoId, ...current]);
     try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(next)); } catch { /* device storage unavailable */ }
     if (user && !isGuest) {
       const now = new Date().toISOString();
@@ -274,6 +301,30 @@ export default function FreshFlowLongVideos() {
         if (historyError) setError("Completed watch history could not sync to Fresh ID.");
       });
     }
+  }
+  async function createPlaylist() {
+    if (!user || isGuest) { setActiveRoute("auth-signin"); return; }
+    const title = newPlaylistTitle.trim();
+    if (!title) { setError("Enter a playlist name first."); return; }
+    const { data, error: createError } = await supabase.from("fresh_video_playlists")
+      .insert({ user_id: user.id, title, visibility: "private" })
+      .select("id,title,description,visibility,created_at").single();
+    if (createError) { setError(createError.message || "Playlist could not be created."); return; }
+    setPlaylists((current) => [data as VideoPlaylist, ...current]);
+    setPlaylistSelection(data.id);
+    setNewPlaylistTitle("");
+    setError("");
+  }
+  async function addVideoToPlaylist(video: VideoItem) {
+    if (!user || isGuest) { setActiveRoute("auth-signin"); return; }
+    if (!playlistSelection) { setError("Create or select a playlist first."); return; }
+    const currentItems = playlistItems[playlistSelection] ?? [];
+    const { error: addError } = await supabase.from("fresh_video_playlist_items").upsert({
+      playlist_id: playlistSelection, post_id: video.id, position: currentItems.length,
+    }, { onConflict: "playlist_id,post_id" });
+    if (addError) { setError(addError.message || "Video could not be added to the playlist."); return; }
+    setPlaylistItems((current) => ({ ...current, [playlistSelection]: currentItems.includes(video.id) ? currentItems : [...currentItems, video.id] }));
+    setError("");
   }
   async function toggleFollow(video: VideoItem) {
     if (!user || isGuest) { setActiveRoute("auth-signin"); return; }
@@ -322,6 +373,7 @@ export default function FreshFlowLongVideos() {
   }
 
   const savedVideos = libraryVideos.filter((video) => saved.includes(video.id));
+  const historyVideos = watchHistoryIds.map((id) => libraryVideos.find((video) => video.id === id)).filter((video): video is VideoItem => Boolean(video));
   const channelVideos = channelFor ? libraryVideos.filter((video) => video.authorId === channelFor.authorId) : [];
   if (channelFor) return <section className="fresh-long" aria-label="Creator channel">
     <div className="fresh-long-heading"><div><span className="fresh-long-eyebrow">FRESH FLOW / CREATOR CHANNEL</span><h1>{channelFor.authorName}</h1><p>@{channelFor.username} · {channelVideos.length} videos in this view</p></div><button type="button" onClick={() => setChannelFor(null)}>Back to Discover</button></div>
@@ -334,9 +386,31 @@ export default function FreshFlowLongVideos() {
   </section>;
   if (panel === "library") return <section className="fresh-long" aria-label="Long Videos library">
     <div className="fresh-long-heading"><div><span className="fresh-long-eyebrow">FRESH FLOW / YOUR SPACE</span><h1>Your Library</h1><p>Saved videos and your continue-watching list.</p></div><button type="button" onClick={() => setPanel("discover")}>Back to Discover</button></div>
-    {resume.length > 0 && <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Continue watching</h2><span>Progress saved on this device</span></div><div className="fresh-long-rail">{resume.map((video) => <button key={video.id} type="button" className="fresh-long-resume-card" onClick={() => resumeVideo(video)}><span className="fresh-long-thumb">{video.posterUrl ? <img src={video.posterUrl} alt="" /> : "▶"}<i style={{ width: `${durations[video.id] > 0 ? Math.min(100, Math.max(2, (progress[video.id] / durations[video.id]) * 100)) : 0}%` }} /></span><strong>{video.title}</strong><small>Resume at {Math.floor(progress[video.id] / 60)}:{String(Math.floor(progress[video.id] % 60)).padStart(2, "0")}</small></button>)}</div></section>}
+    {resume.length > 0 && <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Continue watching</h2><span>{user && !isGuest ? "Synced to Fresh ID" : "Saved on this device"}</span></div><div className="fresh-long-rail">{resume.map((video) => <button key={video.id} type="button" className="fresh-long-resume-card" onClick={() => resumeVideo(video)}><span className="fresh-long-thumb">{video.posterUrl ? <img src={video.posterUrl} alt="" /> : "▶"}<i style={{ width: `${durations[video.id] > 0 ? Math.min(100, Math.max(2, (progress[video.id] / durations[video.id]) * 100)) : 0}%` }} /></span><strong>{video.title}</strong><small>Resume at {Math.floor(progress[video.id] / 60)}:{String(Math.floor(progress[video.id] % 60)).padStart(2, "0")}</small></button>)}</div></section>}
+    {historyVideos.length > 0 && <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Recently watched</h2><span>{historyVideos.length} videos</span></div><div className="fresh-long-rail">{historyVideos.map((video) => <button key={video.id} type="button" className="fresh-long-resume-card" onClick={() => openPlayer(video)}><span className="fresh-long-thumb">{video.posterUrl ? <img src={video.posterUrl} alt="" /> : "▶"}</span><strong>{video.title}</strong><small>@{video.username}</small></button>)}</div></section>}
     <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Watch later</h2><span>{savedVideos.length} saved</span></div>{savedVideos.length ? <div className="fresh-long-grid">{savedVideos.map((video) => <article className="fresh-long-card" key={video.id}><button className="fresh-long-card-media" type="button" onClick={() => openPlayer(video)} aria-label={`Play ${video.title}`}>{video.posterUrl ? <img src={video.posterUrl} alt="" /> : <span>▶</span>}<b>▶</b></button><div className="fresh-long-card-copy"><h3>{video.title}</h3><p>{video.authorName}</p><div><button type="button" onClick={() => openPlayer(video)}>Watch</button><button type="button" onClick={() => void toggleSave(video)}>Remove</button></div></div></article>)}</div> : <p className="fresh-long-state">Your Watch Later library is empty. Save a video to find it here.</p>}</section>
-    <p className="fresh-long-honesty">{user && !isGuest ? "Saved videos and watch progress sync through Fresh ID." : "Guest saves and watch progress are stored on this device. Sign in to sync your library across devices."}</p>
+    <section className="fresh-long-section fresh-long-playlists">
+      <div className="fresh-long-section-title"><h2>Your playlists</h2><span>{playlists.length} playlists</span></div>
+      {user && !isGuest ? <div className="fresh-long-playlist-create">
+        <input aria-label="New playlist name" value={newPlaylistTitle} maxLength={100} onChange={(event) => setNewPlaylistTitle(event.target.value)} placeholder="Name a playlist" />
+        <button type="button" onClick={() => void createPlaylist()}>Create playlist</button>
+      </div> : <p className="fresh-long-state">Sign in with Fresh ID to create and sync playlists.</p>}
+      {playlists.map((playlist) => {
+        const ids = playlistItems[playlist.id] ?? [];
+        const playlistVideos = ids.map((id) => libraryVideos.find((video) => video.id === id)).filter((video): video is VideoItem => Boolean(video));
+        return <article className="fresh-long-playlist" key={playlist.id}>
+          <div><strong>{playlist.title}</strong><small>{playlistVideos.length} videos · {playlist.visibility}</small></div>
+          <div className="fresh-long-rail">{playlistVideos.map((video) => <button key={video.id} type="button" className="fresh-long-resume-card" onClick={() => openPlayer(video)}><span className="fresh-long-thumb">{video.posterUrl ? <img src={video.posterUrl} alt="" /> : "▶"}</span><strong>{video.title}</strong></button>)}</div>
+        </article>;
+      })}
+      {user && !isGuest && savedVideos.length > 0 && <div className="fresh-long-playlist-add">
+        <select aria-label="Choose playlist for saved videos" value={playlistSelection} onChange={(event) => setPlaylistSelection(event.target.value)}>
+          <option value="">Choose playlist</option>{playlists.map((playlist) => <option key={playlist.id} value={playlist.id}>{playlist.title}</option>)}
+        </select>
+        {savedVideos.map((video) => <button key={video.id} type="button" disabled={!playlistSelection} onClick={() => void addVideoToPlaylist(video)}>Add “{video.title}”</button>)}
+      </div>}
+    </section>
+    <p className="fresh-long-honesty">{user && !isGuest ? "Saved videos, watch progress, viewing history and playlists sync through Fresh ID." : "Guest saves and watch progress are stored on this device. Sign in to sync your library across devices."}</p>
   </section>;
   if (panel === "settings") return <section className="fresh-long" aria-label="Long Videos settings">
     <div className="fresh-long-heading"><div><span className="fresh-long-eyebrow">FRESH FLOW / PREFERENCES</span><h1>Playback Settings</h1><p>Control playback behavior and data use.</p></div><button type="button" onClick={() => setPanel("discover")}>Back to Discover</button></div>
