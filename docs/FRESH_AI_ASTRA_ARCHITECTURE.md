@@ -19,7 +19,7 @@ Astra is a subsystem of the single Fresh AI identity, `fresh-unified-1`. It is n
 
 `user intent → consent + identity → observations → world state + uncertainty → Fresh AI reasoning → bounded plan → policy decision → human approval (when required) → verified executor → independent result verification → audit`
 
-Astra observations must retain modality, capture time, source and consent. The first runtime now validates those fields, rejects unsafe payload references and implausible future timestamps, and creates a provenance-preserving world-state envelope. It explicitly reports inference as unavailable and never fabricates scene entities. Unsupported or unavailable modality engines return a truthful unavailable state; text-only model weights do not imply vision, audio or video understanding.
+The initial software-in-the-loop simulator now supports deterministic grid-world movement, turns, obstacle and boundary collision stops, explicit stop commands and bounded metrics. It is a planning/test harness only, not a physical simulator or device controller.\n\nAstra observations must retain modality, capture time, source and consent. The first runtime now validates those fields, rejects unsafe payload references and implausible future timestamps, and creates a provenance-preserving world-state envelope. It explicitly reports inference as unavailable and never fabricates scene entities. Unsupported or unavailable modality engines return a truthful unavailable state; text-only model weights do not imply vision, audio or video understanding.
 
 ## Safety boundary
 
@@ -44,7 +44,8 @@ Critical-risk actions are blocked. The policy contract can classify a proposal b
 | Observation intake + world-state envelope | Implemented; preserves source metadata and explicit uncertainty, but performs no inference |
 | Live image/audio/video/spatial inference | Not yet integrated |
 | Real-time perception and world model | Not yet integrated |
-| Simulation with measured physics | Not verified; existing simulation placeholder must not be trusted |
+| Deterministic software-in-the-loop grid simulator | Implemented; bounded movement, obstacle/boundary collision stops, turns, stop command, deterministic metrics and input validation |
+| Simulation with measured physics / hardware-in-the-loop | Not implemented or verified; the grid simulator is not a physics model |
 | Device pairing and command gateway | Not implemented |
 | Physical robotics / machine control | Blocked by design |
 | Fresh-owned multimodal generation | Uses existing Fresh Create contracts; each engine remains separately gated |
@@ -55,7 +56,7 @@ Critical-risk actions are blocked. The policy contract can classify a proposal b
 1. Register and deploy a Fresh-owned vision inference engine, then connect user-camera and uploaded-image paths with authenticated file access, consent, provenance, and end-to-end evaluation.
 2. Add audio session and speech perception/output contracts, then connect a real audio engine.
 3. Add video temporal sampling/event contracts and real video understanding/generation jobs.
-4. Replace placeholder simulation success with deterministic state transitions, measurable metrics and failure cases.
+4. Extend the deterministic software-in-the-loop simulator with scenario suites, sensor models and fault injection; do not describe its discrete grid as measured physics.
 5. Implement device registry/gateway only after pairing, revocation, command signing and local safety interlocks are ready.
 6. Train and evaluate Fresh-owned multimodal encoders/decoders and action heads; do not promote text-only weights as multimodal intelligence.
 
