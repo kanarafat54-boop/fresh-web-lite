@@ -32,6 +32,8 @@ jobs:
         run: npm run test:fresh-ai-capabilities
       - name: Fresh AI Astra multimodal and safety contracts
         run: npm run test:fresh-ai-astra
+      - name: Fresh AI Astra runtime safety tests
+        run: npm run test:fresh-ai-astra-runtime
       - name: Fresh AI power fabric
         run: npm run test:fresh-ai-power-fabric
       - name: Fresh AI capability runtime
