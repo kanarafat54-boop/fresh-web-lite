@@ -1,10 +1,7 @@
-// @ts-ignore Node native type-stripping tests import the TypeScript source directly; Vite resolves this extension under tsconfig.app.json.
-import {
-  validateAstraObservation,
-  type AstraModality,
-  type AstraObservation,
-  type AstraWorldState,
-} from "./AstraContracts.ts";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore Node's native type-stripping test runner imports TypeScript source directly; the app tsconfig enables .ts imports.
+import { validateAstraObservation, type AstraModality, type AstraObservation, type AstraWorldState } from "./AstraContracts.ts";
+
 
 export type AstraEngineState = "ready" | "configuration-required" | "not-verified";
 export type AstraModalityEngine = {
