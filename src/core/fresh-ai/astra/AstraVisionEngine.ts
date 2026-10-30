@@ -6,6 +6,7 @@
  * explicit consent before calling it. It never accepts a provider URL/token
  * from the browser and never dispatches device actions.
  */
+// @ts-ignore Node native type stripping tests import TypeScript source directly; app bundler resolves this source import.
 import { validateAstraObservation, type AstraObservation, type AstraWorldState } from "./AstraContracts.ts";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
