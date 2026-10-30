@@ -17,7 +17,7 @@
 3. **Search** — title, creator and topic search across the currently loaded published video set.
 4. **Cinema Player** — native browser video controls, fullscreen support, playback speed preference, autoplay/data-saver preferences, close and resume.
 5. **Video Details** — title, description, creator entry, watch-later and comments.
-6. **Creator Channel** — opens the creator's Fresh ID profile through the existing profile overlay. A dedicated channel/catalog page remains future work.
+6. **Creator Channel** — dedicated channel surface with the creator's published long videos, follow/unfollow action and a handoff to the main Fresh ID profile.
 7. **Your Library** — watch-later videos and continue-watching. Saved posts sync for signed-in users; guest saves are local. Watch progress is local.
 8. **Upload & Publish** — opens existing Creator Studio with a long-video create intent. The current post publishing path accepts video uploads and writes the published video URL to `posts.video_url`.
 9. **Creator Studio** — existing creator dashboard; long-video entry opens the Publish tab.
