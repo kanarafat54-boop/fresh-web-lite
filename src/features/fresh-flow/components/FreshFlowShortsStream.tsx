@@ -29,6 +29,8 @@ import {
   shortDiscoveryToCategory,
   type ShortDiscoveryId,
 } from "../core/shortDiscovery";
+import ShortsCreatorProfile from "./ShortsCreatorProfile";
+import { consumeOpenShortRequest } from "../core/shortsExplore";
 import "./FreshFlow.css";
 
 type SubTab = ShortDiscoveryId;
@@ -133,6 +135,29 @@ export default function FreshFlowShortsStream({
   };
 
   const tasteRef = useRef<TasteProfile | null>(null);
+  const [openCreatorId, setOpenCreatorId] = useState<string | null>(null);
+  const shortsRef = useRef<Short[]>([]);
+  shortsRef.current = shorts;
+
+  /** Start the feed on a specific Short (from Explore, Search or a creator profile). */
+  const focusRequestedShort = async () => {
+    const id = consumeOpenShortRequest();
+    if (!id) return;
+    const index = shortsRef.current.findIndex((item) => item.id === id);
+    const container = containerRef.current;
+    if (index >= 0) {
+      container?.scrollTo({ top: index * container.clientHeight, behavior: "auto" });
+      setCurrentIndex(index);
+      return;
+    }
+    try {
+      const result = await loadFreshFlowShorts(user?.id ?? null, isGuest, { shortIds: [id] });
+      if (result.shorts.length === 0) return;
+      setShorts((current) => [result.shorts[0], ...current.filter((item) => item.id !== id)]);
+      setCurrentIndex(0);
+      containerRef.current?.scrollTo({ top: 0, behavior: "auto" });
+    } catch { /* keep the current feed */ }
+  };
 
   const flushTelemetry = async () => {
     if (!user || isGuest || telemetryRef.current.size() === 0) return;
@@ -268,6 +293,30 @@ export default function FreshFlowShortsStream({
   });
 
   useEffect(() => {
+    if (!loading) void focusRequestedShort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
+  useEffect(() => {
+    const onOpenShort = () => { void focusRequestedShort(); };
+    const onOpenCreator = (event: Event) => {
+      const authorId = (event as CustomEvent<{ authorId?: string }>).detail?.authorId;
+      if (authorId) setOpenCreatorId(authorId);
+    };
+    window.addEventListener("fresh-shorts-open-short", onOpenShort);
+    window.addEventListener("fresh-shorts-open-creator", onOpenCreator);
+    try {
+      const pending = sessionStorage.getItem("fresh-shorts-open-creator");
+      if (pending) { sessionStorage.removeItem("fresh-shorts-open-creator"); setOpenCreatorId(pending); }
+    } catch { /* ignore */ }
+    return () => {
+      window.removeEventListener("fresh-shorts-open-short", onOpenShort);
+      window.removeEventListener("fresh-shorts-open-creator", onOpenCreator);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     const container = containerRef.current;
     if (!container || shorts.length === 0) return;
     const observer = new IntersectionObserver(
@@ -344,6 +393,7 @@ export default function FreshFlowShortsStream({
     releaseDistantMedia(videos, currentIndex, FRESH_SHORTS_PREFETCH_RADIUS + 2);
     const active = videos.get(currentIndex);
     if (!active) return;
+    if (openCreatorId) { active.pause(); return; }
     let cancelled = false;
     active.muted = !soundOn;
     void active.play().then(() => {
@@ -355,7 +405,7 @@ export default function FreshFlowShortsStream({
       try { await active.play(); } catch { /* playback needs a tap; the tap layer starts it */ }
     });
     return () => { cancelled = true; };
-  }, [currentIndex, shorts, soundOn]);
+  }, [currentIndex, shorts, soundOn, openCreatorId]);
 
   // Pause when the tab/app is hidden; resume the active video when it returns.
   useEffect(() => {
@@ -756,8 +806,10 @@ export default function FreshFlowShortsStream({
                 <div className="fresh-flow-meta">
                   <h3>{short.caption || "Fresh Short"}</h3>
                   <div className="fresh-flow-author-row">
-                    <span className="fresh-flow-author-avatar" aria-hidden="true">{(short.authorUsername || "F")[0]?.toUpperCase()}</span>
-                    <strong>@{short.authorUsername}</strong>
+                    <button type="button" className="fresh-flow-author-link" onClick={() => setOpenCreatorId(short.authorId)} aria-label={`Open @${short.authorUsername} profile`}>
+                      <span className="fresh-flow-author-avatar" aria-hidden="true">{(short.authorUsername || "F")[0]?.toUpperCase()}</span>
+                      <strong>@{short.authorUsername}</strong>
+                    </button>
                     <button type="button" className="fresh-flow-follow-btn" onClick={() => void handleFollow(short)}>{followingAuthors.has(short.authorId) ? "Following" : "Follow"}</button>
                   </div>
                   <div className="fresh-flow-tags">
@@ -828,6 +880,16 @@ export default function FreshFlowShortsStream({
           ))
         )}
       </div>
+
+      {openCreatorId && (
+        <ShortsCreatorProfile
+          authorId={openCreatorId}
+          onClose={() => setOpenCreatorId(null)}
+          onOpenShort={() => setOpenCreatorId(null)}
+          onMessage={() => { setOpenCreatorId(null); setActiveRoute("communication"); }}
+          onSignIn={() => { setOpenCreatorId(null); setActiveRoute("auth-signin"); }}
+        />
+      )}
 
       {openCommentsFor && (
         <CommentPanel targetType="short" targetId={openCommentsFor} onClose={() => setOpenCommentsFor(null)} />

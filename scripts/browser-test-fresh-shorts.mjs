@@ -183,6 +183,46 @@ for (const width of WIDTHS) {
   await page.waitForTimeout(400);
   check((await page.locator(".fresh-flow-item").count()) === 2, `${tag} Not interested removes the Short`);
 
+  // Search / Explore (Shorts scope): Explore tabs, Trending Now, open a Short from a card.
+  await page.locator('header [aria-label="Search Fresh Flow"]').click();
+  const search = page.getByRole("dialog", { name: "Fresh search" });
+  check(await search.isVisible(), `${tag} Search opens from the Shorts header`);
+  check((await search.locator("input").first().getAttribute("placeholder")) === "Search Fresh Shorts...", `${tag} search placeholder is Shorts-specific`);
+  await search.locator(".shorts-explore").waitFor({ timeout: 8000 });
+  const exploreTabs = (await search.locator(".shorts-explore-tabs button").allInnerTexts()).map((t) => t.trim());
+  check(JSON.stringify(exploreTabs) === JSON.stringify(["For You", "Trending", "Following", "Categories"]), `${tag} Explore tabs are For You · Trending · Following · Categories (got ${exploreTabs.join(" · ")})`);
+  await search.locator(".shorts-explore h3", { hasText: "Trending Now" }).waitFor({ timeout: 8000 });
+  check((await search.locator(".shorts-explore-card").count()) >= 1, `${tag} Trending Now shows real Short cards`);
+  await search.locator(".shorts-explore-tabs button", { hasText: "Trending" }).click();
+  await search.locator(".shorts-explore-grid .shorts-explore-card").first().waitFor({ timeout: 8000 });
+  await search.locator(".shorts-explore-grid .shorts-explore-card", { hasText: "Fixture clip 3" }).first().click();
+  await page.waitForTimeout(1200);
+  check(!(await search.isVisible().catch(() => false)), `${tag} opening a card closes search`);
+  const nowPlaying = await page.evaluate(() => {
+    const playing = [...document.querySelectorAll("video[data-short-id]")].find((v) => !v.paused);
+    return playing?.closest(".fresh-flow-item")?.querySelector("h3")?.textContent ?? null;
+  });
+  check(nowPlaying === "Fixture clip 3", `${tag} the feed starts on the Short opened from Explore (got ${nowPlaying})`);
+
+  // Creator profile from the author row.
+  await page.locator(".fresh-flow-item", { hasText: "Fixture clip 3" }).locator(".fresh-flow-author-link").click();
+  const profile = page.getByRole("dialog", { name: "Creator profile" });
+  await profile.waitFor({ timeout: 8000 });
+  await profile.locator(".shorts-profile-stats").waitFor({ timeout: 8000 });
+  const stats = (await profile.locator(".shorts-profile-stats dt").allInnerTexts()).map((t) => t.trim());
+  check(JSON.stringify(stats) === JSON.stringify(["Following", "Followers", "Likes"]), `${tag} profile stats are Following · Followers · Likes`);
+  const ptabs = (await profile.locator(".shorts-profile-tabs button").allInnerTexts()).map((t) => t.trim());
+  check(JSON.stringify(ptabs) === JSON.stringify(["Shorts", "Playlists", "About"]), `${tag} profile tabs are Shorts · Playlists · About`);
+  check(await profile.getByRole("button", { name: "Follow" }).isVisible() && await profile.getByRole("button", { name: "Message" }).isVisible(), `${tag} profile has Follow and Message`);
+  await profile.locator(".shorts-profile-tabs button", { hasText: "Playlists" }).click();
+  check((await profile.innerText()).includes("aren't available yet"), `${tag} Playlists is honest about not being connected`);
+  await profile.locator(".shorts-profile-tabs button", { hasText: "Shorts" }).click();
+  check((await profile.locator(".shorts-profile-grid li").count()) >= 1, `${tag} profile lists the creator's Shorts`);
+  const pbox = await profile.boundingBox();
+  check(Boolean(pbox) && pbox.x >= -0.5 && pbox.x + pbox.width <= width + 0.5, `${tag} profile fits the viewport`);
+  await profile.getByRole("button", { name: "Back to Shorts" }).click();
+  check(!(await profile.isVisible().catch(() => false)), `${tag} Back closes the profile`);
+
   check(pageErrors.length === 0, `${tag} no uncaught page errors (${pageErrors[0] ?? ""})`);
   await context.close();
 }

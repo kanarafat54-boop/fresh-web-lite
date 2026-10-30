@@ -265,6 +265,8 @@ export default function FreshFlowHub() {
           }}
           initialTab={searchSeed?.tab}
           initialQuery={searchSeed?.query}
+          scope={isShortsRoute ? "shorts" : "flow"}
+          onOpenCreator={isShortsRoute ? (authorId) => { setSearchOpen(false); setSearchSeed(null); try { sessionStorage.setItem("fresh-shorts-open-creator", authorId); } catch { /* ignore */ } window.dispatchEvent(new CustomEvent("fresh-shorts-open-creator", { detail: { authorId } })); } : undefined}
         />
       )}
     </div>
