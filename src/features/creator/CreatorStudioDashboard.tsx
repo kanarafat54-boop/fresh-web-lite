@@ -42,6 +42,15 @@ const TABS: { id: StudioTab; label: string }[] = [
   { id: "monetize", label: "Monetize" },
 ];
 
+function initialStudioTab(): StudioTab {
+  try {
+    const requested = sessionStorage.getItem("fresh-creator-start-tab");
+    sessionStorage.removeItem("fresh-creator-start-tab");
+    if (TABS.some((item) => item.id === requested)) return requested as StudioTab;
+  } catch { /* use the standard publishing tab */ }
+  return "publish";
+}
+
 const LOCAL_DRAFTS_KEY = "fresh.creator.localDrafts";
 
 function loadLocalDrafts(): Draft[] {
@@ -76,7 +85,7 @@ async function uploadMedia(userId: string, file: File): Promise<{ url: string; k
 export default function CreatorStudioDashboard() {
   const { user } = useFreshId();
   const { setActiveRoute } = useLayout();
-  const [tab, setTab] = useState<StudioTab>("publish");
+  const [tab, setTab] = useState<StudioTab>(initialStudioTab);
   const [mode, setMode] = useState<"post" | "short">("post");
   const [content, setContent] = useState("");
   const [media, setMedia] = useState<{ url: string; kind: "image" | "video" } | null>(null);
