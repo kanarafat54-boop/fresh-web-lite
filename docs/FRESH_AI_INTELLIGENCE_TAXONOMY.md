@@ -101,7 +101,7 @@ Fresh-owned model weights remain the source of Fresh AI intelligence. External c
 
 ## 7. Readiness vocabulary
 
-Use the existing canonical capability registry and align its status vocabulary to these meanings:
+Use the existing canonical capability registry and align its status vocabulary to these meanings. The executable terminology-to-backend map is maintained in `src/core/fresh-ai/FreshAIBackendReadiness.ts` and is exposed by `/api/ai/status` and `/api/ai/ask`:
 
 - `research`: idea or scientific exploration; no executable product promise.
 - `contracted`: typed design exists; runtime may not exist.
