@@ -17,6 +17,8 @@ assert.ok(validateAstraObservation({ ...base, payloadRef: undefined }, { now }).
 assert.ok(validateAstraObservation({ ...base, capturedAt: "2026-10-30T12:06:00.000Z" }, { now }).some((x) => x.includes("future")), "future capture timestamp rejected");
 assert.ok(validateAstraObservation({ ...base, confidence: Number.NaN }, { now }).some((x) => x.includes("finite number")), "NaN confidence rejected");
 assert.ok(validateAstraObservation({ ...base, payloadRef: "https://evil.example/image.png" }, { now }).some((x) => x.includes("opaque storage reference")), "arbitrary URLs rejected as payload refs");
+assert.ok(validateAstraObservation({ ...base, payloadRef: "uploads//user-1/image-1" }, { now }).some((x) => x.includes("opaque storage reference")), "empty path segments rejected");
+assert.ok(validateAstraObservation({ ...base, payloadRef: "uploads/../private" }, { now }).some((x) => x.includes("opaque storage reference")), "path traversal rejected");
 assert.ok(validateAstraObservation({ ...base, consentGranted: false }, { now }).some((x) => x.includes("consent")), "missing consent rejected");
 assert.ok(validateAstraObservation({ ...base, source: "user-microphone" }, { now }).some((x) => x.includes("Microphone")), "source/modality mismatch rejected");
 
