@@ -5,6 +5,7 @@ import { useFreshId } from "../fresh-id/context/FreshIdContext";
 import { useLayout } from "../../app/contexts/useLayout";
 import { buildCreatorSuggestions } from "./creatorSuggestions";
 import { publishFreshMedia, listCreatorPublishedMedia, saveCreatorDraft, type FreshLongVideoMetadata } from "./core/freshMediaRepository";
+import { uploadLongVideoResumable } from "./core/uploadLongVideoResumable";
 import {
   readCreateIntent,
   clearCreateIntent,
@@ -85,17 +86,27 @@ function toLocalDateTimeInput(value: string): string {
   return date.toISOString().slice(0, 16);
 }
 
-async function uploadMedia(userId: string, file: File): Promise<{ url: string; kind: "image" | "video" }> {
+async function uploadMedia(
+  userId: string,
+  file: File,
+  onProgress?: (percent: number) => void,
+  resumableLongVideo = false,
+): Promise<{ url: string; kind: "image" | "video" }> {
   const isVideo = file.type.startsWith("video/");
   const allowedVideoTypes = ["video/mp4", "video/webm", "video/quicktime"];
   if (isVideo && !allowedVideoTypes.includes(file.type)) throw new Error("Use an MP4, WebM, or QuickTime video.");
-  if (isVideo && file.size > 50 * 1024 * 1024) throw new Error("This free Fresh Web Lite storage project currently supports videos up to 50 MB. Compress the video or choose a smaller file.");
+  if (isVideo && file.size > 50 * 1024 * 1024) throw new Error("This free Fresh Web Lite storage project currently supports videos up to 50 MiB. Compress the video or choose a smaller file.");
   if (!isVideo && file.size > 5 * 1024 * 1024) throw new Error("Choose a thumbnail or image smaller than 5 MB.");
+  if (isVideo && resumableLongVideo) {
+    const uploaded = await uploadLongVideoResumable(userId, file, onProgress);
+    return { url: uploaded.url, kind: "video" };
+  }
   const bucket = isVideo ? "post-videos" : "post-images";
   const path = `${userId}/creator-${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: false, contentType: file.type });
   if (error) throw error;
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+  onProgress?.(100);
   return { url: data.publicUrl, kind: isVideo ? "video" : "image" };
 }
 
@@ -118,6 +129,8 @@ export default function CreatorStudioDashboard() {
   const [analytics, setAnalytics] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<ReturnType<typeof buildCreatorSuggestions>>([]);
@@ -589,25 +602,37 @@ export default function CreatorStudioDashboard() {
                       setMessage("Media attached on this device. Sign in to upload for publish.");
                       return;
                     }
-                    setMedia(await uploadMedia(user.id, file));
-                    setMessage("Media uploaded.");
+                    const resumableLongVideo = intentMeta?.action === "long-video" && file.type.startsWith("video/");
+                    setUploadingMedia(true);
+                    setUploadProgress(0);
+                    const uploaded = await uploadMedia(user.id, file, resumableLongVideo ? setUploadProgress : undefined, resumableLongVideo);
+                    setMedia(uploaded);
+                    setMessage(resumableLongVideo
+                      ? "Long Video uploaded with resumable transfer. If the connection drops, select the same file again to resume."
+                      : "Media uploaded.");
                   } catch (reason: unknown) {
                     setError(reason instanceof Error ? reason.message : "Upload failed.");
+                  } finally {
+                    setUploadingMedia(false);
                   }
                 }}
               />
+              {uploadingMedia && <div className="creator-upload-progress" role="status" aria-live="polite">
+                <progress max={100} value={uploadProgress} />
+                <span>{uploadProgress}% uploaded · keep this tab open to resume if the network interrupts</span>
+              </div>}
               <div className="creator-editor-actions">
-                <button type="button" onClick={() => fileRef.current?.click()}>
+                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploadingMedia}>
                   ＋ {intentMeta?.action === "long-video" ? "Video file" : "Media"}
                 </button>
-                <button type="button" onClick={() => void saveDraft()} disabled={intentMeta?.action === "long-video" ? (!longVideoTitle.trim() && !content.trim() && !media) : (!content.trim() && !media)}>
+                <button type="button" onClick={() => void saveDraft()} disabled={uploadingMedia || (intentMeta?.action === "long-video" ? (!longVideoTitle.trim() && !content.trim() && !media) : (!content.trim() && !media))}>
                   Save draft
                 </button>
                 <button
                   type="button"
                   className="publish"
                   onClick={() => void publishNow()}
-                  disabled={publishing || (intentMeta?.action === "long-video" ? (!longVideoTitle.trim() || media?.kind !== "video") : (!content.trim() && !media))}
+                  disabled={publishing || uploadingMedia || (intentMeta?.action === "long-video" ? (!longVideoTitle.trim() || media?.kind !== "video") : (!content.trim() && !media))}
                 >
                   {publishing ? "Publishing…" : intentMeta?.action === "long-video" && longVideoScheduledAt ? "Schedule video" : user ? "Publish now" : "Sign in to publish"}
                 </button>
