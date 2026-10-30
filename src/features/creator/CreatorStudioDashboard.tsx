@@ -78,6 +78,13 @@ function saveLocalDrafts(list: Draft[]) {
   }
 }
 
+function toLocalDateTimeInput(value: string): string {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 16);
+}
+
 async function uploadMedia(userId: string, file: File): Promise<{ url: string; kind: "image" | "video" }> {
   const isVideo = file.type.startsWith("video/");
   const allowedVideoTypes = ["video/mp4", "video/webm", "video/quicktime"];
@@ -104,6 +111,7 @@ export default function CreatorStudioDashboard() {
   const [longVideoVisibility, setLongVideoVisibility] = useState<"public" | "unlisted">("public");
   const [longVideoScheduledAt, setLongVideoScheduledAt] = useState("");
   const [longVideoThumbnailUrl, setLongVideoThumbnailUrl] = useState<string | null>(null);
+  const [longVideoDurationSeconds, setLongVideoDurationSeconds] = useState<number | null>(null);
   const [media, setMedia] = useState<{ url: string; kind: "image" | "video" } | null>(null);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [items, setItems] = useState<MediaItem[]>([]);
@@ -211,6 +219,7 @@ export default function CreatorStudioDashboard() {
       visibility: longVideoVisibility,
       scheduledAt: longVideoScheduledAt ? new Date(longVideoScheduledAt).toISOString() : null,
       thumbnailUrl: longVideoThumbnailUrl,
+      durationSeconds: longVideoDurationSeconds,
     } : undefined;
     setError(null);
     setMessage(null);
@@ -232,6 +241,7 @@ export default function CreatorStudioDashboard() {
       setContent("");
       setLongVideoTitle("");
       setLongVideoThumbnailUrl(null);
+      setLongVideoDurationSeconds(null);
       setMedia(null);
       setMessage("Draft saved on this device. Sign in to sync across devices.");
       return;
@@ -305,6 +315,7 @@ export default function CreatorStudioDashboard() {
       setContent("");
       setLongVideoTitle("");
       setLongVideoThumbnailUrl(null);
+      setLongVideoDurationSeconds(null);
       setMedia(null);
       setIntentMeta(null);
       if (published.kind === "short") {
@@ -351,8 +362,9 @@ export default function CreatorStudioDashboard() {
     setLongVideoCategory(metadata?.category ?? "Education");
     setLongVideoTags(metadata?.tags?.join(", ") ?? "");
     setLongVideoVisibility(metadata?.visibility ?? "public");
-    setLongVideoScheduledAt(metadata?.scheduledAt ? new Date(metadata.scheduledAt).toISOString().slice(0, 16) : "");
+    setLongVideoScheduledAt(metadata?.scheduledAt ? toLocalDateTimeInput(metadata.scheduledAt) : "");
     setLongVideoThumbnailUrl(metadata?.thumbnailUrl ?? null);
+    setLongVideoDurationSeconds(metadata?.durationSeconds ?? null);
     setMedia(
       draft.media_url ? { url: draft.media_url, kind: draft.media_kind === "video" || draft.kind === "short" ? "video" : "image" } : null,
     );
@@ -547,8 +559,8 @@ export default function CreatorStudioDashboard() {
               />
               {media && (
                 <div className="creator-media-preview">
-                  {media.kind === "video" ? <video src={media.url} controls /> : <img src={media.url} alt="" />}
-                  <button type="button" onClick={() => setMedia(null)}>
+                  {media.kind === "video" ? <video src={media.url} controls onLoadedMetadata={(event) => { if (intentMeta?.action === "long-video" && Number.isFinite(event.currentTarget.duration)) setLongVideoDurationSeconds(Math.round(event.currentTarget.duration)); }} /> : <img src={media.url} alt="" />}
+                  <button type="button" onClick={() => { setMedia(null); setLongVideoDurationSeconds(null); }}>
                     Remove media
                   </button>
                 </div>
