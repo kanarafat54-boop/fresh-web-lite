@@ -1,6 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore Node's native type-stripping test runner imports TypeScript source directly; the app tsconfig enables .ts imports.
 import { validateAstraObservation, type AstraModality, type AstraObservation, type AstraWorldState } from "./AstraContracts.ts";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore Node native type stripping tests import TypeScript source directly; app bundler resolves this source import.
 import { getAstraVisionReadiness } from "./AstraVisionEngine.ts";
 
