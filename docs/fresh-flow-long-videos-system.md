@@ -15,8 +15,8 @@
 1. **Discover** — featured video, recommendations, continue watching and category-led discovery.
 2. **Explore** — Movies & Series, Documentaries, Education and Events filters. These are currently metadata/keyword filters over published video posts, not a licensed catalog.
 3. **Search** — title, creator and topic search across the currently loaded published video set.
-4. **Cinema Player** — native browser video controls, fullscreen support, playback speed preference, autoplay/data-saver preferences, close and resume.
-5. **Video Details** — title, description, creator entry, watch-later and comments.
+4. **Cinema Player** — native browser video controls, fullscreen support, playback speed preference, autoplay/data-saver preferences, reactions, share, close and resume.
+5. **Video Details** — title, description, creator entry, reactions, share, watch-later and comments.
 6. **Creator Channel** — dedicated channel surface with the creator's published long videos, follow/unfollow action and a handoff to the main Fresh ID profile.
 7. **Your Library** — watch-later videos and continue-watching. Saved posts sync for signed-in users; guest saves are local. Watch progress is local.
 8. **Upload & Publish** — opens existing Creator Studio with a long-video create intent. The current post publishing path accepts video uploads and writes the published video URL to `posts.video_url`.
@@ -35,6 +35,8 @@ These are contextual product surfaces, not fourteen new global navigation destin
 - Creator display names/usernames come from `public.user_public_profiles`.
 - Following uses the existing Fresh Flow social author helper (`getSocialAuthorIds`).
 - Signed-in Watch Later uses `public.saved_posts`, with existing owner-scoped RLS policies. Guest saves are stored locally.
+- Signed-in likes use `public.post_likes`; the existing `update_post_like_count()` trigger maintains `posts.like_count`. Guests are directed to Fresh ID sign-in before reacting.
+- Share links use `/fresh-flow?videoId=<post-id>`; Fresh Flow routes the link into Long Videos and opens the matching video when it exists in the public library.
 - Comments use the existing `CommentPanel` with target type `post`.
 - Upload/publish hands off to `/creation` (Creator Studio) with a dedicated **Long Video** publishing mode. It accepts video files only, stores the draft as a post with `media_kind='video'`, uploads to the existing `post-videos` Storage bucket, and publishes through the existing `posts.video_url` contract. Restored creator drafts retain the long-video media kind. Successful publication returns to the Long Videos route.
 - Watch progress and guest library state are device-local. There is no server-synced watch-history table in this implementation.
