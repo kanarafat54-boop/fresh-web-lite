@@ -3,7 +3,7 @@ import {
   type AstraModality,
   type AstraObservation,
   type AstraWorldState,
-} from "./AstraContracts.js";
+} from "./AstraContracts.ts";
 
 export type AstraEngineState = "ready" | "configuration-required" | "not-verified";
 export type AstraModalityEngine = {
