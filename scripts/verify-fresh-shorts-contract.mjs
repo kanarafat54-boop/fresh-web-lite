@@ -22,9 +22,13 @@ assert.match(css, /scroll-snap-type:\s*y\s+mandatory/);
 assert.match(css, /\.fresh-flow-item\s*\{[^}]*flex:0 0 100%/s);
 assert.match(css, /touch-action:pan-y/);
 
-assert.match(experience, /setTimeout\(.*5000/s);
-assert.match(experience, /video\.paused/);
-assert.match(experience, /immersive_enter/);
+// Shorts is a TikTok-style pager: no timed "immersive" takeover, no extra Create/Gift buttons.
+assert.doesNotMatch(experience, /immersive_enter|fresh-flow-create-fab|fresh-flow-quick-gift|fresh-flow-immersive-back/);
+const stream = read("src/features/fresh-flow/components/FreshFlowShortsStream.tsx");
+for (const token of ["fresh-flow-tap-layer", "fresh-flow-progress-fill", "handleTap", "handleSave", "handleShare", "handleRepost", "WatchTracker", "className=\"fresh-flow-video\""]) assert.ok(stream.includes(token), `stream missing ${token}`);
+assert.doesNotMatch(stream, /Gaming Live|fresh-flow-picks/, "no fabricated Picks rail");
+assert.match(css, /\.fresh-flow-stream\[data-discovery\] \.fresh-flow-viewport\{[^}]*position:absolute[^}]*scroll-snap-type:y mandatory/);
+assert.match(css, /\.fresh-flow-stream\[data-discovery\] \.fresh-flow-item\{[^}]*border-radius:0/);
 assert.match(experience, /playback_error/);
 assert.match(experience, /buffer_start/);
 
