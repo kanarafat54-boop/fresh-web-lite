@@ -146,9 +146,8 @@ for (const width of WIDTHS) {
   await page.locator('nav[aria-label="Fresh Flow media"] button', { hasText: "Videos" }).click();
   await page.waitForSelector(".fresh-long", { timeout: 10000 });
   check(await page.getByRole("heading", { name: "Long Videos", exact: true }).isVisible(), `${tag} Long Videos discovery opens`);
-  check(await page.locator(".fresh-long-tools").getByRole("button", { name: "Creator Studio" }).isVisible(), `${tag} Creator Studio entry is available`);
   check(await page.getByRole("button", { name: "Upload video" }).isVisible(), `${tag} dedicated Long Video upload entry is available`);
-  check(await page.getByRole("button", { name: "Monetization" }).isVisible(), `${tag} creator monetization entry is available`);
+  check(await page.locator(".fresh-long-tools button").count() === 5, `${tag} contextual tools stay compact and avoid duplicate global navigation`);
   const featuredTitle = page.getByText("The Long Journey — Chapter One").first();
   await featuredTitle.waitFor({ state: "visible", timeout: 10000 });
   check(await featuredTitle.isVisible(), `${tag} fixture-backed published-video contract renders featured content`);
