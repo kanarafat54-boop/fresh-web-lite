@@ -46,6 +46,12 @@ const check = (ok, label) => { checks += 1; if (!ok) failures.push(label); };
 
 const browser = await chromium.launch();
 const WIDTHS = [320, 360, 390, 430];
+const fixtureAuthorId = "00000000-0000-4000-9000-000000000001";
+const longVideoFixtures = [
+  { id: "00000000-0000-4000-8000-000000000001", author_id: fixtureAuthorId, content: "The Long Journey — Chapter One", image_url: null, video_url: "https://example.invalid/long-video-one.mp4", like_count: 12, comment_count: 3, created_at: "2026-10-29T10:00:00Z" },
+  { id: "00000000-0000-4000-8000-000000000002", author_id: fixtureAuthorId, content: "Learning the World: A Documentary", image_url: null, video_url: "https://example.invalid/long-video-two.mp4", like_count: 8, comment_count: 1, created_at: "2026-10-28T10:00:00Z" },
+];
+
 const TOP_TABS = ["Discover", "Videos", "News / Posts", "Live", "VR / AR", "Podcasts", "Music", "Others"];
 
 for (const width of WIDTHS) {
@@ -53,7 +59,17 @@ for (const width of WIDTHS) {
   const page = await context.newPage();
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  await page.route((url) => !url.href.startsWith(origin), (route) => route.abort());
+  await page.route((url) => !url.href.startsWith(origin), (route) => {
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.host === "example.invalid" && requestUrl.pathname === "/rest/v1/posts") {
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(longVideoFixtures) });
+    }
+    if (requestUrl.host === "example.invalid" && requestUrl.pathname === "/rest/v1/user_public_profiles") {
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{ id: fixtureAuthorId, full_name: "Fresh Cinema Creator", username: "cinemacreator" }]) });
+    }
+    if (requestUrl.host === "example.invalid") return route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+    return route.abort();
+  });
   // Fresh Flow is available to authenticated and guest users, not anonymous
   // signed-out sessions. Establish the real guest state through Fresh ID first.
   await page.goto(`${origin}/auth/sign-in`);
@@ -122,6 +138,31 @@ for (const width of WIDTHS) {
     check(current.length === 1 && current[0].trim() === label, `${tag} clicking ${label} makes it the only current tab (got ${current.join(",")})`);
     check((await page.locator('nav[aria-label="Fresh Flow media"]').count()) === 1, `${tag} still exactly one top navigation after opening ${label}`);
   }
+
+  // Long Videos product surfaces: discovery, details, cinema, library and settings.
+  await page.locator('nav[aria-label="Fresh Flow media"] button', { hasText: "Videos" }).click();
+  await page.waitForSelector(".fresh-long", { timeout: 10000 });
+  check(await page.getByRole("heading", { name: "Long Videos" }).isVisible(), `${tag} Long Videos discovery opens`);
+  check(await page.getByText("The Long Journey — Chapter One").first().isVisible(), `${tag} real published-video contract renders featured content`);
+  await page.locator(".fresh-long-feature-copy button", { hasText: "Details" }).click();
+  const videoDetails = page.getByRole("dialog", { name: /Details for The Long Journey/ });
+  check(await videoDetails.isVisible(), `${tag} video details screen opens`);
+  await videoDetails.getByRole("button", { name: "Watch later" }).click();
+  check(await videoDetails.getByRole("button", { name: "Saved" }).isVisible(), `${tag} watch-later action updates state`);
+  await videoDetails.getByRole("button", { name: "Watch now" }).click();
+  check(await page.locator(".fresh-long-player").isVisible(), `${tag} cinema player opens from details`);
+  await page.locator(".fresh-long-player-bar button[aria-label='Close cinema player']").click();
+  await page.getByRole("button", { name: "Your Library" }).click();
+  check(await page.getByRole("heading", { name: "Your Library" }).isVisible(), `${tag} library screen opens`);
+  check(await page.getByText("The Long Journey — Chapter One").first().isVisible(), `${tag} saved video appears in library`);
+  await page.getByRole("button", { name: "Back to Discover" }).click();
+  await page.getByRole("button", { name: "Settings" }).click();
+  check(await page.getByRole("heading", { name: "Playback Settings" }).isVisible(), `${tag} playback settings screen opens`);
+  await page.locator(".fresh-long-settings select").selectOption("1.5");
+  check(await page.locator(".fresh-long-settings select").inputValue() === "1.5", `${tag} preferred playback speed is selectable`);
+  await page.locator(".fresh-long-settings label").filter({ hasText: "Data saver" }).locator("input").check();
+  check(await page.locator(".fresh-long-settings label").filter({ hasText: "Data saver" }).locator("input").isChecked(), `${tag} data saver preference toggles`);
+  await page.getByRole("button", { name: "Back to Discover" }).click();
 
   // Bottom Shorts is current on the Shorts route and the top bar then has no current tab.
   await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Shorts" }).click();
