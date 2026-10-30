@@ -1,0 +1,36 @@
+name: Fresh AI runtime backends
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-runtime-backends:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Cognitive strategy routing
+        run: npm run test:fresh-ai-cognitive-diversity
+      - name: Neuro-symbolic runtime
+        run: npm run test:fresh-neuro-symbolic
+      - name: Backend readiness registry
+        run: npm run test:fresh-ai-backend-readiness
+      - name: TypeScript validation
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
