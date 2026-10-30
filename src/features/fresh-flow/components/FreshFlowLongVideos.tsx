@@ -57,7 +57,7 @@ export default function FreshFlowLongVideos() {
       ]);
       if (loadError) throw loadError;
       if (savedResult.error) throw savedResult.error;
-      const rows = (data ?? []).filter((row: any) => typeof row.video_url === "string" && /^https?:\\/\\//i.test(row.video_url));
+      const rows = (data ?? []).filter((row: any) => typeof row.video_url === "string" && /^https?:\/\//i.test(row.video_url));
       const authorIds = [...new Set(rows.map((row: any) => row.author_id).filter(Boolean))];
       let profiles: any[] = [];
       if (authorIds.length) {
