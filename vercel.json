@@ -9,6 +9,10 @@
       "dest": "/api/ai/ask?__fresh_ai_status=1"
     },
     {
+      "src": "/api/ai/astra/vision",
+      "dest": "/api/ai/ask?__fresh_astra_vision=1"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/$1"
     },

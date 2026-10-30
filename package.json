@@ -87,7 +87,8 @@
     "test:fresh-ai-astra-runtime": "node --experimental-strip-types scripts/test-fresh-ai-astra-runtime.mjs",
     "test:fresh-ai-astra-simulation": "node --experimental-strip-types scripts/test-fresh-ai-astra-simulation.mjs",
     "test:fresh-ai-astra-vision": "node --experimental-strip-types scripts/test-fresh-ai-astra-vision.mjs",
-    "test:fresh-astra": "node --experimental-strip-types scripts/test-fresh-astra.mjs"
+    "test:fresh-astra": "node --experimental-strip-types scripts/test-fresh-astra.mjs",
+    "verify:vercel-function-limit": "node scripts/verify-vercel-function-limit.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",

@@ -8,7 +8,7 @@ const registry = readFileSync("src/core/fresh-ai/FreshAICapabilityRegistry.ts", 
 const product = readFileSync("docs/FRESH_AI_ASTRA_ARCHITECTURE.md", "utf8");
 const ui = readFileSync("src/app/components/FreshAIUnified.tsx", "utf8");
 const vision = readFileSync("src/core/fresh-ai/astra/AstraVisionEngine.ts", "utf8");
-const visionRoute = readFileSync("api/ai/astra/vision.ts", "utf8");
+const visionRoute = readFileSync("src/server/freshAstraVision.ts", "utf8");
 const uploadRoute = readFileSync("api/ai/upload.ts", "utf8");
 
 for (const token of ["AstraObservation", "AstraWorldState", "AstraActionProposal", "evaluateAstraAction", "validateAstraObservation"]) {

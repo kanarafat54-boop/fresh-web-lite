@@ -1,10 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
-import { createVercelNodeHandler } from "../../../src/server/vercelNodeAdapter.js";
-import { createFreshAIServerSupabase } from "../../../src/core/fresh-ai/FreshAIServerServices.js";
-import { analyzeAstraImage } from "../../../src/core/fresh-ai/astra/AstraVisionEngine.js";
-import type { AstraObservation } from "../../../src/core/fresh-ai/astra/AstraContracts.js";
+import { createFreshAIServerSupabase } from "../core/fresh-ai/FreshAIServerServices.js";
+import { analyzeAstraImage } from "../core/fresh-ai/astra/AstraVisionEngine.js";
+import type { AstraObservation } from "../core/fresh-ai/astra/AstraContracts.js";
 
-export const config = { maxDuration: 60 };
 const json = (value: unknown, status = 200) => Response.json(value, {
   status,
   headers: { "cache-control": "no-store", "x-content-type-options": "nosniff" },
@@ -15,7 +13,8 @@ type VisionRequest = {
   consentGranted?: unknown;
 };
 
-export async function POST(req: Request): Promise<Response> {
+/** Fresh Astra vision analysis. Served through /api/ai/ask (see vercel.json) so it does not add a serverless function (Hobby plan cap: 12). */
+export async function handleAstraVision(req: Request): Promise<Response> {
   try {
     const authorization = req.headers.get("authorization") ?? "";
     const bearer = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
@@ -91,5 +90,3 @@ export async function POST(req: Request): Promise<Response> {
     }, 503);
   }
 }
-
-export default createVercelNodeHandler({ POST });
