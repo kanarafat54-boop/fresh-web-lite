@@ -54,7 +54,12 @@ for (const width of WIDTHS) {
   // Fresh Flow is available to authenticated and guest users, not anonymous
   // signed-out sessions. Establish the real guest state through Fresh ID first.
   await page.goto(`${origin}/auth/sign-in`);
-  await page.getByRole("button", { name: /Continue as guest/i }).first().click();
+  await page.waitForSelector(".fresh-id-gateway", { timeout: 15000 });
+  const guestButton = page.locator(".auth-footer-links .guest-btn");
+  if (await guestButton.count() !== 1) {
+    throw new Error(`Fresh ID guest entry was not rendered. Page text: ${(await page.locator("body").innerText()).slice(0, 1200)}`);
+  }
+  await guestButton.click({ timeout: 15000 });
   await page.evaluate(() => {
     window.history.replaceState({ freshRoute: "fresh-flow" }, "", "/fresh-flow");
     window.dispatchEvent(new PopStateEvent("popstate"));
