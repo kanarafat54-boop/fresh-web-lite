@@ -182,6 +182,8 @@ for (const width of WIDTHS) {
   await page.getByRole("button", { name: "Your Library" }).click();
   check(await page.getByRole("heading", { name: "Your Library" }).isVisible(), `${tag} library screen opens`);
   check(await page.getByText("The Long Journey — Chapter One").first().isVisible(), `${tag} saved video appears in library`);
+  check(await page.getByRole("heading", { name: "Your playlists" }).isVisible(), `${tag} personal playlists section is present`);
+  check(await page.getByText("Sign in with Fresh ID to create and sync playlists.").isVisible(), `${tag} playlist creation correctly requires Fresh ID`);
   await page.getByRole("button", { name: "Back to Discover" }).click();
   await page.getByRole("button", { name: "Settings" }).click();
   check(await page.getByRole("heading", { name: "Playback Settings" }).isVisible(), `${tag} playback settings screen opens`);
@@ -219,7 +221,13 @@ for (const width of WIDTHS) {
   await longVideoMode.waitFor({ state: "visible", timeout: 10000 });
   await page.waitForFunction(() => document.querySelector(".creator-mode-switch button.active")?.textContent?.trim() === "Long Video", { timeout: 10000 });
   check(await longVideoMode.evaluate((element) => element.classList.contains("active")), `${tag} Creator Studio opens with Long Video mode active`);
-  const creatorAccept = await page.locator(".creator-studio-dashboard input[type=file]").getAttribute("accept");
+  check(await page.getByLabel("Long Video title").isVisible(), `${tag} Long Video title metadata field is available`);
+  check(await page.getByLabel("Long Video category").isVisible(), `${tag} Long Video category metadata field is available`);
+  check(await page.getByLabel("Long Video tags").isVisible(), `${tag} Long Video tags metadata field is available`);
+  check(await page.getByLabel("Long Video visibility").isVisible(), `${tag} Long Video visibility metadata field is available`);
+  check(await page.getByLabel("Schedule Long Video").isVisible(), `${tag} scheduled publishing field is available`);
+  check(await page.getByRole("button", { name: "Choose custom thumbnail" }).isVisible(), `${tag} custom thumbnail upload control is available`);
+  const creatorAccept = await page.locator(".creator-studio-dashboard input[type=file][accept^='video/']").getAttribute("accept");
   check(creatorAccept === "video/mp4,video/webm,video/quicktime", `${tag} Long Video publishing accepts video files only`);
   await page.evaluate(() => {
     window.history.replaceState({ freshRoute: "fresh-flow-long-videos" }, "", "/fresh-flow-long-videos");
