@@ -18,7 +18,7 @@
 4. **Cinema Player** — native browser video controls, fullscreen support, playback speed preference, autoplay/data-saver preferences, reactions, share, close and resume.
 5. **Video Details** — title, description, creator entry, reactions, share, watch-later and comments.
 6. **Creator Channel** — dedicated channel surface with the creator's published long videos, follow/unfollow action and a handoff to the main Fresh ID profile.
-7. **Your Library** — watch-later videos and continue-watching. Saved posts sync for signed-in users; guest saves are local. Signed-in watch progress syncs through `fresh_long_video_watch_history`; guest progress remains device-local.
+7. **Your Library** — Watch Later, Continue Watching, Recently Watched and personal playlists. Saved posts, watch progress, history and playlist items sync for signed-in users; guest saves/progress remain device-local.
 8. **Upload & Publish** — opens existing Creator Studio with a long-video create intent. Long-video publishing now stores title, description, category, tags, custom thumbnail URL, public/unlisted visibility, and an optional scheduled timestamp on the existing post row. Scheduled posts remain owner-visible and become publicly discoverable after their timestamp. Uploads use the existing `post-videos` bucket and `posts.video_url` contract.
 9. **Creator Studio** — existing creator dashboard; long-video entry opens the Publish tab.
 10. **Movies & Series** — currently a discovery category only. Season/episode metadata and a licensed film catalog are not present in the connected schema.
@@ -40,7 +40,7 @@ These are contextual product surfaces, not fourteen new global navigation destin
 - Comments use the existing `CommentPanel` with target type `post`.
 - Upload/publish hands off to `/creation` (Creator Studio) with a dedicated **Long Video** publishing mode. It accepts video files only, stores the draft as a post with `media_kind='video'`, uploads to the existing `post-videos` Storage bucket, and publishes through the existing `posts.video_url` contract. Restored creator drafts retain the long-video media kind. Successful publication returns to the Long Videos route.
 - Signed-in watch progress is synchronized to `public.fresh_long_video_watch_history` under owner-only RLS. Guest progress remains device-local. Completed videos are retained in history with a completion timestamp.
-- `public.fresh_video_playlists` and `public.fresh_video_playlist_items` now provide owner-scoped playlist and item contracts with public/unlisted read policies; playlist management UI is not yet connected.
+- `public.fresh_video_playlists` and `public.fresh_video_playlist_items` now power playlist creation, listing and adding saved videos from Your Library. Playlist creation currently defaults to private; public/unlisted playlist visibility editing is not yet exposed in the UI.
 - Migration `20261030172329_fresh_long_video_library_foundation` adds the long-video metadata, watch-history and playlist schema, and replaces the broad post-video upload policy with a first-folder owner check.
 - The existing Supabase Free organization caps individual files at 50 MB. The `post-videos` bucket is now explicitly limited to 50 MiB and MP4/WebM/QuickTime MIME types. Uploads remain in a public bucket, so unlisted means link-accessible, not private.
 
@@ -56,7 +56,7 @@ These are contextual product surfaces, not fourteen new global navigation destin
 
 ## Explicitly not claimed
 
-No licensing/catalogue provider, seasons/episodes, adaptive bitrate streaming, offline downloads, long-video creator analytics, resumable TUS upload, or dedicated long-form media transcoding pipeline is connected by this PR. Playlist tables exist but playlist UI is not yet connected. Private video delivery is not supported while uploads use the public bucket; unlisted videos remain accessible to anyone with the link.
+No licensing/catalogue provider, seasons/episodes, adaptive bitrate streaming, offline downloads, long-video creator analytics, resumable TUS upload, or dedicated long-form media transcoding pipeline is connected by this PR. The current Free project has a 50 MiB per-video upload ceiling. Private video delivery is not supported while uploads use the public bucket; unlisted videos remain accessible to anyone with the link. Audience/age-gating controls are not implemented.
 
 ## Validation and merge rules
 
