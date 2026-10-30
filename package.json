@@ -82,7 +82,8 @@
     "test:fresh-ai-direct-answer-quality": "node scripts/verify-fresh-ai-direct-answer-quality.mjs",
     "test:fresh-short-watch-signals": "node scripts/test-fresh-short-watch-signals.mjs",
     "test:fresh-shorts-browser": "node scripts/browser-test-fresh-shorts.mjs dist",
-    "eval:fresh-shorts-ranking": "node scripts/eval-fresh-shorts-ranking.mjs"
+    "eval:fresh-shorts-ranking": "node scripts/eval-fresh-shorts-ranking.mjs",
+    "test:fresh-neuro-symbolic": "node --experimental-strip-types scripts/test-fresh-neuro-symbolic-runtime.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
