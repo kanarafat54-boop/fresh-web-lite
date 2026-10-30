@@ -7,6 +7,7 @@ import {
 } from "./core/freshFlowArchitecture";
 import FreshFlowShortsExperience from "./components/FreshFlowShortsExperience";
 import FreshFlowNewsPosts from "./components/FreshFlowNewsPosts";
+import FreshFlowLongVideos from "./components/FreshFlowLongVideos";
 import FreshFlowMediaWorkspace from "./components/FreshFlowMediaWorkspace";
 import FreshFlowSearchSurface from "./components/FreshFlowSearchSurface";
 import FreshFlowSwitch from "./components/FreshFlowSwitch";
@@ -232,6 +233,8 @@ export default function FreshFlowHub() {
             onBack={() => setActiveRoute("fresh-flow")}
             onOpenStudio={() => setActiveRoute("fresh-flow-system-fresh-studio")}
           />
+        ) : section === "fresh-flow-long-videos" ? (
+          <FreshFlowLongVideos />
         ) : section === "fresh-flow-news-posts" ? (
           <FreshFlowNewsPosts discoveryId={discoveryId} />
         ) : (
