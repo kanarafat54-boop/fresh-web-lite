@@ -203,7 +203,7 @@ for (const width of WIDTHS) {
   await page.evaluate(() => {
     sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: "long-video", requestedAt: new Date().toISOString() }));
     sessionStorage.setItem("fresh-creator-start-tab", "publish");
-    window.history.replaceState({ freshRoute: "creator" }, "", "/creator");
+    window.history.replaceState({ freshRoute: "creator" }, "", "/creation");
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
   await page.waitForSelector(".creator-editor", { timeout: 10000 });
@@ -214,7 +214,7 @@ for (const width of WIDTHS) {
   const creatorAccept = await page.locator(".creator-editor input[type=file]").getAttribute("accept");
   check(creatorAccept === "video/mp4,video/webm,video/quicktime", `${tag} Long Video publishing accepts video files only`);
   await page.evaluate(() => {
-    window.history.replaceState({ freshRoute: "fresh-flow-long-videos" }, "", "/fresh-flow");
+    window.history.replaceState({ freshRoute: "fresh-flow-long-videos" }, "", "/fresh-flow-long-videos");
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
   await page.waitForSelector(".fresh-long", { timeout: 10000 });
