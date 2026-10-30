@@ -56,7 +56,7 @@ if ((hub.match(/<nav /g) ?? []).length !== 1) {
   throw new Error("Fresh Flow hub must render exactly one navigation (the top media bar); the bottom bar lives in BottomNav");
 }
 const bottomNav = readFileSync("src/app/components/BottomNav.tsx", "utf8");
-for (const token of ["fresh-flow-bottom-nav", "label: \"Home\"", "label: \"Shorts\"", "label: \"Create\"", "label: \"Messages\"", "label: \"Fresh Mail\"", 'id: "fresh-mail"']) {
+for (const token of ["fresh-flow-bottom-nav", "label: \"Home\"", "label: \"Shorts\"", "label: \"Creator Studio\"", "label: \"Messages\"", "label: \"Fresh Mail\"", 'id: "fresh-mail"']) {
   if (!bottomNav.includes(token)) throw new Error(`Fresh Flow bottom navigation is missing: ${token}`);
 }
 if (home.includes("fresh-flow-home-shortcuts") || hub.includes(">Flow Home</button>") || hub.includes(">News</button>") || hub.includes(">Posts</button>")) {

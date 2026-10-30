@@ -38,6 +38,9 @@ const TOP_NAVIGATION: Array<{ label: string; route: string; isActive: (section: 
   { label: "Others", route: "fresh-flow-more", isActive: (section) => section === "fresh-flow-more" },
 ];
 
+/** Fresh Shorts world: its own fixed top navigation (sibling worlds), per the Fresh Shorts design. */
+const SHORTS_TOP_NAVIGATION = TOP_NAVIGATION.filter((item) => ["Live", "VR / AR", "Podcasts", "Music", "Others"].includes(item.label));
+
 const SECTION_COPY = {
   "fresh-flow-long-videos": {
     name: "Long Videos",
@@ -88,8 +91,6 @@ export default function FreshFlowHub() {
       window.dispatchEvent(new CustomEvent("fresh-flow-navigation-visibility", { detail: { visible } }));
     };
     const markScrolling = () => {
-      // Shorts pages like a vertical pager; both navigations stay put while it scrolls.
-      if (isShortsRoute) return;
       setVisibility(false);
       if (scrollIdleTimer.current) clearTimeout(scrollIdleTimer.current);
       scrollIdleTimer.current = setTimeout(() => setVisibility(true), 700);
@@ -102,7 +103,7 @@ export default function FreshFlowHub() {
       if (scrollIdleTimer.current) clearTimeout(scrollIdleTimer.current);
       window.dispatchEvent(new CustomEvent("fresh-flow-navigation-visibility", { detail: { visible: true } }));
     };
-  }, [section, isShortsRoute]);
+  }, [section]);
 
   const [flowSwitchOpen, setFlowSwitchOpen] = useState(false);
   const flowAvatarInputRef = useRef<HTMLInputElement>(null);
@@ -143,6 +144,11 @@ export default function FreshFlowHub() {
     setSearchOpen(true);
   };
 
+  const openCreator = (action: "create" | "camera") => {
+    try { sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action, requestedAt: new Date().toISOString() })); } catch { /* ignore */ }
+    setActiveRoute(isGuest ? "auth-signin" : "creator");
+  };
+
   const openFreshSearch = () => {
     openSearch();
     setSearchOpen(true);
@@ -156,12 +162,19 @@ export default function FreshFlowHub() {
       data-surface={world.surface}
     >
       <header className="fresh-flow-reference-header fresh-flow-unified-header" data-navigation="top">
-          <button type="button" className="fresh-flow-unified-brand" onClick={() => setActiveRoute("fresh-flow")} aria-label="Fresh Flow home">
+          {isShortsRoute ? (
+            <button type="button" className="fresh-flow-unified-brand fresh-shorts-brand" onClick={() => setActiveRoute("fresh-flow-shorts")} aria-label="Fresh Shorts home">
+              <span className="fresh-flow-unified-mark fresh-shorts-mark" aria-hidden="true">▶</span>
+              <span className="fresh-flow-brand-wordmark"><strong>Fresh Shorts</strong><small>Short videos. Big ideas. Real people.</small></span>
+            </button>
+          ) : (
+            <button type="button" className="fresh-flow-unified-brand" onClick={() => setActiveRoute("fresh-flow")} aria-label="Fresh Flow home">
             <span className="fresh-flow-unified-mark" aria-hidden="true">F</span>
             <span className="fresh-flow-brand-wordmark"><strong>Fresh Flow</strong><small>Discover. Connect. Create.</small></span>
-          </button>
+            </button>
+          )}
           <nav className="fresh-flow-header-world-nav" aria-label="Fresh Flow media">
-            {TOP_NAVIGATION.map((item) => {
+            {(isShortsRoute ? SHORTS_TOP_NAVIGATION : TOP_NAVIGATION).map((item) => {
               const active = item.isActive(section, independentSystem?.id);
               return (
                 <button key={item.label} type="button" className={active ? "active" : ""} aria-current={active ? "page" : undefined} onClick={() => setActiveRoute(item.route)}>{item.label}</button>
@@ -170,6 +183,12 @@ export default function FreshFlowHub() {
           </nav>
           <div className="fresh-flow-header-actions">
             <button type="button" className="fresh-flow-search-icon-button" onClick={openFreshSearch} aria-label="Search Fresh Flow" title="Search">⌕</button>
+            {isShortsRoute && (
+              <>
+                <button type="button" className="fresh-flow-search-icon-button fresh-shorts-add" onClick={() => openCreator("create")} aria-label="Add or create a Short" title="Add / Create">＋</button>
+                <button type="button" className="fresh-flow-search-icon-button fresh-shorts-camera" onClick={() => openCreator("camera")} aria-label="Open camera to record a Short" title="Camera">◉</button>
+              </>
+            )}
             <button type="button" className="fresh-flow-search-icon-button fresh-flow-switch-open" onClick={() => setFlowSwitchOpen(true)} aria-label="All media worlds and Flow profile photo" title="All media worlds">⊞</button>
             <button type="button" className="fresh-flow-unified-profile" onClick={() => setActiveRoute("profile")} aria-label="Open your main Fresh ID profile">
               {mainProfileAvatarUrl ? <img src={mainProfileAvatarUrl} alt="" /> : <span>{isAuthenticated ? (user?.email?.slice(0, 1).toUpperCase() || "M") : "?"}</span>}

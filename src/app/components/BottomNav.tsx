@@ -42,7 +42,7 @@ export default function BottomNav() {
   const freshFlowDestinations = [
     { id: "feed", label: "Home", icon: "⌂" },
     { id: "fresh-flow-shorts", label: "Shorts", icon: "▶" },
-    { id: "fresh-flow-system-fresh-studio", label: "Create", icon: "＋" },
+    { id: "fresh-flow-system-fresh-studio", label: "Creator Studio", icon: "＋" },
     { id: "communication", label: "Messages", icon: "▤" },
     { id: "fresh-mail", label: "Fresh Mail", icon: "✉" },
   ];
