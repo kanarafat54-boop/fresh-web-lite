@@ -498,6 +498,10 @@ export default function FreshFlowLongVideos() {
     setActiveRoute(isGuest ? "auth-signin" : "creator");
   }
 
+  const ownVideos = libraryVideos.filter((video) => video.authorId === user?.id);
+  const ownVideoLikes = ownVideos.reduce((total, video) => total + video.likes, 0);
+  const ownVideoComments = ownVideos.reduce((total, video) => total + video.comments, 0);
+  const topEngagedVideo = [...ownVideos].sort((a, b) => (b.likes + b.comments) - (a.likes + a.comments))[0] ?? null;
   const savedVideos = libraryVideos.filter((video) => saved.includes(video.id));
   const historyVideos = watchHistoryIds.map((id) => libraryVideos.find((video) => video.id === id)).filter((video): video is VideoItem => Boolean(video));
   const channelVideos = channelFor ? libraryVideos.filter((video) => video.authorId === channelFor.authorId) : [];
@@ -522,6 +526,17 @@ export default function FreshFlowLongVideos() {
     {resume.length > 0 && <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Continue watching</h2><span>{user && !isGuest ? "Synced to Fresh ID" : "Saved on this device"}</span></div><div className="fresh-long-rail">{resume.map((video) => <button key={video.id} type="button" className="fresh-long-resume-card" onClick={() => resumeVideo(video)}><span className="fresh-long-thumb">{video.posterUrl ? <img src={video.posterUrl} alt="" /> : "▶"}<i style={{ width: `${durations[video.id] > 0 ? Math.min(100, Math.max(2, (progress[video.id] / durations[video.id]) * 100)) : 0}%` }} /></span><strong>{video.title}</strong><small>Resume at {Math.floor(progress[video.id] / 60)}:{String(Math.floor(progress[video.id] % 60)).padStart(2, "0")}</small></button>)}</div></section>}
     {historyVideos.length > 0 && <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Recently watched</h2><span>{historyVideos.length} videos</span></div><div className="fresh-long-rail">{historyVideos.map((video) => <button key={video.id} type="button" className="fresh-long-resume-card" onClick={() => openPlayer(video)}><span className="fresh-long-thumb">{video.posterUrl ? <img src={video.posterUrl} alt="" /> : "▶"}</span><strong>{video.title}</strong><small>@{video.username}</small></button>)}</div></section>}
     <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Watch later</h2><span>{savedVideos.length} saved</span></div>{savedVideos.length ? <div className="fresh-long-grid">{savedVideos.map((video) => <article className="fresh-long-card" key={video.id}><button className="fresh-long-card-media" type="button" onClick={() => openPlayer(video)} aria-label={`Play ${video.title}`}>{video.posterUrl ? <img src={video.posterUrl} alt="" /> : <span>▶</span>}<b>▶</b></button><div className="fresh-long-card-copy"><h3>{video.title}</h3><p>{video.authorName}</p><div><button type="button" onClick={() => openPlayer(video)}>Watch</button><button type="button" onClick={() => void toggleSave(video)}>Remove</button></div></div></article>)}</div> : <p className="fresh-long-state">Your Watch Later library is empty. Save a video to find it here.</p>}</section>
+    {user && !isGuest && <section className="fresh-long-section fresh-long-analytics">
+      <div className="fresh-long-section-title"><h2>Creator performance</h2><span>From your published video posts</span></div>
+      <div className="fresh-long-analytics-grid">
+        <article><strong>{ownVideos.length}</strong><span>Videos</span></article>
+        <article><strong>{ownVideoLikes}</strong><span>Likes</span></article>
+        <article><strong>{ownVideoComments}</strong><span>Comments</span></article>
+        <article><strong>{ownVideoLikes + ownVideoComments}</strong><span>Total interactions</span></article>
+      </div>
+      {topEngagedVideo && <div className="fresh-long-top-video"><div><span>Most engaged video</span><strong>{topEngagedVideo.title}</strong><small>{topEngagedVideo.likes} likes · {topEngagedVideo.comments} comments</small></div><button type="button" onClick={() => openPlayer(topEngagedVideo)}>Open video</button></div>}
+      <p className="fresh-long-honesty">These figures use saved post reaction and comment counts. Long-video reach, impressions, unique viewers, watch time and revenue are not yet measured, so they are not estimated here.</p>
+    </section>}
     <section className="fresh-long-section fresh-long-series-manager">
       <div className="fresh-long-section-title"><h2>Your series</h2><span>{series.filter((item) => item.creator_id === user?.id).length} series</span></div>
       {user && !isGuest ? <>
