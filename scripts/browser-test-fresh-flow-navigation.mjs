@@ -152,6 +152,10 @@ for (const width of WIDTHS) {
   await videoDetails.getByRole("button", { name: "Watch now" }).click();
   check(await page.locator(".fresh-long-player").isVisible(), `${tag} cinema player opens from details`);
   await page.locator(".fresh-long-player-bar button[aria-label='Close cinema player']").click();
+  await page.locator(".fresh-long-feature-copy .fresh-long-author-link").click();
+  check(await page.getByRole("heading", { name: "Fresh Cinema Creator" }).isVisible(), `${tag} dedicated creator channel opens`);
+  check(await page.getByText("Videos from @cinemacreator").isVisible(), `${tag} creator channel lists its videos`);
+  await page.getByRole("button", { name: "Back to Discover" }).click();
   await page.getByRole("button", { name: "Your Library" }).click();
   check(await page.getByRole("heading", { name: "Your Library" }).isVisible(), `${tag} library screen opens`);
   check(await page.getByText("The Long Journey — Chapter One").first().isVisible(), `${tag} saved video appears in library`);
