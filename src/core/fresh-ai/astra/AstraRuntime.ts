@@ -1,6 +1,8 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore Node's native type-stripping test runner imports TypeScript source directly; the app tsconfig enables .ts imports.
 import { validateAstraObservation, type AstraModality, type AstraObservation, type AstraWorldState } from "./AstraContracts.ts";
+// @ts-ignore Node native type stripping tests import TypeScript source directly; app bundler resolves this source import.
+import { getAstraVisionReadiness } from "./AstraVisionEngine.ts";
 
 
 export type AstraEngineState = "ready" | "configuration-required" | "not-verified";
@@ -22,12 +24,13 @@ export type AstraObservationResult =
  * its Fresh-owned engine has passed a separate authenticated integration test.
  */
 export function getAstraModalityReadiness(): AstraModalityEngine[] {
+  const vision = getAstraVisionReadiness();
   return (["image", "audio", "video", "spatial", "sensor"] as const).map((modality) => ({
     modality,
-    state: "configuration-required",
+    state: modality === "image" && vision.status === "configured-not-verified" ? "not-verified" : "configuration-required",
     owner: "Fresh AI",
     modelId: "fresh-unified-1",
-    note: "No verified Fresh-owned inference engine is registered for this modality.",
+    note: modality === "image" ? vision.note : "No verified Fresh-owned inference engine is registered for this modality.",
   }));
 }
 
