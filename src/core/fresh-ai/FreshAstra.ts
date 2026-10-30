@@ -4,6 +4,8 @@
  * Astra coordinates Fresh-owned capabilities; it is not a model and does not
  * pretend that untrained modalities or unavailable tools are executable.
  */
+import { getAstraModalityReadiness, type AstraModalityEngine } from "./astra/AstraRuntime.ts";
+
 export type AstraModuleId =
   | "language" | "vision" | "audio" | "video" | "spatial"
   | "research" | "code" | "automation" | "robotics"
@@ -24,6 +26,8 @@ export type FreshAstraCoordination = {
   approvalRequired: boolean;
   executionAllowed: false;
   policy: "observe-plan-verify";
+  modalityRuntime: AstraModalityEngine[];
+  simulation: { mode: "software-in-the-loop"; physicalControl: false; physicsValidated: false };
   limitations: string[];
 };
 
@@ -79,9 +83,13 @@ export function coordinateFreshAstra(input: string): FreshAstraCoordination {
   const ids = requestedModules(objective);
   const risk = classifyRisk(objective);
   const modules = ids.map((id) => ({ id, ...MODULE_STATUS[id] }));
+  const modalityRuntime = getAstraModalityReadiness();
   const limitations = modules
     .filter((module) => module.readiness !== "available")
     .map((module) => `${module.id}: ${module.reason}`);
+  for (const runtime of modalityRuntime) {
+    if (runtime.state !== "ready") limitations.push(`${runtime.modality} runtime: ${runtime.note}`);
+  }
   if (risk === "physical") limitations.push("Physical actuation is blocked: Astra is observation/planning only until a named machine passes simulation, hardware-in-loop and supervised safety gates.");
   if (risk === "high") limitations.push("High-impact actions require explicit scoped approval and independent verification.");
   return {
@@ -95,6 +103,8 @@ export function coordinateFreshAstra(input: string): FreshAstraCoordination {
     approvalRequired: risk === "high" || risk === "physical",
     executionAllowed: false,
     policy: "observe-plan-verify",
+    modalityRuntime,
+    simulation: { mode: "software-in-the-loop", physicalControl: false, physicsValidated: false },
     limitations,
   };
 }
