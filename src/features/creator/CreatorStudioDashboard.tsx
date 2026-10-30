@@ -224,6 +224,7 @@ export default function CreatorStudioDashboard() {
   }
 
   async function publishNow() {
+    const isLongVideo = intentMeta?.action === "long-video";
     if (!user) {
       setError("Sign in with Fresh ID to publish to Fresh Flow.");
       return;
@@ -234,6 +235,10 @@ export default function CreatorStudioDashboard() {
     }
     if (mode === "short" && media?.kind !== "video") {
       setError("A Short requires a video upload.");
+      return;
+    }
+    if (isLongVideo && media?.kind !== "video") {
+      setError("A Long Video requires a video upload. Add the video file before publishing.");
       return;
     }
     setPublishing(true);
@@ -254,11 +259,13 @@ export default function CreatorStudioDashboard() {
       if (published.kind === "short") {
         markFeedRefresh(published.id);
         setMessage("Short published to Fresh Flow.");
+      } else if (isLongVideo) {
+        setMessage("Long video published. It will appear in Fresh Flow Long Videos after the library refreshes.");
       } else {
         setMessage("Post published to Fresh Flow.");
       }
       await load();
-      window.setTimeout(() => setActiveRoute("fresh-flow"), 400);
+      window.setTimeout(() => setActiveRoute(isLongVideo ? "fresh-flow-long-videos" : "fresh-flow"), 400);
     } catch (reason: unknown) {
       setError(reason instanceof Error ? reason.message : "Publishing failed.");
     } finally {
@@ -422,10 +429,13 @@ export default function CreatorStudioDashboard() {
                   <h2>Create media</h2>
                 </div>
                 <div className="creator-mode-switch">
-                  <button type="button" className={mode === "post" ? "active" : ""} onClick={() => setMode("post")}>
+                  <button type="button" className={mode === "post" && intentMeta?.action !== "long-video" ? "active" : ""} onClick={() => { setMode("post"); setIntentMeta(null); }}>
                     Post
                   </button>
-                  <button type="button" className={mode === "short" ? "active" : ""} onClick={() => setMode("short")}>
+                  <button type="button" className={mode === "post" && intentMeta?.action === "long-video" ? "active" : ""} onClick={() => { setMode("post"); setIntentMeta({ action: "long-video", requestedAt: new Date().toISOString() }); }}>
+                    Long Video
+                  </button>
+                  <button type="button" className={mode === "short" ? "active" : ""} onClick={() => { setMode("short"); setIntentMeta(null); }}>
                     Short
                   </button>
                 </div>
@@ -434,7 +444,7 @@ export default function CreatorStudioDashboard() {
                 ref={editorRef}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder={mode === "post" ? "Write a post…" : "Short caption…"}
+                placeholder={mode === "short" ? "Short caption…" : intentMeta?.action === "long-video" ? "Add your video title and description…" : "Write a post…"}
               />
               {media && (
                 <div className="creator-media-preview">
@@ -449,7 +459,7 @@ export default function CreatorStudioDashboard() {
                 type="file"
                 hidden
                 accept={
-                  mode === "short"
+                  mode === "short" || intentMeta?.action === "long-video"
                     ? "video/mp4,video/webm,video/quicktime"
                     : "image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
                 }
