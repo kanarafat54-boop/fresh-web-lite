@@ -7,6 +7,7 @@ import {
 } from "./core/freshFlowArchitecture";
 import FreshFlowShortsExperience from "./components/FreshFlowShortsExperience";
 import FreshFlowNewsPosts from "./components/FreshFlowNewsPosts";
+import FreshFlowLongVideos from "./components/FreshFlowLongVideos";
 import FreshFlowMediaWorkspace from "./components/FreshFlowMediaWorkspace";
 import FreshFlowSearchSurface from "./components/FreshFlowSearchSurface";
 import FreshFlowSwitch from "./components/FreshFlowSwitch";
@@ -110,6 +111,13 @@ export default function FreshFlowHub() {
   const flowCameraInputRef = useRef<HTMLInputElement>(null);
   const [freshFlowAvatarUrl, setFreshFlowAvatarUrl] = useState<string | null>(null);
   const [mainProfileAvatarUrl, setMainProfileAvatarUrl] = useState<string | null>(null);
+  useEffect(() => {
+    const requestedVideoId = new URLSearchParams(window.location.search).get("videoId");
+    if (!requestedVideoId) return;
+    try { sessionStorage.setItem("fresh-flow-long-video-deep-link", requestedVideoId); } catch { /* keep the normal discovery route if session storage is unavailable */ }
+    setActiveRoute("fresh-flow-long-videos");
+  }, [setActiveRoute]);
+
   useEffect(() => {
     try { setFreshFlowAvatarUrl(window.localStorage.getItem("fresh-flow-avatar-data-url")); } catch { setFreshFlowAvatarUrl(null); }
   }, []);
@@ -232,6 +240,8 @@ export default function FreshFlowHub() {
             onBack={() => setActiveRoute("fresh-flow")}
             onOpenStudio={() => setActiveRoute("fresh-flow-system-fresh-studio")}
           />
+        ) : section === "fresh-flow-long-videos" ? (
+          <FreshFlowLongVideos />
         ) : section === "fresh-flow-news-posts" ? (
           <FreshFlowNewsPosts discoveryId={discoveryId} />
         ) : (

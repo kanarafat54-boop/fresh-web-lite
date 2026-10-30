@@ -166,16 +166,17 @@ export default function FreshIdAuthDashboard() {
             : "Browser";
 
   function enterFresh() {
-    // Successful authentication should always enter the main Home surface.
-    // Onboarding remains available from the product and must not trap users
-    // between the independent Fresh ID gateway and the landing page.
+    // Resume a protected creator action after Fresh ID sign-in; otherwise enter Home.
+    let destination: "feed" | "creator" = "feed";
     try {
+      const pendingIntent = JSON.parse(window.sessionStorage.getItem("fresh-flow-create-intent") || "null");
+      if (pendingIntent?.action === "long-video" || pendingIntent?.action === "creator-studio") destination = "creator";
       window.localStorage.setItem("fresh.id.onboarded", "1");
-      window.history.replaceState({ freshRoute: "feed" }, "", "/");
+      window.history.replaceState({ freshRoute: destination }, "", destination === "creator" ? "/creation" : "/");
     } catch {
       // The main application still uses the authoritative auth session.
     }
-    setActiveRoute("feed");
+    setActiveRoute(destination);
   }
 
   return (
