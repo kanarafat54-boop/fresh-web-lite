@@ -29,20 +29,22 @@ export async function POST(req: Request): Promise<Response> {
 
     const bytes = Buffer.from(await file.arrayBuffer());
     const requestId = crypto.randomUUID();
+    const mimeType = file.type || "application/octet-stream";
+    const isSupportedImage = ["image/png", "image/jpeg", "image/webp"].includes(mimeType);
     const stored = await persistFreshAIMedia({
       userId: user.id,
       requestId,
-      kind: "file",
+      kind: isSupportedImage ? "image" : "file",
       b64: bytes.toString("base64"),
-      mimeType: file.type || "application/octet-stream",
-      metadata: { originalName: file.name, size: file.size },
+      mimeType,
+      metadata: { originalName: file.name, size: file.size, ...(isSupportedImage ? { observationSource: "user-upload", capturedAt: new Date().toISOString() } : {}) },
     });
 
     return json({
       asset: {
         id: stored.id,
         name: file.name,
-        mimeType: file.type || "application/octet-stream",
+        mimeType,
         size: file.size,
         bucket: stored.bucket,
         path: stored.path,

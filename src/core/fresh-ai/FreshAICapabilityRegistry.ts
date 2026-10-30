@@ -10,7 +10,7 @@ export type FreshAICapabilityId =
   | "conversation" | "voice" | "vision" | "search" | "research"
   | "creation" | "files" | "data" | "code" | "projects" | "knowledge"
   | "memory" | "skills" | "apps" | "work" | "tasks" | "library"
-  | "automation" | "media-3d" | "trust" | "safety";
+  | "automation" | "media-3d" | "astra" | "trust" | "safety";
 
 export type FreshAIEntryPoint =
   | "ask" | "voice" | "search" | "create" | "research" | "work"
@@ -47,6 +47,7 @@ export const FRESH_AI_CAPABILITIES: readonly FreshAICapabilityContract[] = [
   ["library", "Library", ["more"], "contracted", false, true],
   ["automation", "Automations", ["more"], "contracted", true, true],
   ["media-3d", "3D / Media", ["create", "more"], "contracted", false, true],
+  ["astra", "Astra · Perception & Embodiment", ["camera", "voice", "more"], "contracted", true, true],
   ["trust", "Trust", ["contextual"], "implemented", false, true],
   ["safety", "Safety", ["settings"], "implemented", true, true],
 ].map(([id, label, entryPoints, status, requiresApproval, requiresVerification]) => ({

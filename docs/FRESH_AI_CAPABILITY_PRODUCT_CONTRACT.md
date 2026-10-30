@@ -6,7 +6,6 @@ This is the canonical product-level contract for Fresh AI. It defines the comple
 Fresh AI remains **one sovereign model identity**: `fresh-unified-1`. Modes, skills and tools are capabilities of that identity, not separate vendor brains.
 
 ## Product surface
-
 The primary Fresh AI composer stays intentionally simple:
 
 `＋ Ask Fresh` · `🎙 Voice` · `Search` · `Create` · `Research` · `Work` · `Files` · `Camera`
