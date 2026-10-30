@@ -26,3 +26,4 @@
 .fresh-long-channel-actions{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0 22px}
 .fresh-long-channel-actions button{min-height:42px;padding:9px 14px;border:1px solid #454252;border-radius:11px;background:#201f2b;color:#f5f5f7;font:inherit;cursor:pointer}
 .fresh-long-channel-actions button:first-child{background:#635bff;border-color:#635bff}
+.fresh-long-channel-self{display:inline-flex;align-items:center;min-height:42px;padding:8px 12px;border-radius:11px;background:#201f2b;color:#bdbacb;font-size:.86rem}
