@@ -159,7 +159,7 @@ for (const width of WIDTHS) {
   await page.getByRole("button", { name: "Explore" }).click();
   check(await page.getByRole("heading", { name: "Explore Long Videos" }).isVisible(), `${tag} Explore screen opens`);
   check(await page.locator(".fresh-long-explore-grid button").count() === 6, `${tag} Explore exposes all six browsing categories`);
-  await page.locator(".fresh-long-explore-grid button", { hasText: "For You" }).click();
+  await page.locator(".fresh-long-explore-grid button", { hasText: "Discover" }).click();
   await page.getByLabel("Search long videos").fill("Documentary");
   check(await page.getByText("Learning the World: A Documentary").first().isVisible(), `${tag} search filters long-form video results`);
   await page.locator(".fresh-long-search button").click();
