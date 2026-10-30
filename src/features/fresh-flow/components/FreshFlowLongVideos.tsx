@@ -17,6 +17,7 @@ const CATEGORIES: Category[] = ["For You", "Movies & Series", "Documentaries", "
 const SAVED_KEY = "fresh-flow-long-video-saved-v1";
 const PROGRESS_KEY = "fresh-flow-long-video-progress-v1";
 const DURATION_KEY = "fresh-flow-long-video-duration-v1";
+const PLAYBACK_KEY = "fresh-flow-long-video-playback-v1";
 
 function readIds(key: string): string[] {
   try { const value = JSON.parse(localStorage.getItem(key) || "[]"); return Array.isArray(value) ? value.filter((x): x is string => typeof x === "string") : []; } catch { return []; }
@@ -26,6 +27,19 @@ function readProgress(): Record<string, number> {
 }
 function readDurations(): Record<string, number> {
   try { const value = JSON.parse(localStorage.getItem(DURATION_KEY) || "{}"); return value && typeof value === "object" ? value : {}; } catch { return {}; }
+}
+function readPlaybackPreferences() {
+  const defaults = { autoplay: true, dataSaver: false, playbackSpeed: "1" };
+  try {
+    const value = JSON.parse(localStorage.getItem(PLAYBACK_KEY) || "null");
+    if (!value || typeof value !== "object") return defaults;
+    const speeds = ["0.75", "1", "1.25", "1.5", "1.75", "2"];
+    return {
+      autoplay: typeof value.autoplay === "boolean" ? value.autoplay : defaults.autoplay,
+      dataSaver: typeof value.dataSaver === "boolean" ? value.dataSaver : defaults.dataSaver,
+      playbackSpeed: speeds.includes(value.playbackSpeed) ? value.playbackSpeed : defaults.playbackSpeed,
+    };
+  } catch { return defaults; }
 }
 function categoryFor(video: VideoItem): Exclude<Category, "For You" | "Following"> {
   const text = (video.title + " " + video.description).toLowerCase();
@@ -64,9 +78,9 @@ export default function FreshFlowLongVideos() {
   const [commentsFor, setCommentsFor] = useState<string | null>(null);
   const [detailsFor, setDetailsFor] = useState<VideoItem | null>(null);
   const [panel, setPanel] = useState<"discover" | "explore" | "library" | "settings">("discover");
-  const [autoplay, setAutoplay] = useState(true);
-  const [dataSaver, setDataSaver] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState("1");
+  const [autoplay, setAutoplay] = useState(() => readPlaybackPreferences().autoplay);
+  const [dataSaver, setDataSaver] = useState(() => readPlaybackPreferences().dataSaver);
+  const [playbackSpeed, setPlaybackSpeed] = useState(() => readPlaybackPreferences().playbackSpeed);
   const playerRef = useRef<HTMLVideoElement>(null);
   const progressWriteAt = useRef(0);
 
@@ -135,6 +149,9 @@ export default function FreshFlowLongVideos() {
     } finally { setLoading(false); }
   }
   useEffect(() => { void load(); }, [user?.id, isGuest]);
+  useEffect(() => {
+    try { localStorage.setItem(PLAYBACK_KEY, JSON.stringify({ autoplay, dataSaver, playbackSpeed })); } catch { /* device storage unavailable */ }
+  }, [autoplay, dataSaver, playbackSpeed]);
   useEffect(() => {
     if (!requestedVideoId || loading) return;
     const requested = libraryVideos.find((video) => video.id === requestedVideoId);
@@ -286,7 +303,7 @@ export default function FreshFlowLongVideos() {
       <label><span><strong>Data saver</strong><small>Reduce preloading on mobile data. This does not change the creator's source quality.</small></span><input type="checkbox" checked={dataSaver} onChange={(event) => setDataSaver(event.target.checked)} /></label>
       <label><span><strong>Preferred playback speed</strong><small>Applied when the browser player loads a video.</small></span><select value={playbackSpeed} onChange={(event) => setPlaybackSpeed(event.target.value)}><option value="0.75">0.75×</option><option value="1">Normal</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select></label>
     </div>
-    <p className="fresh-long-honesty">These playback preferences apply to this active browser session. Captions and quality selection appear when the source video provides those tracks or renditions.</p>
+    <p className="fresh-long-honesty">These playback preferences are saved on this device. Captions and quality selection appear when the source video provides those tracks or renditions.</p>
   </section>;
 
   return <section className="fresh-long" aria-label="Fresh Flow Long Videos">
