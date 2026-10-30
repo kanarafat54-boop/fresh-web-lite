@@ -51,7 +51,7 @@ function categoryFor(video: VideoItem): Exclude<Category, "Discover" | "Followin
 
 export default function FreshFlowLongVideos() {
   const { user, isGuest } = useFreshId();
-  const { setActiveRoute, openNotifications } = useLayout();
+  const { setActiveRoute } = useLayout();
   const { openProfile } = useProfileNav();
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [libraryVideos, setLibraryVideos] = useState<VideoItem[]>([]);
@@ -265,16 +265,9 @@ export default function FreshFlowLongVideos() {
       if (player && point > 0) { player.currentTime = point; void player.play().catch(() => undefined); }
     }, 350);
   }
-  function openCreatorStudio(startTab: "publish" | "monetize" = "publish") {
+  function openCreatorStudio() {
     try {
       sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: "long-video", requestedAt: new Date().toISOString() }));
-      sessionStorage.setItem("fresh-creator-start-tab", startTab);
-    } catch { /* ignore */ }
-    setActiveRoute(isGuest ? "auth-signin" : "creator");
-  }
-  function openCreatorWorkspace() {
-    try {
-      sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: "creator-studio", requestedAt: new Date().toISOString() }));
       sessionStorage.setItem("fresh-creator-start-tab", "publish");
     } catch { /* ignore */ }
     setActiveRoute(isGuest ? "auth-signin" : "creator");
@@ -314,18 +307,14 @@ export default function FreshFlowLongVideos() {
       <button type="button" className={panel === "discover" ? "active" : ""} onClick={() => setPanel("discover")}>Discover</button>
       <button type="button" onClick={() => setPanel("explore")}>Explore</button>
       <button type="button" onClick={() => setPanel("library")}>Your Library</button>
-      <button type="button" onClick={openCreatorWorkspace}>Creator Studio</button>
-      <button type="button" onClick={() => openCreatorStudio("publish")}>Upload video</button>
-      <button type="button" onClick={() => openCreatorStudio("monetize")}>Monetization</button>
-      <button type="button" onClick={() => openNotifications()}>Notifications</button>
-      <button type="button" onClick={() => setActiveRoute("ai")}>Fresh AI</button>
+      <button type="button" onClick={openCreatorStudio}>Upload video</button>
       <button type="button" onClick={() => setPanel("settings")}>Settings</button>
     </div>
     <div className="fresh-long-search"><span aria-hidden="true">⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search long videos" placeholder="Search films, creators, topics…" /><button type="button" onClick={() => setQuery("")} disabled={!query}>Clear</button></div>
     <nav className="fresh-long-categories" aria-label="Long video categories">{CATEGORIES.map((item) => <button key={item} type="button" className={category === item ? "active" : ""} aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}</nav>
     {loading && <p className="fresh-long-state" role="status">Loading videos from Fresh Flow…</p>}
     {error && <div className="fresh-long-state is-error" role="alert">{error}<button type="button" onClick={() => void load()}>Try again</button></div>}
-    {!loading && !error && videos.length === 0 && <div className="fresh-long-empty"><span>▶</span><h2>Your cinema starts here</h2><p>No published videos are available in the connected media library yet. When creators publish video posts, they will appear here.</p><button type="button" className="primary" onClick={() => openCreatorStudio("publish")}>{user && !isGuest ? "Upload your first long video" : "Sign in to publish a long video"}</button></div>}
+    {!loading && !error && videos.length === 0 && <div className="fresh-long-empty"><span>▶</span><h2>Your cinema starts here</h2><p>No published videos are available in the connected media library yet. When creators publish video posts, they will appear here.</p><button type="button" className="primary" onClick={openCreatorStudio}>{user && !isGuest ? "Upload your first long video" : "Sign in to publish a long video"}</button></div>}
     {!loading && !error && videos.length > 0 && visible.length === 0 && <div className="fresh-long-state">{category === "Following" ? "Videos from creators you follow will appear here. Follow creators to build this feed." : "No videos match this search or category."}</div>}
     {featured && <article className="fresh-long-feature">
       <button className="fresh-long-feature-media" type="button" onClick={() => openPlayer(featured)} aria-label={`Play ${featured.title}`}>
