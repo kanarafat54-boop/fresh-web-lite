@@ -29,6 +29,7 @@ type MediaItem = {
   title: string;
   text: string;
   mediaUrl: string | null;
+  mediaKind?: "image" | "video" | null;
   createdAt: string;
 };
 
@@ -155,7 +156,7 @@ export default function CreatorStudioDashboard() {
       const remoteIds = new Set(remote.map((d) => d.id));
       setDrafts([...local.filter((d) => !remoteIds.has(d.id)), ...remote]);
       setItems(
-        (libraryResult ?? []).map((item) => ({ ...item, title: item.kind === "short" ? "Short" : "Post" })),
+        (libraryResult ?? []).map((item) => ({ ...item, title: item.kind === "short" ? "Short" : item.mediaKind === "video" ? "Long Video" : "Post" })),
       );
       setAnalytics((analyticsResult.data ?? {}) as Record<string, number>);
     } catch (reason: unknown) {
