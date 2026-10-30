@@ -146,7 +146,9 @@ for (const width of WIDTHS) {
   await page.locator('nav[aria-label="Fresh Flow media"] button', { hasText: "Videos" }).click();
   await page.waitForSelector(".fresh-long", { timeout: 10000 });
   check(await page.getByRole("heading", { name: "Long Videos" }).isVisible(), `${tag} Long Videos discovery opens`);
-  check(await page.getByText("The Long Journey — Chapter One").first().isVisible(), `${tag} real published-video contract renders featured content`);
+  const featuredTitle = page.getByText("The Long Journey — Chapter One").first();
+  await featuredTitle.waitFor({ state: "visible", timeout: 10000 });
+  check(await featuredTitle.isVisible(), `${tag} fixture-backed published-video contract renders featured content`);
   check(await page.locator(".fresh-long-feature-copy button[aria-pressed]").first().isVisible(), `${tag} video reactions are available`);
   await page.locator(".fresh-long-feature-copy button", { hasText: "Share" }).click();
   const sharedUrl = await page.evaluate(() => window.__lastSharePayload?.url ?? "");
