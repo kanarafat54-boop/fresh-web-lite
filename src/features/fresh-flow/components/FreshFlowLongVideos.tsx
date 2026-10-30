@@ -132,10 +132,13 @@ export default function FreshFlowLongVideos() {
       return;
     }
     const countResult = await supabase.from("posts").select("like_count").eq("id", video.id).maybeSingle();
-    const nextCount = countResult.data?.like_count;
-    setVideos((current) => current.map((item) => item.id === video.id
-      ? { ...item, likes: typeof nextCount === "number" ? nextCount : Math.max(0, item.likes + (wasLiked ? -1 : 1)) }
-      : item));
+    const nextCount = typeof countResult.data?.like_count === "number"
+      ? countResult.data.like_count
+      : Math.max(0, video.likes + (wasLiked ? -1 : 1));
+    setVideos((current) => current.map((item) => item.id === video.id ? { ...item, likes: nextCount } : item));
+    setActive((current) => current?.id === video.id ? { ...current, likes: nextCount } : current);
+    setDetailsFor((current) => current?.id === video.id ? { ...current, likes: nextCount } : current);
+    setChannelFor((current) => current?.id === video.id ? { ...current, likes: nextCount } : current);
   }
 
   async function toggleSave(video: VideoItem) {
