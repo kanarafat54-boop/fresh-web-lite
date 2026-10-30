@@ -6,6 +6,7 @@
  * explicit consent before calling it. It never accepts a provider URL/token
  * from the browser and never dispatches device actions.
  */
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore Node native type stripping tests import TypeScript source directly; app bundler resolves this source import.
 import { validateAstraObservation, type AstraObservation, type AstraWorldState } from "./AstraContracts.ts";
 
