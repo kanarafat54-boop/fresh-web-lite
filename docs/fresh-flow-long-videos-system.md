@@ -33,7 +33,7 @@ These are contextual product surfaces, not fourteen new global navigation destin
 
 - Discovery reads public video posts from `public.posts`: `id, author_id, content, image_url, video_url, like_count, comment_count, created_at`.
 - Creator display names/usernames come from `public.user_public_profiles`.
-- Following uses the existing Fresh Flow social author helper (`getSocialAuthorIds`).
+- Following uses the existing Fresh Flow social author helper (`getSocialAuthorIds`); creator-channel follow/unfollow writes through the existing `public.follows` contract and refreshes the shared social author set.
 - Signed-in Watch Later uses `public.saved_posts`, with existing owner-scoped RLS policies. Guest saves are stored locally.
 - Signed-in likes use `public.post_likes`; the existing `update_post_like_count()` trigger maintains `posts.like_count`. Guests are directed to Fresh ID sign-in before reacting.
 - Share links use `/fresh-flow?videoId=<post-id>`; Fresh Flow routes the link into Long Videos and opens the matching video when it exists in the public library.
