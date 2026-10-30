@@ -13,7 +13,7 @@ export async function publishFreshPost(input:{authorId:string;content:string;ima
 }
 
 export async function saveCreatorDraft(input:{userId:string;kind:"post"|"short";content:string;mediaUrl?:string|null;mediaKind?:"image"|"video"|null}){
-  const {data,error}=await supabase.from("creator_drafts").insert({user_id:input.userId,kind:input.kind,content:input.content.trim(),media_url:input.mediaUrl??null,media_kind:input.mediaKind??null,status:"draft"}).select("id,kind,content,media_url,status,created_at").single();
+  const {data,error}=await supabase.from("creator_drafts").insert({user_id:input.userId,kind:input.kind,content:input.content.trim(),media_url:input.mediaUrl??null,media_kind:input.mediaKind??null,status:"draft"}).select("id,kind,content,media_url,media_kind,status,created_at").single();
   if(error) throw new Error(error.message||"Could not save draft.");
   return data;
 }
