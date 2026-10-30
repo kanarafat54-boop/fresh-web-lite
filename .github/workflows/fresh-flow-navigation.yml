@@ -9,6 +9,8 @@ on:
       - "scripts/browser-test-fresh-flow-navigation.mjs"
       - "scripts/browser-test-fresh-shorts.mjs"
       - "scripts/test-fresh-short-watch-signals.mjs"
+      - "scripts/eval-fresh-shorts-ranking.mjs"
+      - "src/features/shorts/**"
       - ".github/workflows/fresh-flow-navigation.yml"
   push:
     branches: [main]
@@ -49,6 +51,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Two-navigation layout at 320/360/390/430px
         run: node scripts/browser-test-fresh-flow-navigation.mjs dist
+      - name: Shorts ranking offline evaluation (seeded simulation)
+        run: node scripts/eval-fresh-shorts-ranking.mjs
       - name: Short watch-signal logic
         run: node scripts/test-fresh-short-watch-signals.mjs
       - name: Install ffmpeg (synthetic test clips)
