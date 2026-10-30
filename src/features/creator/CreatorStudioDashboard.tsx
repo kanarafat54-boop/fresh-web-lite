@@ -260,6 +260,7 @@ export default function CreatorStudioDashboard() {
       setContent("");
       setLongVideoTitle("");
       setLongVideoThumbnailUrl(null);
+      setLongVideoDurationSeconds(null);
       setMedia(null);
       setMessage("Draft saved.");
     } catch (reason: unknown) {
@@ -298,6 +299,7 @@ export default function CreatorStudioDashboard() {
       visibility: longVideoVisibility,
       scheduledAt: scheduledDate?.toISOString() ?? null,
       thumbnailUrl: longVideoThumbnailUrl,
+      durationSeconds: longVideoDurationSeconds,
     } : undefined;
     setPublishing(true);
     setError(null);
