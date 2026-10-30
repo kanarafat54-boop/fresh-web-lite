@@ -91,7 +91,7 @@ export function runAstraGridSimulation(
   let collisions = 0;
   let halted = false;
   let stopReason: string | null = null;
-  const obstacles = new Set(initialWorld.obstacles.map((point) => `${point.x},${point.y}"));
+  const obstacles = new Set(initialWorld.obstacles.map((point) => `${point.x},${point.y}`));
 
   for (const command of commands) {
     if (halted) break;
