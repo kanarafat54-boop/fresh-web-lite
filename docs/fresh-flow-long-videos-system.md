@@ -12,7 +12,7 @@
 
 ## Screen inventory
 
-1. **Discover** — featured video, recommendations, continue watching and category-led discovery.
+1. **Discover** — latest published video, continue watching and category-led discovery. Personalized recommendation ranking is not yet connected; the current default order is newest first.
 2. **Explore** — Movies & Series, Documentaries, Education and Events filters. These are currently metadata/keyword filters over published video posts, not a licensed catalog.
 3. **Search** — title, creator and topic search across the currently loaded published video set.
 4. **Cinema Player** — native browser video controls, fullscreen support, playback speed preference, autoplay/data-saver preferences, reactions, share, close and resume.
@@ -31,7 +31,7 @@ These are contextual product surfaces, not fourteen new global navigation destin
 
 ## Current data contracts
 
-- Discovery reads public video posts from `public.posts`: `id, author_id, content, image_url, video_url, like_count, comment_count, created_at`.
+- Discovery currently sorts the latest public video posts newest first; it does not claim a personalized ranking model. It reads `public.posts`: `id, author_id, content, image_url, video_url, like_count, comment_count, created_at`.
 - Creator display names/usernames come from `public.user_public_profiles`.
 - Following uses the existing Fresh Flow social author helper (`getSocialAuthorIds`); creator-channel follow/unfollow writes through the existing `public.follows` contract and refreshes the shared social author set.
 - Signed-in Watch Later uses `public.saved_posts`, with existing owner-scoped RLS policies. Guest saves are stored locally.
