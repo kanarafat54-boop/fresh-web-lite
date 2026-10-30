@@ -30,6 +30,8 @@ jobs:
         run: npm run test:fresh-ai-cognitive-diversity
       - name: Fresh neuro-symbolic backend execution
         run: npm run test:fresh-neuro-symbolic
+      - name: Fresh AI backend readiness registry
+        run: npm run test:fresh-ai-backend-readiness
       - name: Fresh AI capability contract
         run: npm run test:fresh-ai-capabilities
       - name: Fresh AI power fabric
