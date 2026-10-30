@@ -9,6 +9,7 @@ export type FreshLongVideoMetadata = {
   visibility: "public" | "unlisted";
   scheduledAt?: string | null;
   thumbnailUrl?: string | null;
+  durationSeconds?: number | null;
 };
 export type FreshPublishedMedia = { id:string; kind:"post"|"short"; authorId:string; text:string; mediaUrl:string|null; mediaKind:"image"|"video"|null; createdAt:string; title?:string|null; thumbnailUrl?:string|null; videoStatus?:string|null; scheduledAt?:string|null };
 
@@ -26,7 +27,7 @@ export async function publishFreshPost(input:{authorId:string;content:string;ima
     ...(metadata ? {
       video_title:metadata.title.trim(), video_description:metadata.description.trim(),
       video_category:metadata.category.trim(), video_tags:metadata.tags,
-      video_thumbnail_url:metadata.thumbnailUrl??null, video_visibility:metadata.visibility,
+      video_thumbnail_url:metadata.thumbnailUrl??null, video_duration_seconds:metadata.durationSeconds??null, video_visibility:metadata.visibility,
       video_status:scheduledAt ? "scheduled" : "published",
       video_scheduled_at:scheduledAt?.toISOString()??null,
       video_published_at:scheduledAt ? null : new Date().toISOString(),
