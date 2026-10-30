@@ -15,7 +15,7 @@
 1. **Discover** — latest published video, continue watching and category-led discovery. Personalized recommendation ranking is not yet connected; the current default order is newest first.
 2. **Explore** — Movies & Series, Documentaries, Education and Events filters. These are currently metadata/keyword filters over published video posts, not a licensed catalog.
 3. **Search** — title, creator and topic search across the currently loaded published video set.
-4. **Cinema Player** — native browser video controls, fullscreen support, playback speed preference, autoplay/data-saver preferences, reactions, share, close and resume.
+4. **Cinema Player** — native browser video controls, fullscreen support, playback speed preference, autoplay/data-saver preferences, reactions, share, close and resume. When the current video belongs to a creator series, the player shows its series/season/episode position and offers previous/next episode navigation across season boundaries. Navigation preserves the outgoing video's watch progress; it does not invent episodes when linked video posts are unavailable.
 5. **Video Details** — title, description, creator entry, reactions, share, watch-later and comments.
 6. **Creator Channel** — dedicated channel surface with the creator's published long videos, follow/unfollow action and a handoff to the main Fresh ID profile.
 7. **Your Library** — Watch Later, Continue Watching, Recently Watched and personal playlists. Saved posts, watch progress, history and playlist items sync for signed-in users; guest saves/progress remain device-local.
