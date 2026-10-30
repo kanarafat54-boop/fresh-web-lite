@@ -20,7 +20,7 @@ class FreshAstraVisionTrainingTests(unittest.TestCase):
             self.assertEqual(set(splits), {"train", "validation", "test"})
             self.assertEqual(sum(map(len, splits.values())), 240)
             output = root / "artifacts" / "fresh-astra-vision-0.1.pt"
-            metadata = train(manifest, root / "dataset", output, epochs=8, seed=7)
+            metadata = train(manifest, root / "dataset", output, epochs=30, seed=7)
             self.assertTrue(output.is_file())
             self.assertTrue(output.with_suffix(output.suffix + ".json").is_file())
             self.assertEqual(metadata["modelId"], MODEL_ID)
