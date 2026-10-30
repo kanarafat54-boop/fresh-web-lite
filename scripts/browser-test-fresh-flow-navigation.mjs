@@ -52,6 +52,16 @@ const longVideoFixtures = [
   { id: "00000000-0000-4000-8000-000000000002", author_id: fixtureAuthorId, content: "Learning the World: A Documentary", image_url: null, video_url: "https://example.invalid/long-video-two.mp4", like_count: 8, comment_count: 1, created_at: "2026-10-28T10:00:00Z" },
 ];
 
+const seriesFixtures = [
+  { id: "10000000-0000-4000-9000-000000000001", creator_id: fixtureAuthorId, title: "The Long Journey", description: "A two-part story", visibility: "public", created_at: "2026-10-27T10:00:00Z" },
+];
+const seasonFixtures = [
+  { id: "20000000-0000-4000-9000-000000000001", series_id: seriesFixtures[0].id, season_number: 1, title: "Season 1", description: "" },
+];
+const episodeFixtures = [
+  { id: "30000000-0000-4000-9000-000000000001", series_id: seriesFixtures[0].id, season_id: seasonFixtures[0].id, post_id: longVideoFixtures[0].id, episode_number: 1, title_override: null, description_override: null },
+  { id: "30000000-0000-4000-9000-000000000002", series_id: seriesFixtures[0].id, season_id: seasonFixtures[0].id, post_id: longVideoFixtures[1].id, episode_number: 2, title_override: null, description_override: null },
+];
 const TOP_TABS = ["Discover", "Videos", "News / Posts", "Live", "VR / AR", "Podcasts", "Music", "Others"];
 
 for (const width of WIDTHS) {
@@ -69,6 +79,15 @@ for (const width of WIDTHS) {
     }
     if (requestUrl.host === "example.invalid" && requestUrl.pathname === "/rest/v1/user_public_profiles") {
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{ id: fixtureAuthorId, full_name: "Fresh Cinema Creator", username: "cinemacreator" }]) });
+    }
+    if (requestUrl.host === "example.invalid" && requestUrl.pathname === "/rest/v1/fresh_video_series") {
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(seriesFixtures) });
+    }
+    if (requestUrl.host === "example.invalid" && requestUrl.pathname === "/rest/v1/fresh_video_seasons") {
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(seasonFixtures) });
+    }
+    if (requestUrl.host === "example.invalid" && requestUrl.pathname === "/rest/v1/fresh_video_episodes") {
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(episodeFixtures) });
     }
     if (requestUrl.host === "example.invalid") return route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
     return route.abort();
@@ -170,6 +189,13 @@ for (const width of WIDTHS) {
   check(await videoDetails.getByRole("button", { name: "Saved" }).isVisible(), `${tag} watch-later action updates state`);
   await videoDetails.getByRole("button", { name: "Watch now" }).click();
   check(await page.locator(".fresh-long-player").isVisible(), `${tag} cinema player opens from details`);
+  check(await page.getByRole("region", { name: "Series episode navigation" }).isVisible(), `${tag} cinema player shows the active series episode context`);
+  const episodeNav = page.locator(".fresh-long-episode-player-controls");
+  check(await episodeNav.getByRole("button", { name: "Play previous episode" }).isDisabled(), `${tag} first episode has no previous episode`);
+  await episodeNav.getByRole("button", { name: "Next episode" }).click();
+  check(await page.locator(".fresh-long-player").getAttribute("aria-label") === "Learning the World: A Documentary", `${tag} next episode switches the cinema player to the linked episode video`);
+  check((await page.locator(".fresh-long-episode-player small").innerText()).includes("Episode 2"), `${tag} episode position updates after navigation`);
+  check(await episodeNav.getByRole("button", { name: "Next episode" }).isDisabled(), `${tag} final episode has no next episode`);
   await page.locator(".fresh-long-player-meta button", { hasText: "Open discussion" }).click();
   check(await page.locator(".fresh-long-player").count() === 0, `${tag} opening discussion closes cinema player`);
   check(await page.locator(".fresh-long-comments").isVisible(), `${tag} video discussion panel opens`);
