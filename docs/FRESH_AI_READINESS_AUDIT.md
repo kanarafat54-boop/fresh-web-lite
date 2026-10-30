@@ -48,7 +48,7 @@ If the engine URL is not configured, Fresh AI tries its native generation runtim
 
 Regression contract: `npm run test:fresh-ai-image-engine`. This static contract test is not a substitute for a configured-engine integration test, authenticated image-generation test, storage test, or deployed production smoke test.
 
-## Model training: current facts
+## Astra image understanding adapter — contract implemented, not connected or deployed\n\n`src/core/fresh-ai/astra/AstraVisionEngine.ts` defines the server-only `fresh-vision-v1` request boundary. It validates signed-in user context, consented image observations, PNG/JPEG/WebP signatures, an 8 MiB input ceiling, HTTPS/redirect/timeout rules, Fresh model identity, checkpoint/version fields, entity confidence and uncertainty. It expects bytes to have been fetched by an upstream authenticated route after checking private-storage ownership.\n\nServer-only environment variables: `FRESH_AI_VISION_ENGINE_URL` and `FRESH_AI_VISION_ENGINE_TOKEN`. Configuration is surfaced as `configured-not-verified`; no vision worker is currently registered, no upload/camera route calls this adapter yet, and no real image inference has been validated. Its mocked adapter test proves request/response boundary behavior only. Do not mark Vision/Camera as live until a real Fresh-trained engine, authenticated route, storage authorization, UI path and end-to-end evaluation pass.\n\n## Model training: current facts
 
 - Model identity: `fresh-unified-1`.
 - The starter run `fresh-unified-1-starter-run1` completed 40 CPU optimizer steps on 46 synthetic authorized examples.
