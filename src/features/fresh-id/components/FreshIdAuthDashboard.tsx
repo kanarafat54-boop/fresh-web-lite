@@ -170,7 +170,7 @@ export default function FreshIdAuthDashboard() {
     let destination: "feed" | "creator" = "feed";
     try {
       const pendingIntent = JSON.parse(window.sessionStorage.getItem("fresh-flow-create-intent") || "null");
-      if (pendingIntent?.action === "long-video") destination = "creator";
+      if (pendingIntent?.action === "long-video" || pendingIntent?.action === "creator-studio") destination = "creator";
       window.localStorage.setItem("fresh.id.onboarded", "1");
       window.history.replaceState({ freshRoute: destination }, "", destination === "creator" ? "/creation" : "/");
     } catch {
