@@ -21,7 +21,7 @@ Astra is a subsystem of the single Fresh AI identity, `fresh-unified-1`. It is n
 
 The initial software-in-the-loop simulator now supports deterministic grid-world movement, turns, obstacle and boundary collision stops, explicit stop commands and bounded metrics. It is a planning/test harness only, not a physical simulator or device controller.\n\nAstra observations must retain modality, capture time, source and consent. The first runtime now validates those fields, rejects unsafe payload references and implausible future timestamps, and creates a provenance-preserving world-state envelope. It explicitly reports inference as unavailable and never fabricates scene entities. Unsupported or unavailable modality engines return a truthful unavailable state; text-only model weights do not imply vision, audio or video understanding.
 
-## Safety boundary
+## First Fresh-owned vision adapter boundary\n\n`src/core/fresh-ai/astra/AstraVisionEngine.ts` now defines a server-only `fresh-vision-v1` adapter for consented PNG/JPEG/WebP inputs (maximum 8 MiB). It requires a signed-in Fresh ID supplied by the calling server boundary, a validated Astra image observation, a server-held engine token, HTTPS outside localhost, redirect rejection, a bounded timeout, and strict response validation for the `fresh-unified-1` identity, checkpoint ID, engine version, entities, confidence values and uncertainty. The module accepts image bytes only after an upstream authenticated route has verified storage ownership; it does not fetch arbitrary browser URLs.\n\nServer-only configuration names are `FRESH_AI_VISION_ENGINE_URL` and `FRESH_AI_VISION_ENGINE_TOKEN`. A configured endpoint is reported as **not verified**, not ready. This adapter is not yet connected to the upload/camera UI or a deployed vision worker, and the response contract does not prove that a real Fresh-trained checkpoint is installed. No live image understanding is claimed.\n\n## Safety boundary
 
 The initial implementation deliberately does not dispatch device commands. Physical actions remain blocked until all of the following exist and are independently verified:
 
@@ -42,7 +42,7 @@ Critical-risk actions are blocked. The policy contract can classify a proposal b
 | Astra subsystem identity and typed contracts | Contracted |
 | Consent/provenance observation validation | Implemented in contract and runtime; executable safety tests added |
 | Observation intake + world-state envelope | Implemented; preserves source metadata and explicit uncertainty, but performs no inference |
-| Live image/audio/video/spatial inference | Not yet integrated |
+| Fresh vision adapter contract and mocked safety tests | Implemented; server integration and real worker not verified |\n| Live image/audio/video/spatial inference | Not yet integrated |
 | Real-time perception and world model | Not yet integrated |
 | Deterministic software-in-the-loop grid simulator | Implemented; bounded movement, obstacle/boundary collision stops, turns, stop command, deterministic metrics and input validation |
 | Simulation with measured physics / hardware-in-the-loop | Not implemented or verified; the grid simulator is not a physics model |
@@ -53,7 +53,7 @@ Critical-risk actions are blocked. The policy contract can classify a proposal b
 
 ## Next engineering gates
 
-1. Register and deploy a Fresh-owned vision inference engine, then connect user-camera and uploaded-image paths with authenticated file access, consent, provenance, and end-to-end evaluation.
+1. Connect the new vision adapter to an authenticated upload/camera route that verifies private-storage ownership, then register and deploy a Fresh-trained vision engine and pass end-to-end evaluation.
 2. Add audio session and speech perception/output contracts, then connect a real audio engine.
 3. Add video temporal sampling/event contracts and real video understanding/generation jobs.
 4. Extend the deterministic software-in-the-loop simulator with scenario suites, sensor models and fault injection; do not describe its discrete grid as measured physics.
