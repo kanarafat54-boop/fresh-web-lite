@@ -182,6 +182,20 @@ for (const width of WIDTHS) {
   check(await page.locator(".fresh-long-settings label").filter({ hasText: "Data saver" }).locator("input").isChecked(), `${tag} data saver preference toggles`);
   await page.getByRole("button", { name: "Back to Discover" }).click();
 
+  // A shared Fresh Flow URL must reopen the exact video in the cinema player.
+  await page.evaluate(() => {
+    window.history.replaceState({ freshRoute: "feed" }, "", "/");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await page.waitForTimeout(200);
+  await page.evaluate((videoId) => {
+    window.history.replaceState({ freshRoute: "fresh-flow" }, "", `/fresh-flow?videoId=${videoId}`);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, "00000000-0000-4000-8000-000000000001");
+  await page.waitForSelector(".fresh-long-player", { timeout: 15000 });
+  check(await page.locator(".fresh-long-player").getAttribute("aria-label") === "The Long Journey — Chapter One", `${tag} shared video deep link opens the correct cinema player`);
+  await page.locator(".fresh-long-player-bar button[aria-label='Close cinema player']").click();
+
   // Bottom Shorts is current on the Shorts route and the top bar then has no current tab.
   await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Shorts" }).click();
   await page.waitForTimeout(300);
