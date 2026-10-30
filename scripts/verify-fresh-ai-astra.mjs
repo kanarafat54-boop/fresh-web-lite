@@ -9,6 +9,7 @@ const product = readFileSync("docs/FRESH_AI_ASTRA_ARCHITECTURE.md", "utf8");
 const ui = readFileSync("src/app/components/FreshAIUnified.tsx", "utf8");
 const vision = readFileSync("src/core/fresh-ai/astra/AstraVisionEngine.ts", "utf8");
 const visionRoute = readFileSync("api/ai/astra/vision.ts", "utf8");
+const uploadRoute = readFileSync("api/ai/upload.ts", "utf8");
 
 for (const token of ["AstraObservation", "AstraWorldState", "AstraActionProposal", "evaluateAstraAction", "validateAstraObservation"]) {
   assert.ok(contract.includes(token), `Astra contract missing ${token}`);
@@ -27,6 +28,12 @@ assert.match(visionRoute, /authClient\.auth\.getUser\(bearer\)/);
 assert.match(visionRoute, /\.eq\("user_id", user\.id\)/);
 assert.match(visionRoute, /storage_path\.startsWith\(user\.id \+ "\/"\)/);
 assert.match(visionRoute, /consentGranted !== true/);
+assert.match(visionRoute, /metadata\.observationSource/);
+assert.match(uploadRoute, /kind: isSupportedImage \? "image" : "file"/);
+assert.match(uploadRoute, /observationSource: "user-upload"/);
+assert.match(ui, /analyzeImageAttachment/);
+assert.match(ui, /\/api\/ai\/astra\/vision/);
+assert.match(ui, /window\.confirm/);
 assert.match(simulation, /runAstraGridSimulation/);
 assert.match(simulation, /Collision boundary reached/);
 assert.match(simulation, /never controls physical hardware/);
