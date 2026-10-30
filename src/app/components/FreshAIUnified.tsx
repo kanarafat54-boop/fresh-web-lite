@@ -283,7 +283,7 @@ export default function FreshAIUnified() {
         payload.result.summary || "No scene summary was returned.",
         entities.length ? `Detected: ${entities.map((entity) => `${entity.label} (${Math.round(entity.confidence * 100)}%)`).join(", ")}` : "No entities were returned.",
         uncertainty.length ? `Uncertainty: ${uncertainty.join(" ")}` : "",
-      ].filter(Boolean).join("\\n\\n");
+      ].filter(Boolean).join("\n\n");
       setTurns((current) => [...current, { role: "assistant", content: detail, createdAt: new Date().toISOString() }]);
       setSource("Fresh AI · Astra Vision");
     } catch (reason) {
