@@ -12,7 +12,13 @@ function encodeMetadata(value: string): string {
   return btoa(value);
 }
 
+function getPublicApiKey(): string {
+  if (!supabaseAnonKey) throw new Error("Supabase public API configuration is missing. Refresh Fresh Web Lite and retry.");
+  return supabaseAnonKey;
+}
+
 function storageUploadEndpoint(): string {
+  if (!supabaseUrl) throw new Error("Supabase project URL is missing. Refresh Fresh Web Lite and retry.");
   const projectUrl = new URL(supabaseUrl);
   if (projectUrl.hostname.endsWith(".supabase.co")) {
     projectUrl.hostname = projectUrl.hostname.replace(".supabase.co", ".storage.supabase.co");
@@ -62,7 +68,7 @@ async function createSession(
     method: "POST",
     headers: {
       authorization: `Bearer ${accessToken}`,
-      apikey: supabaseAnonKey,
+      apikey: getPublicApiKey(),
       "Tus-Resumable": TUS_VERSION,
       "Upload-Length": String(file.size),
       "Upload-Metadata": metadata,
@@ -80,7 +86,7 @@ async function readOffset(uploadUrl: string, accessToken: string): Promise<numbe
     method: "HEAD",
     headers: {
       authorization: `Bearer ${accessToken}`,
-      apikey: supabaseAnonKey,
+      apikey: getPublicApiKey(),
       "Tus-Resumable": TUS_VERSION,
     },
   });
@@ -101,7 +107,7 @@ async function patchChunk(
     method: "PATCH",
     headers: {
       authorization: `Bearer ${accessToken}`,
-      apikey: supabaseAnonKey,
+      apikey: getPublicApiKey(),
       "Tus-Resumable": TUS_VERSION,
       "Upload-Offset": String(offset),
       "Content-Type": "application/offset+octet-stream",
