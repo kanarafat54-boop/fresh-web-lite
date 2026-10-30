@@ -233,6 +233,7 @@ export default function FreshFlowLongVideos() {
     try {
       await setAuthorFollow(user.id, video.authorId, !wasFollowing);
       setFollowedIds((current) => wasFollowing ? current.filter((id) => id !== video.authorId) : [...current, video.authorId]);
+      setFollowingIds(await getSocialAuthorIds(user.id));
     } catch (followError) {
       setError(followError instanceof Error ? followError.message : "Creator follow status could not be updated.");
     }
