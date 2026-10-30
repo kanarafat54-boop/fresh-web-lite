@@ -35,3 +35,6 @@
 @media(max-width:460px){.fresh-long-explore-grid{grid-template-columns:1fr}.fresh-long-explore-grid button{min-height:88px}}
 
 .fresh-long-share-notice{margin:0 0 10px;padding:9px 12px;border:1px solid #454252;border-radius:10px;background:#171620;color:#c9c7d5;font-size:.8rem;overflow-wrap:anywhere}
+
+.fresh-long-tools button,.fresh-long-heading>button,.fresh-long-channel-actions button,.fresh-long-details-sheet>button:first-child{min-height:44px}
+.fresh-long-settings select{min-height:44px}
