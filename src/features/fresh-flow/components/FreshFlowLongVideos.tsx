@@ -505,6 +505,23 @@ export default function FreshFlowLongVideos() {
   const savedVideos = libraryVideos.filter((video) => saved.includes(video.id));
   const historyVideos = watchHistoryIds.map((id) => libraryVideos.find((video) => video.id === id)).filter((video): video is VideoItem => Boolean(video));
   const channelVideos = channelFor ? libraryVideos.filter((video) => video.authorId === channelFor.authorId) : [];
+  const activeEpisode = active ? episodes.find((episode) => episode.post_id === active.id) ?? null : null;
+  const activeEpisodeSeries = activeEpisode ? series.find((item) => item.id === activeEpisode.series_id) ?? null : null;
+  const activeEpisodeOrder = activeEpisode ? episodes
+    .filter((episode) => episode.series_id === activeEpisode.series_id)
+    .map((episode) => ({ episode, season: seasons.find((season) => season.id === episode.season_id) }))
+    .filter((item) => Boolean(item.season))
+    .sort((a, b) => (a.season!.season_number - b.season!.season_number) || (a.episode.episode_number - b.episode.episode_number))
+    .map((item) => ({ ...item, video: libraryVideos.find((video) => video.id === item.episode.post_id) }))
+    .filter((item): item is typeof item & { video: VideoItem } => Boolean(item.video)) : [];
+  const activeEpisodeIndex = activeEpisode ? activeEpisodeOrder.findIndex((item) => item.episode.id === activeEpisode.id) : -1;
+  function openAdjacentEpisode(offset: -1 | 1) {
+    if (!active || activeEpisodeIndex < 0) return;
+    const adjacent = activeEpisodeOrder[activeEpisodeIndex + offset]?.video;
+    if (!adjacent) return;
+    if (playerRef.current) saveProgress(active, playerRef.current.currentTime, true);
+    setActive(adjacent);
+  }
   if (channelFor) return <section className="fresh-long" aria-label="Creator channel">
     <div className="fresh-long-heading"><div><span className="fresh-long-eyebrow">FRESH FLOW / CREATOR CHANNEL</span><h1>{channelFor.authorName}</h1><p>@{channelFor.username} · {channelVideos.length} videos in this view</p></div><button type="button" onClick={() => setChannelFor(null)}>Back to Discover</button></div>
     <div className="fresh-long-channel-actions">{user?.id === channelFor.authorId ? <span className="fresh-long-channel-self">Your channel</span> : <button type="button" onClick={() => void toggleFollow(channelFor)}>{followedIds.includes(channelFor.authorId) ? "Following" : user && !isGuest ? "Follow creator" : "Sign in to follow"}</button>}<button type="button" onClick={() => { setChannelFor(null); openProfile(channelFor.authorId); }}>Open Fresh ID profile</button></div>
@@ -634,7 +651,15 @@ export default function FreshFlowLongVideos() {
     <section className="fresh-long-section fresh-long-library"><div><h2>Your library</h2><p>{saved.length} saved videos · {user && !isGuest ? "synced to your Fresh ID" : "saved on this device"}</p></div><button type="button" onClick={() => { setCategory("Discover"); setQuery(""); }}>Browse all videos</button></section>
     {active && <div className="fresh-long-player" role="dialog" aria-modal="true" aria-label={active.title} onKeyDown={(event) => { if (event.key === "Escape") closePlayer(); }}>
       <div className="fresh-long-player-bar"><button type="button" onClick={closePlayer} aria-label="Close cinema player">✕</button><div><strong>{active.title}</strong><small>@{active.username}</small></div><button type="button" onClick={() => void toggleSave(active)}>{saved.includes(active.id) ? "Saved" : "Save"}</button></div>
-      <div className="fresh-long-player-stage"><video ref={playerRef} key={active.id} src={active.videoUrl} poster={active.posterUrl ?? undefined} controls playsInline autoPlay={autoplay && !dataSaver} preload={dataSaver ? "none" : "metadata"} onLoadedMetadata={(e) => { e.currentTarget.playbackRate = Number(playbackSpeed); saveDuration(active.id, e.currentTarget.duration); }} onTimeUpdate={(e) => saveProgress(active, e.currentTarget.currentTime)} onEnded={() => clearProgress(active.id)} onError={() => setError("This video could not be played. The creator's media URL may be unavailable.")} /><div className="fresh-long-player-meta"><span>FRESH FLOW CINEMA</span><h2>{active.title}</h2><p>{active.description}</p><button type="button" aria-pressed={likedIds.includes(active.id)} onClick={() => void toggleLike(active)}>{likedIds.includes(active.id) ? "♥ Liked" : "♡ Like"} · {active.likes}</button><button type="button" onClick={() => void shareVideo(active)}>Share</button><button type="button" onClick={() => { setCommentsFor(active.id); closePlayer(); }}>Open discussion · {active.comments}</button></div></div>
+      <div className="fresh-long-player-stage"><video ref={playerRef} key={active.id} src={active.videoUrl} poster={active.posterUrl ?? undefined} controls playsInline autoPlay={autoplay && !dataSaver} preload={dataSaver ? "none" : "metadata"} onLoadedMetadata={(e) => { e.currentTarget.playbackRate = Number(playbackSpeed); saveDuration(active.id, e.currentTarget.duration); }} onTimeUpdate={(e) => saveProgress(active, e.currentTarget.currentTime)} onEnded={() => clearProgress(active.id)} onError={() => setError("This video could not be played. The creator's media URL may be unavailable.")} /><div className="fresh-long-player-meta"><span>FRESH FLOW CINEMA</span><h2>{active.title}</h2><p>{active.description}</p><button type="button" aria-pressed={likedIds.includes(active.id)} onClick={() => void toggleLike(active)}>{likedIds.includes(active.id) ? "♥ Liked" : "♡ Like"} · {active.likes}</button><button type="button" onClick={() => void shareVideo(active)}>Share</button><button type="button" onClick={() => { setCommentsFor(active.id); closePlayer(); }}>Open discussion · {active.comments}</button>
+          {activeEpisode && activeEpisodeSeries && <section className="fresh-long-episode-player" aria-label="Series episode navigation">
+            <div><span>{activeEpisodeSeries.title}</span><small>Season {activeEpisodeOrder[activeEpisodeIndex]?.season.season_number ?? "—"} · Episode {activeEpisode.episode_number}</small></div>
+            <div className="fresh-long-episode-player-controls">
+              <button type="button" onClick={() => openAdjacentEpisode(-1)} disabled={activeEpisodeIndex <= 0} aria-label="Play previous episode">← Previous</button>
+              <button type="button" onClick={() => openAdjacentEpisode(1)} disabled={activeEpisodeIndex < 0 || activeEpisodeIndex >= activeEpisodeOrder.length - 1} aria-label="Play next episode">Next episode →</button>
+            </div>
+          </section>}
+        </div></div>
     </div>}
     {detailsFor && <div className="fresh-long-details" role="dialog" aria-modal="true" aria-label={`Details for ${detailsFor.title}`}><div className="fresh-long-details-sheet"><button type="button" onClick={() => setDetailsFor(null)} aria-label="Close video details">✕</button><span className="fresh-long-eyebrow">VIDEO DETAILS</span><h2>{detailsFor.title}</h2><p>{detailsFor.description}</p><button type="button" className="fresh-long-author-link" onClick={() => { setDetailsFor(null); setChannelFor(detailsFor); }}>Open @{detailsFor.username} creator channel</button><div className="fresh-long-actions"><button className="primary" type="button" onClick={() => { openPlayer(detailsFor); setDetailsFor(null); }}>Watch now</button><button type="button" aria-pressed={likedIds.includes(detailsFor.id)} onClick={() => void toggleLike(detailsFor)}>{likedIds.includes(detailsFor.id) ? "♥ Liked" : "♡ Like"} · {detailsFor.likes}</button><button type="button" onClick={() => void shareVideo(detailsFor)}>Share video</button><button type="button" onClick={() => void toggleSave(detailsFor)}>{saved.includes(detailsFor.id) ? "Saved" : "Watch later"}</button><button type="button" onClick={() => { setCommentsFor(detailsFor.id); setDetailsFor(null); }}>Comments · {detailsFor.comments}</button></div></div></div>}
     {commentsFor && <div className="fresh-long-comments"><button type="button" onClick={() => setCommentsFor(null)}>Close discussion</button><CommentPanel targetType="post" targetId={commentsFor} onClose={() => setCommentsFor(null)} /></div>}
