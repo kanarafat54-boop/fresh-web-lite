@@ -13,8 +13,6 @@ const json = (value: unknown, status = 200) => Response.json(value, {
 type VisionRequest = {
   assetId?: unknown;
   consentGranted?: unknown;
-  capturedAt?: unknown;
-  source?: unknown;
 };
 
 export async function POST(req: Request): Promise<Response> {
@@ -42,14 +40,10 @@ export async function POST(req: Request): Promise<Response> {
       return json({ error: "A valid Fresh AI image asset ID is required." }, 400);
     }
     if (body.consentGranted !== true) return json({ error: "Explicit consent is required before image analysis." }, 400);
-    if (body.source !== undefined && body.source !== "user-upload" && body.source !== "user-camera") {
-      return json({ error: "Unsupported image observation source." }, 400);
-    }
-
     const storage = createFreshAIServerSupabase();
     if (!storage) return json({ error: "Fresh AI private media storage is not configured." }, 503);
     const lookup = await storage.from("fresh_ai_media_assets")
-      .select("id, storage_bucket, storage_path, mime_type, kind")
+      .select("id, storage_bucket, storage_path, mime_type, kind, metadata")
       .eq("id", body.assetId)
       .eq("user_id", user.id)
       .eq("kind", "image")
@@ -70,11 +64,15 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     const imageBytes = new Uint8Array(await download.data.arrayBuffer());
-    const source: "user-camera" | "user-upload" = body.source === "user-camera" ? "user-camera" : "user-upload";
+    const metadata = asset.metadata && typeof asset.metadata === "object" ? asset.metadata as Record<string, unknown> : {};
+    if (metadata.observationSource !== "user-upload" && metadata.observationSource !== "user-camera") {
+      return json({ error: "This image asset has no trusted upload or camera provenance." }, 400);
+    }
+    const source: "user-camera" | "user-upload" = metadata.observationSource;
     const observation: AstraObservation = {
       id: crypto.randomUUID(),
       modality: "image" as const,
-      capturedAt: typeof body.capturedAt === "string" ? body.capturedAt : new Date().toISOString(),
+      capturedAt: typeof metadata.capturedAt === "string" ? metadata.capturedAt : new Date().toISOString(),
       source,
       consentGranted: true,
       payloadRef: "asset_" + asset.id,
