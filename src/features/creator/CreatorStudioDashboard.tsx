@@ -32,6 +32,9 @@ type MediaItem = {
   mediaUrl: string | null;
   mediaKind?: "image" | "video" | null;
   createdAt: string;
+  thumbnailUrl?: string | null;
+  videoStatus?: string | null;
+  scheduledAt?: string | null;
 };
 
 type StudioTab = "publish" | "analytics" | "distribute" | "design" | "audio" | "monetize";
@@ -168,7 +171,7 @@ export default function CreatorStudioDashboard() {
       const remoteIds = new Set(remote.map((d) => d.id));
       setDrafts([...local.filter((d) => !remoteIds.has(d.id)), ...remote]);
       setItems(
-        (libraryResult ?? []).map((item) => ({ ...item, title: item.kind === "short" ? "Short" : item.mediaKind === "video" ? "Long Video" : "Post" })),
+        (libraryResult ?? []).map((item) => ({ ...item, title: item.title || (item.kind === "short" ? "Short" : item.mediaKind === "video" ? "Long Video" : "Post") })),
       );
       setAnalytics((analyticsResult.data ?? {}) as Record<string, number>);
     } catch (reason: unknown) {
@@ -653,7 +656,7 @@ export default function CreatorStudioDashboard() {
                 {items.slice(0, 30).map((item) => (
                   <article key={`${item.kind}-${item.id}`}>
                     <div className="creator-library-media">
-                      {item.mediaUrl ? (
+                      {item.thumbnailUrl ? <img src={item.thumbnailUrl} alt="" /> : item.mediaUrl ? (
                         item.kind === "short" || /\.(mp4|webm|mov)(\?.*)?$/i.test(item.mediaUrl) ? (
                           <video src={item.mediaUrl} muted />
                         ) : (
@@ -664,9 +667,9 @@ export default function CreatorStudioDashboard() {
                       )}
                     </div>
                     <div>
-                      <span className="creator-kind">{item.kind}</span>
-                      <strong>{item.text || "Media"}</strong>
-                      <small>{new Date(item.createdAt).toLocaleString()}</small>
+                      <span className="creator-kind">{item.kind === "post" && item.mediaKind === "video" ? "Long Video" : item.kind}</span>
+                      <strong>{item.title || item.text || "Media"}</strong>
+                      <small>{item.videoStatus === "scheduled" && item.scheduledAt ? `Scheduled · ${new Date(item.scheduledAt).toLocaleString()}` : new Date(item.createdAt).toLocaleString()}</small>
                     </div>
                   </article>
                 ))}
