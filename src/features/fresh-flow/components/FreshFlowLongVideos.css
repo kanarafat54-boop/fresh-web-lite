@@ -40,3 +40,13 @@
 .fresh-long-settings select{min-height:44px}
 
 .fresh-long-empty .primary{min-height:46px;margin-top:8px;padding:11px 16px;border:0;border-radius:12px;background:#635bff;color:#fff;font:inherit;font-weight:650;cursor:pointer}
+
+
+.fresh-long-playlists{display:grid;gap:12px}
+.fresh-long-playlist-create,.fresh-long-playlist-add{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.fresh-long-playlist-create input,.fresh-long-playlist-add select{min-height:44px;min-width:0;border:1px solid var(--fresh-border,rgba(255,255,255,.2));border-radius:10px;padding:9px 12px;background:var(--fresh-surface,#11151b);color:inherit}
+.fresh-long-playlist-create button,.fresh-long-playlist-add button{min-height:44px;border:1px solid var(--fresh-border,rgba(255,255,255,.2));border-radius:10px;padding:9px 12px;background:rgba(99,91,255,.14);color:inherit;font-weight:700}
+.fresh-long-playlist-add button:disabled{opacity:.45;cursor:not-allowed}
+.fresh-long-playlist{display:grid;gap:8px;padding:12px 0;border-top:1px solid var(--fresh-border,rgba(255,255,255,.14))}
+.fresh-long-playlist>div:first-child{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.fresh-long-playlist small{opacity:.65}
