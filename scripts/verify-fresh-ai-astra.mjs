@@ -12,6 +12,6 @@ assert.match(contract, /environment === "physical"[\s\S]*?Physical actuation is 
 assert.match(contract, /proposal\.risk === "critical"[\s\S]*?Critical-risk actions are not executable/);
 assert.match(contract, /executable: false/);
 assert.match(registry, /"astra"/);
-assert.match(product, /physical actuation remains disabled/i);
-assert.match(product, /image, audio, video, spatial/i);
+assert.match(product, /Physical actions remain blocked until/i);
+assert.match(product, /images, camera frames, audio, video, spatial data/i);
 console.log("Fresh AI Astra contract checks passed.");
