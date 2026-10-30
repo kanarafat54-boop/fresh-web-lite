@@ -91,7 +91,7 @@ function readSavedPosition(): { subTab?: SubTab; filterMode?: FilterMode; curren
 
 export default function FreshFlowShortsStream({
   onImmersiveChange: _onImmersiveChange,
-  onOpenTopic,
+  onOpenTopic: _onOpenTopic,
   immersive: _immersiveProp,
   onOpenCreate,
 }: FreshFlowShortsStreamProps = {}) {

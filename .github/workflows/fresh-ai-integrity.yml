@@ -30,6 +30,16 @@ jobs:
         run: npm run test:fresh-ai-cognitive-diversity
       - name: Fresh AI capability contract
         run: npm run test:fresh-ai-capabilities
+      - name: Fresh AI Astra multimodal and safety contracts
+        run: npm run test:fresh-ai-astra
+      - name: Fresh AI Astra runtime safety tests
+        run: npm run test:fresh-ai-astra-runtime
+      - name: Fresh AI Astra deterministic simulation
+        run: npm run test:fresh-ai-astra-simulation
+      - name: Fresh AI Astra vision adapter safety
+        run: npm run test:fresh-ai-astra-vision
+      - name: Fresh Astra universal mission and safety routing
+        run: npm run test:fresh-astra
       - name: Fresh AI power fabric
         run: npm run test:fresh-ai-power-fabric
       - name: Fresh AI capability runtime

@@ -70,6 +70,22 @@
         "Keep derived dataset releases under CC-BY-SA-3.0"
       ],
       "status": "eligible"
+    },
+    {
+      "authorizationId": "fwl-internal-docs-qa-v1",
+      "name": "Fresh Web Lite product docs, question-and-answer form",
+      "authorityType": "internal-authorship",
+      "owner": "Fresh Web Lite project",
+      "license": "internal-synthetic",
+      "trainingPermission": "verified",
+      "commercialTrainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "scripts/generate-fresh-knowledge-sft.mjs over the owner-approved ALLOWLIST in scripts/generate-fresh-knowledge-from-docs.mjs (24 product docs; operational docs on the DENYLIST are excluded). Questions are fixed templates; answers are the docs' own text. No outside model.",
+      "restrictions": [
+        "Only allowlisted product docs; deployment/config lines and secret-shaped text are stripped and generation fails if any survive",
+        "Owner to confirm the docs' own provenance (authored for the project) before production promotion"
+      ],
+      "status": "eligible"
     }
   ]
 }
