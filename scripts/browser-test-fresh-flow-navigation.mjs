@@ -51,7 +51,14 @@ for (const width of WIDTHS) {
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.route((url) => !url.href.startsWith(origin), (route) => route.abort());
-  await page.goto(`${origin}/fresh-flow`);
+  // Fresh Flow is available to authenticated and guest users, not anonymous
+  // signed-out sessions. Establish the real guest state through Fresh ID first.
+  await page.goto(`${origin}/auth/sign-in`);
+  await page.getByRole("button", { name: /Continue as guest/i }).first().click();
+  await page.evaluate(() => {
+    window.history.replaceState({ freshRoute: "fresh-flow" }, "", "/fresh-flow");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
   await page.waitForSelector('nav[aria-label="Fresh Flow media"]', { timeout: 15000 });
   const tag = `@${width}px`;
 
