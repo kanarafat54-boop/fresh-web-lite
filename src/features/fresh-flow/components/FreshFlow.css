@@ -102,3 +102,38 @@
   .fresh-flow-media-nav { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .fresh-flow-media-button { flex-direction:row; justify-content:center; gap:8px; min-height:48px; }
 }
+
+/* ---- Fresh Shorts: TikTok-style vertical pager -------------------------------
+   One scroll container (.fresh-flow-viewport) snaps full-bleed items; the Flow
+   header and the bottom navigation stay visible. */
+.fresh-flow-short-experience{position:relative;flex:1 1 auto;display:flex;flex-direction:column;width:100%;height:100%;min-height:0}
+.fresh-flow-stream[data-discovery]{display:block;overflow:hidden;scroll-snap-type:none;height:100%}
+.fresh-flow-stream[data-discovery] .fresh-flow-viewport{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scroll-snap-type:y mandatory;overscroll-behavior-y:contain;touch-action:pan-y;scrollbar-width:none;scroll-behavior:smooth}
+.fresh-flow-stream[data-discovery] .fresh-flow-viewport::-webkit-scrollbar{display:none}
+.fresh-flow-stream[data-discovery] .fresh-flow-item{display:block;height:100%;min-height:100%;border:0;border-radius:0;box-shadow:none;background:#000}
+.fresh-flow-stream[data-discovery] .fresh-flow-item::after{background:linear-gradient(180deg,rgba(0,0,0,.35) 0%,transparent 22%,transparent 55%,rgba(0,0,0,.78) 100%)}
+.fresh-flow-stream[data-discovery] .fresh-flow-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.fresh-flow-tap-layer{position:absolute;inset:0;z-index:2;width:100%;height:100%;padding:0;border:0;background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent}
+/* discovery tabs float over the video like TikTok's Following | For You */
+.fresh-flow-stream[data-discovery] .fresh-flow-tabs{position:absolute;z-index:20;top:6px;left:0;right:0;justify-content:center;gap:2px;padding:4px 8px;background:transparent;border:0;pointer-events:none}
+.fresh-flow-stream[data-discovery] .fresh-flow-tabs button{pointer-events:auto;min-height:44px;padding:6px 10px;border:0;border-radius:0;background:transparent;color:rgba(255,255,255,.66);font-weight:700;text-shadow:0 1px 8px rgba(0,0,0,.7);box-shadow:inset 0 -2px 0 transparent}
+.fresh-flow-stream[data-discovery] .fresh-flow-tabs button.active{color:#fff;background:transparent;border:0;box-shadow:inset 0 -2px 0 #fff}
+.fresh-flow-stream[data-discovery] .fresh-flow-filters{position:absolute;z-index:21;top:54px;left:8px;right:8px;background:rgba(8,10,16,.72);border-radius:14px;padding:8px}
+/* clear the floating bottom navigation (≈74px + safe area) */
+.fresh-flow-stream[data-discovery] .fresh-flow-overlay{bottom:calc(92px + env(safe-area-inset-bottom));right:84px}
+.fresh-flow-stream[data-discovery] .fresh-flow-actions{bottom:calc(92px + env(safe-area-inset-bottom));gap:8px}
+.fresh-flow-stream[data-discovery] .fresh-flow-actions button{min-width:48px;min-height:48px;padding:6px 4px;border:0;border-radius:16px;background:transparent;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;color:#fff;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;font-size:.7rem;font-weight:700;text-shadow:0 1px 8px rgba(0,0,0,.7)}
+.fresh-flow-stream[data-discovery] .fresh-flow-actions button>span:first-child{font-size:26px;line-height:1}
+.fresh-flow-stream[data-discovery] .fresh-flow-actions button.saved{color:#fcd34d}
+.fresh-flow-stream[data-discovery] .fresh-flow-advanced{right:12px;bottom:calc(92px + env(safe-area-inset-bottom));max-height:46vh;overflow-y:auto}
+.fresh-flow-play-flash,.fresh-flow-heart-burst{position:absolute;z-index:6;left:50%;top:50%;display:grid;place-items:center;pointer-events:none;color:#fff;transform:translate(-50%,-50%);animation:fresh-flow-pop .7s ease-out forwards}
+.fresh-flow-play-flash{width:76px;height:76px;border-radius:50%;background:rgba(0,0,0,.5);font-size:30px}
+.fresh-flow-heart-burst{font-size:96px;color:#ff3b5c;text-shadow:0 6px 30px rgba(0,0,0,.45)}
+@keyframes fresh-flow-pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.25)}}
+.fresh-flow-sound-pill{position:absolute;z-index:8;left:50%;top:104px;transform:translateX(-50%);min-height:40px;padding:8px 16px;border:0;border-radius:999px;background:rgba(0,0,0,.62);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.fresh-flow-progress{position:absolute;z-index:5;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.18);pointer-events:none}
+.fresh-flow-progress-fill{display:block;height:100%;width:0;background:#fff}
+@media(prefers-reduced-motion:reduce){.fresh-flow-play-flash,.fresh-flow-heart-burst{animation-duration:.01s}.fresh-flow-stream[data-discovery] .fresh-flow-viewport{scroll-behavior:auto}}
+.fresh-flow-stream[data-discovery] .fresh-flow-follow-btn{min-height:30px;padding:4px 12px;border:1px solid rgba(255,255,255,.7);border-radius:6px;background:transparent;color:#fff;font:inherit;font-size:.78rem;font-weight:700;cursor:pointer}
+.fresh-flow-stream[data-discovery] .fresh-flow-author-avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#6d4aff,#11a7e7);font-weight:800}
+.fresh-flow-stream[data-discovery] .fresh-flow-tabs{justify-content:flex-start;padding-left:12px;padding-right:12px}
