@@ -56,13 +56,37 @@ export interface AstraPolicyResult {
 }
 
 /** Rejects unconsented, malformed or implausibly future observations. */
-export function validateAstraObservation(observation: AstraObservation): string[] {
+export function validateAstraObservation(
+  observation: AstraObservation,
+  options?: { now?: string },
+): string[] {
   const errors: string[] = [];
-  if (!observation.id.trim()) errors.push("Observation ID is required.");
-  if (!observation.consentGranted) errors.push("User consent is required before processing this observation.");
-  if (!Number.isFinite(Date.parse(observation.capturedAt))) errors.push("Observation timestamp is invalid.");
-  if (observation.confidence !== undefined && (observation.confidence < 0 || observation.confidence > 1)) {
-    errors.push("Observation confidence must be between 0 and 1.");
+  if (!observation || typeof observation !== "object") return ["A valid observation object is required."];
+  if (typeof observation.id !== "string" || !observation.id.trim() || observation.id.length > 128) {
+    errors.push("Observation ID must contain 1–128 characters.");
+  }
+  if (!["text", "image", "audio", "video", "spatial", "sensor"].includes(observation.modality)) {
+    errors.push("Observation modality is unsupported.");
+  }
+  if (!["user-upload", "user-camera", "user-microphone", "paired-device", "simulation"].includes(observation.source)) {
+    errors.push("Observation source is unsupported.");
+  }
+  if (observation.consentGranted !== true) errors.push("User consent is required before processing this observation.");
+  const capturedAt = Date.parse(observation.capturedAt);
+  const now = Date.parse(options?.now ?? new Date().toISOString());
+  if (!Number.isFinite(capturedAt)) errors.push("Observation timestamp is invalid.");
+  else if (Number.isFinite(now) && capturedAt > now + 5 * 60 * 1000) errors.push("Observation timestamp is too far in the future.");
+  if (observation.confidence !== undefined && (!Number.isFinite(observation.confidence) || observation.confidence < 0 || observation.confidence > 1)) {
+    errors.push("Observation confidence must be a finite number between 0 and 1.");
+  }
+  if (observation.description !== undefined && (typeof observation.description !== "string" || observation.description.length > 2000)) {
+    errors.push("Observation description must not exceed 2,000 characters.");
+  }
+  if (observation.payloadRef !== undefined && (typeof observation.payloadRef !== "string" || !/^[A-Za-z0-9/_-]{1,512}$/.test(observation.payloadRef))) {
+    errors.push("Payload reference must be an opaque storage reference, not a URL or arbitrary path.");
+  }
+  if (observation.modality !== "text" && !observation.payloadRef) {
+    errors.push("Non-text observations require a stored payload reference.");
   }
   if (observation.source === "user-camera" && observation.modality !== "image" && observation.modality !== "video") {
     errors.push("Camera observations must use image or video modality.");
