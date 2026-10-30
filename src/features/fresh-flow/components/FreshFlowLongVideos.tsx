@@ -168,6 +168,12 @@ export default function FreshFlowLongVideos() {
       }
       const allRowsById = new Map([...recentRows, ...extraRows].map((row: any) => [row.id, row]));
       const allRows = [...allRowsById.values()];
+      for (const row of allRows) {
+        const duration = Number(row.video_duration_seconds);
+        if (Number.isFinite(duration) && duration > 0) nextDurations[row.id] = duration;
+      }
+      setDurations(nextDurations);
+      try { localStorage.setItem(DURATION_KEY, JSON.stringify(nextDurations)); } catch { /* device storage unavailable */ }
       const authorIds = [...new Set(allRows.map((row: any) => row.author_id).filter(Boolean))];
       let profiles: any[] = [];
       if (authorIds.length) {
