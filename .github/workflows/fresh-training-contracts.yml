@@ -64,6 +64,9 @@ jobs:
       - run: npm run test:fresh-corpus-authorization
       - run: npm run test:fresh-corpus-candidates
       - run: npm run test:fresh-corpus-ingestion
+      - run: npm run test:fresh-knowledge-sft
+      - name: Test corpus importer, screening, training-mix builder, packing and evaluation helpers
+        run: cd training && python3 -m unittest test_import_hf_dataset test_screen_corpus test_build_training_mix test_fresh_pack test_fresh_eval
       - run: npm run test:fresh-training-promotion
       - run: npm run test:fresh-tokenizer-training
       - run: npm run test:fresh-training-backend
