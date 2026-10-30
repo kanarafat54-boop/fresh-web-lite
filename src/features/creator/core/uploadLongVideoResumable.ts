@@ -1,7 +1,7 @@
 import { supabase, supabaseAnonKey, supabaseUrl } from "../../../lib/supabase";
 
 const BUCKET = "post-videos";
-const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 5_000_000_000;
 const TUS_CHUNK_BYTES = 6 * 1024 * 1024;
 const TUS_VERSION = "1.0.0";
 
@@ -49,7 +49,22 @@ function clearSession(key: string): void {
 
 async function responseError(response: Response, action: string): Promise<Error> {
   const detail = await response.text().catch(() => "");
+  if (response.status === 413 || /file.?size|upload.?size|too large|maximum.*size/i.test(detail)) {
+    return new Error("Fresh Flow supports one video up to 5 GB, but the connected storage project rejected this file because its global or bucket upload limit is lower. The storage limit must support this file size before the upload can continue.");
+  }
   return new Error(`Video upload ${action} failed (${response.status}). ${detail.slice(0, 240)}`.trim());
+}
+
+async function advertisedTusMaxSize(endpoint: string, accessToken: string): Promise<number | null> {
+  const response = await fetch(endpoint, {
+    method: "OPTIONS",
+    headers: { authorization: `Bearer ${accessToken}`, apikey: getPublicApiKey(), "Tus-Resumable": TUS_VERSION },
+  });
+  if (!response.ok) return null;
+  const raw = response.headers.get("Tus-Max-Size");
+  if (!raw) return null;
+  const limit = Number(raw);
+  return Number.isSafeInteger(limit) && limit >= 0 ? limit : null;
 }
 
 async function createSession(
@@ -125,8 +140,8 @@ async function patchChunk(
 
 /**
  * Uploads a Long Video using Supabase Storage's TUS protocol.
- * The Free project limit is 50 MiB; chunks are 6 MiB so interrupted mobile
- * connections can resume from the server-confirmed offset without restarting.
+ * Product limit: 5,000,000,000 bytes per video. The storage provider still
+ * enforces global and bucket limits; TUS preflight checks its advertised ceiling.
  */
 export async function uploadLongVideoResumable(
   userId: string,
@@ -137,7 +152,7 @@ export async function uploadLongVideoResumable(
   if (!["video/mp4", "video/webm", "video/quicktime"].includes(file.type)) throw new Error("Use an MP4, WebM, or QuickTime video.");
   if (file.size <= 0) throw new Error("The selected video is empty.");
   if (file.size > MAX_VIDEO_BYTES) {
-    throw new Error("This Fresh Web Lite Free storage project currently supports videos up to 50 MiB. Compress the video or choose a smaller file.");
+    throw new Error("A single Fresh Flow Long Video can be up to 5 GB (5,000,000,000 bytes). Choose a smaller file to continue.");
   }
 
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -162,6 +177,11 @@ export async function uploadLongVideoResumable(
   }
 
   if (!current) {
+    const serverLimit = await advertisedTusMaxSize(endpoint, session.access_token);
+    if (serverLimit !== null && file.size > serverLimit) {
+      const limitMb = Math.max(1, Math.floor(serverLimit / (1024 * 1024)));
+      throw new Error(`This video is larger than the connected storage server currently allows (about ${limitMb} MiB). Fresh Flow supports one video up to 5 GB, but the storage global/bucket limit must be raised before this file can upload.`);
+    }
     const objectPath = `${userId}/long-video-${crypto.randomUUID()}-${safeName}`;
     current = await createSession(endpoint, session.access_token, file, objectPath);
     writeSession(key, current);
