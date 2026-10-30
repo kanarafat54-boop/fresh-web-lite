@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { FRESH_AI_BACKEND_READINESS, assertFreshAIBackendReadinessIntegrity } from "../src/core/fresh-ai/FreshAIBackendReadiness.ts";
+import fs from "node:fs";
 assertFreshAIBackendReadinessIntegrity();
 assert.ok(FRESH_AI_BACKEND_READINESS.some((item) => item.id === "neuro-symbolic" && item.status === "active"));
 assert.ok(FRESH_AI_BACKEND_READINESS.some((item) => item.id === "agi" && item.status === "research-only"));
 assert.ok(FRESH_AI_BACKEND_READINESS.some((item) => item.id === "embodied" && item.status === "hardware-required"));
+const statusRoute = fs.readFileSync("src/server/freshAIStatus.ts", "utf8");
+const askRoute = fs.readFileSync("api/ai/ask.ts", "utf8");
+assert.ok(statusRoute.includes("reasoningBackends: getFreshAIBackendReadiness()"), "status endpoint must expose backend readiness");
+assert.ok(askRoute.includes("backendReadiness: getFreshAIBackendReadiness()"), "ask endpoint must expose backend readiness");
 console.log("Fresh AI backend readiness registry: PASS");
