@@ -10,6 +10,7 @@
 import type { FreshDimension, DimensionalReasoning } from "./dimensionalIntelligence.js";
 import type { ASIState } from "./asi.js";
 import type { FreshCognitiveSelection } from "./FreshAICognitiveDiversity.js";
+import type { FreshSymbolicAnalysis } from "./FreshNeuroSymbolicRuntime.js";
 
 export type TruthState = "KNOWN" | "PROBABLE" | "UNCERTAIN" | "CONTRADICTED" | "UNKNOWN" | "BLOCKED";
 export type FreshIntent = "chat" | "answer" | "research" | "create" | "code" | "design" | "analyze" | "plan" | "act" | "learn" | "discover";
@@ -53,6 +54,7 @@ export type FreshReasoningResult = {
   explanation: string;
   dimensionalReasoning?: DimensionalReasoning[];
   cognitivePerspectives?: FreshCognitiveSelection;
+  symbolicAnalysis?: FreshSymbolicAnalysis;
   pipeline?: FreshPipelineEvent[];
   feedback?: FreshFeedback;
   asi?: ASIState;
