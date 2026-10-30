@@ -56,3 +56,22 @@
 .fresh-long-playlist-visibility{display:flex;align-items:center;gap:7px;font-size:12px;opacity:.85}
 .fresh-long-playlist-visibility select{min-height:40px;max-width:150px;border:1px solid var(--fresh-border,rgba(255,255,255,.2));border-radius:9px;padding:7px 10px;background:var(--fresh-surface,#11151b);color:inherit}
 .fresh-long-playlist-delete{min-height:40px;border:1px solid rgba(220,38,38,.45);border-radius:9px;padding:7px 11px;background:rgba(220,38,38,.1);color:inherit}
+
+.fresh-long-series-create,.fresh-long-episode-create{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0;padding:14px;border:1px solid #343342;border-radius:14px;background:#171620}
+.fresh-long-series-create input,.fresh-long-series-create textarea,.fresh-long-episode-create input,.fresh-long-episode-create select,.fresh-long-series-heading select{width:100%;min-width:0;min-height:42px;padding:9px 11px;border:1px solid #414052;border-radius:9px;background:#111019;color:#f5f5f7;font:inherit}
+.fresh-long-series-create textarea{grid-column:1/-1;resize:vertical}
+.fresh-long-series-create button,.fresh-long-episode-create button{min-height:42px;border:1px solid #635bff;border-radius:9px;padding:9px 13px;background:#635bff;color:white;font:inherit}
+.fresh-long-episode-create label,.fresh-long-series-heading label{display:grid;gap:5px;font-size:.78rem;color:#b9b6c8}
+.fresh-long-series-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.fresh-long-series-card{min-width:0;padding:14px;border:1px solid #343342;border-radius:15px;background:#171620}
+.fresh-long-series-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.fresh-long-series-heading>div{display:grid;gap:5px;min-width:0}
+.fresh-long-series-heading strong{font-size:1rem}
+.fresh-long-series-heading small{color:#aaa9b8;line-height:1.4}
+.fresh-long-series-heading label{flex:0 0 125px}
+.fresh-long-season{margin-top:13px;padding-top:11px;border-top:1px solid #343342}
+.fresh-long-season h3{font-size:.86rem;margin:0 0 8px;color:#c5c2d4}
+.fresh-long-episode-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #292735}
+.fresh-long-episode-row>span:first-child{flex:0 0 auto;font-size:.72rem;color:#9c99ad}
+.fresh-long-episode-row button{min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:left;border:0;background:transparent;color:#f5f5f7;font:inherit;padding:5px;cursor:pointer}
+@media(max-width:640px){.fresh-long-series-grid{grid-template-columns:1fr}.fresh-long-series-create,.fresh-long-episode-create{grid-template-columns:1fr}.fresh-long-series-create textarea{grid-column:auto}.fresh-long-series-heading{align-items:flex-start}.fresh-long-series-heading label{flex-basis:110px}}
