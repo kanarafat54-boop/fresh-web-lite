@@ -4,6 +4,11 @@ import { coordinateFreshAstra, assertFreshAstraIntegrity } from "../src/core/fre
 assertFreshAstraIntegrity();
 const mission = coordinateFreshAstra("Help me learn and build systems for my business and operate my digital world");
 assert.equal(mission.mission, "personal-and-universal-intelligence");
+assert.equal(mission.simulation.mode, "software-in-the-loop");
+assert.equal(mission.simulation.physicalControl, false);
+assert.equal(mission.simulation.physicsValidated, false);
+assert.ok(mission.modalityRuntime.some((item) => item.modality === "image"));
+assert.ok(mission.modalityRuntime.every((item) => item.state !== "ready"));
 assert.deepEqual(mission.operatingModes, ["personal-intelligence", "universal-infrastructure"]);
 assert.ok(mission.modules.some((item) => item.id === "learning"));
 assert.ok(mission.modules.some((item) => item.id === "economy"));
@@ -22,6 +27,7 @@ const robot = coordinateFreshAstra("Move the robot arm and operate the machine")
 assert.equal(robot.risk, "physical");
 assert.equal(robot.approvalRequired, true);
 assert.equal(robot.executionAllowed, false);
+assert.equal(robot.simulation.physicalControl, false);
 assert.ok(robot.limitations.some((item) => item.includes("Physical actuation is blocked")));
 assert.equal(robot.modules.find((item) => item.id === "robotics")?.readiness, "contracted");
 
