@@ -273,7 +273,7 @@ export default function FreshFlowLongVideos() {
   }
   function openCreatorWorkspace() {
     try {
-      sessionStorage.removeItem("fresh-flow-create-intent");
+      sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: "creator-studio", requestedAt: new Date().toISOString() }));
       sessionStorage.setItem("fresh-creator-start-tab", "publish");
     } catch { /* ignore */ }
     setActiveRoute(isGuest ? "auth-signin" : "creator");
