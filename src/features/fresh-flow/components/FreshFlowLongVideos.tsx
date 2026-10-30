@@ -182,7 +182,7 @@ export default function FreshFlowLongVideos() {
       try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(nextProgress)); localStorage.setItem(DURATION_KEY, JSON.stringify(nextDurations)); } catch { /* device storage unavailable */ }
       const recentRows = (data ?? []).filter((row: any) => typeof row.video_url === "string" && /^https?:\/\//i.test(row.video_url));
       const savedIds = user && !isGuest ? (savedResult.data ?? []).map((row: any) => row.post_id) : readIds(SAVED_KEY);
-      const libraryIds = [...new Set([...savedIds, ...Object.keys(nextProgress), ...historyRows.map((row: any) => row.post_id), ...playlistPostIds, ...(requestedVideoId ? [requestedVideoId] : [])])];
+      const libraryIds = [...new Set([...savedIds, ...Object.keys(nextProgress), ...historyRows.map((row: any) => row.post_id), ...playlistPostIds, ...(episodesResult.data ?? []).map((episode: any) => episode.post_id), ...(requestedVideoId ? [requestedVideoId] : [])])];
       const recentIds = new Set(recentRows.map((row: any) => row.id));
       const missingLibraryIds = libraryIds.filter((id) => !recentIds.has(id));
       let extraRows: any[] = [...(ownVideosResult.data ?? [])];
