@@ -125,17 +125,21 @@ export default function FreshFlowLongVideos() {
       if (watchResult.error) throw watchResult.error;
       if (playlistResult.error) throw playlistResult.error;
       const historyRows = watchResult.data ?? [];
-      setWatchHistoryIds(historyRows.map((row: any) => row.post_id));
+      setWatchHistoryIds(user && !isGuest ? historyRows.map((row: any) => row.post_id) : Object.keys(readProgress()));
       const nextPlaylists = (playlistResult.data ?? []) as VideoPlaylist[];
+      const playlistPostIds: string[] = [];
       setPlaylists(nextPlaylists);
       if (nextPlaylists.length) {
         const itemResult = await supabase.from("fresh_video_playlist_items").select("playlist_id,post_id,position")
           .in("playlist_id", nextPlaylists.map((playlist) => playlist.id)).order("position", { ascending: true });
         if (itemResult.error) throw itemResult.error;
         const grouped: Record<string, string[]> = {};
-        for (const item of itemResult.data ?? []) (grouped[item.playlist_id] ??= []).push(item.post_id);
+        for (const item of itemResult.data ?? []) {
+          (grouped[item.playlist_id] ??= []).push(item.post_id);
+          playlistPostIds.push(item.post_id);
+        }
         setPlaylistItems(grouped);
-        setPlaylistSelection((current) => current || nextPlaylists[0].id);
+        setPlaylistSelection((current) => nextPlaylists.some((playlist) => playlist.id === current) ? current : nextPlaylists[0].id);
       } else {
         setPlaylistItems({});
         setPlaylistSelection("");
@@ -151,7 +155,7 @@ export default function FreshFlowLongVideos() {
       try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(nextProgress)); localStorage.setItem(DURATION_KEY, JSON.stringify(nextDurations)); } catch { /* device storage unavailable */ }
       const recentRows = (data ?? []).filter((row: any) => typeof row.video_url === "string" && /^https?:\/\//i.test(row.video_url));
       const savedIds = user && !isGuest ? (savedResult.data ?? []).map((row: any) => row.post_id) : readIds(SAVED_KEY);
-      const libraryIds = [...new Set([...savedIds, ...Object.keys(nextProgress), ...historyRows.map((row: any) => row.post_id), ...(requestedVideoId ? [requestedVideoId] : [])])];
+      const libraryIds = [...new Set([...savedIds, ...Object.keys(nextProgress), ...historyRows.map((row: any) => row.post_id), ...playlistPostIds, ...(requestedVideoId ? [requestedVideoId] : [])])];
       const recentIds = new Set(recentRows.map((row: any) => row.id));
       const missingLibraryIds = libraryIds.filter((id) => !recentIds.has(id));
       let extraRows: any[] = [];
@@ -271,6 +275,7 @@ export default function FreshFlowLongVideos() {
     progressWriteAt.current = now;
     const next = { ...progress, [video.id]: currentTime };
     setProgress(next);
+    setWatchHistoryIds((current) => current.includes(video.id) ? current : [video.id, ...current]);
     try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(next)); } catch { /* device storage unavailable */ }
     if (user && !isGuest) {
       const duration = playerRef.current?.duration || durations[video.id] || null;
