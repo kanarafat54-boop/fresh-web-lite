@@ -138,8 +138,11 @@ export default function FreshFlowLongVideos() {
       if (player && point > 0) { player.currentTime = point; void player.play().catch(() => undefined); }
     }, 350);
   }
-  function openCreatorStudio() {
-    try { sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: "long-video", requestedAt: new Date().toISOString() })); } catch { /* ignore */ }
+  function openCreatorStudio(startTab: "publish" | "monetize" = "publish") {
+    try {
+      sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: "long-video", requestedAt: new Date().toISOString() }));
+      sessionStorage.setItem("fresh-creator-start-tab", startTab);
+    } catch { /* ignore */ }
     setActiveRoute(isGuest ? "auth-signin" : "creator");
   }
 
@@ -165,7 +168,8 @@ export default function FreshFlowLongVideos() {
     <div className="fresh-long-tools" aria-label="Long Videos tools">
       <button type="button" className={panel === "discover" ? "active" : ""} onClick={() => setPanel("discover")}>Discover</button>
       <button type="button" onClick={() => setPanel("library")}>Your Library</button>
-      <button type="button" onClick={openCreatorStudio}>Upload video</button>
+      <button type="button" onClick={() => openCreatorStudio("publish")}>Upload video</button>
+      <button type="button" onClick={() => openCreatorStudio("monetize")}>Monetization</button>
       <button type="button" onClick={() => openNotifications()}>Notifications</button>
       <button type="button" onClick={() => setActiveRoute("ai")}>Fresh AI</button>
       <button type="button" onClick={() => setPanel("settings")}>Settings</button>
