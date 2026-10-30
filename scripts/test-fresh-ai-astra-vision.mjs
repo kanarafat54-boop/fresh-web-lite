@@ -23,9 +23,9 @@ globalThis.fetch = async (url, init) => {
 
 const observation = {
   id: "vision-observation-1",
-  modality: "image" as const,
+  modality: "image",
   capturedAt: new Date().toISOString(),
-  source: "user-upload" as const,
+  source: "user-upload",
   consentGranted: true,
   payloadRef: "uploads/user-1/image-1",
 };
