@@ -111,7 +111,7 @@ export default function FreshFlowLongVideos() {
     setLoading(true); setError("");
     try {
       const videoColumns = "id, author_id, content, image_url, video_url, like_count, comment_count, created_at, video_title, video_description, video_category, video_tags, video_thumbnail_url, video_duration_seconds, video_visibility, video_status, video_scheduled_at";
-      const [{ data, error: loadError }, followIds, savedResult, followingResult, watchResult, playlistResult] = await Promise.all([
+      const [{ data, error: loadError }, followIds, savedResult, followingResult, watchResult, playlistResult, seriesResult, seasonsResult, episodesResult, ownVideosResult] = await Promise.all([
         supabase.from("posts").select(videoColumns)
           .not("video_url", "is", null).in("video_status", ["published", "scheduled"])
           .eq("video_visibility", "public")
