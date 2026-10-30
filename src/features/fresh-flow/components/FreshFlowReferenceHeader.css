@@ -71,3 +71,10 @@
 .fresh-flow-header-actions .fresh-flow-search-icon-button{background:#171c23;color:#f5f7fa;border-color:rgba(255,255,255,.14)}
 .fresh-flow-header-actions .fresh-flow-unified-profile{color:#fff}
 .fresh-flow-hub .fresh-flow-header-world-nav button{min-height:44px}
+
+/* Fresh Shorts world header (brand + fixed top navigation + Add/Camera) */
+.fresh-flow-hub .fresh-shorts-mark{background:linear-gradient(135deg,#6d4aff,#11a7e7);font-size:15px}
+.fresh-flow-hub .fresh-shorts-brand strong{background:linear-gradient(90deg,#fff,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+.fresh-flow-hub .fresh-shorts-add,.fresh-flow-hub .fresh-shorts-camera{color:#fff}
+.fresh-flow-bottom-nav .fresh-nav-label{line-height:1.1;text-align:center}
+@media(max-width:420px){.fresh-flow-bottom-nav .fresh-nav-label{font-size:.6rem;white-space:normal}}

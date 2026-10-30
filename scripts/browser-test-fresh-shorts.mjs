@@ -97,7 +97,14 @@ for (const width of WIDTHS) {
   check(geo.radius === "0px" && geo.border === "0px", `${tag} Shorts are full-bleed (no card border/radius)`);
   check(/y\s+mandatory/.test(geo.snap), `${tag} vertical mandatory snap`);
   check(await page.locator('nav[aria-label="Fresh Flow media"]').isVisible(), `${tag} top navigation visible on Shorts`);
-  check(await page.locator("nav.fresh-flow-bottom-nav").isVisible(), `${tag} bottom navigation visible on Shorts`);
+  const shortsTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
+  check(JSON.stringify(shortsTabs) === JSON.stringify(["Live", "VR / AR", "Podcasts", "Music", "Others"]), `${tag} Shorts top navigation is Live · VR / AR · Podcasts · Music · Others (got ${shortsTabs.join(" · ")})`);
+  check((await page.locator("header .fresh-shorts-brand").textContent()).includes("Fresh Shorts"), `${tag} Shorts world header is branded Fresh Shorts`);
+  for (const label of ["Search Fresh Flow", "Add or create a Short", "Open camera to record a Short", "Open your main Fresh ID profile"]) {
+    const box = await page.locator(`header [aria-label="${label}"]`).first().boundingBox();
+    check(Boolean(box) && box.x >= 0 && box.x + box.width <= width + 0.5 && box.width >= 36 && box.height >= 36, `${tag} header control "${label}" is on-screen and tappable`);
+  }
+  check(await page.locator("nav.fresh-flow-bottom-nav").isVisible(), `${tag} bottom navigation visible on Shorts when idle`);
 
   // Exactly one video playing.
   const playing = () => page.evaluate(() => [...document.querySelectorAll("video[data-short-id]")].map((v) => !v.paused && !v.ended));
@@ -150,7 +157,15 @@ for (const width of WIDTHS) {
   await page.waitForTimeout(1200);
   state = await playing();
   check(state.filter(Boolean).length === 1 && state[1], `${tag} after scrolling, only Short 2 plays (${state.join(",")})`);
-  check(await page.locator("nav.fresh-flow-bottom-nav").isVisible(), `${tag} bottom navigation still visible after scrolling`);
+  // Top stays fixed; the bottom bar hides while scrolling and returns once scrolling stops.
+  await page.evaluate(() => document.querySelector(".fresh-flow-viewport").scrollTo({ top: 0, behavior: "instant" }));
+  await page.waitForTimeout(150);
+  check(await page.locator("nav.fresh-flow-bottom-nav.flow-navigation-hidden").count() === 1, `${tag} bottom navigation hides while scrolling`);
+  check(await page.locator('nav[aria-label="Fresh Flow media"]').isVisible(), `${tag} top navigation stays fixed while scrolling`);
+  await page.waitForTimeout(1100);
+  check(await page.locator("nav.fresh-flow-bottom-nav").isVisible() && (await page.locator("nav.fresh-flow-bottom-nav.flow-navigation-hidden").count()) === 0, `${tag} bottom navigation returns when scrolling stops`);
+  await page.evaluate(() => document.querySelector(".fresh-flow-viewport").scrollTo({ top: document.querySelector(".fresh-flow-viewport").clientHeight, behavior: "instant" }));
+  await page.waitForTimeout(1200);
 
   // Keyboard paging.
   await page.keyboard.press("ArrowDown");
