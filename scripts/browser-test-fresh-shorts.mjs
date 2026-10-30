@@ -250,6 +250,8 @@ await browser.close(); server.close(); fs.rmSync(work, { recursive: true, force:
 if (failures.length) {
   console.error(`Fresh Shorts browser test FAILED (${failures.length}/${checks}):`);
   for (const f of failures) console.error(`  - ${f}`);
+  // GitHub Actions annotations make failures readable from the checks API as well as the log.
+  if (process.env.GITHUB_ACTIONS) for (const f of failures.slice(0, 10)) console.log(`::error title=shorts browser test::${f.replace(/[\r\n]+/g, " ")}`);
   process.exit(1);
 }
 console.log(`Fresh Shorts browser test: PASS (${checks} checks across ${WIDTHS.join(", ")}px)`);

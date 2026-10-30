@@ -126,6 +126,8 @@ server.close();
 if (failures.length) {
   console.error(`Fresh Flow navigation browser test FAILED (${failures.length}/${checks}):`);
   for (const failure of failures) console.error(`  - ${failure}`);
+  // GitHub Actions annotations make failures readable from the checks API as well as the log.
+  if (process.env.GITHUB_ACTIONS) for (const failure of failures.slice(0, 10)) console.log(`::error title=%s::%s`.replace("%s", "navigation browser test").replace("%s", failure.replace(/[\r\n]+/g, " ")));
   process.exit(1);
 }
 console.log(`Fresh Flow navigation browser test: PASS (${checks} checks across ${WIDTHS.join(", ")}px)`);
