@@ -144,6 +144,13 @@ for (const width of WIDTHS) {
   await page.waitForSelector(".fresh-long", { timeout: 10000 });
   check(await page.getByRole("heading", { name: "Long Videos" }).isVisible(), `${tag} Long Videos discovery opens`);
   check(await page.getByText("The Long Journey — Chapter One").first().isVisible(), `${tag} real published-video contract renders featured content`);
+  await page.getByRole("button", { name: "Explore" }).click();
+  check(await page.getByRole("heading", { name: "Explore Long Videos" }).isVisible(), `${tag} Explore screen opens`);
+  check(await page.locator(".fresh-long-explore-grid button").count() === 6, `${tag} Explore exposes all six browsing categories`);
+  await page.locator(".fresh-long-explore-grid button", { hasText: "For You" }).click();
+  await page.getByLabel("Search long videos").fill("Documentary");
+  check(await page.getByText("Learning the World: A Documentary").first().isVisible(), `${tag} search filters long-form video results`);
+  await page.locator(".fresh-long-search button").click();
   await page.locator(".fresh-long-feature-copy button", { hasText: "Details" }).click();
   const videoDetails = page.getByRole("dialog", { name: /Details for The Long Journey/ });
   check(await videoDetails.isVisible(), `${tag} video details screen opens`);
