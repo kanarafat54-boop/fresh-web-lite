@@ -433,6 +433,25 @@ export default function FreshFlowLongVideos() {
     if (updateError) { setSeries((current) => current.map((item) => item.id === seriesId ? previous : item)); setError(updateError.message || "Series visibility could not be updated."); return; }
     setError("");
   }
+  async function removeEpisode(episode: VideoEpisode) {
+    if (!user || isGuest) { setActiveRoute("auth-signin"); return; }
+    const { error: removeError } = await supabase.from("fresh_video_episodes").delete().eq("id", episode.id).eq("series_id", episode.series_id);
+    if (removeError) { setError(removeError.message || "Episode could not be removed from the series."); return; }
+    setEpisodes((current) => current.filter((item) => item.id !== episode.id));
+    setError("");
+  }
+  async function deleteSeries(seriesId: string) {
+    if (!user || isGuest) { setActiveRoute("auth-signin"); return; }
+    const target = series.find((item) => item.id === seriesId && item.creator_id === user.id);
+    if (!target || !window.confirm(`Delete “${target.title}” and its season/episode organization? The video posts themselves will remain.`)) return;
+    const { error: deleteError } = await supabase.from("fresh_video_series").delete().eq("id", seriesId).eq("creator_id", user.id);
+    if (deleteError) { setError(deleteError.message || "Series could not be deleted."); return; }
+    setSeries((current) => current.filter((item) => item.id !== seriesId));
+    setSeasons((current) => current.filter((item) => item.series_id !== seriesId));
+    setEpisodes((current) => current.filter((item) => item.series_id !== seriesId));
+    if (seriesSelection === seriesId) setSeriesSelection("");
+    setError("");
+  }
   async function toggleFollow(video: VideoItem) {
     if (!user || isGuest) { setActiveRoute("auth-signin"); return; }
     const wasFollowing = followedIds.includes(video.authorId);
@@ -522,9 +541,10 @@ export default function FreshFlowLongVideos() {
       {series.filter((item) => item.creator_id === user?.id).map((item) => <article className="fresh-long-series-card" key={item.id}>
         <div className="fresh-long-series-heading"><div><strong>{item.title}</strong><small>{item.description || "No series description"} · {item.visibility}</small></div>
           <label>Visibility<select aria-label={`Visibility for ${item.title}`} value={item.visibility} onChange={(event) => void updateSeriesVisibility(item.id, event.target.value as VideoSeries["visibility"])}><option value="private">Private</option><option value="unlisted">Unlisted</option><option value="public">Public</option></select></label>
+          <button type="button" className="fresh-long-series-delete" onClick={() => void deleteSeries(item.id)}>Delete series</button>
         </div>
         {seasons.filter((season) => season.series_id === item.id).map((season) => <div className="fresh-long-season" key={season.id}><h3>{season.title || `Season ${season.season_number}`}</h3>
-          {episodes.filter((episode) => episode.season_id === season.id).sort((a,b) => a.episode_number-b.episode_number).map((episode) => { const video = libraryVideos.find((entry) => entry.id === episode.post_id); return <div className="fresh-long-episode-row" key={episode.id}><span>Episode {episode.episode_number}</span>{video ? <button type="button" onClick={() => openPlayer(video)}>{episode.title_override || video.title}</button> : <span>Video unavailable in this library</span>}</div>; })}
+          {episodes.filter((episode) => episode.season_id === season.id).sort((a,b) => a.episode_number-b.episode_number).map((episode) => { const video = libraryVideos.find((entry) => entry.id === episode.post_id); return <div className="fresh-long-episode-row" key={episode.id}><span>Episode {episode.episode_number}</span>{video ? <button type="button" onClick={() => openPlayer(video)}>{episode.title_override || video.title}</button> : <span>Video unavailable in this library</span>}<button type="button" className="fresh-long-episode-remove" aria-label={`Remove episode ${episode.episode_number}`} onClick={() => void removeEpisode(episode)}>Remove</button></div>; })}
         </div>)}
       </article>)}
       {series.filter((item) => item.creator_id === user?.id).length === 0 && <p className="fresh-long-state">Create a series, then add your published videos as numbered episodes. Seasons are created automatically.</p>}
