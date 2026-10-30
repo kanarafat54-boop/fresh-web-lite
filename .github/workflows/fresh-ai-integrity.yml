@@ -34,6 +34,8 @@ jobs:
         run: npm run test:fresh-ai-astra
       - name: Fresh AI Astra runtime safety tests
         run: npm run test:fresh-ai-astra-runtime
+      - name: Fresh AI Astra deterministic simulation
+        run: npm run test:fresh-ai-astra-simulation
       - name: Fresh AI power fabric
         run: npm run test:fresh-ai-power-fabric
       - name: Fresh AI capability runtime
