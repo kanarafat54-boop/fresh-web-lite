@@ -8,6 +8,7 @@ on:
     paths:
       - "supabase/migrations/**"
       - "supabase/config.toml"
+      - "scripts/test-long-video-tus.mjs"
       - ".github/workflows/supabase-full-migration-replay.yml"
   workflow_dispatch:
 
@@ -38,6 +39,9 @@ jobs:
 
       - name: Replay every repository migration from an empty local database
         run: supabase db reset --local --no-seed
+
+      - name: Verify resumable Long Video upload and owner-folder RLS
+        run: node scripts/test-long-video-tus.mjs
 
       - name: Stop isolated Supabase stack
         if: always()
