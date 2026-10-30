@@ -88,6 +88,7 @@ export default function FreshAIUnified() {
   const [mode, setMode] = useState<FreshAIMode>("Chat");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [astraAnalyzingId, setAstraAnalyzingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [image, setImage] = useState<AskPayload["image"]>();
@@ -252,6 +253,43 @@ export default function FreshAIUnified() {
       setError(reason instanceof Error ? reason.message : "Fresh AI could not attach the selected files.");
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function analyzeImageAttachment(file: Attachment) {
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.mimeType) || astraAnalyzingId) return;
+    const approved = window.confirm(`Allow Fresh AI Astra to analyze “${file.name}”? The image will be processed by a configured Fresh-owned vision engine when one is available.`);
+    if (!approved) return;
+    setAstraAnalyzingId(file.id);
+    setError(null);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) throw new Error("Sign in to analyze images with Astra.");
+      const response = await fetch("/api/ai/astra/vision", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+        body: JSON.stringify({ assetId: file.id, consentGranted: true }),
+      });
+      const payload = await response.json() as {
+        result?: { summary?: string; worldState?: { entities?: Array<{ label: string; confidence: number }>; uncertainty?: string[] } };
+        error?: string;
+      };
+      if (!response.ok || !payload.result) throw new Error(payload.error || "Astra image understanding is unavailable.");
+      const entities = payload.result.worldState?.entities ?? [];
+      const uncertainty = payload.result.worldState?.uncertainty ?? [];
+      const detail = [
+        `Astra image analysis — ${file.name}`,
+        payload.result.summary || "No scene summary was returned.",
+        entities.length ? `Detected: ${entities.map((entity) => `${entity.label} (${Math.round(entity.confidence * 100)}%)`).join(", ")}` : "No entities were returned.",
+        uncertainty.length ? `Uncertainty: ${uncertainty.join(" ")}` : "",
+      ].filter(Boolean).join("\\n\\n");
+      setTurns((current) => [...current, { role: "assistant", content: detail, createdAt: new Date().toISOString() }]);
+      setSource("Fresh AI · Astra Vision");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Astra could not analyze this image.");
+    } finally {
+      setAstraAnalyzingId(null);
     }
   }
 
@@ -497,7 +535,7 @@ export default function FreshAIUnified() {
       </div>
       <form onSubmit={ask}><button className="fresh-ai-add" type="button" onClick={() => setConstellation((current) => !current)} aria-label="Open capabilities">＋</button><textarea ref={inputRef} rows={1} value={draft} onChange={(event) => { setDraft(event.target.value); resizeInput(); }} onKeyDown={keyDown} placeholder="Message Fresh AI…" /><button className={`fresh-ai-voice ${voice ? "active" : ""}`} type="button" onClick={startVoiceInput} aria-label={voice ? "Stop voice input" : "Start voice input"} title={voice ? "Stop voice input" : "Speak to Fresh AI"}>{voice ? "◉" : "◌"}</button><button className="fresh-ai-send" type="submit" disabled={!draft.trim() || loading || uploading} aria-label="Send">↑</button></form>
       <div className="fresh-ai-composer-tools"><label className="fresh-ai-attach">⌕ {uploading ? "Uploading…" : "Attach"}<input type="file" multiple onChange={(event) => { void uploadFiles(event.target.files); event.currentTarget.value = ""; }} /></label><div className="fresh-ai-mode-strip">{modes.map((item) => { const available = isModeAvailable(item); return <button key={item} className={mode === item ? "active" : ""} type="button" disabled={!available} title={available ? `${item} mode` : `${item} mode is in development and is not executable yet`} aria-label={`${item} mode — ${available ? "available" : "in development"}`} onClick={() => setMode(item)}>{item}{available ? "" : " · Soon"}</button>; })}</div><span>{loading ? "Fresh is working…" : uploading ? "Securing files…" : "Enter to send · Shift+Enter for newline"}</span>{loading ? <button type="button" onClick={stop}>Stop</button> : null}</div>
-      {attachments.length > 0 ? <div className="fresh-ai-composer-attachments" aria-label="Attached files">{attachments.map((file) => <span key={file.id}>◇ {file.name}</span>)}</div> : null}
+      {attachments.length > 0 ? <div className="fresh-ai-composer-attachments" aria-label="Attached files">{attachments.map((file) => <span key={file.id}>◇ {file.name}{["image/png", "image/jpeg", "image/webp"].includes(file.mimeType) ? <button type="button" onClick={() => void analyzeImageAttachment(file)} disabled={Boolean(astraAnalyzingId)}>{astraAnalyzingId === file.id ? "Astra analyzing…" : "Analyze with Astra"}</button> : null}</span>)}</div> : null}
       <small className="fresh-ai-unified-status"><span>✦</span> {source || "Fresh AI"} · Runtime evolving · Vault {vaultUnlocked ? "unlocked · at-rest E2EE" : "locked"} · Weights training-required · Beyond-SI doctrine</small>
     </div>
   </div>;
