@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import { coordinateFreshAstra, assertFreshAstraIntegrity } from "../src/core/fresh-ai/FreshAstra.ts";
 
 assertFreshAstraIntegrity();
+const mission = coordinateFreshAstra("Help me learn and build systems for my business and operate my digital world");
+assert.equal(mission.mission, "personal-and-universal-intelligence");
+assert.deepEqual(mission.operatingModes, ["personal-intelligence", "universal-infrastructure"]);
+assert.ok(mission.modules.some((item) => item.id === "learning"));
+assert.ok(mission.modules.some((item) => item.id === "economy"));
 const chat = coordinateFreshAstra("Hello, how are you?");
 assert.equal(chat.executionAllowed, false);
 assert.equal(chat.risk, "none");
@@ -25,4 +30,17 @@ assert.equal(highImpact.risk, "high");
 assert.equal(highImpact.approvalRequired, true);
 assert.equal(highImpact.executionAllowed, false);
 
-console.log("Fresh Astra coordinator safety and routing tests: PASS");
+const science = coordinateFreshAstra("Design a scientific experiment and simulate its results");
+assert.ok(science.modules.some((item) => item.id === "science"));
+assert.ok(science.modules.some((item) => item.id === "world-model"));
+assert.equal(science.modules.find((item) => item.id === "science")?.readiness, "in-development");
+
+const energy = coordinateFreshAstra("Optimise a village electricity grid and solar battery system");
+assert.ok(energy.modules.some((item) => item.id === "energy"));
+assert.equal(energy.executionAllowed, false);
+
+const space = coordinateFreshAstra("Analyse satellite imagery and orbital observations");
+assert.ok(space.modules.some((item) => item.id === "space"));
+assert.ok(space.modules.some((item) => item.id === "vision"));
+
+console.log("Fresh Astra universal mission, module routing and safety tests: PASS");
