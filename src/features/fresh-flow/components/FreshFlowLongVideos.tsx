@@ -13,6 +13,9 @@ type VideoItem = {
   authorName: string; username: string; likes: number; comments: number; category: string | null;
 };
 type VideoPlaylist = { id: string; title: string; description: string; visibility: "private" | "unlisted" | "public"; created_at: string };
+type VideoSeries = { id: string; creator_id: string; title: string; description: string; poster_url: string | null; visibility: "private" | "unlisted" | "public"; created_at: string };
+type VideoSeason = { id: string; series_id: string; season_number: number; title: string; description: string };
+type VideoEpisode = { id: string; series_id: string; season_id: string; post_id: string; episode_number: number; title_override: string | null; description_override: string | null };
 type Category = "Discover" | "Movies & Series" | "Documentaries" | "Education" | "Events" | "Following";
 const CATEGORIES: Category[] = ["Discover", "Movies & Series", "Documentaries", "Education", "Events", "Following"];
 const SAVED_KEY = "fresh-flow-long-video-saved-v1";
@@ -80,6 +83,15 @@ export default function FreshFlowLongVideos() {
   const [playlistItems, setPlaylistItems] = useState<Record<string, string[]>>({});
   const [newPlaylistTitle, setNewPlaylistTitle] = useState("");
   const [playlistSelection, setPlaylistSelection] = useState("");
+  const [series, setSeries] = useState<VideoSeries[]>([]);
+  const [seasons, setSeasons] = useState<VideoSeason[]>([]);
+  const [episodes, setEpisodes] = useState<VideoEpisode[]>([]);
+  const [newSeriesTitle, setNewSeriesTitle] = useState("");
+  const [newSeriesDescription, setNewSeriesDescription] = useState("");
+  const [seriesSelection, setSeriesSelection] = useState("");
+  const [episodeVideoSelection, setEpisodeVideoSelection] = useState("");
+  const [seasonNumberInput, setSeasonNumberInput] = useState("1");
+  const [episodeNumberInput, setEpisodeNumberInput] = useState("1");
   const [likedIds, setLikedIds] = useState<string[]>([]);
   const [progress, setProgress] = useState<Record<string, number>>(() => readProgress());
   const [durations, setDurations] = useState<Record<string, number>>(() => readDurations());
@@ -118,12 +130,27 @@ export default function FreshFlowLongVideos() {
         user && !isGuest
           ? supabase.from("fresh_video_playlists").select("id,title,description,visibility,created_at").eq("user_id", user.id).order("updated_at", { ascending: false }).limit(100)
           : Promise.resolve({ data: null, error: null }),
+        supabase.from("fresh_video_series").select("id,creator_id,title,description,poster_url,visibility,created_at").order("updated_at", { ascending: false }).limit(100),
+        supabase.from("fresh_video_seasons").select("id,series_id,season_number,title,description").order("season_number", { ascending: true }).limit(500),
+        supabase.from("fresh_video_episodes").select("id,series_id,season_id,post_id,episode_number,title_override,description_override").order("episode_number", { ascending: true }).limit(1000),
+        user && !isGuest
+          ? supabase.from("posts").select(videoColumns).eq("author_id", user.id).not("video_url", "is", null).in("video_status", ["published", "scheduled"]).order("created_at", { ascending: false }).limit(100)
+          : Promise.resolve({ data: [], error: null }),
       ]);
       if (loadError) throw loadError;
       if (savedResult.error) throw savedResult.error;
       if (followingResult.error) throw followingResult.error;
       if (watchResult.error) throw watchResult.error;
       if (playlistResult.error) throw playlistResult.error;
+      if (seriesResult.error) throw seriesResult.error;
+      if (seasonsResult.error) throw seasonsResult.error;
+      if (episodesResult.error) throw episodesResult.error;
+      if (ownVideosResult.error) throw ownVideosResult.error;
+      const nextSeries = (seriesResult.data ?? []) as VideoSeries[];
+      setSeries(nextSeries);
+      setSeasons((seasonsResult.data ?? []) as VideoSeason[]);
+      setEpisodes((episodesResult.data ?? []) as VideoEpisode[]);
+      setSeriesSelection((current) => nextSeries.some((item) => item.id === current && item.creator_id === user?.id) ? current : nextSeries.find((item) => item.creator_id === user?.id)?.id ?? "");
       const historyRows = watchResult.data ?? [];
       setWatchHistoryIds(user && !isGuest ? historyRows.map((row: any) => row.post_id) : Object.keys(readProgress()));
       const nextPlaylists = (playlistResult.data ?? []) as VideoPlaylist[];
@@ -158,7 +185,7 @@ export default function FreshFlowLongVideos() {
       const libraryIds = [...new Set([...savedIds, ...Object.keys(nextProgress), ...historyRows.map((row: any) => row.post_id), ...playlistPostIds, ...(requestedVideoId ? [requestedVideoId] : [])])];
       const recentIds = new Set(recentRows.map((row: any) => row.id));
       const missingLibraryIds = libraryIds.filter((id) => !recentIds.has(id));
-      let extraRows: any[] = [];
+      let extraRows: any[] = [...(ownVideosResult.data ?? [])];
       if (missingLibraryIds.length) {
         const extraResult = await supabase.from("posts")
           .select(videoColumns)
@@ -364,6 +391,48 @@ export default function FreshFlowLongVideos() {
     if (playlistSelection === playlistId) setPlaylistSelection(playlists.find((item) => item.id !== playlistId)?.id ?? "");
     setError("");
   }
+  async function createSeries() {
+    if (!user || isGuest) { setActiveRoute("auth-signin"); return; }
+    const title = newSeriesTitle.trim();
+    if (!title) { setError("Enter a series title first."); return; }
+    const { data, error: createError } = await supabase.from("fresh_video_series")
+      .insert({ creator_id: user.id, title, description: newSeriesDescription.trim(), visibility: "private" })
+      .select("id,creator_id,title,description,poster_url,visibility,created_at").single();
+    if (createError) { setError(createError.message || "Series could not be created."); return; }
+    setSeries((current) => [data as VideoSeries, ...current]);
+    setSeriesSelection(data.id); setNewSeriesTitle(""); setNewSeriesDescription(""); setError("");
+  }
+  async function addEpisodeToSeries() {
+    if (!user || isGuest) { setActiveRoute("auth-signin"); return; }
+    const selectedSeries = series.find((item) => item.id === seriesSelection && item.creator_id === user.id);
+    const selectedVideo = libraryVideos.find((item) => item.id === episodeVideoSelection && item.authorId === user.id);
+    const seasonNumber = Number(seasonNumberInput), episodeNumber = Number(episodeNumberInput);
+    if (!selectedSeries || !selectedVideo) { setError("Choose one of your series and one of your published videos."); return; }
+    if (!Number.isInteger(seasonNumber) || seasonNumber < 1 || !Number.isInteger(episodeNumber) || episodeNumber < 1) { setError("Season and episode numbers must be positive whole numbers."); return; }
+    if (episodes.some((item) => item.post_id === selectedVideo.id)) { setError("This video is already assigned to a series."); return; }
+    let season = seasons.find((item) => item.series_id === selectedSeries.id && item.season_number === seasonNumber);
+    if (!season) {
+      const { data, error: seasonError } = await supabase.from("fresh_video_seasons").insert({ series_id: selectedSeries.id, season_number: seasonNumber, title: `Season ${seasonNumber}` }).select("id,series_id,season_number,title,description").single();
+      if (seasonError) { setError(seasonError.message || "Season could not be created."); return; }
+      season = data as VideoSeason;
+      setSeasons((current) => [...current, season as VideoSeason].sort((a,b) => a.season_number-b.season_number));
+    }
+    const { data, error: episodeError } = await supabase.from("fresh_video_episodes").insert({
+      series_id: selectedSeries.id, season_id: season.id, post_id: selectedVideo.id, episode_number: episodeNumber,
+    }).select("id,series_id,season_id,post_id,episode_number,title_override,description_override").single();
+    if (episodeError) { setError(episodeError.message || "Episode could not be added. Check that its number is not already used."); return; }
+    setEpisodes((current) => [...current, data as VideoEpisode].sort((a,b) => a.episode_number-b.episode_number));
+    setEpisodeVideoSelection(""); setError("");
+  }
+  async function updateSeriesVisibility(seriesId: string, visibility: VideoSeries["visibility"]) {
+    if (!user || isGuest) { setActiveRoute("auth-signin"); return; }
+    const previous = series.find((item) => item.id === seriesId && item.creator_id === user.id);
+    if (!previous || previous.visibility === visibility) return;
+    setSeries((current) => current.map((item) => item.id === seriesId ? { ...item, visibility } : item));
+    const { error: updateError } = await supabase.from("fresh_video_series").update({ visibility, updated_at: new Date().toISOString() }).eq("id", seriesId).eq("creator_id", user.id);
+    if (updateError) { setSeries((current) => current.map((item) => item.id === seriesId ? previous : item)); setError(updateError.message || "Series visibility could not be updated."); return; }
+    setError("");
+  }
   async function toggleFollow(video: VideoItem) {
     if (!user || isGuest) { setActiveRoute("auth-signin"); return; }
     const wasFollowing = followedIds.includes(video.authorId);
@@ -424,9 +493,42 @@ export default function FreshFlowLongVideos() {
   </section>;
   if (panel === "library") return <section className="fresh-long" aria-label="Long Videos library">
     <div className="fresh-long-heading"><div><span className="fresh-long-eyebrow">FRESH FLOW / YOUR SPACE</span><h1>Your Library</h1><p>Saved videos and your continue-watching list.</p></div><button type="button" onClick={() => setPanel("discover")}>Back to Discover</button></div>
+    {series.filter((item) => item.visibility === "public").length > 0 && <section className="fresh-long-section fresh-long-series-discovery"><div className="fresh-long-section-title"><h2>Series & seasons</h2><span>{series.filter((item) => item.visibility === "public").length} series</span></div>
+      <div className="fresh-long-series-grid">{series.filter((item) => item.visibility === "public").map((item) => <article className="fresh-long-series-card" key={item.id}><div className="fresh-long-series-heading"><div><strong>{item.title}</strong><small>{item.description || "A Fresh Flow series"}</small></div></div>
+        {seasons.filter((season) => season.series_id === item.id).map((season) => <div className="fresh-long-season" key={season.id}><h3>{season.title || `Season ${season.season_number}`}</h3>
+          {episodes.filter((episode) => episode.season_id === season.id).sort((a,b) => a.episode_number-b.episode_number).map((episode) => { const video = libraryVideos.find((entry) => entry.id === episode.post_id); return video ? <div className="fresh-long-episode-row" key={episode.id}><span>Ep. {episode.episode_number}</span><button type="button" onClick={() => openPlayer(video)}>{episode.title_override || video.title}</button></div> : null; })}
+        </div>)}
+      </article>)}</div>
+    </section>}
     {resume.length > 0 && <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Continue watching</h2><span>{user && !isGuest ? "Synced to Fresh ID" : "Saved on this device"}</span></div><div className="fresh-long-rail">{resume.map((video) => <button key={video.id} type="button" className="fresh-long-resume-card" onClick={() => resumeVideo(video)}><span className="fresh-long-thumb">{video.posterUrl ? <img src={video.posterUrl} alt="" /> : "▶"}<i style={{ width: `${durations[video.id] > 0 ? Math.min(100, Math.max(2, (progress[video.id] / durations[video.id]) * 100)) : 0}%` }} /></span><strong>{video.title}</strong><small>Resume at {Math.floor(progress[video.id] / 60)}:{String(Math.floor(progress[video.id] % 60)).padStart(2, "0")}</small></button>)}</div></section>}
     {historyVideos.length > 0 && <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Recently watched</h2><span>{historyVideos.length} videos</span></div><div className="fresh-long-rail">{historyVideos.map((video) => <button key={video.id} type="button" className="fresh-long-resume-card" onClick={() => openPlayer(video)}><span className="fresh-long-thumb">{video.posterUrl ? <img src={video.posterUrl} alt="" /> : "▶"}</span><strong>{video.title}</strong><small>@{video.username}</small></button>)}</div></section>}
     <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Watch later</h2><span>{savedVideos.length} saved</span></div>{savedVideos.length ? <div className="fresh-long-grid">{savedVideos.map((video) => <article className="fresh-long-card" key={video.id}><button className="fresh-long-card-media" type="button" onClick={() => openPlayer(video)} aria-label={`Play ${video.title}`}>{video.posterUrl ? <img src={video.posterUrl} alt="" /> : <span>▶</span>}<b>▶</b></button><div className="fresh-long-card-copy"><h3>{video.title}</h3><p>{video.authorName}</p><div><button type="button" onClick={() => openPlayer(video)}>Watch</button><button type="button" onClick={() => void toggleSave(video)}>Remove</button></div></div></article>)}</div> : <p className="fresh-long-state">Your Watch Later library is empty. Save a video to find it here.</p>}</section>
+    <section className="fresh-long-section fresh-long-series-manager">
+      <div className="fresh-long-section-title"><h2>Your series</h2><span>{series.filter((item) => item.creator_id === user?.id).length} series</span></div>
+      {user && !isGuest ? <>
+        <div className="fresh-long-series-create">
+          <input aria-label="New series title" value={newSeriesTitle} maxLength={140} onChange={(event) => setNewSeriesTitle(event.target.value)} placeholder="Series title" />
+          <textarea aria-label="Series description" value={newSeriesDescription} maxLength={4000} onChange={(event) => setNewSeriesDescription(event.target.value)} placeholder="Series description (optional)" rows={2} />
+          <button type="button" onClick={() => void createSeries()}>Create series</button>
+        </div>
+        {series.some((item) => item.creator_id === user.id) && <div className="fresh-long-episode-create">
+          <label>Series<select aria-label="Choose series" value={seriesSelection} onChange={(event) => setSeriesSelection(event.target.value)}>{series.filter((item) => item.creator_id === user.id).map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
+          <label>Your video<select aria-label="Choose your video for an episode" value={episodeVideoSelection} onChange={(event) => setEpisodeVideoSelection(event.target.value)}><option value="">Select published video</option>{libraryVideos.filter((item) => item.authorId === user.id).map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
+          <label>Season<input aria-label="Season number" type="number" min="1" step="1" value={seasonNumberInput} onChange={(event) => setSeasonNumberInput(event.target.value)} /></label>
+          <label>Episode<input aria-label="Episode number" type="number" min="1" step="1" value={episodeNumberInput} onChange={(event) => setEpisodeNumberInput(event.target.value)} /></label>
+          <button type="button" disabled={!episodeVideoSelection || !seriesSelection} onClick={() => void addEpisodeToSeries()}>Add episode</button>
+        </div>}
+      </> : <p className="fresh-long-state">Sign in with Fresh ID to create series and organize published videos into seasons and episodes.</p>}
+      {series.filter((item) => item.creator_id === user?.id).map((item) => <article className="fresh-long-series-card" key={item.id}>
+        <div className="fresh-long-series-heading"><div><strong>{item.title}</strong><small>{item.description || "No series description"} · {item.visibility}</small></div>
+          <label>Visibility<select aria-label={`Visibility for ${item.title}`} value={item.visibility} onChange={(event) => void updateSeriesVisibility(item.id, event.target.value as VideoSeries["visibility"])}><option value="private">Private</option><option value="unlisted">Unlisted</option><option value="public">Public</option></select></label>
+        </div>
+        {seasons.filter((season) => season.series_id === item.id).map((season) => <div className="fresh-long-season" key={season.id}><h3>{season.title || `Season ${season.season_number}`}</h3>
+          {episodes.filter((episode) => episode.season_id === season.id).sort((a,b) => a.episode_number-b.episode_number).map((episode) => { const video = libraryVideos.find((entry) => entry.id === episode.post_id); return <div className="fresh-long-episode-row" key={episode.id}><span>Episode {episode.episode_number}</span>{video ? <button type="button" onClick={() => openPlayer(video)}>{episode.title_override || video.title}</button> : <span>Video unavailable in this library</span>}</div>; })}
+        </div>)}
+      </article>)}
+      {series.filter((item) => item.creator_id === user?.id).length === 0 && <p className="fresh-long-state">Create a series, then add your published videos as numbered episodes. Seasons are created automatically.</p>}
+    </section>
     <section className="fresh-long-section fresh-long-playlists">
       <div className="fresh-long-section-title"><h2>Your playlists</h2><span>{playlists.length} playlists</span></div>
       {user && !isGuest ? <div className="fresh-long-playlist-create">
@@ -500,6 +602,6 @@ export default function FreshFlowLongVideos() {
     </div>}
     {detailsFor && <div className="fresh-long-details" role="dialog" aria-modal="true" aria-label={`Details for ${detailsFor.title}`}><div className="fresh-long-details-sheet"><button type="button" onClick={() => setDetailsFor(null)} aria-label="Close video details">✕</button><span className="fresh-long-eyebrow">VIDEO DETAILS</span><h2>{detailsFor.title}</h2><p>{detailsFor.description}</p><button type="button" className="fresh-long-author-link" onClick={() => { setDetailsFor(null); setChannelFor(detailsFor); }}>Open @{detailsFor.username} creator channel</button><div className="fresh-long-actions"><button className="primary" type="button" onClick={() => { openPlayer(detailsFor); setDetailsFor(null); }}>Watch now</button><button type="button" aria-pressed={likedIds.includes(detailsFor.id)} onClick={() => void toggleLike(detailsFor)}>{likedIds.includes(detailsFor.id) ? "♥ Liked" : "♡ Like"} · {detailsFor.likes}</button><button type="button" onClick={() => void shareVideo(detailsFor)}>Share video</button><button type="button" onClick={() => void toggleSave(detailsFor)}>{saved.includes(detailsFor.id) ? "Saved" : "Watch later"}</button><button type="button" onClick={() => { setCommentsFor(detailsFor.id); setDetailsFor(null); }}>Comments · {detailsFor.comments}</button></div></div></div>}
     {commentsFor && <div className="fresh-long-comments"><button type="button" onClick={() => setCommentsFor(null)}>Close discussion</button><CommentPanel targetType="post" targetId={commentsFor} onClose={() => setCommentsFor(null)} /></div>}
-    <p className="fresh-long-honesty">Video playback uses published video URLs from Fresh Flow’s existing posts store. Saved items and signed-in watch progress sync through Fresh ID; guest progress stays on this device. Film licensing, series metadata, adaptive streaming and offline downloads are not yet connected.</p>
+    <p className="fresh-long-honesty">Video playback uses published video URLs from Fresh Flow’s existing posts store. Saved items and signed-in watch progress sync through Fresh ID; guest progress stays on this device. Film licensing, adaptive streaming and offline downloads are not yet connected. Creator-owned series, seasons and episode ordering are stored in Fresh Flow.</p>
   </section>;
 }
