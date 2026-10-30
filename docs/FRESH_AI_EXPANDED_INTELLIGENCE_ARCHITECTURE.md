@@ -4,6 +4,10 @@
 
 **Ownership rule:** Fresh AI's intelligence and generative model weights must be trained and owned by Fresh. External compute, storage, sensors, datasets with documented rights, simulators, and non-AI infrastructure may support the system. An external AI model must not silently answer, generate, plan, or control under the Fresh AI identity.
 
+## AI terminology integration
+
+The cross-cutting terminology map and integration contract is maintained in [`FRESH_AI_INTELLIGENCE_TAXONOMY.md`](./FRESH_AI_INTELLIGENCE_TAXONOMY.md). It maps ANI/AGI/ASI research goals, cognitive and agent architectures, learning methods, modalities, scientific AI, and emerging research tracks onto this architecture without treating names as proof of working capabilities.
+
 ## 1. Product definition
 
 Fresh AI is the sovereign intelligence layer. Fresh Web Lite, Fresh Flow, Fresh Studio, and connected devices are application surfaces and execution environments that use it. Fresh AI is not limited to a chat interface: it must ultimately understand, reason, create, research, plan, and carry out approved work across digital and physical environments.
