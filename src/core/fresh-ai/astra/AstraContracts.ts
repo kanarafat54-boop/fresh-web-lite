@@ -82,7 +82,7 @@ export function validateAstraObservation(
   if (observation.description !== undefined && (typeof observation.description !== "string" || observation.description.length > 2000)) {
     errors.push("Observation description must not exceed 2,000 characters.");
   }
-  if (observation.payloadRef !== undefined && (typeof observation.payloadRef !== "string" || !/^[A-Za-z0-9/_-]{1,512}$/.test(observation.payloadRef))) {
+  if (observation.payloadRef !== undefined && (typeof observation.payloadRef !== "string" || !/^[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*$/.test(observation.payloadRef) || observation.payloadRef.length > 512)) {
     errors.push("Payload reference must be an opaque storage reference, not a URL or arbitrary path.");
   }
   if (observation.modality !== "text" && !observation.payloadRef) {
