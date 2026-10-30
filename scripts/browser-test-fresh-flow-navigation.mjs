@@ -145,7 +145,7 @@ for (const width of WIDTHS) {
   // Long Videos product surfaces: discovery, details, cinema, library and settings.
   await page.locator('nav[aria-label="Fresh Flow media"] button', { hasText: "Videos" }).click();
   await page.waitForSelector(".fresh-long", { timeout: 10000 });
-  check(await page.getByRole("heading", { name: "Long Videos" }).isVisible(), `${tag} Long Videos discovery opens`);
+  check(await page.getByRole("heading", { name: "Long Videos", exact: true }).isVisible(), `${tag} Long Videos discovery opens`);
   check(await page.locator(".fresh-long-tools").getByRole("button", { name: "Creator Studio" }).isVisible(), `${tag} Creator Studio entry is available`);
   check(await page.getByRole("button", { name: "Upload video" }).isVisible(), `${tag} dedicated Long Video upload entry is available`);
   check(await page.getByRole("button", { name: "Monetization" }).isVisible(), `${tag} creator monetization entry is available`);
