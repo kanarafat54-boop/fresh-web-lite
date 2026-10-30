@@ -29,9 +29,12 @@ async function loadPlaywright() {
 const { chromium } = await loadPlaywright();
 
 const types = { ".js": "text/javascript", ".css": "text/css", ".html": "text/html", ".svg": "image/svg+xml", ".json": "application/json", ".png": "image/png", ".webp": "image/webp" };
+const distRoot = path.resolve(dist);
 const server = http.createServer((req, res) => {
-  const requested = path.join(dist, decodeURIComponent(new URL(req.url, "http://x").pathname));
-  const file = requested.startsWith(path.resolve(dist)) && fs.existsSync(requested) && fs.statSync(requested).isFile() ? requested : path.join(dist, "index.html");
+  const pathname = decodeURIComponent(new URL(req.url, "http://x").pathname);
+  const requested = path.resolve(distRoot, `.${pathname}`);
+  const insideDist = requested === distRoot || requested.startsWith(distRoot + path.sep);
+  const file = insideDist && fs.existsSync(requested) && fs.statSync(requested).isFile() ? requested : path.join(distRoot, "index.html");
   res.writeHead(200, { "content-type": types[path.extname(file)] ?? "application/octet-stream" });
   fs.createReadStream(file).pipe(res);
 }).listen(0);
