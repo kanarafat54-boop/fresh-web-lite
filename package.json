@@ -85,7 +85,8 @@
     "test:fresh-shorts-browser": "node scripts/browser-test-fresh-shorts.mjs dist",
     "eval:fresh-shorts-ranking": "node scripts/eval-fresh-shorts-ranking.mjs",
     "test:fresh-ai-astra-runtime": "node --experimental-strip-types scripts/test-fresh-ai-astra-runtime.mjs",
-    "test:fresh-ai-astra-simulation": "node --experimental-strip-types scripts/test-fresh-ai-astra-simulation.mjs"
+    "test:fresh-ai-astra-simulation": "node --experimental-strip-types scripts/test-fresh-ai-astra-simulation.mjs",
+    "test:fresh-ai-astra-vision": "node --experimental-strip-types scripts/test-fresh-ai-astra-vision.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
