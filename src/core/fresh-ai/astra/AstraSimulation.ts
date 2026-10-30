@@ -42,9 +42,12 @@ export function validateAstraGridWorld(world: AstraGridWorld): string[] {
     errors.push("World dimensions must be integers between 1 and 100.");
     return errors;
   }
-  const inBounds = (point: AstraGridPoint) => isInteger(point.x) && isInteger(point.y) && point.x >= 0 && point.y >= 0 && point.x < world.width && point.y < world.height;
-  if (!inBounds(world.robot)) errors.push("Robot position must be an integer point inside the world.");
-  if (!HEADINGS.includes(world.robot.heading)) errors.push("Robot heading is invalid.");
+  const inBounds = (point: AstraGridPoint | null | undefined) =>
+    Boolean(point && typeof point === "object" && isInteger(point.x) && isInteger(point.y) &&
+      point.x >= 0 && point.y >= 0 && point.x < world.width && point.y < world.height);
+  const robotValid = Boolean(world.robot && typeof world.robot === "object");
+  if (!robotValid || !inBounds(world.robot)) errors.push("Robot position must be an integer point inside the world.");
+  if (robotValid && !HEADINGS.includes(world.robot.heading)) errors.push("Robot heading is invalid.");
   if (!Array.isArray(world.obstacles)) errors.push("World obstacles must be an array.");
   else {
     const seen = new Set<string>();
@@ -54,7 +57,7 @@ export function validateAstraGridWorld(world: AstraGridWorld): string[] {
         const key = `${obstacle.x},${obstacle.y}`;
         if (seen.has(key)) errors.push("Duplicate obstacle positions are not allowed.");
         seen.add(key);
-        if (obstacle.x === world.robot.x && obstacle.y === world.robot.y) errors.push("The robot cannot start inside an obstacle.");
+        if (robotValid && obstacle.x === world.robot.x && obstacle.y === world.robot.y) errors.push("The robot cannot start inside an obstacle.");
       }
     }
   }
