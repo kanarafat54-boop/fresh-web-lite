@@ -12,8 +12,8 @@ type VideoItem = {
   videoUrl: string; posterUrl: string | null; createdAt: string;
   authorName: string; username: string; likes: number; comments: number;
 };
-type Category = "For You" | "Movies & Series" | "Documentaries" | "Education" | "Events" | "Following";
-const CATEGORIES: Category[] = ["For You", "Movies & Series", "Documentaries", "Education", "Events", "Following"];
+type Category = "Discover" | "Movies & Series" | "Documentaries" | "Education" | "Events" | "Following";
+const CATEGORIES: Category[] = ["Discover", "Movies & Series", "Documentaries", "Education", "Events", "Following"];
 const SAVED_KEY = "fresh-flow-long-video-saved-v1";
 const PROGRESS_KEY = "fresh-flow-long-video-progress-v1";
 const DURATION_KEY = "fresh-flow-long-video-duration-v1";
@@ -41,7 +41,7 @@ function readPlaybackPreferences() {
     };
   } catch { return defaults; }
 }
-function categoryFor(video: VideoItem): Exclude<Category, "For You" | "Following"> {
+function categoryFor(video: VideoItem): Exclude<Category, "Discover" | "Following"> {
   const text = (video.title + " " + video.description).toLowerCase();
   if (/movie|film|series|episode|season|cinema/.test(text)) return "Movies & Series";
   if (/documentary|documentaries|investigation|history|wildlife/.test(text)) return "Documentaries";
@@ -57,7 +57,7 @@ export default function FreshFlowLongVideos() {
   const [libraryVideos, setLibraryVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [category, setCategory] = useState<Category>("For You");
+  const [category, setCategory] = useState<Category>("Discover");
   const [query, setQuery] = useState("");
   const [active, setActive] = useState<VideoItem | null>(null);
   const [requestedVideoId, setRequestedVideoId] = useState<string | null>(() => {
@@ -161,7 +161,7 @@ export default function FreshFlowLongVideos() {
   }, [requestedVideoId, libraryVideos, loading]);
 
   const visible = useMemo(() => videos.filter((video) => {
-    const matchesCategory = category === "For You" ||
+    const matchesCategory = category === "Discover" ||
       (category === "Following" ? followingIds.includes(video.authorId) : categoryFor(video) === category);
     const text = (video.title + " " + video.description + " " + video.authorName + " " + video.username).toLowerCase();
     return matchesCategory && (!query.trim() || text.includes(query.toLowerCase().trim()));
@@ -289,7 +289,7 @@ export default function FreshFlowLongVideos() {
   </section>;
   if (panel === "explore") return <section className="fresh-long" aria-label="Explore Long Videos">
     <div className="fresh-long-heading"><div><span className="fresh-long-eyebrow">FRESH FLOW / EXPLORE</span><h1>Explore Long Videos</h1><p>Choose a world, then discover videos from across Fresh Flow.</p></div><button type="button" onClick={() => setPanel("discover")}>Back to Discover</button></div>
-    <div className="fresh-long-explore-grid">{CATEGORIES.map((item) => <button key={item} type="button" onClick={() => { setCategory(item); setPanel("discover"); }}><strong>{item}</strong><span>{item === "Following" ? "Creators connected to your social graph" : item === "Movies & Series" ? "Films and episodic stories" : item === "Documentaries" ? "Real stories and investigations" : item === "Education" ? "Lessons, explainers and tutorials" : item === "Events" ? "Performances, talks and experiences" : "Personalized long-form discoveries"}</span></button>)}</div>
+    <div className="fresh-long-explore-grid">{CATEGORIES.map((item) => <button key={item} type="button" onClick={() => { setCategory(item); setPanel("discover"); }}><strong>{item}</strong><span>{item === "Following" ? "Creators connected to your social graph" : item === "Movies & Series" ? "Films and episodic stories" : item === "Documentaries" ? "Real stories and investigations" : item === "Education" ? "Lessons, explainers and tutorials" : item === "Events" ? "Performances, talks and experiences" : "Latest published long-form videos"}</span></button>)}</div>
   </section>;
   if (panel === "library") return <section className="fresh-long" aria-label="Long Videos library">
     <div className="fresh-long-heading"><div><span className="fresh-long-eyebrow">FRESH FLOW / YOUR SPACE</span><h1>Your Library</h1><p>Saved videos and your continue-watching list.</p></div><button type="button" onClick={() => setPanel("discover")}>Back to Discover</button></div>
@@ -329,13 +329,13 @@ export default function FreshFlowLongVideos() {
     {!loading && !error && videos.length > 0 && visible.length === 0 && <div className="fresh-long-state">{category === "Following" ? "Videos from creators you follow will appear here. Follow creators to build this feed." : "No videos match this search or category."}</div>}
     {featured && <article className="fresh-long-feature">
       <button className="fresh-long-feature-media" type="button" onClick={() => openPlayer(featured)} aria-label={`Play ${featured.title}`}>
-        {featured.posterUrl ? <img src={featured.posterUrl} alt="" /> : <span className="fresh-long-poster-fallback">▶</span>}<span className="fresh-long-play">▶</span><span className="fresh-long-feature-label">FEATURED FOR YOU</span>
+        {featured.posterUrl ? <img src={featured.posterUrl} alt="" /> : <span className="fresh-long-poster-fallback">▶</span>}<span className="fresh-long-play">▶</span><span className="fresh-long-feature-label">LATEST ON FRESH FLOW</span>
       </button>
       <div className="fresh-long-feature-copy"><span className="fresh-long-byline">@{featured.username} · {categoryFor(featured)}</span><h2>{featured.title}</h2><button className="fresh-long-author-link" type="button" onClick={() => setChannelFor(featured)}>{featured.authorName}</button><p>{featured.description}</p><div className="fresh-long-actions"><button className="primary" type="button" onClick={() => openPlayer(featured)}>▶ Watch now</button><button type="button" onClick={() => setDetailsFor(featured)}>Details</button><button type="button" onClick={() => void shareVideo(featured)}>Share</button><button type="button" aria-pressed={likedIds.includes(featured.id)} onClick={() => void toggleLike(featured)}>{likedIds.includes(featured.id) ? "♥ Liked" : "♡ Like"} · {featured.likes}</button><button type="button" onClick={() => void toggleSave(featured)}>{saved.includes(featured.id) ? "✓ Saved" : "+ Watch later"}</button><button type="button" onClick={() => setCommentsFor(featured.id)}>Comments · {featured.comments}</button></div></div>
     </article>}
     {resume.length > 0 && <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Continue watching</h2><span>Your saved progress on this device</span></div><div className="fresh-long-rail">{resume.map((video) => <button key={video.id} type="button" className="fresh-long-resume-card" onClick={() => resumeVideo(video)}><span className="fresh-long-thumb">{video.posterUrl ? <img src={video.posterUrl} alt="" /> : "▶"}<i style={{ width: `${Math.min(100, Math.max(2, (progress[video.id] / 3600) * 100))}%` }} /></span><strong>{video.title}</strong><small>Resume at {Math.floor(progress[video.id] / 60)}:{String(Math.floor(progress[video.id] % 60)).padStart(2, "0")}</small></button>)}</div></section>}
-    <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>{category === "For You" ? "Recommended for you" : category}</h2><span>{visible.length} videos</span></div><div className="fresh-long-grid">{(featured ? rest : visible).map((video) => <article className="fresh-long-card" key={video.id}><button className="fresh-long-card-media" type="button" onClick={() => openPlayer(video)} aria-label={`Play ${video.title}`}>{video.posterUrl ? <img src={video.posterUrl} alt="" /> : <span>▶</span>}<b>▶</b></button><div className="fresh-long-card-copy"><span>@{video.username} · {categoryFor(video)}</span><h3>{video.title}</h3><button className="fresh-long-author-link" type="button" onClick={() => setChannelFor(video)}>{video.authorName}</button><div><button type="button" onClick={() => openPlayer(video)}>Watch</button><button type="button" onClick={() => setDetailsFor(video)}>Details</button><button type="button" aria-pressed={likedIds.includes(video.id)} onClick={() => void toggleLike(video)}>{likedIds.includes(video.id) ? "♥" : "♡"} {video.likes}</button><button type="button" onClick={() => void toggleSave(video)}>{saved.includes(video.id) ? "Saved" : "Save"}</button><button type="button" onClick={() => setCommentsFor(video.id)}>Comments {video.comments}</button></div></div></article>)}</div></section>
-    <section className="fresh-long-section fresh-long-library"><div><h2>Your library</h2><p>{saved.length} saved videos · {user && !isGuest ? "synced to your Fresh ID" : "saved on this device"}</p></div><button type="button" onClick={() => { setCategory("For You"); setQuery(""); }}>Browse all videos</button></section>
+    <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>{category === "Discover" ? "Latest long videos" : category}</h2><span>{visible.length} videos</span></div><div className="fresh-long-grid">{(featured ? rest : visible).map((video) => <article className="fresh-long-card" key={video.id}><button className="fresh-long-card-media" type="button" onClick={() => openPlayer(video)} aria-label={`Play ${video.title}`}>{video.posterUrl ? <img src={video.posterUrl} alt="" /> : <span>▶</span>}<b>▶</b></button><div className="fresh-long-card-copy"><span>@{video.username} · {categoryFor(video)}</span><h3>{video.title}</h3><button className="fresh-long-author-link" type="button" onClick={() => setChannelFor(video)}>{video.authorName}</button><div><button type="button" onClick={() => openPlayer(video)}>Watch</button><button type="button" onClick={() => setDetailsFor(video)}>Details</button><button type="button" aria-pressed={likedIds.includes(video.id)} onClick={() => void toggleLike(video)}>{likedIds.includes(video.id) ? "♥" : "♡"} {video.likes}</button><button type="button" onClick={() => void toggleSave(video)}>{saved.includes(video.id) ? "Saved" : "Save"}</button><button type="button" onClick={() => setCommentsFor(video.id)}>Comments {video.comments}</button></div></div></article>)}</div></section>
+    <section className="fresh-long-section fresh-long-library"><div><h2>Your library</h2><p>{saved.length} saved videos · {user && !isGuest ? "synced to your Fresh ID" : "saved on this device"}</p></div><button type="button" onClick={() => { setCategory("Discover"); setQuery(""); }}>Browse all videos</button></section>
     {active && <div className="fresh-long-player" role="dialog" aria-modal="true" aria-label={active.title} onKeyDown={(event) => { if (event.key === "Escape") closePlayer(); }}>
       <div className="fresh-long-player-bar"><button type="button" onClick={closePlayer} aria-label="Close cinema player">✕</button><div><strong>{active.title}</strong><small>@{active.username}</small></div><button type="button" onClick={() => void toggleSave(active)}>{saved.includes(active.id) ? "Saved" : "Save"}</button></div>
       <div className="fresh-long-player-stage"><video ref={playerRef} key={active.id} src={active.videoUrl} poster={active.posterUrl ?? undefined} controls playsInline autoPlay={autoplay && !dataSaver} preload={dataSaver ? "none" : "metadata"} onLoadedMetadata={(e) => { e.currentTarget.playbackRate = Number(playbackSpeed); saveDuration(active.id, e.currentTarget.duration); }} onTimeUpdate={(e) => saveProgress(active, e.currentTarget.currentTime)} onEnded={() => clearProgress(active.id)} onError={() => setError("This video could not be played. The creator's media URL may be unavailable.")} /><div className="fresh-long-player-meta"><span>FRESH FLOW CINEMA</span><h2>{active.title}</h2><p>{active.description}</p><button type="button" aria-pressed={likedIds.includes(active.id)} onClick={() => void toggleLike(active)}>{likedIds.includes(active.id) ? "♥ Liked" : "♡ Like"} · {active.likes}</button><button type="button" onClick={() => void shareVideo(active)}>Share</button><button type="button" onClick={() => setCommentsFor(active.id)}>Open discussion · {active.comments}</button></div></div>
