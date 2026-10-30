@@ -4,7 +4,7 @@ import { useProfileNav } from "../../profile/context/ProfileNavContext";
 import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { CommentPanel } from "../../comments/components/CommentPanel";
-import { getSocialAuthorIds } from "../core/social";
+import { getSocialAuthorIds, setAuthorFollow } from "../core/social";
 import "./FreshFlowLongVideos.css";
 
 type VideoItem = {
@@ -44,6 +44,8 @@ export default function FreshFlowLongVideos() {
   const [saved, setSaved] = useState<string[]>(() => readIds(SAVED_KEY));
   const [progress, setProgress] = useState<Record<string, number>>(() => readProgress());
   const [followingIds, setFollowingIds] = useState<string[]>([]);
+  const [followedIds, setFollowedIds] = useState<string[]>([]);
+  const [channelFor, setChannelFor] = useState<VideoItem | null>(null);
   const [commentsFor, setCommentsFor] = useState<string | null>(null);
   const [detailsFor, setDetailsFor] = useState<VideoItem | null>(null);
   const [panel, setPanel] = useState<"discover" | "library" | "settings">("discover");
@@ -56,16 +58,20 @@ export default function FreshFlowLongVideos() {
   async function load() {
     setLoading(true); setError("");
     try {
-      const [{ data, error: loadError }, followIds, savedResult] = await Promise.all([
+      const [{ data, error: loadError }, followIds, savedResult, followingResult] = await Promise.all([
         supabase.from("posts").select("id, author_id, content, image_url, video_url, like_count, comment_count, created_at")
           .not("video_url", "is", null).order("created_at", { ascending: false }).limit(60),
         user && !isGuest ? getSocialAuthorIds(user.id) : Promise.resolve([] as string[]),
         user && !isGuest
           ? supabase.from("saved_posts").select("post_id").eq("user_id", user.id)
           : Promise.resolve({ data: null, error: null }),
+        user && !isGuest
+          ? supabase.from("follows").select("followed_id").eq("follower_id", user.id)
+          : Promise.resolve({ data: null, error: null }),
       ]);
       if (loadError) throw loadError;
       if (savedResult.error) throw savedResult.error;
+      if (followingResult.error) throw followingResult.error;
       const rows = (data ?? []).filter((row: any) => typeof row.video_url === "string" && /^https?:\/\//i.test(row.video_url));
       const authorIds = [...new Set(rows.map((row: any) => row.author_id).filter(Boolean))];
       let profiles: any[] = [];
@@ -84,7 +90,12 @@ export default function FreshFlowLongVideos() {
           username: profile?.username ?? "creator", likes: row.like_count ?? 0, comments: row.comment_count ?? 0 };
       }));
       setFollowingIds(followIds);
-      if (user && !isGuest) setSaved((savedResult.data ?? []).map((row: any) => row.post_id));
+      if (user && !isGuest) {
+        setSaved((savedResult.data ?? []).map((row: any) => row.post_id));
+        setFollowedIds((followingResult.data ?? []).map((row: any) => row.followed_id));
+      } else {
+        setFollowedIds([]);
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Long Videos could not connect to the media library. Check your connection and retry.");
     } finally { setLoading(false); }
@@ -129,6 +140,16 @@ export default function FreshFlowLongVideos() {
     setProgress(next);
     try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(next)); } catch { /* device storage unavailable */ }
   }
+  async function toggleFollow(video: VideoItem) {
+    if (!user || isGuest) { setActiveRoute("auth-signin"); return; }
+    const wasFollowing = followedIds.includes(video.authorId);
+    try {
+      await setAuthorFollow(user.id, video.authorId, !wasFollowing);
+      setFollowedIds((current) => wasFollowing ? current.filter((id) => id !== video.authorId) : [...current, video.authorId]);
+    } catch (followError) {
+      setError(followError instanceof Error ? followError.message : "Creator follow status could not be updated.");
+    }
+  }
   function openPlayer(video: VideoItem) { setActive(video); }
   function closePlayer() { if (active && playerRef.current) saveProgress(active, playerRef.current.currentTime, true); setActive(null); }
   function resumeVideo(video: VideoItem) {
@@ -147,6 +168,12 @@ export default function FreshFlowLongVideos() {
   }
 
   const savedVideos = videos.filter((video) => saved.includes(video.id));
+  const channelVideos = channelFor ? videos.filter((video) => video.authorId === channelFor.authorId) : [];
+  if (channelFor) return <section className="fresh-long" aria-label="Creator channel">
+    <div className="fresh-long-heading"><div><span className="fresh-long-eyebrow">FRESH FLOW / CREATOR CHANNEL</span><h1>{channelFor.authorName}</h1><p>@{channelFor.username} · {channelVideos.length} published long video{channelVideos.length === 1 ? "" : "s"}</p></div><button type="button" onClick={() => setChannelFor(null)}>Back to Discover</button></div>
+    <div className="fresh-long-channel-actions"><button type="button" onClick={() => void toggleFollow(channelFor)}>{followedIds.includes(channelFor.authorId) ? "Following" : user && !isGuest ? "Follow creator" : "Sign in to follow"}</button><button type="button" onClick={() => { setChannelFor(null); openProfile(channelFor.authorId); }}>Open Fresh ID profile</button></div>
+    <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Videos from @{channelFor.username}</h2><span>{channelVideos.length} videos</span></div><div className="fresh-long-grid">{channelVideos.map((video) => <article className="fresh-long-card" key={video.id}><button className="fresh-long-card-media" type="button" onClick={() => openPlayer(video)} aria-label={`Play ${video.title}`}>{video.posterUrl ? <img src={video.posterUrl} alt="" /> : <span>▶</span>}<b>▶</b></button><div className="fresh-long-card-copy"><h3>{video.title}</h3><p>{video.description}</p><div><button type="button" onClick={() => openPlayer(video)}>Watch</button><button type="button" onClick={() => setDetailsFor(video)}>Details</button><button type="button" onClick={() => void toggleSave(video)}>{saved.includes(video.id) ? "Saved" : "Save"}</button></div></div></article>)}</div></section>
+  </section>;
   if (panel === "library") return <section className="fresh-long" aria-label="Long Videos library">
     <div className="fresh-long-heading"><div><span className="fresh-long-eyebrow">FRESH FLOW / YOUR SPACE</span><h1>Your Library</h1><p>Saved videos and your continue-watching list.</p></div><button type="button" onClick={() => setPanel("discover")}>Back to Discover</button></div>
     {resume.length > 0 && <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Continue watching</h2><span>Progress saved on this device</span></div><div className="fresh-long-rail">{resume.map((video) => <button key={video.id} type="button" className="fresh-long-resume-card" onClick={() => resumeVideo(video)}><span className="fresh-long-thumb">{video.posterUrl ? <img src={video.posterUrl} alt="" /> : "▶"}<i style={{ width: `${Math.min(100, Math.max(2, (progress[video.id] / 3600) * 100))}%` }} /></span><strong>{video.title}</strong><small>Resume at {Math.floor(progress[video.id] / 60)}:{String(Math.floor(progress[video.id] % 60)).padStart(2, "0")}</small></button>)}</div></section>}
@@ -184,16 +211,16 @@ export default function FreshFlowLongVideos() {
       <button className="fresh-long-feature-media" type="button" onClick={() => openPlayer(featured)} aria-label={`Play ${featured.title}`}>
         {featured.posterUrl ? <img src={featured.posterUrl} alt="" /> : <span className="fresh-long-poster-fallback">▶</span>}<span className="fresh-long-play">▶</span><span className="fresh-long-feature-label">FEATURED FOR YOU</span>
       </button>
-      <div className="fresh-long-feature-copy"><span className="fresh-long-byline">@{featured.username} · {categoryFor(featured)}</span><h2>{featured.title}</h2><button className="fresh-long-author-link" type="button" onClick={() => openProfile(featured.authorId)}>{featured.authorName}</button><p>{featured.description}</p><div className="fresh-long-actions"><button className="primary" type="button" onClick={() => openPlayer(featured)}>▶ Watch now</button><button type="button" onClick={() => setDetailsFor(featured)}>Details</button><button type="button" onClick={() => void toggleSave(featured)}>{saved.includes(featured.id) ? "✓ Saved" : "+ Watch later"}</button><button type="button" onClick={() => setCommentsFor(featured.id)}>Comments · {featured.comments}</button></div></div>
+      <div className="fresh-long-feature-copy"><span className="fresh-long-byline">@{featured.username} · {categoryFor(featured)}</span><h2>{featured.title}</h2><button className="fresh-long-author-link" type="button" onClick={() => setChannelFor(featured)}>{featured.authorName}</button><p>{featured.description}</p><div className="fresh-long-actions"><button className="primary" type="button" onClick={() => openPlayer(featured)}>▶ Watch now</button><button type="button" onClick={() => setDetailsFor(featured)}>Details</button><button type="button" onClick={() => void toggleSave(featured)}>{saved.includes(featured.id) ? "✓ Saved" : "+ Watch later"}</button><button type="button" onClick={() => setCommentsFor(featured.id)}>Comments · {featured.comments}</button></div></div>
     </article>}
     {resume.length > 0 && <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Continue watching</h2><span>Your saved progress on this device</span></div><div className="fresh-long-rail">{resume.map((video) => <button key={video.id} type="button" className="fresh-long-resume-card" onClick={() => resumeVideo(video)}><span className="fresh-long-thumb">{video.posterUrl ? <img src={video.posterUrl} alt="" /> : "▶"}<i style={{ width: `${Math.min(100, Math.max(2, (progress[video.id] / 3600) * 100))}%` }} /></span><strong>{video.title}</strong><small>Resume at {Math.floor(progress[video.id] / 60)}:{String(Math.floor(progress[video.id] % 60)).padStart(2, "0")}</small></button>)}</div></section>}
-    <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>{category === "For You" ? "Recommended for you" : category}</h2><span>{visible.length} videos</span></div><div className="fresh-long-grid">{(featured ? rest : visible).map((video) => <article className="fresh-long-card" key={video.id}><button className="fresh-long-card-media" type="button" onClick={() => openPlayer(video)} aria-label={`Play ${video.title}`}>{video.posterUrl ? <img src={video.posterUrl} alt="" /> : <span>▶</span>}<b>▶</b></button><div className="fresh-long-card-copy"><span>@{video.username} · {categoryFor(video)}</span><h3>{video.title}</h3><button className="fresh-long-author-link" type="button" onClick={() => openProfile(video.authorId)}>{video.authorName}</button><div><button type="button" onClick={() => openPlayer(video)}>Watch</button><button type="button" onClick={() => setDetailsFor(video)}>Details</button><button type="button" onClick={() => void toggleSave(video)}>{saved.includes(video.id) ? "Saved" : "Save"}</button><button type="button" onClick={() => setCommentsFor(video.id)}>Comments {video.comments}</button></div></div></article>)}</div></section>
+    <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>{category === "For You" ? "Recommended for you" : category}</h2><span>{visible.length} videos</span></div><div className="fresh-long-grid">{(featured ? rest : visible).map((video) => <article className="fresh-long-card" key={video.id}><button className="fresh-long-card-media" type="button" onClick={() => openPlayer(video)} aria-label={`Play ${video.title}`}>{video.posterUrl ? <img src={video.posterUrl} alt="" /> : <span>▶</span>}<b>▶</b></button><div className="fresh-long-card-copy"><span>@{video.username} · {categoryFor(video)}</span><h3>{video.title}</h3><button className="fresh-long-author-link" type="button" onClick={() => setChannelFor(video)}>{video.authorName}</button><div><button type="button" onClick={() => openPlayer(video)}>Watch</button><button type="button" onClick={() => setDetailsFor(video)}>Details</button><button type="button" onClick={() => void toggleSave(video)}>{saved.includes(video.id) ? "Saved" : "Save"}</button><button type="button" onClick={() => setCommentsFor(video.id)}>Comments {video.comments}</button></div></div></article>)}</div></section>
     <section className="fresh-long-section fresh-long-library"><div><h2>Your library</h2><p>{saved.length} saved videos · {user && !isGuest ? "synced to your Fresh ID" : "saved on this device"}</p></div><button type="button" onClick={() => { setCategory("For You"); setQuery(""); }}>Browse all videos</button></section>
     {active && <div className="fresh-long-player" role="dialog" aria-modal="true" aria-label={active.title} onKeyDown={(event) => { if (event.key === "Escape") closePlayer(); }}>
       <div className="fresh-long-player-bar"><button type="button" onClick={closePlayer} aria-label="Close cinema player">✕</button><div><strong>{active.title}</strong><small>@{active.username}</small></div><button type="button" onClick={() => void toggleSave(active)}>{saved.includes(active.id) ? "Saved" : "Save"}</button></div>
       <div className="fresh-long-player-stage"><video ref={playerRef} key={active.id} src={active.videoUrl} poster={active.posterUrl ?? undefined} controls playsInline autoPlay={autoplay && !dataSaver} preload={dataSaver ? "none" : "metadata"} onLoadedMetadata={(e) => { e.currentTarget.playbackRate = Number(playbackSpeed); }} onTimeUpdate={(e) => saveProgress(active, e.currentTarget.currentTime)} onEnded={() => clearProgress(active.id)} onError={() => setError("This video could not be played. The creator's media URL may be unavailable.")} /><div className="fresh-long-player-meta"><span>FRESH FLOW CINEMA</span><h2>{active.title}</h2><p>{active.description}</p><button type="button" onClick={() => setCommentsFor(active.id)}>Open discussion · {active.comments}</button></div></div>
     </div>}
-    {detailsFor && <div className="fresh-long-details" role="dialog" aria-modal="true" aria-label={`Details for ${detailsFor.title}`}><div className="fresh-long-details-sheet"><button type="button" onClick={() => setDetailsFor(null)} aria-label="Close video details">✕</button><span className="fresh-long-eyebrow">VIDEO DETAILS</span><h2>{detailsFor.title}</h2><p>{detailsFor.description}</p><button type="button" className="fresh-long-author-link" onClick={() => { setDetailsFor(null); openProfile(detailsFor.authorId); }}>Open @{detailsFor.username} creator profile</button><div className="fresh-long-actions"><button className="primary" type="button" onClick={() => { openPlayer(detailsFor); setDetailsFor(null); }}>Watch now</button><button type="button" onClick={() => void toggleSave(detailsFor)}>{saved.includes(detailsFor.id) ? "Saved" : "Watch later"}</button><button type="button" onClick={() => { setCommentsFor(detailsFor.id); setDetailsFor(null); }}>Comments · {detailsFor.comments}</button></div></div></div>}
+    {detailsFor && <div className="fresh-long-details" role="dialog" aria-modal="true" aria-label={`Details for ${detailsFor.title}`}><div className="fresh-long-details-sheet"><button type="button" onClick={() => setDetailsFor(null)} aria-label="Close video details">✕</button><span className="fresh-long-eyebrow">VIDEO DETAILS</span><h2>{detailsFor.title}</h2><p>{detailsFor.description}</p><button type="button" className="fresh-long-author-link" onClick={() => { setDetailsFor(null); setChannelFor(detailsFor); }}>Open @{detailsFor.username} creator channel</button><div className="fresh-long-actions"><button className="primary" type="button" onClick={() => { openPlayer(detailsFor); setDetailsFor(null); }}>Watch now</button><button type="button" onClick={() => void toggleSave(detailsFor)}>{saved.includes(detailsFor.id) ? "Saved" : "Watch later"}</button><button type="button" onClick={() => { setCommentsFor(detailsFor.id); setDetailsFor(null); }}>Comments · {detailsFor.comments}</button></div></div></div>}
     {commentsFor && <div className="fresh-long-comments"><button type="button" onClick={() => setCommentsFor(null)}>Close discussion</button><CommentPanel targetType="post" targetId={commentsFor} onClose={() => setCommentsFor(null)} /></div>}
     <p className="fresh-long-honesty">Video playback uses published video URLs from Fresh Flow’s existing posts store. Saved items sync through Fresh ID for signed-in users; watch progress remains on this device. Film licensing, series metadata, adaptive streaming, downloads and server-synced watch history are not yet connected.</p>
   </section>;
