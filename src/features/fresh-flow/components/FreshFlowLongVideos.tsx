@@ -36,6 +36,7 @@ export default function FreshFlowLongVideos() {
   const { setActiveRoute, openNotifications } = useLayout();
   const { openProfile } = useProfileNav();
   const [videos, setVideos] = useState<VideoItem[]>([]);
+  const [libraryVideos, setLibraryVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [category, setCategory] = useState<Category>("For You");
@@ -81,8 +82,22 @@ export default function FreshFlowLongVideos() {
       if (loadError) throw loadError;
       if (savedResult.error) throw savedResult.error;
       if (followingResult.error) throw followingResult.error;
-      const rows = (data ?? []).filter((row: any) => typeof row.video_url === "string" && /^https?:\/\//i.test(row.video_url));
-      const authorIds = [...new Set(rows.map((row: any) => row.author_id).filter(Boolean))];
+      const recentRows = (data ?? []).filter((row: any) => typeof row.video_url === "string" && /^https?:\/\//i.test(row.video_url));
+      const savedIds = user && !isGuest ? (savedResult.data ?? []).map((row: any) => row.post_id) : readIds(SAVED_KEY);
+      const libraryIds = [...new Set([...savedIds, ...Object.keys(progress), ...(requestedVideoId ? [requestedVideoId] : [])])];
+      const recentIds = new Set(recentRows.map((row: any) => row.id));
+      const missingLibraryIds = libraryIds.filter((id) => !recentIds.has(id));
+      let extraRows: any[] = [];
+      if (missingLibraryIds.length) {
+        const extraResult = await supabase.from("posts")
+          .select("id, author_id, content, image_url, video_url, like_count, comment_count, created_at")
+          .in("id", missingLibraryIds).not("video_url", "is", null);
+        if (extraResult.error) throw extraResult.error;
+        extraRows = (extraResult.data ?? []).filter((row: any) => typeof row.video_url === "string" && /^https?:\/\//i.test(row.video_url));
+      }
+      const allRowsById = new Map([...recentRows, ...extraRows].map((row: any) => [row.id, row]));
+      const allRows = [...allRowsById.values()];
+      const authorIds = [...new Set(allRows.map((row: any) => row.author_id).filter(Boolean))];
       let profiles: any[] = [];
       if (authorIds.length) {
         const result = await supabase.from("user_public_profiles").select("id, full_name, username").in("id", authorIds);
@@ -90,27 +105,26 @@ export default function FreshFlowLongVideos() {
         profiles = result.data ?? [];
       }
       const byId = new Map(profiles.map((p: any) => [p.id, p]));
-      if (user && !isGuest && rows.length) {
-        const likedResult = await supabase.from("post_likes").select("post_id").eq("user_id", user.id).in("post_id", rows.map((row: any) => row.id));
+      if (user && !isGuest && allRows.length) {
+        const likedResult = await supabase.from("post_likes").select("post_id").eq("user_id", user.id).in("post_id", allRows.map((row: any) => row.id));
         setLikedIds(likedResult.error ? [] : (likedResult.data ?? []).map((row: any) => row.post_id));
       } else {
         setLikedIds([]);
       }
-      setVideos(rows.map((row: any) => {
+      const toVideoItem = (row: any): VideoItem => {
         const profile = byId.get(row.author_id);
         const title = String(row.content ?? "").trim();
         return { id: row.id, authorId: row.author_id, title: title.slice(0, 110) || "Untitled video",
           description: title, videoUrl: row.video_url, posterUrl: row.image_url ?? null,
           createdAt: row.created_at, authorName: profile?.full_name ?? "Fresh creator",
           username: profile?.username ?? "creator", likes: row.like_count ?? 0, comments: row.comment_count ?? 0 };
-      }));
+      };
+      setVideos(recentRows.map(toVideoItem));
+      setLibraryVideos(allRows.map(toVideoItem));
       setFollowingIds(followIds);
-      if (user && !isGuest) {
-        setSaved((savedResult.data ?? []).map((row: any) => row.post_id));
-        setFollowedIds((followingResult.data ?? []).map((row: any) => row.followed_id));
-      } else {
-        setFollowedIds([]);
-      }
+      setSaved(savedIds);
+      if (user && !isGuest) setFollowedIds((followingResult.data ?? []).map((row: any) => row.followed_id));
+      else setFollowedIds([]);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Long Videos could not connect to the media library. Check your connection and retry.");
     } finally { setLoading(false); }
@@ -130,7 +144,7 @@ export default function FreshFlowLongVideos() {
     const text = (video.title + " " + video.authorName + " " + video.username).toLowerCase();
     return matchesCategory && (!query.trim() || text.includes(query.toLowerCase().trim()));
   }), [videos, category, query, followingIds]);
-  const resume = visible.filter((video) => (progress[video.id] ?? 0) > 0).slice(0, 8);
+  const resume = libraryVideos.filter((video) => (progress[video.id] ?? 0) > 0).slice(0, 8);
   const featured = visible[0] ?? null;
   const rest = visible.slice(1);
 
@@ -229,10 +243,10 @@ export default function FreshFlowLongVideos() {
     setActiveRoute(isGuest ? "auth-signin" : "creator");
   }
 
-  const savedVideos = videos.filter((video) => saved.includes(video.id));
-  const channelVideos = channelFor ? videos.filter((video) => video.authorId === channelFor.authorId) : [];
+  const savedVideos = libraryVideos.filter((video) => saved.includes(video.id));
+  const channelVideos = channelFor ? libraryVideos.filter((video) => video.authorId === channelFor.authorId) : [];
   if (channelFor) return <section className="fresh-long" aria-label="Creator channel">
-    <div className="fresh-long-heading"><div><span className="fresh-long-eyebrow">FRESH FLOW / CREATOR CHANNEL</span><h1>{channelFor.authorName}</h1><p>@{channelFor.username} · {channelVideos.length} published long video{channelVideos.length === 1 ? "" : "s"}</p></div><button type="button" onClick={() => setChannelFor(null)}>Back to Discover</button></div>
+    <div className="fresh-long-heading"><div><span className="fresh-long-eyebrow">FRESH FLOW / CREATOR CHANNEL</span><h1>{channelFor.authorName}</h1><p>@{channelFor.username} · {channelVideos.length} videos in this view</p></div><button type="button" onClick={() => setChannelFor(null)}>Back to Discover</button></div>
     <div className="fresh-long-channel-actions">{user?.id === channelFor.authorId ? <span className="fresh-long-channel-self">Your channel</span> : <button type="button" onClick={() => void toggleFollow(channelFor)}>{followedIds.includes(channelFor.authorId) ? "Following" : user && !isGuest ? "Follow creator" : "Sign in to follow"}</button>}<button type="button" onClick={() => { setChannelFor(null); openProfile(channelFor.authorId); }}>Open Fresh ID profile</button></div>
     <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Videos from @{channelFor.username}</h2><span>{channelVideos.length} videos</span></div><div className="fresh-long-grid">{channelVideos.map((video) => <article className="fresh-long-card" key={video.id}><button className="fresh-long-card-media" type="button" onClick={() => openPlayer(video)} aria-label={`Play ${video.title}`}>{video.posterUrl ? <img src={video.posterUrl} alt="" /> : <span>▶</span>}<b>▶</b></button><div className="fresh-long-card-copy"><h3>{video.title}</h3><p>{video.description}</p><div><button type="button" onClick={() => openPlayer(video)}>Watch</button><button type="button" onClick={() => setDetailsFor(video)}>Details</button><button type="button" onClick={() => void shareVideo(video)}>Share</button><button type="button" aria-pressed={likedIds.includes(video.id)} onClick={() => void toggleLike(video)}>{likedIds.includes(video.id) ? "♥" : "♡"} {video.likes}</button><button type="button" onClick={() => void toggleSave(video)}>{saved.includes(video.id) ? "Saved" : "Save"}</button></div></div></article>)}</div></section>
   </section>;
