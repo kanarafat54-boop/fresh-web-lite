@@ -18,8 +18,8 @@
 4. **Cinema Player** — native browser video controls, fullscreen support, playback speed preference, autoplay/data-saver preferences, reactions, share, close and resume.
 5. **Video Details** — title, description, creator entry, reactions, share, watch-later and comments.
 6. **Creator Channel** — dedicated channel surface with the creator's published long videos, follow/unfollow action and a handoff to the main Fresh ID profile.
-7. **Your Library** — watch-later videos and continue-watching. Saved posts sync for signed-in users; guest saves are local. Watch progress is local.
-8. **Upload & Publish** — opens existing Creator Studio with a long-video create intent. The current post publishing path accepts video uploads and writes the published video URL to `posts.video_url`.
+7. **Your Library** — watch-later videos and continue-watching. Saved posts sync for signed-in users; guest saves are local. Signed-in watch progress syncs through `fresh_long_video_watch_history`; guest progress remains device-local.
+8. **Upload & Publish** — opens existing Creator Studio with a long-video create intent. Long-video publishing now stores title, description, category, tags, custom thumbnail URL, public/unlisted visibility, and an optional scheduled timestamp on the existing post row. Scheduled posts remain owner-visible and become publicly discoverable after their timestamp. Uploads use the existing `post-videos` bucket and `posts.video_url` contract.
 9. **Creator Studio** — existing creator dashboard; long-video entry opens the Publish tab.
 10. **Movies & Series** — currently a discovery category only. Season/episode metadata and a licensed film catalog are not present in the connected schema.
 11. **Fresh AI** — uses the existing global Fresh AI entry; long-video-specific assistant context is future work.
@@ -31,7 +31,7 @@ These are contextual product surfaces, not fourteen new global navigation destin
 
 ## Current data contracts
 
-- Discovery currently sorts the latest public video posts newest first; it does not claim a personalized ranking model. It reads `public.posts`: `id, author_id, content, image_url, video_url, like_count, comment_count, created_at`.
+- Discovery currently sorts the latest public video posts newest first; it does not claim a personalized ranking model. It reads `public.posts` including the long-video metadata columns `video_title, video_description, video_category, video_tags, video_thumbnail_url, video_duration_seconds, video_visibility, video_status, video_scheduled_at, video_published_at`.
 - Creator display names/usernames come from `public.user_public_profiles`.
 - Following uses the existing Fresh Flow social author helper (`getSocialAuthorIds`); creator-channel follow/unfollow writes through the existing `public.follows` contract and refreshes the shared social author set.
 - Signed-in Watch Later uses `public.saved_posts`, with existing owner-scoped RLS policies. Guest saves are stored locally.
@@ -39,21 +39,24 @@ These are contextual product surfaces, not fourteen new global navigation destin
 - Share links use `/fresh-flow?videoId=<post-id>`; Fresh Flow routes the link into Long Videos and opens the matching video when it exists in the public library.
 - Comments use the existing `CommentPanel` with target type `post`.
 - Upload/publish hands off to `/creation` (Creator Studio) with a dedicated **Long Video** publishing mode. It accepts video files only, stores the draft as a post with `media_kind='video'`, uploads to the existing `post-videos` Storage bucket, and publishes through the existing `posts.video_url` contract. Restored creator drafts retain the long-video media kind. Successful publication returns to the Long Videos route.
-- Watch progress and guest library state are device-local. There is no server-synced watch-history table in this implementation.
+- Signed-in watch progress is synchronized to `public.fresh_long_video_watch_history` under owner-only RLS. Guest progress remains device-local. Completed videos are retained in history with a completion timestamp.
+- `public.fresh_video_playlists` and `public.fresh_video_playlist_items` now provide owner-scoped playlist and item contracts with public/unlisted read policies; playlist management UI is not yet connected.
+- Migration `20261030172329_fresh_long_video_library_foundation` adds the long-video metadata, watch-history and playlist schema, and replaces the broad post-video upload policy with a first-folder owner check.
+- The existing Supabase Free organization caps individual files at 50 MB. The `post-videos` bucket is now explicitly limited to 50 MiB and MP4/WebM/QuickTime MIME types. Uploads remain in a public bucket, so unlisted means link-accessible, not private.
 
 ## Live backend inspection (2026-10-30)
 
 - `public.posts` exists and has RLS enabled.
 - `public.saved_posts` exists and has RLS enabled; SELECT/INSERT/DELETE policies scope rows to `auth.uid() = user_id`.
 - `public.follows` and `public.user_public_profiles` are readable under the existing policies used by Fresh Flow.
-- `post-videos` and `post-images` Storage buckets exist and are public.
+- `post-videos` and `post-images` Storage buckets exist and are public. The video bucket has a 50 MiB file cap and explicit video MIME allowlist; upload RLS now requires the object path's first folder to equal the authenticated user's ID.
 - The live query returned **0 published posts with a valid HTTP(S) video_url** at inspection time. Therefore the correct user-facing state is an honest empty state until a creator publishes a video; do not seed fake videos or pretend sample content is live.
 - `fresh_media_assets`, `fresh_media_jobs`, and `fresh_creator_analytics` exist but currently have zero rows. The separate media-job pipeline is not yet connected to this Long Videos experience.
 - The only active Supabase Edge Function found during inspection was `noop-check`; do not claim a deployed media-processing edge function.
 
 ## Explicitly not claimed
 
-No licensing/catalogue provider, seasons/episodes, adaptive bitrate streaming, offline downloads, server-synced watch history, long-video creator analytics, or media transcoding pipeline is connected by this PR. These require separately implemented and verified contracts.
+No licensing/catalogue provider, seasons/episodes, adaptive bitrate streaming, offline downloads, long-video creator analytics, resumable TUS upload, or dedicated long-form media transcoding pipeline is connected by this PR. Playlist tables exist but playlist UI is not yet connected. Private video delivery is not supported while uploads use the public bucket; unlisted videos remain accessible to anyone with the link.
 
 ## Validation and merge rules
 
