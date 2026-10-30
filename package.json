@@ -38,6 +38,7 @@
     "test:fresh-phases-15-24": "node scripts/verify-fresh-phases-15-24.mjs",
     "test:fresh-experience-24": "node scripts/verify-fresh-experience-24.mjs",
     "test:shorts": "node scripts/verify-fresh-shorts-contract.mjs",
+    "test:fresh-astra": "node --experimental-strip-types scripts/test-fresh-astra.mjs",
     "test:fresh-unified-training": "node scripts/verify-fresh-unified-training.mjs",
     "test:fresh-unified-curriculum": "node scripts/verify-fresh-unified-training-curriculum.mjs",
     "test:fresh-training-job": "node scripts/verify-fresh-training-job.mjs",
