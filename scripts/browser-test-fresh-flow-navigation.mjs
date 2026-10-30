@@ -107,7 +107,7 @@ for (const width of WIDTHS) {
 
   // Bottom bar destinations.
   const bottom = (await page.locator("nav.fresh-flow-bottom-nav .fresh-nav-label").allInnerTexts()).map((t) => t.trim());
-  check(JSON.stringify(bottom) === JSON.stringify(["Home", "Shorts", "Creator Studio", "Messages", "Fresh Mail"]), `${tag} bottom bar is Home · Shorts · Creator Studio · Messages · Fresh Mail (got ${bottom.join(" · ")})`);
+  check(JSON.stringify(bottom) === JSON.stringify(["Home", "Shorts", "Creator Studio", "Messages", "Fresh Mail"]), `${tag} shared bottom bar remains Home · Shorts · Creator Studio · Messages · Fresh Mail (got ${bottom.join(" · ")})`);
 
   // No horizontal page overflow; controls are reachable and not covered.
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
