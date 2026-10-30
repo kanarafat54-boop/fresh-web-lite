@@ -4,6 +4,7 @@
  * Astra coordinates Fresh-owned capabilities; it is not a model and does not
  * pretend that untrained modalities or unavailable tools are executable.
  */
+// @ts-ignore Node native type-stripping tests import TypeScript source directly; app build resolves this source import.
 import { getAstraModalityReadiness, type AstraModalityEngine } from "./astra/AstraRuntime.ts";
 
 export type AstraModuleId =
