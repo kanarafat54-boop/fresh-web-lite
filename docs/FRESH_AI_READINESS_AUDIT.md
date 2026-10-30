@@ -11,6 +11,7 @@
 - **Context and orchestration:** the gateway assembles workspace context, intent, evidence, capability resolutions, planning, verification, and governance decisions.
 - **Conversation persistence boundary:** conversation APIs and a ledger path exist; live persistence depends on valid server configuration and must be smoke-tested.
 - **Files and media boundaries:** authenticated file upload and Fresh-owned media persistence/image-generation contracts exist; each engine must be tested with its required configuration.
+- **Astra foundation:** typed multimodal observations, world-state and policy-gated action proposals are registered. This is a contract foundation, not live multimodal inference or device control.
 - **Native dimensional engines:** 1D–11D engine contracts are registered. Their presence does not mean the trained foundation model supports every modality.
 - **Governance and truth:** approval checks and fail-closed execution boundaries exist; real tool execution, audit coverage, and rollback/compensation need capability-by-capability verification.
 - **Vault:** client-side sealing for stored conversation turns exists. This is encryption at rest, not server-blind live inference.
@@ -27,6 +28,7 @@ The registry's `implemented` status means a Fresh-owned code boundary is present
 | Files | Implemented | Authenticated upload boundary exists; vision/camera understanding is not implied |
 | Memory, Trust, Safety | Implemented | Verify persistence, evidence, approval, and audit behavior end to end |
 | Voice, Vision/Camera | Contracted | Not yet a complete executable capability |
+| Astra | Contracted | Typed perception and action-policy contracts exist; inference engines, live world model and device gateway are not integrated |
 | Data, Code, Projects, Knowledge, Skills | Contracted | Show as in development, not as working execution controls |
 | Apps, Work, Tasks, Library, Automations | Contracted | Require real connector/tool boundaries, permissions, audit, and verification |
 | 3D / broader media | Contracted | Native dimensional contracts do not establish complete media-generation readiness |
@@ -42,7 +44,7 @@ Server-only Vercel environment variables:
 - `FRESH_AI_IMAGE_ENGINE_URL` — HTTPS URL of an engine implementing the `fresh-image-v1` request/response contract.
 - `FRESH_AI_IMAGE_ENGINE_TOKEN` — server-to-server bearer token for that engine.
 
-The engine accepts JSON with `contract`, `modelId`, `kind`, `prompt`, `size`, and `quality`; it returns `{ "b64Json": "<base64 PNG>", "mimeType": "image/png" }`. The URL and token are never accepted from the browser, and the configured inference path requires a signed-in user. Remote HTTPS, redirect rejection, a 45-second timeout, payload bounds, PNG signature validation, and persisted engine provenance are enforced by the Fresh server boundary.
+The engine accepts JSON with `contract`, `modelId`, `kind`, `prompt`, `size`, and `quality`; it returns an image payload with PNG MIME type. The URL and token are never accepted from the browser, and the configured inference path requires a signed-in user. Remote HTTPS, redirect rejection, a 45-second timeout, payload bounds, PNG signature validation, and persisted engine provenance are enforced by the Fresh server boundary.
 
 If the engine URL is not configured, Fresh AI tries its native generation runtime. That runtime currently truthfully reports `training-required` until actual Fresh-trained image weights and an inference backend are registered and verified. Configuring the adapter makes a real external inference engine available to Fresh AI; it does **not** mean such an engine is already deployed or that image generation has passed production smoke tests.
 
