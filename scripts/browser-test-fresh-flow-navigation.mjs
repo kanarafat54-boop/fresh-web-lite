@@ -171,6 +171,7 @@ for (const width of WIDTHS) {
   await page.locator(".fresh-long-feature-copy .fresh-long-author-link").click();
   check(await page.getByRole("heading", { name: "Fresh Cinema Creator" }).isVisible(), `${tag} dedicated creator channel opens`);
   check(await page.getByText("Videos from @cinemacreator").isVisible(), `${tag} creator channel lists its videos`);
+  check(await page.getByRole("button", { name: "Sign in to follow" }).isVisible(), `${tag} guest follow action requires Fresh ID sign-in`);
   await page.getByRole("button", { name: "Back to Discover" }).click();
   await page.getByRole("button", { name: "Your Library" }).click();
   check(await page.getByRole("heading", { name: "Your Library" }).isVisible(), `${tag} library screen opens`);
