@@ -198,6 +198,25 @@ for (const width of WIDTHS) {
   check(await page.locator(".fresh-long-player").getAttribute("aria-label") === "The Long Journey — Chapter One", `${tag} shared video deep link opens the correct cinema player`);
   await page.locator(".fresh-long-player-bar button[aria-label='Close cinema player']").click();
 
+  // The Long Videos upload handoff must open Creator Studio in video-only mode.
+  await page.evaluate(() => {
+    sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: "long-video", requestedAt: new Date().toISOString() }));
+    sessionStorage.setItem("fresh-creator-start-tab", "publish");
+    window.history.replaceState({ freshRoute: "creator" }, "", "/creator");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await page.waitForSelector(".creator-editor", { timeout: 10000 });
+  const longVideoMode = page.locator(".creator-mode-switch button", { hasText: "Long Video" });
+  await longVideoMode.waitFor({ state: "visible", timeout: 10000 });
+  check(await longVideoMode.evaluate((element) => element.classList.contains("active")), `${tag} Creator Studio opens with Long Video mode active`);
+  const creatorAccept = await page.locator(".creator-editor input[type=file]").getAttribute("accept");
+  check(creatorAccept === "video/mp4,video/webm,video/quicktime", `${tag} Long Video publishing accepts video files only`);
+  await page.evaluate(() => {
+    window.history.replaceState({ freshRoute: "fresh-flow-long-videos" }, "", "/fresh-flow");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await page.waitForSelector(".fresh-long", { timeout: 10000 });
+
   // Bottom Shorts is current on the Shorts route and the top bar then has no current tab.
   await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Shorts" }).click();
   await page.waitForTimeout(300);
