@@ -71,3 +71,10 @@
 .fresh-ai-capability-grid button:disabled:hover{background:rgba(100,120,170,.08)}
 .fresh-ai-capability-status{color:var(--fresh-ai-accent);font-weight:700;opacity:1!important}
 .fresh-ai-mode-strip button:disabled{border:1px dashed var(--fresh-ai-line)}
+
+
+/* Non-obstructive global Fresh AI launcher: compact on phones and clear of bottom navigation. */
+.fresh-ai-unified-trigger{right:max(10px,env(safe-area-inset-right));bottom:calc(88px + env(safe-area-inset-bottom));z-index:35;max-width:calc(100vw - 24px);padding:7px 11px 7px 7px;gap:8px;font-size:.82rem;}
+.fresh-ai-unified-trigger>span{width:30px;height:30px;flex:0 0 30px;}
+@media(max-width:600px){.fresh-ai-unified-trigger{right:8px;bottom:calc(82px + env(safe-area-inset-bottom));padding:5px;border-radius:50%;width:44px;height:44px;justify-content:center;gap:0;box-shadow:0 5px 18px rgba(20,30,60,.18);}.fresh-ai-unified-trigger>span{width:30px;height:30px;}.fresh-ai-unified-trigger{font-size:0;}.fresh-ai-unified-trigger>span{font-size:15px;}}
+.fresh-ai-unified-trigger:focus-visible{outline:3px solid var(--fresh-color-focus,#a99dff);outline-offset:3px;}

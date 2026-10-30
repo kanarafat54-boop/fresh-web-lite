@@ -42,8 +42,7 @@ export default function BottomNav() {
   const freshFlowDestinations = [
     { id: "feed", label: "Home", icon: "⌂" },
     { id: "fresh-flow-shorts", label: "Shorts", icon: "▶" },
-    { id: "fresh-flow-system-fresh-studio", label: "Creator Studio", icon: "＋" },
-    { id: "fresh-flow-long-videos", label: "Video", icon: "▻" },
+    { id: "fresh-flow-system-fresh-studio", label: "Create", icon: "＋" },
     { id: "communication", label: "Messages", icon: "▤" },
     { id: "fresh-mail", label: "Fresh Mail", icon: "✉" },
   ];
@@ -53,7 +52,7 @@ export default function BottomNav() {
       <nav className={`fresh-bottom-nav${isFreshFlowRoute ? " fresh-flow-bottom-nav" : ""}${isFreshFlowRoute && !flowNavigationVisible ? " flow-navigation-hidden" : ""}`} aria-label={isFreshFlowRoute ? "Fresh Flow navigation" : "Fresh primary navigation"}>
         <div className="fresh-bottom-nav-scroll">
           {isFreshFlowRoute ? freshFlowDestinations.map(({ id, label, icon }) => {
-            const active = id === "feed" ? activeRoute === "feed" : id === "fresh-flow-shorts" ? activeRoute === "fresh-flow-shorts" : activeRoute === id || (id === "fresh-flow-long-videos" && activeRoute === id);
+            const active = activeRoute === id;
             return (
               <button key={id} type="button" className={`fresh-nav-item fresh-flow-nav-item${active ? " active" : ""}`} aria-current={active ? "page" : undefined} aria-label={label} onClick={() => setActiveRoute(id)}>
                 <span className="fresh-nav-icon fresh-flow-nav-glyph" aria-hidden="true">{icon}</span>

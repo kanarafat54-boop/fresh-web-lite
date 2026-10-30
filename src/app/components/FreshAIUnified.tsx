@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useLayout } from "../contexts/useLayout";
-import { useTheme } from "../providers/ThemeProvider";
 import { supabase } from "../../lib/supabase";
 import { createFreshAIWorkspaceContext } from "../../core/fresh-ai/FreshAIWorkspaceContext";
 import { getFreshAICapability, type FreshAICapabilityId } from "../../core/fresh-ai/FreshAICapabilityRegistry";
@@ -78,7 +77,6 @@ const capabilities = [
 
 export default function FreshAIUnified() {
   const { activeRoute } = useLayout();
-  const { theme, toggle } = useTheme();
   const context = useMemo(() => createFreshAIWorkspaceContext(activeRoute ?? "/"), [activeRoute]);
   const normalizedRoute = (activeRoute ?? "").replace(/\/$/, "").toLowerCase();
   const isAI = ["ai", "/ai", "fresh-ai", "/fresh-ai"].includes(normalizedRoute);
@@ -472,7 +470,7 @@ export default function FreshAIUnified() {
   const errorPanel = error ? <div className="fresh-ai-unified-error"><b>Fresh AI couldn't complete that request.</b><span>{error}</span><button type="button" onClick={() => { const userTurn = [...turns].reverse().find((turn) => turn.role === "user"); setError(null); if (userTurn) void submit(userTurn.content); }}>Retry</button></div> : null;
 
   const body = <div className="fresh-ai-unified-shell">
-    <header><div className="fresh-ai-unified-brand"><button className="fresh-ai-unified-orb" type="button" onClick={() => setConstellation((current) => !current)} aria-label="Open Fresh AI capabilities"><span>✦</span></button><div><strong>Fresh AI</strong><small>One intelligence. Everywhere.</small></div></div><div className="fresh-ai-unified-actions"><span>{context.featureName}</span><button className="fresh-ai-home-return" type="button" onClick={() => { window.location.assign("/"); }} aria-label="Back to Fresh Home" title="Back to Fresh Home">⌂ <span>Back to Home</span></button><button type="button" onClick={toggle} aria-label="Toggle theme">{theme === "dark" ? "☀" : "☾"}</button>{!isAI ? <button type="button" onClick={() => setOpen(false)} aria-label="Close">×</button> : null}</div></header>
+    <header><div className="fresh-ai-unified-brand"><button className="fresh-ai-unified-orb" type="button" onClick={() => setConstellation((current) => !current)} aria-label="Open Fresh AI capabilities"><span>✦</span></button><div><strong>Fresh AI</strong><small>One intelligence. Everywhere.</small></div></div><div className="fresh-ai-unified-actions"><span>{context.featureName}</span><button className="fresh-ai-home-return" type="button" onClick={() => { window.location.assign("/"); }} aria-label="Back to Fresh Home" title="Back to Fresh Home">⌂ <span>Back to Home</span></button>{!isAI ? <button type="button" onClick={() => setOpen(false)} aria-label="Close">×</button> : null}</div></header>
     {capabilityPanel}
     <div className="fresh-ai-unified-context"><span className="fresh-ai-context-diamond">◇</span>{context.surface}<span>·</span>{context.featureName}<span>·</span>{conversationId ? `Session ${conversationId.slice(0, 8)}` : "New session"}</div>
     <section className="fresh-ai-unified-messages" ref={messagesRef} onScroll={onScroll}>{messageList}{loading ? <div className="fresh-ai-progress"><span className="fresh-ai-progress-diamond">◇</span><div><b>Fresh is working</b><small>Understanding · retrieving · checking · preparing</small></div></div> : null}{evidencePanel}{artifactPanel}{imagePanel}{actionPanel}{errorPanel}<div ref={endRef} /></section>

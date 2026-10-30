@@ -1,5 +1,5 @@
 import AppRouter from "./AppRouter";
-import { ThemeProvider, useTheme } from "./providers/ThemeProvider";
+import { ThemeProvider } from "./providers/ThemeProvider";
 import { LayoutProvider } from "./contexts/LayoutProvider";
 import { useLayout } from "./contexts/useLayout";
 import FreshAIUnified from "./components/FreshAIUnified";
@@ -37,34 +37,6 @@ function GlobalProfileOverlay() {
   );
 }
 
-function GlobalThemeControl() {
-  const { theme, setTheme } = useTheme();
-  return (
-    <div className="fresh-global-theme" role="group" aria-label="Fresh appearance">
-      <button
-        type="button"
-        className={theme === "light" ? "is-active" : ""}
-        onClick={() => setTheme("light")}
-        aria-pressed={theme === "light"}
-        aria-label="Use light mode"
-        title="Light mode"
-      >
-        ☀
-      </button>
-      <button
-        type="button"
-        className={theme === "dark" ? "is-active" : ""}
-        onClick={() => setTheme("dark")}
-        aria-pressed={theme === "dark"}
-        aria-label="Use dark mode"
-        title="Dark mode"
-      >
-        ◐
-      </button>
-    </div>
-  );
-}
-
 export default function AppShell() {
   return (
     <ThemeProvider>
@@ -72,7 +44,6 @@ export default function AppShell() {
         <div className="app-shell-root">
           <AppRouter />
           <GlobalProfileOverlay />
-          <GlobalThemeControl />
           <GlobalFreshAIEntry />
         </div>
       </LayoutProvider>

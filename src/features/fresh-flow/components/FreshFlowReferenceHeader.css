@@ -52,7 +52,22 @@
 }
 
 
-/* Hide the fixed-position masthead during active scroll, then restore it. */
-.fresh-flow-hub.flow-navigation-hidden .fresh-flow-unified-header{opacity:0;transform:translateY(-110%);pointer-events:none;visibility:hidden;}
-.fresh-flow-hub .fresh-flow-unified-header{transition:opacity 180ms ease,transform 180ms ease,visibility 180ms ease;}
-@media(prefers-reduced-motion:reduce){.fresh-flow-hub .fresh-flow-unified-header{transition:none;}}
+/* Two-navigation layout: the top bar is the only header row; the right controls are search, all-worlds and profile. */
+.fresh-flow-header-actions{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.fresh-flow-header-actions .fresh-flow-search-icon-button{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px}
+.fresh-flow-header-actions .fresh-flow-unified-profile{flex:0 0 40px;width:40px;height:40px}
+.fresh-flow-header-world-nav button{min-height:44px;padding-inline:12px}
+@media(max-width:760px){.fresh-flow-brand-wordmark{display:none}.fresh-flow-header-world-nav button{min-height:44px;padding-inline:10px;font-size:.78rem}}
+@media(max-width:420px){.fresh-flow-header-actions{gap:3px}.fresh-flow-header-actions .fresh-flow-search-icon-button{display:grid}.fresh-flow-header-actions .fresh-flow-search-icon-button,.fresh-flow-header-actions .fresh-flow-unified-profile{flex-basis:36px;width:36px;height:36px}.fresh-flow-header-world-nav button{padding-inline:8px;font-size:.74rem}}
+
+/* The Fresh Flow masthead remains anchored and visible; only the bottom navigation auto-hides. */
+.fresh-flow-unified-header{position:sticky;top:0;z-index:80;transform:none;opacity:1;visibility:visible;}
+
+/* Flow is always a dark surface; its chrome must not inherit light-theme variables. */
+.fresh-flow-unified-header{background:rgba(7,9,13,.92);color:#f5f7fa;border-bottom-color:rgba(255,255,255,.1)}
+.fresh-flow-header-world-nav button{color:#aab2bf}
+.fresh-flow-header-world-nav button:hover{color:#fff}
+.fresh-flow-header-world-nav button.active{color:#fff;background:rgba(99,91,255,.28);border-color:rgba(139,124,255,.55)}
+.fresh-flow-header-actions .fresh-flow-search-icon-button{background:#171c23;color:#f5f7fa;border-color:rgba(255,255,255,.14)}
+.fresh-flow-header-actions .fresh-flow-unified-profile{color:#fff}
+.fresh-flow-hub .fresh-flow-header-world-nav button{min-height:44px}

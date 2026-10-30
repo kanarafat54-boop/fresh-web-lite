@@ -45,11 +45,18 @@ if (!home.includes('onOpenSystem("fresh-shorts")')) {
 if (home.includes('<small>Following</small>') || home.includes('aria-label="Choose your feed"') || home.includes('fresh-flow-home-bottom-nav')) {
   throw new Error("Fresh Flow must not duplicate navigation at the bottom of the landing page");
 }
-for (const token of [">Live</button>", ">VR / AR</button>", ">Podcasts</button>", ">Music</button>", ">Others</button>", "fresh-flow-unified-profile", "flowAvatarInputRef", "flowCameraInputRef", "setActiveRoute(\"profile\")"]) {
-  if (!hub.includes(token)) throw new Error(`Fresh Flow masthead is missing a required destination or profile action: ${token}`);
+// Exactly two navigations: a top media bar (TOP_NAVIGATION) and the bottom bar.
+for (const token of ['label: "Discover"', 'label: "Videos"', 'label: "News / Posts"', 'label: "Live"', 'label: "VR / AR"', 'label: "Podcasts"', 'label: "Music"', 'label: "Others"', 'data-navigation="top"', "fresh-flow-unified-profile", "flowAvatarInputRef", "flowCameraInputRef", 'setActiveRoute("profile")', "fresh-flow-switch-open"]) {
+  if (!hub.includes(token)) throw new Error(`Fresh Flow top navigation is missing a required destination or profile action: ${token}`);
+}
+for (const token of ["fresh-flow-section-bar", "fresh-flow-back-button", "fresh-flow-flow-switch-trigger", "fresh-flow-avatar-action", "fresh-flow-avatar-camera"]) {
+  if (hub.includes(token)) throw new Error(`Fresh Flow must not render a third navigation strip or stacked avatar buttons: ${token}`);
+}
+if ((hub.match(/<nav /g) ?? []).length !== 1) {
+  throw new Error("Fresh Flow hub must render exactly one navigation (the top media bar); the bottom bar lives in BottomNav");
 }
 const bottomNav = readFileSync("src/app/components/BottomNav.tsx", "utf8");
-for (const token of ["fresh-flow-bottom-nav", "label: \"Home\"", "label: \"Shorts\"", "label: \"Creator Studio\"", "label: \"Video\"", "label: \"Messages\"", "label: \"Fresh Mail\"", 'id: "fresh-mail"']) {
+for (const token of ["fresh-flow-bottom-nav", "label: \"Home\"", "label: \"Shorts\"", "label: \"Create\"", "label: \"Messages\"", "label: \"Fresh Mail\"", 'id: "fresh-mail"']) {
   if (!bottomNav.includes(token)) throw new Error(`Fresh Flow bottom navigation is missing: ${token}`);
 }
 if (home.includes("fresh-flow-home-shortcuts") || hub.includes(">Flow Home</button>") || hub.includes(">News</button>") || hub.includes(">Posts</button>")) {
@@ -71,7 +78,7 @@ const mediaWorkspace = readFileSync("src/features/fresh-flow/components/FreshFlo
 for (const token of ["Start AR", "Object Library", "Learn AR/VR", "setSpatialTool", "fresh-flow-vr-tool-panel"]) {
   if (!mediaWorkspace.includes(token)) throw new Error(`VR/AR workspace missing actionable feature: ${token}`);
 }
-for (const token of ['setActiveRoute("fresh-flow-system-fresh-music")', "onClick={goBack}", "<FreshFlowHome", "<FreshFlowShortsExperience", "<FreshFlowSystemExperience", "fresh-flow-system-"]) {
+for (const token of ['route: "fresh-flow-system-fresh-music"', "<FreshFlowHome", "<FreshFlowShortsExperience", "<FreshFlowSystemExperience", "fresh-flow-system-"]) {
   if (!hub.includes(token)) throw new Error(`Fresh Flow hub missing route integration: ${token}`);
 }
 

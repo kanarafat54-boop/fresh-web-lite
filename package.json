@@ -26,6 +26,7 @@
     "test:fresh-runtime-capabilities": "node scripts/verify-fresh-runtime-capabilities.mjs",
     "test:fresh-security-contract": "node scripts/verify-fresh-security-contract.mjs",
     "test:fresh-platform-privacy": "node scripts/verify-fresh-platform-privacy.mjs",
+    "test:fresh-flow-navigation-browser": "node scripts/browser-test-fresh-flow-navigation.mjs dist",
     "test:fresh-flow-fabric": "node scripts/verify-fresh-flow-fabric.mjs",
     "test:fresh-flow-capability-registry": "node scripts/verify-fresh-flow-capability-registry.mjs",
     "test:fresh-flow-system-registry": "node scripts/verify-fresh-flow-system-registry.mjs",
