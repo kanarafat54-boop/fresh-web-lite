@@ -3,17 +3,16 @@
 ## Purpose
 This is the canonical product-level contract for Fresh AI. It defines the complete user-facing capability surface, entry points, orchestration responsibilities, permissions, memory, artifacts and verification requirements before model training expands.
 
-Fresh AI remains **one sovereign model identity**: `fresh-unified-1`. Modes, skills and tools are capabilities of that identity, not separate vendor brains. Astra is a Fresh AI subsystem, not a second model identity.
+Fresh AI remains **one sovereign model identity**: `fresh-unified-1`. Modes, skills and tools are capabilities of that identity, not separate vendor brains.
 
 ## Product surface
-
 The primary Fresh AI composer stays intentionally simple:
 
 `＋ Ask Fresh` · `🎙 Voice` · `Search` · `Create` · `Research` · `Work` · `Files` · `Camera`
 
 A `More` surface exposes deeper capabilities without overcrowding the primary experience:
 
-`Code` · `Data` · `Projects` · `Tasks` · `Knowledge` · `Library` · `Skills` · `Apps` · `Automations` · `3D` · `Video` · `Astra` · `Settings`
+`Code` · `Data` · `Projects` · `Tasks` · `Knowledge` · `Library` · `Skills` · `Apps` · `Automations` · `3D` · `Video` · `Settings`
 
 The exact visual design remains owned by the existing Fresh design system. This contract defines capability entry points, not a mandate to redesign the current UI.
 
@@ -24,22 +23,21 @@ The exact visual design remains owned by the existing Fresh design system. This 
 | Conversation | Ask, explain, write, transform, translate | Ask Fresh | intent, context, answer, uncertainty |
 | Voice | live conversation, interruption, spoken answers | Voice | audio input/output, consent, session state |
 | Vision | understand images, camera, documents and screens | Files / Camera | visual context, OCR/analysis, provenance |
-| Astra | cross-modal perception, world context, planning and future embodied interaction | Camera / Voice / More | typed observations, consent, world state, uncertainty, policy-gated action proposal |
 | Search | current web/platform retrieval | Search | sources, freshness, provenance, truth state |
 | Research | multi-step investigation and synthesis | Research | plan, sources, evidence, citations, verification |
 | Creation | image, avatar, video, audio, 3D and document creation | Create | prompt/context, generation job, artifact, provenance |
 | Files | inspect, compare, transform and extract from files | Files | file identity, permissions, parser/tool result |
 | Data | analyze datasets, statistics, charts and simulations | Data | dataset lineage, computation result, validation |
-| Code | generate, run, test, debug, review and explain code | More | repository/workspace, execution permission, test evidence |
-| Projects | persistent chats, files, instructions, memory and artifacts | More | project scope, memory scope, source lineage |
-| Knowledge | user-controlled durable knowledge and relationships | More | provenance, temporal state, correction/forget |
-| Memory | personal, project, conversation, preference and task memory | More | consent, provenance, correction, retention |
-| Skills | reusable capability bundles | More | skill contract, tools, permissions, evaluation |
-| Apps | controlled external/platform integrations | More | connector identity, scopes, approvals, audit |
+| Code | generate, run, test, debug, review and explain code | Code | repository/workspace, execution permission, test evidence |
+| Projects | persistent chats, files, instructions, memory and artifacts | Projects | project scope, memory scope, source lineage |
+| Knowledge | user-controlled durable knowledge and relationships | Knowledge | provenance, temporal state, correction/forget |
+| Memory | personal, project, conversation, preference and task memory | Memory | consent, provenance, correction, retention |
+| Skills | reusable capability bundles | Skills | skill contract, tools, permissions, evaluation |
+| Apps | controlled external/platform integrations | Apps | connector identity, scopes, approvals, audit |
 | Work | objective-driven multi-step execution | Work | plan, checkpoints, approvals, execution, rollback |
-| Tasks | scheduled or conditional work | More | trigger, schedule, permissions, result, notification |
-| Library | generated and uploaded artifacts | More | ownership, provenance, retention, access |
-| Automation | recurring workflows and monitoring | More | trigger, action graph, guardrails, observability |
+| Tasks | scheduled or conditional work | Tasks | trigger, schedule, permissions, result, notification |
+| Library | generated and uploaded artifacts | Library | ownership, provenance, retention, access |
+| Automation | recurring workflows and monitoring | Automations | trigger, action graph, guardrails, observability |
 | 3D / Media | multimodal creation and transformation | Create / More | artifact contract, renderer/engine evidence |
 | Trust | truth, evidence, confidence and conflicts | contextual | evidence, provenance, temporal truth, decision |
 | Safety | privacy, permissions, confirmations and governance | Settings | policy decision, authorization, audit |
@@ -62,7 +60,6 @@ Not every request needs every stage visibly. The runtime may short-circuit simpl
 - Research — evidence-first investigation.
 - Create — multimodal generation and transformation.
 - Work — long-running, permissioned execution.
-- Astra — multimodal perception and embodied-interaction orchestration under the same Fresh AI identity.
 
 Modes are routing/runtime policies over the same Fresh model identity. They must not silently create provider-specific model identities.
 
@@ -91,7 +88,7 @@ Every tool/action declares:
 
 `capability → inputs → required permissions → risk class → execution boundary → evidence/result → verification → rollback/compensation`
 
-Sensitive actions require approval before execution. Financial, destructive, identity, publication and security-sensitive operations remain behind explicit safety boundaries. Astra action proposals do not directly dispatch commands; physical actuation remains blocked until a separately verified device gateway and hardware safety case exist.
+Sensitive actions require approval before execution. Financial, destructive, identity, publication and security-sensitive operations remain behind explicit safety boundaries.
 
 ## Artifact contract
 
