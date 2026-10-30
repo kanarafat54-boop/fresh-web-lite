@@ -7,7 +7,7 @@ env.FRESH_AI_VISION_ENGINE_TOKEN = "test-server-token";
 assert.equal(getAstraVisionReadiness().status, "configured-not-verified");
 
 const originalFetch = globalThis.fetch;
-let captured: { url: string; init: RequestInit } | null = null;
+let captured = null;
 globalThis.fetch = async (url, init) => {
   captured = { url: String(url), init: init ?? {} };
   return new Response(JSON.stringify({
@@ -45,7 +45,7 @@ try {
   assert.equal(result.provenance.contract, "fresh-vision-v1");
   assert.ok(captured);
   assert.equal(captured.url, "https://vision.fresh.example/v1/analyze");
-  assert.equal((captured.init.headers as Record<string, string>).authorization, "Bearer test-server-token");
+  assert.equal(new Headers(captured.init.headers).get("authorization"), "Bearer test-server-token");
   assert.equal(captured.init.redirect, "error");
   const sent = JSON.parse(String(captured.init.body));
   assert.equal(sent.contract, "fresh-vision-v1");
