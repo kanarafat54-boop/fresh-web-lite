@@ -112,6 +112,13 @@ export default function FreshFlowHub() {
   const [freshFlowAvatarUrl, setFreshFlowAvatarUrl] = useState<string | null>(null);
   const [mainProfileAvatarUrl, setMainProfileAvatarUrl] = useState<string | null>(null);
   useEffect(() => {
+    const requestedVideoId = new URLSearchParams(window.location.search).get("videoId");
+    if (!requestedVideoId) return;
+    try { sessionStorage.setItem("fresh-flow-long-video-deep-link", requestedVideoId); } catch { /* keep the normal discovery route if session storage is unavailable */ }
+    setActiveRoute("fresh-flow-long-videos");
+  }, [setActiveRoute]);
+
+  useEffect(() => {
     try { setFreshFlowAvatarUrl(window.localStorage.getItem("fresh-flow-avatar-data-url")); } catch { setFreshFlowAvatarUrl(null); }
   }, []);
   useEffect(() => {
