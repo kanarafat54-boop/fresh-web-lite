@@ -75,3 +75,6 @@
 .fresh-long-episode-row>span:first-child{flex:0 0 auto;font-size:.72rem;color:#9c99ad}
 .fresh-long-episode-row button{min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:left;border:0;background:transparent;color:#f5f5f7;font:inherit;padding:5px;cursor:pointer}
 @media(max-width:640px){.fresh-long-series-grid{grid-template-columns:1fr}.fresh-long-series-create,.fresh-long-episode-create{grid-template-columns:1fr}.fresh-long-series-create textarea{grid-column:auto}.fresh-long-series-heading{align-items:flex-start}.fresh-long-series-heading label{flex-basis:110px}}
+
+.fresh-long-series-delete,.fresh-long-episode-remove{flex:0 0 auto;min-height:36px;border:1px solid rgba(220,38,38,.45);border-radius:8px;padding:7px 10px;background:rgba(220,38,38,.1);color:#f3c8cd;font:inherit;font-size:.76rem;cursor:pointer}
+.fresh-long-episode-row .fresh-long-episode-remove{margin-left:auto}
