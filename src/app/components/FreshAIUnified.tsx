@@ -66,6 +66,7 @@ function isModeAvailable(candidate: FreshAIMode): boolean {
 }
 const capabilities = [
   ["◈", "Research", "Find, compare and verify information", "research", "Research"],
+  ["✧", "Astra", "Multimodal perception and future device intelligence", "astra", "Chat"],
   ["✦", "Create", "Images, media and native artifacts", "creation", "Create"],
   ["⌘", "Build", "Code, systems and engineering", "code", "Build"],
   ["◇", "Analyze", "Understand files, data and context", "vision", "Chat"],
