@@ -12,7 +12,7 @@ type VideoItem = {
   videoUrl: string; posterUrl: string | null; createdAt: string;
   authorName: string; username: string; likes: number; comments: number; category: string | null;
 };
-type VideoPlaylist = { id: string; title: string; description: string; visibility: string; created_at: string };
+type VideoPlaylist = { id: string; title: string; description: string; visibility: "private" | "unlisted" | "public"; created_at: string };
 type Category = "Discover" | "Movies & Series" | "Documentaries" | "Education" | "Events" | "Following";
 const CATEGORIES: Category[] = ["Discover", "Movies & Series", "Documentaries", "Education", "Events", "Following"];
 const SAVED_KEY = "fresh-flow-long-video-saved-v1";
@@ -337,6 +337,33 @@ export default function FreshFlowLongVideos() {
     setPlaylistItems((current) => ({ ...current, [playlistSelection]: currentItems.includes(video.id) ? currentItems : [...currentItems, video.id] }));
     setError("");
   }
+  async function updatePlaylistVisibility(playlistId: string, visibility: VideoPlaylist["visibility"]) {
+    if (!user || isGuest) { setActiveRoute("auth-signin"); return; }
+    const previous = playlists.find((playlist) => playlist.id === playlistId);
+    if (!previous || previous.visibility === visibility) return;
+    setPlaylists((current) => current.map((playlist) => playlist.id === playlistId ? { ...playlist, visibility } : playlist));
+    const { error: updateError } = await supabase.from("fresh_video_playlists")
+      .update({ visibility, updated_at: new Date().toISOString() })
+      .eq("id", playlistId).eq("user_id", user.id);
+    if (updateError) {
+      setPlaylists((current) => current.map((playlist) => playlist.id === playlistId ? previous : playlist));
+      setError(updateError.message || "Playlist visibility could not be updated.");
+      return;
+    }
+    setError("");
+  }
+  async function deletePlaylist(playlistId: string) {
+    if (!user || isGuest) { setActiveRoute("auth-signin"); return; }
+    const playlist = playlists.find((item) => item.id === playlistId);
+    if (!playlist || !window.confirm(`Delete the playlist “${playlist.title}”? Its videos will remain in Fresh Flow.`)) return;
+    const { error: deleteError } = await supabase.from("fresh_video_playlists")
+      .delete().eq("id", playlistId).eq("user_id", user.id);
+    if (deleteError) { setError(deleteError.message || "Playlist could not be deleted."); return; }
+    setPlaylists((current) => current.filter((item) => item.id !== playlistId));
+    setPlaylistItems((current) => { const next = { ...current }; delete next[playlistId]; return next; });
+    if (playlistSelection === playlistId) setPlaylistSelection(playlists.find((item) => item.id !== playlistId)?.id ?? "");
+    setError("");
+  }
   async function toggleFollow(video: VideoItem) {
     if (!user || isGuest) { setActiveRoute("auth-signin"); return; }
     const wasFollowing = followedIds.includes(video.authorId);
@@ -410,7 +437,16 @@ export default function FreshFlowLongVideos() {
         const ids = playlistItems[playlist.id] ?? [];
         const playlistVideos = ids.map((id) => libraryVideos.find((video) => video.id === id)).filter((video): video is VideoItem => Boolean(video));
         return <article className="fresh-long-playlist" key={playlist.id}>
-          <div><strong>{playlist.title}</strong><small>{playlistVideos.length} videos · {playlist.visibility}</small></div>
+          <div className="fresh-long-playlist-heading">
+            <div><strong>{playlist.title}</strong><small>{playlistVideos.length} videos · {playlist.visibility}</small></div>
+            <label className="fresh-long-playlist-visibility">Visibility
+              <select aria-label={`Visibility for ${playlist.title}`} value={playlist.visibility}
+                onChange={(event) => void updatePlaylistVisibility(playlist.id, event.target.value as VideoPlaylist["visibility"])}>
+                <option value="private">Private</option><option value="unlisted">Unlisted</option><option value="public">Public</option>
+              </select>
+            </label>
+            <button type="button" className="fresh-long-playlist-delete" onClick={() => void deletePlaylist(playlist.id)}>Delete</button>
+          </div>
           <div className="fresh-long-rail">{playlistVideos.map((video) => <button key={video.id} type="button" className="fresh-long-resume-card" onClick={() => openPlayer(video)}><span className="fresh-long-thumb">{video.posterUrl ? <img src={video.posterUrl} alt="" /> : "▶"}</span><strong>{video.title}</strong></button>)}</div>
         </article>;
       })}
