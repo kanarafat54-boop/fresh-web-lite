@@ -165,6 +165,7 @@ export default function FreshFlowLongVideos() {
       ? countResult.data.like_count
       : Math.max(0, video.likes + (wasLiked ? -1 : 1));
     setVideos((current) => current.map((item) => item.id === video.id ? { ...item, likes: nextCount } : item));
+    setLibraryVideos((current) => current.map((item) => item.id === video.id ? { ...item, likes: nextCount } : item));
     setActive((current) => current?.id === video.id ? { ...current, likes: nextCount } : current);
     setDetailsFor((current) => current?.id === video.id ? { ...current, likes: nextCount } : current);
     setChannelFor((current) => current?.id === video.id ? { ...current, likes: nextCount } : current);
