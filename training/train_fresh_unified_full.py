@@ -55,6 +55,7 @@ def main() -> int:
     ap.add_argument("--eval-blocks", type=int, default=128)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--mix-manifest", default=None)
+    ap.add_argument("--init-from", default=None, help="Start from a finished checkpoint (fine-tuning); a resumable last.pt in --out-dir still wins")
     ap.add_argument("--compile", action="store_true", help="torch.compile the training forward pass (try in the smoke test first)")
     args = ap.parse_args()
 
@@ -94,6 +95,10 @@ def main() -> int:
     opt = torch.optim.AdamW([{"params": decay, "weight_decay": 0.1}, {"params": no_decay, "weight_decay": 0.0}],
                             lr=args.lr, betas=(0.9, 0.95), fused=(device == "cuda"))
 
+    if args.init_from:
+        init = torch.load(args.init_from, map_location=device)
+        model.load_state_dict(init.get("state_dict") or init["model"])
+        print(f"initialized weights from {args.init_from}")
     last = out / "last.pt"
     step = 0
     resumed_loss = float("nan")
@@ -181,6 +186,7 @@ def main() -> int:
         "tokenizerId": "fresh-unified-tokenizer-v2", "tokenizerSha256": sha256_file(Path(args.tokenizer)),
         "trainBinSha256": sha256_file(Path(args.train_bin)), "valBinSha256": sha256_file(Path(args.val_bin)),
         "mixManifestSha256": sha256_file(Path(args.mix_manifest)) if args.mix_manifest else None,
+        "initFromSha256": sha256_file(Path(args.init_from)) if args.init_from else None,
         "checkpointSha256": sha256_file(final), "parameters": n_params, "steps": step, "seqLen": args.seq_len,
         "tokensSeen": step * tokens_per_step,
         "finalTrainLoss": train_loss if math.isfinite(train_loss) else None, "heldOutLoss": val_loss,
