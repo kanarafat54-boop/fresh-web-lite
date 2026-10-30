@@ -5,7 +5,8 @@ import { CommentPanel } from "../../comments/components/CommentPanel";
 import { ReactionPicker } from "../../reactions/components/ReactionPicker";
 import { loadFreshFlowShorts, FRESH_FLOW_SHORTS_PAGE_SIZE, type FreshFlowLoadOptions } from "../core/loadFreshFlowShorts";
 import { rankFreshFlow, rankTrending } from "../core/FreshFlowRanking";
-import { rankForYou } from "../../shorts/core/ForYouRanking";
+import { rankPersonal, type TasteProfile } from "../../shorts/core/PersonalRanking";
+import { loadTasteProfile } from "../core/loadTasteProfile";
 import {
   FRESH_SHORTS_PREFETCH_RADIUS,
   getActiveIndex,
@@ -60,6 +61,7 @@ const ADVANCED_ACTIONS: Array<{ id: AdvancedAction; label: string; icon: string;
 ];
 
 const FRESH_FLOW_POSITION_KEY = "fresh-flow-position";
+const EMPTY_TASTE: TasteProfile = { author: new Map(), topic: new Map(), media: new Map(), skipped: new Set(), completed: new Set(), events: 0 };
 const FRESH_FLOW_SOUND_KEY = "fresh-flow-sound";
 const DOUBLE_TAP_MS = 280;
 
@@ -130,6 +132,8 @@ export default function FreshFlowShortsStream({
     if (telemetryRef.current.size() >= 10) void flushTelemetry();
   };
 
+  const tasteRef = useRef<TasteProfile | null>(null);
+
   const flushTelemetry = async () => {
     if (!user || isGuest || telemetryRef.current.size() === 0) return;
     const records = telemetryRef.current.drain();
@@ -166,11 +170,13 @@ export default function FreshFlowShortsStream({
           candidates = candidates.filter((s) => socialIds.has(s.authorId));
         }
       }
+      if (user && !isGuest && (tab === "for-you" || tab === "more")) { await flushTelemetry(); tasteRef.current = await loadTasteProfile(user.id); }
+      else if (!user || isGuest) tasteRef.current = null;
       const ranked =
         tab === "trending"
           ? rankTrending(candidates)
           : tab === "for-you" || tab === "more"
-            ? rankForYou(candidates, viewedRef.current)
+            ? rankPersonal(candidates, tasteRef.current ?? EMPTY_TASTE, viewedRef.current)
             : rankFreshFlow(candidates);
       setShorts(ranked);
       setSavedIds(new Set(result.savedIds));
@@ -226,7 +232,7 @@ export default function FreshFlowShortsStream({
         subTab === "trending"
           ? rankTrending(candidates)
           : subTab === "for-you" || subTab === "more"
-            ? rankForYou(candidates, viewedRef.current)
+            ? rankPersonal(candidates, tasteRef.current ?? EMPTY_TASTE, viewedRef.current)
             : rankFreshFlow(candidates);
       setShorts((current) => {
         const existing = new Set(current.map((s) => s.id));
