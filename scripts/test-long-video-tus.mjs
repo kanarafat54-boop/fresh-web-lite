@@ -79,7 +79,10 @@ const path = `${user.id}/long-video-tus-${randomUUID()}.mp4`;
 const bytes = Buffer.alloc(6 * 1024 * 1024 + 37, 0x5a);
 const chunkSize = 6 * 1024 * 1024;
 const created = await create(path, bytes.length);
-assert.equal(created.status, 201, "TUS session creation must return 201");
+if (created.status !== 201) {
+  const detail = await created.text();
+  throw new Error(`TUS session creation must return 201; received ${created.status}: ${detail.slice(0, 500)}`);
+}
 const location = created.headers.get("Location");
 assert.ok(location, "TUS session must return a Location header");
 const uploadUrl = new URL(location, endpoint).toString();
