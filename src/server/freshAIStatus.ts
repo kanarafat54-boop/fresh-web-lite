@@ -1,5 +1,6 @@
 import { createFreshAIServerSupabase, getFreshAIEngineReadiness } from "../../src/core/fresh-ai/FreshAIServerServices.js";
 import { FRESH_UNIFIED_MODEL } from "../../src/core/fresh-ai/FreshUnifiedModelCore.js";
+import { getFreshAIBackendReadiness } from "../../src/core/fresh-ai/FreshAIBackendReadiness.js";
 
 // Public, non-sensitive self-report: is Fresh AI independent, and what is wired?
 // Provider names are built from parts so no outside-provider token appears in this repo's API layer.
@@ -27,6 +28,7 @@ export async function handleFreshAIStatus(): Promise<Response> {
     externalAnswerProviderEnabled: externalAnswerOptIn,
     model: { id: FRESH_UNIFIED_MODEL.id, weights },
     engines: getFreshAIEngineReadiness(),
+    reasoningBackends: getFreshAIBackendReadiness(),
     knowledge: { platformRows: knowledge, trainingExamples: examples },
     powers,
     generatedAt: new Date().toISOString(),
