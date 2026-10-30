@@ -22,12 +22,12 @@
 8. **Upload & Publish** — opens existing Creator Studio with a long-video create intent. The current post publishing path accepts video uploads and writes the published video URL to `posts.video_url`.
 9. **Creator Studio** — existing creator dashboard; long-video entry opens the Publish tab.
 10. **Movies & Series** — currently a discovery category only. Season/episode metadata and a licensed film catalog are not present in the connected schema.
-11. **Fresh AI** — opens the existing Fresh AI workspace; long-video-specific assistant context is future work.
-12. **Monetization** — opens the existing Creator Studio Monetize tab; long-video-specific revenue attribution is future work.
-13. **Notifications** — opens the existing platform notification center.
+11. **Fresh AI** — uses the existing global Fresh AI entry; long-video-specific assistant context is future work.
+12. **Monetization** — remains in the existing Creator Studio Monetize tab, reached through the shared Creator Studio navigation; long-video-specific revenue attribution is future work.
+13. **Notifications** — uses the existing platform notification center; no duplicate Long Videos notification navigation is added.
 14. **Settings** — Long Videos playback preferences: autoplay, data saver and preferred playback speed.
 
-These are contextual product surfaces, not fourteen new global navigation destinations.
+These are contextual product surfaces, not fourteen new global navigation destinations. The Long Videos toolbar stays compact; Creator Studio, Fresh AI and Fresh Mail/notifications continue to use shared platform navigation.
 
 ## Current data contracts
 
