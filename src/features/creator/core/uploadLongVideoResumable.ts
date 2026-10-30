@@ -128,7 +128,7 @@ export async function uploadLongVideoResumable(
   onProgress?: ProgressCallback,
 ): Promise<{ url: string; path: string }> {
   if (!userId) throw new Error("Sign in with Fresh ID before uploading a Long Video.");
-  if (!file.type.startsWith("video/")) throw new Error("Choose a video file.");
+  if (!["video/mp4", "video/webm", "video/quicktime"].includes(file.type)) throw new Error("Use an MP4, WebM, or QuickTime video.");
   if (file.size <= 0) throw new Error("The selected video is empty.");
   if (file.size > MAX_VIDEO_BYTES) {
     throw new Error("This Fresh Web Lite Free storage project currently supports videos up to 50 MiB. Compress the video or choose a smaller file.");
@@ -180,7 +180,10 @@ export async function uploadLongVideoResumable(
         lastError = error;
         if (attempt < 2) {
           await new Promise((resolve) => window.setTimeout(resolve, 800 * (attempt + 1)));
-          try { nextOffset = await readOffset(current.uploadUrl, session.access_token); lastError = null; break; } catch { /* retry the chunk */ }
+          try {
+            const serverOffset = await readOffset(current.uploadUrl, session.access_token);
+            if (serverOffset > offset) { nextOffset = serverOffset; lastError = null; break; }
+          } catch { /* retry the chunk */ }
         }
       }
     }
