@@ -183,6 +183,8 @@ for (const width of WIDTHS) {
   check(await page.locator(".fresh-long-settings select").inputValue() === "1.5", `${tag} preferred playback speed is selectable`);
   await page.locator(".fresh-long-settings label").filter({ hasText: "Data saver" }).locator("input").check();
   check(await page.locator(".fresh-long-settings label").filter({ hasText: "Data saver" }).locator("input").isChecked(), `${tag} data saver preference toggles`);
+  const storedPreferences = await page.evaluate(() => JSON.parse(localStorage.getItem("fresh-flow-long-video-playback-v1") || "{}"));
+  check(storedPreferences.dataSaver === true && storedPreferences.playbackSpeed === "1.5", `${tag} playback preferences persist on this device`);
   await page.getByRole("button", { name: "Back to Discover" }).click();
 
   // A shared Fresh Flow URL must reopen the exact video in the cinema player.
