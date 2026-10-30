@@ -30,6 +30,7 @@ const clip = path.join(work, "clip.webm");
 execSync(`ffmpeg -loglevel error -y -f lavfi -i testsrc=size=270x480:rate=15 -t 8 -c:v libvpx -b:v 200k ${clip}`);
 
 const types = { ".js": "text/javascript", ".css": "text/css", ".html": "text/html", ".svg": "image/svg+xml", ".json": "application/json", ".png": "image/png", ".webp": "image/webp" };
+const distRoot = path.resolve(dist);
 const server = http.createServer((req, res) => {
   const pathname = decodeURIComponent(new URL(req.url, "http://x").pathname);
   if (pathname === "/test-clip.webm") {
@@ -43,8 +44,9 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { "content-type": "video/webm", "accept-ranges": "bytes", "content-length": data.length });
     return res.end(data);
   }
-  const requested = path.join(dist, pathname);
-  const file = requested.startsWith(path.resolve(dist)) && fs.existsSync(requested) && fs.statSync(requested).isFile() ? requested : path.join(dist, "index.html");
+  const requested = path.resolve(distRoot, `.${pathname}`);
+  const insideDist = requested === distRoot || requested.startsWith(distRoot + path.sep);
+  const file = insideDist && fs.existsSync(requested) && fs.statSync(requested).isFile() ? requested : path.join(distRoot, "index.html");
   res.writeHead(200, { "content-type": types[path.extname(file)] ?? "application/octet-stream" });
   fs.createReadStream(file).pipe(res);
 }).listen(0);
