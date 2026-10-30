@@ -10,7 +10,7 @@ export type FreshLongVideoMetadata = {
   scheduledAt?: string | null;
   thumbnailUrl?: string | null;
 };
-export type FreshPublishedMedia = { id:string; kind:"post"|"short"; authorId:string; text:string; mediaUrl:string|null; mediaKind:"image"|"video"|null; createdAt:string };
+export type FreshPublishedMedia = { id:string; kind:"post"|"short"; authorId:string; text:string; mediaUrl:string|null; mediaKind:"image"|"video"|null; createdAt:string; title?:string|null; thumbnailUrl?:string|null; videoStatus?:string|null; scheduledAt?:string|null };
 
 export async function publishFreshPost(input:{authorId:string;content:string;imageUrl?:string|null;videoUrl?:string|null;longVideoMetadata?:FreshLongVideoMetadata}):Promise<FreshPublishedMedia>{
   const content=input.content.trim();
@@ -31,9 +31,9 @@ export async function publishFreshPost(input:{authorId:string;content:string;ima
       video_scheduled_at:scheduledAt?.toISOString()??null,
       video_published_at:scheduledAt ? null : new Date().toISOString(),
     } : {}),
-  }).select("id,author_id,content,image_url,video_url,created_at").single();
+  }).select("id,author_id,content,image_url,video_url,created_at,video_title,video_thumbnail_url,video_status,video_scheduled_at").single();
   if(error) throw new Error(error.message||"Could not publish post.");
-  return {id:data.id,kind:"post",authorId:data.author_id,text:data.content??"",mediaUrl:data.video_url??data.image_url??null,mediaKind:data.video_url?"video":data.image_url?"image":null,createdAt:data.created_at};
+  return {id:data.id,kind:"post",authorId:data.author_id,text:data.content??"",mediaUrl:data.video_url??data.image_url??null,mediaKind:data.video_url?"video":data.image_url?"image":null,createdAt:data.created_at,title:data.video_title??null,thumbnailUrl:data.video_thumbnail_url??null,videoStatus:data.video_status??null,scheduledAt:data.video_scheduled_at??null};
 }
 
 export async function saveCreatorDraft(input:{userId:string;kind:"post"|"short";content:string;mediaUrl?:string|null;mediaKind?:"image"|"video"|null;longVideoMetadata?:FreshLongVideoMetadata}){
@@ -44,13 +44,13 @@ export async function saveCreatorDraft(input:{userId:string;kind:"post"|"short";
 
 export async function listCreatorPublishedMedia(userId:string,limit=60):Promise<FreshPublishedMedia[]>{
   const [posts,shorts]=await Promise.all([
-    supabase.from("posts").select("id,author_id,content,image_url,video_url,created_at").eq("author_id",userId).order("created_at",{ascending:false}).limit(limit),
+    supabase.from("posts").select("id,author_id,content,image_url,video_url,created_at,video_title,video_thumbnail_url,video_status,video_scheduled_at").eq("author_id",userId).order("created_at",{ascending:false}).limit(limit),
     supabase.from("shorts").select("id,author_id,caption,video_url,created_at").eq("author_id",userId).order("created_at",{ascending:false}).limit(limit),
   ]);
   if(posts.error) throw new Error(posts.error.message);
   if(shorts.error) throw new Error(shorts.error.message);
   return [
-    ...(posts.data??[]).map(row=>({id:row.id,kind:"post" as const,authorId:row.author_id,text:row.content??"",mediaUrl:row.video_url??row.image_url??null,mediaKind:row.video_url?"video" as const:row.image_url?"image" as const:null,createdAt:row.created_at})),
+    ...(posts.data??[]).map(row=>({id:row.id,kind:"post" as const,authorId:row.author_id,text:row.content??"",mediaUrl:row.video_url??row.image_url??null,mediaKind:row.video_url?"video" as const:row.image_url?"image" as const:null,createdAt:row.created_at,title:row.video_title??null,thumbnailUrl:row.video_thumbnail_url??null,videoStatus:row.video_status??null,scheduledAt:row.video_scheduled_at??null})),
     ...(shorts.data??[]).map(row=>({id:row.id,kind:"short" as const,authorId:row.author_id,text:row.caption??"",mediaUrl:row.video_url??null,mediaKind:"video" as const,createdAt:row.created_at})),
   ].sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
 }
