@@ -10,7 +10,7 @@ import "./FreshFlowLongVideos.css";
 type VideoItem = {
   id: string; authorId: string; title: string; description: string;
   videoUrl: string; posterUrl: string | null; createdAt: string;
-  authorName: string; username: string; likes: number; comments: number;
+  authorName: string; username: string; likes: number; comments: number; category: string | null;
 };
 type Category = "Discover" | "Movies & Series" | "Documentaries" | "Education" | "Events" | "Following";
 const CATEGORIES: Category[] = ["Discover", "Movies & Series", "Documentaries", "Education", "Events", "Following"];
@@ -42,6 +42,11 @@ function readPlaybackPreferences() {
   } catch { return defaults; }
 }
 function categoryFor(video: VideoItem): Exclude<Category, "Discover" | "Following"> {
+  const category = String(video.category ?? "").toLowerCase();
+  if (/movie|film|series/.test(category)) return "Movies & Series";
+  if (/documentary|history|wildlife/.test(category)) return "Documentaries";
+  if (/education|learn|course|tutorial/.test(category)) return "Education";
+  if (/event|sport|performance/.test(category)) return "Events";
   const text = (video.title + " " + video.description).toLowerCase();
   if (/movie|film|series|episode|season|cinema/.test(text)) return "Movies & Series";
   if (/documentary|documentaries|investigation|history|wildlife/.test(text)) return "Documentaries";
@@ -87,9 +92,13 @@ export default function FreshFlowLongVideos() {
   async function load() {
     setLoading(true); setError("");
     try {
-      const [{ data, error: loadError }, followIds, savedResult, followingResult] = await Promise.all([
-        supabase.from("posts").select("id, author_id, content, image_url, video_url, like_count, comment_count, created_at")
-          .not("video_url", "is", null).order("created_at", { ascending: false }).limit(60),
+      const videoColumns = "id, author_id, content, image_url, video_url, like_count, comment_count, created_at, video_title, video_description, video_category, video_tags, video_thumbnail_url, video_duration_seconds, video_visibility, video_status, video_scheduled_at";
+      const [{ data, error: loadError }, followIds, savedResult, followingResult, watchResult] = await Promise.all([
+        supabase.from("posts").select(videoColumns)
+          .not("video_url", "is", null).in("video_status", ["published", "scheduled"])
+          .eq("video_visibility", "public")
+          .or(`video_scheduled_at.is.null,video_scheduled_at.lte.${new Date().toISOString()}`)
+          .order("created_at", { ascending: false }).limit(60),
         user && !isGuest ? getSocialAuthorIds(user.id) : Promise.resolve([] as string[]),
         user && !isGuest
           ? supabase.from("saved_posts").select("post_id").eq("user_id", user.id)
@@ -97,19 +106,32 @@ export default function FreshFlowLongVideos() {
         user && !isGuest
           ? supabase.from("follows").select("followed_id").eq("follower_id", user.id)
           : Promise.resolve({ data: null, error: null }),
+        user && !isGuest
+          ? supabase.from("fresh_long_video_watch_history").select("post_id,progress_seconds,duration_seconds,completed_at").eq("user_id", user.id).order("last_watched_at", { ascending: false }).limit(200)
+          : Promise.resolve({ data: null, error: null }),
       ]);
       if (loadError) throw loadError;
       if (savedResult.error) throw savedResult.error;
       if (followingResult.error) throw followingResult.error;
+      if (watchResult.error) throw watchResult.error;
+      const nextProgress = { ...readProgress() };
+      const nextDurations = { ...readDurations() };
+      for (const row of watchResult.data ?? []) {
+        if (row.completed_at) delete nextProgress[row.post_id];
+        else if (Number.isFinite(Number(row.progress_seconds))) nextProgress[row.post_id] = Number(row.progress_seconds);
+        if (Number.isFinite(Number(row.duration_seconds)) && Number(row.duration_seconds) > 0) nextDurations[row.post_id] = Number(row.duration_seconds);
+      }
+      setProgress(nextProgress); setDurations(nextDurations);
+      try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(nextProgress)); localStorage.setItem(DURATION_KEY, JSON.stringify(nextDurations)); } catch { /* device storage unavailable */ }
       const recentRows = (data ?? []).filter((row: any) => typeof row.video_url === "string" && /^https?:\/\//i.test(row.video_url));
       const savedIds = user && !isGuest ? (savedResult.data ?? []).map((row: any) => row.post_id) : readIds(SAVED_KEY);
-      const libraryIds = [...new Set([...savedIds, ...Object.keys(progress), ...(requestedVideoId ? [requestedVideoId] : [])])];
+      const libraryIds = [...new Set([...savedIds, ...Object.keys(nextProgress), ...(requestedVideoId ? [requestedVideoId] : [])])];
       const recentIds = new Set(recentRows.map((row: any) => row.id));
       const missingLibraryIds = libraryIds.filter((id) => !recentIds.has(id));
       let extraRows: any[] = [];
       if (missingLibraryIds.length) {
         const extraResult = await supabase.from("posts")
-          .select("id, author_id, content, image_url, video_url, like_count, comment_count, created_at")
+          .select(videoColumns)
           .in("id", missingLibraryIds).not("video_url", "is", null);
         if (extraResult.error) throw extraResult.error;
         extraRows = (extraResult.data ?? []).filter((row: any) => typeof row.video_url === "string" && /^https?:\/\//i.test(row.video_url));
@@ -132,11 +154,14 @@ export default function FreshFlowLongVideos() {
       }
       const toVideoItem = (row: any): VideoItem => {
         const profile = byId.get(row.author_id);
-        const title = String(row.content ?? "").trim();
+        const content = String(row.content ?? "").trim();
+        const title = String(row.video_title ?? content).trim();
+        const description = String(row.video_description ?? content).trim();
         return { id: row.id, authorId: row.author_id, title: title.slice(0, 110) || "Untitled video",
-          description: title, videoUrl: row.video_url, posterUrl: row.image_url ?? null,
+          description, videoUrl: row.video_url, posterUrl: row.video_thumbnail_url ?? row.image_url ?? null,
           createdAt: row.created_at, authorName: profile?.full_name ?? "Fresh creator",
-          username: profile?.username ?? "creator", likes: row.like_count ?? 0, comments: row.comment_count ?? 0 };
+          username: profile?.username ?? "creator", likes: row.like_count ?? 0, comments: row.comment_count ?? 0,
+          category: row.video_category ?? null };
       };
       setVideos(recentRows.map(toVideoItem));
       setLibraryVideos(allRows.map(toVideoItem));
@@ -221,11 +246,34 @@ export default function FreshFlowLongVideos() {
     const next = { ...progress, [video.id]: currentTime };
     setProgress(next);
     try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(next)); } catch { /* device storage unavailable */ }
+    if (user && !isGuest) {
+      const duration = playerRef.current?.duration || durations[video.id] || null;
+      const percent = duration ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
+      void supabase.from("fresh_long_video_watch_history").upsert({
+        user_id: user.id, post_id: video.id, progress_seconds: currentTime,
+        duration_seconds: duration, progress_percent: percent,
+        last_watched_at: new Date(now).toISOString(), completed_at: null,
+        updated_at: new Date(now).toISOString(),
+      }, { onConflict: "user_id,post_id" }).then(({ error: historyError }) => {
+        if (historyError) setError("Watch progress could not sync. It remains saved on this device.");
+      });
+    }
   }
   function clearProgress(videoId: string) {
     const next = { ...progress }; delete next[videoId];
     setProgress(next);
     try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(next)); } catch { /* device storage unavailable */ }
+    if (user && !isGuest) {
+      const now = new Date().toISOString();
+      const duration = playerRef.current?.duration || durations[videoId] || null;
+      void supabase.from("fresh_long_video_watch_history").upsert({
+        user_id: user.id, post_id: videoId, progress_seconds: 0,
+        duration_seconds: duration, progress_percent: 100,
+        last_watched_at: now, completed_at: now, updated_at: now,
+      }, { onConflict: "user_id,post_id" }).then(({ error: historyError }) => {
+        if (historyError) setError("Completed watch history could not sync to Fresh ID.");
+      });
+    }
   }
   async function toggleFollow(video: VideoItem) {
     if (!user || isGuest) { setActiveRoute("auth-signin"); return; }
@@ -288,7 +336,7 @@ export default function FreshFlowLongVideos() {
     <div className="fresh-long-heading"><div><span className="fresh-long-eyebrow">FRESH FLOW / YOUR SPACE</span><h1>Your Library</h1><p>Saved videos and your continue-watching list.</p></div><button type="button" onClick={() => setPanel("discover")}>Back to Discover</button></div>
     {resume.length > 0 && <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Continue watching</h2><span>Progress saved on this device</span></div><div className="fresh-long-rail">{resume.map((video) => <button key={video.id} type="button" className="fresh-long-resume-card" onClick={() => resumeVideo(video)}><span className="fresh-long-thumb">{video.posterUrl ? <img src={video.posterUrl} alt="" /> : "▶"}<i style={{ width: `${durations[video.id] > 0 ? Math.min(100, Math.max(2, (progress[video.id] / durations[video.id]) * 100)) : 0}%` }} /></span><strong>{video.title}</strong><small>Resume at {Math.floor(progress[video.id] / 60)}:{String(Math.floor(progress[video.id] % 60)).padStart(2, "0")}</small></button>)}</div></section>}
     <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Watch later</h2><span>{savedVideos.length} saved</span></div>{savedVideos.length ? <div className="fresh-long-grid">{savedVideos.map((video) => <article className="fresh-long-card" key={video.id}><button className="fresh-long-card-media" type="button" onClick={() => openPlayer(video)} aria-label={`Play ${video.title}`}>{video.posterUrl ? <img src={video.posterUrl} alt="" /> : <span>▶</span>}<b>▶</b></button><div className="fresh-long-card-copy"><h3>{video.title}</h3><p>{video.authorName}</p><div><button type="button" onClick={() => openPlayer(video)}>Watch</button><button type="button" onClick={() => void toggleSave(video)}>Remove</button></div></div></article>)}</div> : <p className="fresh-long-state">Your Watch Later library is empty. Save a video to find it here.</p>}</section>
-    <p className="fresh-long-honesty">{user && !isGuest ? "Saved videos are synced through Fresh ID." : "Guest saves are stored on this device. Sign in to sync your library."} Watch progress is stored on this device.</p>
+    <p className="fresh-long-honesty">{user && !isGuest ? "Saved videos and watch progress sync through Fresh ID." : "Guest saves and watch progress are stored on this device. Sign in to sync your library across devices."}</p>
   </section>;
   if (panel === "settings") return <section className="fresh-long" aria-label="Long Videos settings">
     <div className="fresh-long-heading"><div><span className="fresh-long-eyebrow">FRESH FLOW / PREFERENCES</span><h1>Playback Settings</h1><p>Control playback behavior and data use.</p></div><button type="button" onClick={() => setPanel("discover")}>Back to Discover</button></div>
