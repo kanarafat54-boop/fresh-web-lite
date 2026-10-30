@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createVercelNodeHandler } from "../../../src/server/vercelNodeAdapter.js";
 import { createFreshAIServerSupabase } from "../../../src/core/fresh-ai/FreshAIServerServices.js";
 import { analyzeAstraImage } from "../../../src/core/fresh-ai/astra/AstraVisionEngine.js";
+import type { AstraObservation } from "../../../src/core/fresh-ai/astra/AstraContracts.js";
 
 export const config = { maxDuration: 60 };
 const json = (value: unknown, status = 200) => Response.json(value, {
@@ -69,8 +70,8 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     const imageBytes = new Uint8Array(await download.data.arrayBuffer());
-    const source = body.source === "user-camera" ? "user-camera" : "user-upload";
-    const observation = {
+    const source: "user-camera" | "user-upload" = body.source === "user-camera" ? "user-camera" : "user-upload";
+    const observation: AstraObservation = {
       id: crypto.randomUUID(),
       modality: "image" as const,
       capturedAt: typeof body.capturedAt === "string" ? body.capturedAt : new Date().toISOString(),
