@@ -41,6 +41,15 @@ const failures = [];
 let checks = 0;
 const check = (ok, label) => { checks += 1; if (!ok) failures.push(label); };
 
+// Diagnostics: if a page never reaches the expected UI, say what it did show (readable via the checks API).
+const diagnostics = [];
+async function diagnose(page, label) {
+  try {
+    const text = (await page.evaluate(() => document.body?.innerText ?? "")).replace(/\s+/g, " ").slice(0, 400);
+    diagnostics.push(`${label}: url=${page.url()} body="${text}"`);
+  } catch (error) { diagnostics.push(`${label}: could not read page (${error.message})`); }
+}
+
 const browser = await chromium.launch();
 const WIDTHS = [320, 360, 390, 430];
 const TOP_TABS = ["Discover", "Videos", "News / Posts", "Live", "VR / AR", "Podcasts", "Music", "Others"];
@@ -48,11 +57,20 @@ const TOP_TABS = ["Discover", "Videos", "News / Posts", "Live", "VR / AR", "Podc
 for (const width of WIDTHS) {
   const context = await browser.newContext({ viewport: { width, height: 800 }, hasTouch: true, isMobile: true, colorScheme: "light" });
   const page = await context.newPage();
+  const tag0 = `@${width}px`;
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.route((url) => !url.href.startsWith(origin), (route) => route.abort());
   await page.goto(`${origin}/fresh-flow`);
-  await page.waitForSelector('nav[aria-label="Fresh Flow media"]', { timeout: 15000 });
+  page.on("console", (message) => { if (message.type() === "error") diagnostics.push(`console.error ${tag0}: ${message.text().slice(0, 200)}`); });
+  try {
+    await page.waitForSelector('nav[aria-label="Fresh Flow media"]', { timeout: 15000 });
+  } catch (error) {
+    await diagnose(page, `@${width}px never showed the top navigation`);
+    for (const line of diagnostics.slice(0, 12)) console.log(`::error title=navigation diagnostics::${line.replace(/[\r\n%]+/g, " ")}`);
+    console.error(diagnostics.join("\n"));
+    throw error;
+  }
   const tag = `@${width}px`;
 
   // Exactly two navigations: the top media bar and the bottom bar.

@@ -59,6 +59,15 @@ const rows = [1, 2, 3].map((n) => ({
 const failures = []; let checks = 0;
 const check = (ok, label) => { checks += 1; if (!ok) failures.push(label); };
 
+// Diagnostics: if a page never reaches the expected UI, say what it did show (readable via the checks API).
+const diagnostics = [];
+async function diagnose(page, label) {
+  try {
+    const text = (await page.evaluate(() => document.body?.innerText ?? "")).replace(/\s+/g, " ").slice(0, 400);
+    diagnostics.push(`${label}: url=${page.url()} body="${text}"`);
+  } catch (error) { diagnostics.push(`${label}: could not read page (${error.message})`); }
+}
+
 const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"] });
 const WIDTHS = [320, 390, 430];
 for (const width of WIDTHS) {
