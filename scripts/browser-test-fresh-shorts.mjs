@@ -75,7 +75,14 @@ for (const width of WIDTHS) {
     if (url.host === "example.invalid") return route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
     return route.abort();
   });
-  await page.goto(`${origin}/fresh-flow`);
+  // Fresh Flow requires an authenticated or guest Fresh ID session.
+  await page.goto(`${origin}/auth/sign-in`);
+  await page.waitForSelector(".fresh-id-gateway", { timeout: 15000 });
+  await page.locator(".auth-footer-links .guest-btn").click({ timeout: 15000 });
+  await page.evaluate(() => {
+    window.history.replaceState({ freshRoute: "fresh-flow" }, "", "/fresh-flow");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
   await page.waitForSelector("nav.fresh-flow-bottom-nav", { timeout: 15000 });
   await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Shorts" }).click();
   await page.waitForSelector(".fresh-flow-item", { timeout: 15000 });
