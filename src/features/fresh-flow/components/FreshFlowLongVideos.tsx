@@ -48,7 +48,7 @@ export default function FreshFlowLongVideos() {
   const [channelFor, setChannelFor] = useState<VideoItem | null>(null);
   const [commentsFor, setCommentsFor] = useState<string | null>(null);
   const [detailsFor, setDetailsFor] = useState<VideoItem | null>(null);
-  const [panel, setPanel] = useState<"discover" | "library" | "settings">("discover");
+  const [panel, setPanel] = useState<"discover" | "explore" | "library" | "settings">("discover");
   const [autoplay, setAutoplay] = useState(true);
   const [dataSaver, setDataSaver] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState("1");
@@ -174,6 +174,10 @@ export default function FreshFlowLongVideos() {
     <div className="fresh-long-channel-actions">{user?.id === channelFor.authorId ? <span className="fresh-long-channel-self">Your channel</span> : <button type="button" onClick={() => void toggleFollow(channelFor)}>{followedIds.includes(channelFor.authorId) ? "Following" : user && !isGuest ? "Follow creator" : "Sign in to follow"}</button>}<button type="button" onClick={() => { setChannelFor(null); openProfile(channelFor.authorId); }}>Open Fresh ID profile</button></div>
     <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Videos from @{channelFor.username}</h2><span>{channelVideos.length} videos</span></div><div className="fresh-long-grid">{channelVideos.map((video) => <article className="fresh-long-card" key={video.id}><button className="fresh-long-card-media" type="button" onClick={() => openPlayer(video)} aria-label={`Play ${video.title}`}>{video.posterUrl ? <img src={video.posterUrl} alt="" /> : <span>▶</span>}<b>▶</b></button><div className="fresh-long-card-copy"><h3>{video.title}</h3><p>{video.description}</p><div><button type="button" onClick={() => openPlayer(video)}>Watch</button><button type="button" onClick={() => setDetailsFor(video)}>Details</button><button type="button" onClick={() => void toggleSave(video)}>{saved.includes(video.id) ? "Saved" : "Save"}</button></div></div></article>)}</div></section>
   </section>;
+  if (panel === "explore") return <section className="fresh-long" aria-label="Explore Long Videos">
+    <div className="fresh-long-heading"><div><span className="fresh-long-eyebrow">FRESH FLOW / EXPLORE</span><h1>Explore Long Videos</h1><p>Choose a world, then discover videos from across Fresh Flow.</p></div><button type="button" onClick={() => setPanel("discover")}>Back to Discover</button></div>
+    <div className="fresh-long-explore-grid">{CATEGORIES.map((item) => <button key={item} type="button" onClick={() => { setCategory(item); setPanel("discover"); }}><strong>{item}</strong><span>{item === "Following" ? "Creators connected to your social graph" : item === "Movies & Series" ? "Films and episodic stories" : item === "Documentaries" ? "Real stories and investigations" : item === "Education" ? "Lessons, explainers and tutorials" : item === "Events" ? "Performances, talks and experiences" : "Personalized long-form discoveries"}</span></button>)}</div>
+  </section>;
   if (panel === "library") return <section className="fresh-long" aria-label="Long Videos library">
     <div className="fresh-long-heading"><div><span className="fresh-long-eyebrow">FRESH FLOW / YOUR SPACE</span><h1>Your Library</h1><p>Saved videos and your continue-watching list.</p></div><button type="button" onClick={() => setPanel("discover")}>Back to Discover</button></div>
     {resume.length > 0 && <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Continue watching</h2><span>Progress saved on this device</span></div><div className="fresh-long-rail">{resume.map((video) => <button key={video.id} type="button" className="fresh-long-resume-card" onClick={() => resumeVideo(video)}><span className="fresh-long-thumb">{video.posterUrl ? <img src={video.posterUrl} alt="" /> : "▶"}<i style={{ width: `${Math.min(100, Math.max(2, (progress[video.id] / 3600) * 100))}%` }} /></span><strong>{video.title}</strong><small>Resume at {Math.floor(progress[video.id] / 60)}:{String(Math.floor(progress[video.id] % 60)).padStart(2, "0")}</small></button>)}</div></section>}
@@ -194,6 +198,7 @@ export default function FreshFlowLongVideos() {
     <div className="fresh-long-heading"><div><span className="fresh-long-eyebrow">FRESH FLOW / CINEMA</span><h1>Long Videos</h1><p>Stories worth staying for. Films, learning, documentaries and more.</p></div><span className="fresh-long-mark" aria-hidden="true">▶</span></div>
     <div className="fresh-long-tools" aria-label="Long Videos tools">
       <button type="button" className={panel === "discover" ? "active" : ""} onClick={() => setPanel("discover")}>Discover</button>
+      <button type="button" onClick={() => setPanel("explore")}>Explore</button>
       <button type="button" onClick={() => setPanel("library")}>Your Library</button>
       <button type="button" onClick={() => openCreatorStudio("publish")}>Upload video</button>
       <button type="button" onClick={() => openCreatorStudio("monetize")}>Monetization</button>
