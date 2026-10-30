@@ -4,7 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
 import { useLayout } from "../../app/contexts/useLayout";
 import { buildCreatorSuggestions } from "./creatorSuggestions";
-import { publishFreshMedia, listCreatorPublishedMedia, saveCreatorDraft } from "./core/freshMediaRepository";
+import { publishFreshMedia, listCreatorPublishedMedia, saveCreatorDraft, type FreshLongVideoMetadata } from "./core/freshMediaRepository";
 import {
   readCreateIntent,
   clearCreateIntent,
@@ -22,6 +22,7 @@ type Draft = {
   media_kind?: "image" | "video" | null;
   status: string;
   created_at: string;
+  long_video_metadata?: FreshLongVideoMetadata | null;
 };
 type MediaItem = {
   id: string;
@@ -76,6 +77,10 @@ function saveLocalDrafts(list: Draft[]) {
 
 async function uploadMedia(userId: string, file: File): Promise<{ url: string; kind: "image" | "video" }> {
   const isVideo = file.type.startsWith("video/");
+  const allowedVideoTypes = ["video/mp4", "video/webm", "video/quicktime"];
+  if (isVideo && !allowedVideoTypes.includes(file.type)) throw new Error("Use an MP4, WebM, or QuickTime video.");
+  if (isVideo && file.size > 50 * 1024 * 1024) throw new Error("This free Fresh Web Lite storage project currently supports videos up to 50 MB. Compress the video or choose a smaller file.");
+  if (!isVideo && file.size > 5 * 1024 * 1024) throw new Error("Choose a thumbnail or image smaller than 5 MB.");
   const bucket = isVideo ? "post-videos" : "post-images";
   const path = `${userId}/creator-${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: false, contentType: file.type });
@@ -90,6 +95,12 @@ export default function CreatorStudioDashboard() {
   const [tab, setTab] = useState<StudioTab>(initialStudioTab);
   const [mode, setMode] = useState<"post" | "short">("post");
   const [content, setContent] = useState("");
+  const [longVideoTitle, setLongVideoTitle] = useState("");
+  const [longVideoCategory, setLongVideoCategory] = useState("Education");
+  const [longVideoTags, setLongVideoTags] = useState("");
+  const [longVideoVisibility, setLongVideoVisibility] = useState<"public" | "unlisted">("public");
+  const [longVideoScheduledAt, setLongVideoScheduledAt] = useState("");
+  const [longVideoThumbnailUrl, setLongVideoThumbnailUrl] = useState<string | null>(null);
   const [media, setMedia] = useState<{ url: string; kind: "image" | "video" } | null>(null);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [items, setItems] = useState<MediaItem[]>([]);
@@ -102,6 +113,7 @@ export default function CreatorStudioDashboard() {
   const [intentMeta, setIntentMeta] = useState<FreshFlowCreateIntent | null>(null);
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const thumbnailRef = useRef<HTMLInputElement | null>(null);
   const intentConsumedRef = useRef(false);
 
   useEffect(() => {
@@ -143,7 +155,7 @@ export default function CreatorStudioDashboard() {
       const [draftResult, libraryResult, analyticsResult] = await Promise.all([
         supabase
           .from("creator_drafts")
-          .select("id,kind,content,media_url,media_kind,status,created_at")
+          .select("id,kind,content,media_url,media_kind,status,created_at,long_video_metadata")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
           .limit(30),
@@ -183,10 +195,20 @@ export default function CreatorStudioDashboard() {
   }, [analytics, drafts, items, user]);
 
   async function saveDraft() {
-    if (!content.trim() && !media) {
-      setError("Add text or media before saving a draft.");
+    const isLongVideo = intentMeta?.action === "long-video";
+    if (isLongVideo ? (!longVideoTitle.trim() && !content.trim() && !media) : (!content.trim() && !media)) {
+      setError(isLongVideo ? "Add a title, description, or video before saving a draft." : "Add text or media before saving a draft.");
       return;
     }
+    const longVideoMetadata: FreshLongVideoMetadata | undefined = isLongVideo ? {
+      title: longVideoTitle.trim() || content.trim().slice(0, 110),
+      description: content.trim(),
+      category: longVideoCategory,
+      tags: longVideoTags.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 20),
+      visibility: longVideoVisibility,
+      scheduledAt: longVideoScheduledAt ? new Date(longVideoScheduledAt).toISOString() : null,
+      thumbnailUrl: longVideoThumbnailUrl,
+    } : undefined;
     setError(null);
     setMessage(null);
 
@@ -199,11 +221,14 @@ export default function CreatorStudioDashboard() {
         media_kind: media?.kind ?? null,
         status: "draft",
         created_at: new Date().toISOString(),
+        long_video_metadata: longVideoMetadata ?? null,
       };
       const next = [draft, ...loadLocalDrafts()].slice(0, 40);
       saveLocalDrafts(next);
       setDrafts(next);
       setContent("");
+      setLongVideoTitle("");
+      setLongVideoThumbnailUrl(null);
       setMedia(null);
       setMessage("Draft saved on this device. Sign in to sync across devices.");
       return;
@@ -216,9 +241,12 @@ export default function CreatorStudioDashboard() {
         content,
         mediaUrl: media?.url,
         mediaKind: media?.kind ?? null,
+        longVideoMetadata,
       });
       setDrafts((c) => [data as Draft, ...c]);
       setContent("");
+      setLongVideoTitle("");
+      setLongVideoThumbnailUrl(null);
       setMedia(null);
       setMessage("Draft saved.");
     } catch (reason: unknown) {
@@ -232,8 +260,8 @@ export default function CreatorStudioDashboard() {
       setError("Sign in with Fresh ID to publish to Fresh Flow.");
       return;
     }
-    if (!content.trim() && !media) {
-      setError("Add text or media before publishing.");
+    if (isLongVideo ? !longVideoTitle.trim() : (!content.trim() && !media)) {
+      setError(isLongVideo ? "Add a title before publishing your Long Video." : "Add text or media before publishing.");
       return;
     }
     if (mode === "short" && media?.kind !== "video") {
@@ -244,26 +272,45 @@ export default function CreatorStudioDashboard() {
       setError("A Long Video requires a video upload. Add the video file before publishing.");
       return;
     }
+    const scheduledDate = isLongVideo && longVideoScheduledAt ? new Date(longVideoScheduledAt) : null;
+    if (scheduledDate && (Number.isNaN(scheduledDate.getTime()) || scheduledDate.getTime() <= Date.now())) {
+      setError("Choose a valid future date and time, or clear the schedule to publish now.");
+      return;
+    }
+    const longVideoMetadata: FreshLongVideoMetadata | undefined = isLongVideo ? {
+      title: longVideoTitle.trim(),
+      description: content.trim(),
+      category: longVideoCategory,
+      tags: longVideoTags.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 20),
+      visibility: longVideoVisibility,
+      scheduledAt: scheduledDate?.toISOString() ?? null,
+      thumbnailUrl: longVideoThumbnailUrl,
+    } : undefined;
     setPublishing(true);
     setError(null);
     setMessage(null);
     try {
       const published = await publishFreshMedia(mode, {
         authorId: user.id,
-        content,
+        content: isLongVideo ? content.trim() : content,
         mediaUrl: media?.url ?? null,
         mediaKind: media?.kind ?? null,
+        longVideoMetadata,
         remixOfShortId: intentMeta?.action === "remix" ? intentMeta.sourceShortId ?? null : null,
         duetOfShortId: intentMeta?.action === "duet" ? intentMeta.sourceShortId ?? null : null,
       });
       setContent("");
+      setLongVideoTitle("");
+      setLongVideoThumbnailUrl(null);
       setMedia(null);
       setIntentMeta(null);
       if (published.kind === "short") {
         markFeedRefresh(published.id);
         setMessage("Short published to Fresh Flow.");
       } else if (isLongVideo) {
-        setMessage("Long video published. It will appear in Fresh Flow Long Videos after the library refreshes.");
+        setMessage(scheduledDate
+          ? `Long Video scheduled for ${scheduledDate.toLocaleString()}. It will become visible automatically at that time.`
+          : "Long Video published. It will appear in Fresh Flow Long Videos after the library refreshes.");
       } else {
         setMessage("Post published to Fresh Flow.");
       }
@@ -296,8 +343,15 @@ export default function CreatorStudioDashboard() {
     setMode(draft.kind);
     setIntentMeta(draft.kind === "post" && draft.media_kind === "video" ? { action: "long-video" } : null);
     setContent(draft.content);
+    const metadata = draft.long_video_metadata;
+    setLongVideoTitle(metadata?.title ?? "");
+    setLongVideoCategory(metadata?.category ?? "Education");
+    setLongVideoTags(metadata?.tags?.join(", ") ?? "");
+    setLongVideoVisibility(metadata?.visibility ?? "public");
+    setLongVideoScheduledAt(metadata?.scheduledAt ? new Date(metadata.scheduledAt).toISOString().slice(0, 16) : "");
+    setLongVideoThumbnailUrl(metadata?.thumbnailUrl ?? null);
     setMedia(
-      draft.media_url ? { url: draft.media_url, kind: draft.kind === "short" ? "video" : "image" } : null,
+      draft.media_url ? { url: draft.media_url, kind: draft.media_kind === "video" || draft.kind === "short" ? "video" : "image" } : null,
     );
     setTab("publish");
     setMessage("Draft restored.");
@@ -444,11 +498,49 @@ export default function CreatorStudioDashboard() {
                   </button>
                 </div>
               </div>
+              {intentMeta?.action === "long-video" && (
+                <div className="creator-long-video-fields">
+                  <label>Video title
+                    <input aria-label="Long Video title" value={longVideoTitle} maxLength={110} onChange={(e) => setLongVideoTitle(e.target.value)} placeholder="Give your video a clear title" />
+                  </label>
+                  <label>Category
+                    <select aria-label="Long Video category" value={longVideoCategory} onChange={(e) => setLongVideoCategory(e.target.value)}>
+                      <option>Movies &amp; Series</option><option>Documentaries</option><option>Education</option><option>Events</option>
+                    </select>
+                  </label>
+                  <label>Tags (comma separated)
+                    <input aria-label="Long Video tags" value={longVideoTags} onChange={(e) => setLongVideoTags(e.target.value)} placeholder="history, science, travel" />
+                  </label>
+                  <label>Visibility
+                    <select aria-label="Long Video visibility" value={longVideoVisibility} onChange={(e) => setLongVideoVisibility(e.target.value as "public" | "unlisted")}>
+                      <option value="public">Public — discoverable</option>
+                      <option value="unlisted">Unlisted — accessible by link</option>
+                    </select>
+                  </label>
+                  <label>Schedule publishing (optional)
+                    <input aria-label="Schedule Long Video" type="datetime-local" value={longVideoScheduledAt} onChange={(e) => setLongVideoScheduledAt(e.target.value)} />
+                  </label>
+                  <div className="creator-thumbnail-control">
+                    <input ref={thumbnailRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={async (e) => {
+                      const file = e.currentTarget.files?.[0]; e.currentTarget.value = ""; if (!file) return;
+                      try {
+                        if (!user) { setLongVideoThumbnailUrl(URL.createObjectURL(file)); return; }
+                        const uploaded = await uploadMedia(user.id, file);
+                        if (uploaded.kind !== "image") throw new Error("Choose an image for the thumbnail.");
+                        setLongVideoThumbnailUrl(uploaded.url); setMessage("Custom thumbnail uploaded.");
+                      } catch (reason) { setError(reason instanceof Error ? reason.message : "Thumbnail upload failed."); }
+                    }} />
+                    <button type="button" onClick={() => thumbnailRef.current?.click()}>Choose custom thumbnail</button>
+                    {longVideoThumbnailUrl && <img src={longVideoThumbnailUrl} alt="Custom Long Video thumbnail preview" />}
+                    <small>Free storage currently limits each video upload to 50 MB. Unlisted videos are still accessible to anyone with the link.</small>
+                  </div>
+                </div>
+              )}
               <textarea
                 ref={editorRef}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder={mode === "short" ? "Short caption…" : intentMeta?.action === "long-video" ? "Add your video title and description…" : "Write a post…"}
+                placeholder={mode === "short" ? "Short caption…" : intentMeta?.action === "long-video" ? "Video description (optional)…" : "Write a post…"}
               />
               {media && (
                 <div className="creator-media-preview">
@@ -489,18 +581,18 @@ export default function CreatorStudioDashboard() {
               />
               <div className="creator-editor-actions">
                 <button type="button" onClick={() => fileRef.current?.click()}>
-                  ＋ Media
+                  ＋ {intentMeta?.action === "long-video" ? "Video file" : "Media"}
                 </button>
-                <button type="button" onClick={() => void saveDraft()} disabled={!content.trim() && !media}>
+                <button type="button" onClick={() => void saveDraft()} disabled={intentMeta?.action === "long-video" ? (!longVideoTitle.trim() && !content.trim() && !media) : (!content.trim() && !media)}>
                   Save draft
                 </button>
                 <button
                   type="button"
                   className="publish"
                   onClick={() => void publishNow()}
-                  disabled={publishing || (!content.trim() && !media)}
+                  disabled={publishing || (intentMeta?.action === "long-video" ? (!longVideoTitle.trim() || media?.kind !== "video") : (!content.trim() && !media))}
                 >
-                  {publishing ? "Publishing…" : user ? "Publish now" : "Sign in to publish"}
+                  {publishing ? "Publishing…" : intentMeta?.action === "long-video" && longVideoScheduledAt ? "Schedule video" : user ? "Publish now" : "Sign in to publish"}
                 </button>
               </div>
               {error && <p className="creator-error">{error}</p>}
