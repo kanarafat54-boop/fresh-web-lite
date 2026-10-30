@@ -34,6 +34,8 @@ assert.deepEqual(runAstraGridSimulation(world, ["turn-right", "move-forward"]), 
 assert.deepEqual(world.robot, { x: 1, y: 1, heading: "north" }, "input world remains immutable");
 assert.ok(validateAstraGridWorld({ ...world, obstacles: [{ x: 1, y: 1 }] }).some((x) => x.includes("start inside")));
 assert.ok(validateAstraGridWorld({ ...world, obstacles: [{ x: 2, y: 2 }, { x: 2, y: 2 }] }).some((x) => x.includes("Duplicate")));
+assert.ok(validateAstraGridWorld({ ...world, robot: null }).some((x) => x.includes("Robot position")));
+assert.ok(validateAstraGridWorld({ ...world, obstacles: [null] }).some((x) => x.includes("Every obstacle")));
 assert.throws(() => runAstraGridSimulation(world, Array(101).fill("move-forward"), { maxSteps: 100 }), /exceeds maxSteps/);
 assert.throws(() => runAstraGridSimulation(world, ["launch-missile"]), /unsupported command/);
 assert.throws(() => runAstraGridSimulation({ ...world, width: 101 }, []), /dimensions/);
