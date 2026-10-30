@@ -57,6 +57,9 @@ const TOP_TABS = ["Discover", "Videos", "News / Posts", "Live", "VR / AR", "Podc
 for (const width of WIDTHS) {
   const context = await browser.newContext({ viewport: { width, height: 800 }, hasTouch: true, isMobile: true, colorScheme: "light" });
   const page = await context.newPage();
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "share", { configurable: true, value: async (payload) => { window.__lastSharePayload = payload; } });
+  });
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.route((url) => !url.href.startsWith(origin), (route) => {
@@ -144,6 +147,10 @@ for (const width of WIDTHS) {
   await page.waitForSelector(".fresh-long", { timeout: 10000 });
   check(await page.getByRole("heading", { name: "Long Videos" }).isVisible(), `${tag} Long Videos discovery opens`);
   check(await page.getByText("The Long Journey — Chapter One").first().isVisible(), `${tag} real published-video contract renders featured content`);
+  check(await page.locator(".fresh-long-feature-copy button[aria-pressed]").first().isVisible(), `${tag} video reactions are available`);
+  await page.locator(".fresh-long-feature-copy button", { hasText: "Share" }).click();
+  const sharedUrl = await page.evaluate(() => window.__lastSharePayload?.url ?? "");
+  check(sharedUrl.includes("videoId=00000000-0000-4000-8000-000000000001"), `${tag} share creates a video-specific Fresh Flow deep link`);
   await page.getByRole("button", { name: "Explore" }).click();
   check(await page.getByRole("heading", { name: "Explore Long Videos" }).isVisible(), `${tag} Explore screen opens`);
   check(await page.locator(".fresh-long-explore-grid button").count() === 6, `${tag} Explore exposes all six browsing categories`);
