@@ -19,6 +19,7 @@ type Draft = {
   kind: "post" | "short";
   content: string;
   media_url: string | null;
+  media_kind?: "image" | "video" | null;
   status: string;
   created_at: string;
 };
@@ -141,7 +142,7 @@ export default function CreatorStudioDashboard() {
       const [draftResult, libraryResult, analyticsResult] = await Promise.all([
         supabase
           .from("creator_drafts")
-          .select("id,kind,content,media_url,status,created_at")
+          .select("id,kind,content,media_url,media_kind,status,created_at")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
           .limit(30),
@@ -194,6 +195,7 @@ export default function CreatorStudioDashboard() {
         kind: mode,
         content: content.trim(),
         media_url: media?.url ?? null,
+        media_kind: media?.kind ?? null,
         status: "draft",
         created_at: new Date().toISOString(),
       };
@@ -291,6 +293,7 @@ export default function CreatorStudioDashboard() {
 
   function restoreDraft(draft: Draft) {
     setMode(draft.kind);
+    setIntentMeta(draft.kind === "post" && draft.media_kind === "video" ? { action: "long-video" } : null);
     setContent(draft.content);
     setMedia(
       draft.media_url ? { url: draft.media_url, kind: draft.kind === "short" ? "video" : "image" } : null,
