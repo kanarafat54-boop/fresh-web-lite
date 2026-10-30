@@ -3,6 +3,8 @@ import fs from "node:fs";
 const router = fs.readFileSync("src/core/fresh-ai/FreshAICognitiveDiversity.ts", "utf8");
 const architecture = fs.readFileSync("src/core/fresh-ai/FreshAIArchitecture.ts", "utf8");
 const kernel = fs.readFileSync("src/core/fresh-ai/FreshAIKernel.ts", "utf8");
+const ask = fs.readFileSync("api/ai/ask.ts", "utf8");
+const symbolic = fs.readFileSync("src/core/fresh-ai/FreshNeuroSymbolicRuntime.ts", "utf8");
 
 const modes = [
   "analytical", "creative", "philosophical", "empathic", "pattern", "systems",
@@ -32,6 +34,10 @@ if (!kernel.includes("selectFreshCognitivePerspectives(request.input,request.int
 if (!kernel.includes("cognitivePerspectives.selected.map((mode)=>mode.label)")) {
   throw new Error("Fresh AI kernel does not report selected cognitive perspectives.");
 }
+if (!kernel.includes("runFreshNeuroSymbolicAnalysis(request.input)") || !kernel.includes("symbolicAnalysis")) throw new Error("Fresh AI kernel does not execute and expose the neuro-symbolic backend.");
+if (!ask.includes("reasoning.cognitivePerspectives?.selected") || !ask.includes("Apply these selected cognitive strategies")) throw new Error("Fresh Unified inference does not receive selected cognitive-mode guidance.");
+if (!ask.includes("reasoning.symbolicAnalysis")) throw new Error("Fresh Unified inference does not receive deterministic symbolic backend output.");
+if (!symbolic.includes("modus") && !symbolic.includes("rule-inference")) throw new Error("Fresh neuro-symbolic backend is missing executable rule inference.");
 if (!router.includes("Explicit Alien Mind and God-Made Mind requests must be routable.")) {
   throw new Error("Alien Mind and God-Made Mind routing regression assertion is missing.");
 }
