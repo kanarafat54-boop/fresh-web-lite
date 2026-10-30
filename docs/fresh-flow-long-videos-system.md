@@ -36,7 +36,7 @@ These are contextual product surfaces, not fourteen new global navigation destin
 - Following uses the existing Fresh Flow social author helper (`getSocialAuthorIds`).
 - Signed-in Watch Later uses `public.saved_posts`, with existing owner-scoped RLS policies. Guest saves are stored locally.
 - Comments use the existing `CommentPanel` with target type `post`.
-- Upload/publish hands off to `/creation` (Creator Studio), which uploads to the existing `post-videos` Storage bucket and publishes through the existing `posts.video_url` contract.
+- Upload/publish hands off to `/creation` (Creator Studio) with a dedicated **Long Video** publishing mode. It accepts video files only, stores the draft as a post with `media_kind='video'`, uploads to the existing `post-videos` Storage bucket, and publishes through the existing `posts.video_url` contract. Restored creator drafts retain the long-video media kind. Successful publication returns to the Long Videos route.
 - Watch progress and guest library state are device-local. There is no server-synced watch-history table in this implementation.
 
 ## Live backend inspection (2026-10-30)
