@@ -132,11 +132,11 @@ export default function FreshFlowLongVideos() {
   useEffect(() => { void load(); }, [user?.id, isGuest]);
   useEffect(() => {
     if (!requestedVideoId || loading) return;
-    const requested = videos.find((video) => video.id === requestedVideoId);
+    const requested = libraryVideos.find((video) => video.id === requestedVideoId);
     if (requested) setActive(requested);
     else setError("That shared video is not available in the current public library.");
     setRequestedVideoId(null);
-  }, [requestedVideoId, videos, loading]);
+  }, [requestedVideoId, libraryVideos, loading]);
 
   const visible = useMemo(() => videos.filter((video) => {
     const matchesCategory = category === "For You" ||
