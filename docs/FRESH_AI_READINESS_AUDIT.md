@@ -15,10 +15,6 @@
 - **Governance and truth:** approval checks and fail-closed execution boundaries exist; real tool execution, audit coverage, and rollback/compensation need capability-by-capability verification.
 - **Vault:** client-side sealing for stored conversation turns exists. This is encryption at rest, not server-blind live inference.
 
-## Expanded intelligence architecture
-
-The cross-modal, native video, robotics, scientific intelligence, and autonomous automation architecture is specified in [`FRESH_AI_EXPANDED_INTELLIGENCE_ARCHITECTURE.md`](./FRESH_AI_EXPANDED_INTELLIGENCE_ARCHITECTURE.md). It is an architecture contract, not evidence that these engines are trained or deployed. In particular, no physical machine control is certified. Begin robotics work in simulation/observation-only mode with an independent safety supervisor and emergency stop.
-
 ## Capability readiness
 
 The registry's `implemented` status means a Fresh-owned code boundary is present. It is **not** a blanket statement that production dependencies are configured or the deployed end-to-end flow has passed.
@@ -33,12 +29,6 @@ The registry's `implemented` status means a Fresh-owned code boundary is present
 | Voice, Vision/Camera | Contracted | Not yet a complete executable capability |
 | Data, Code, Projects, Knowledge, Skills | Contracted | Show as in development, not as working execution controls |
 | Apps, Work, Tasks, Library, Automations | Contracted | Require real connector/tool boundaries, permissions, audit, and verification |
-| Video generation | Architecture / not implemented as a verified native engine | Text/image/video-to-video, multi-shot, long-form and synchronized audio are target capabilities; no real Fresh-owned video artifact has been verified |
-| Audio generation / understanding | Contracted | Requires trained Fresh-owned audio models and modality-specific evaluation |
-| Spatial / 3D | Contracted | Native dimensional contracts do not establish complete spatial understanding or 3D generation |
-| Robotics / physical machines | Architecture / not implemented | Simulation and observation first; no physical actuation is certified |
-| Science / engineering | Architecture / not implemented as a verified module | Must preserve provenance, reproducibility, uncertainty and expert review |
-| Autonomous digital automation | Contracted | Requires scoped tools, approval, audit, verification and rollback |
 | 3D / broader media | Contracted | Native dimensional contracts do not establish complete media-generation readiness |
 
 The unified UI must read these states from the canonical capability registry. Contracted capabilities should be visibly marked **In development** and disabled until a real runtime boundary is available.
@@ -90,10 +80,8 @@ The vault can seal stored turns, but the live `/api/ai/ask` inference path curre
 4. **Complete Files + Vision.** Test upload, access control, document parsing, image understanding, and camera entry points separately.
 5. **Complete Create.** Test image generation and persistence first, then audio/video/3D only where real engines exist.
 6. **Complete governed work.** Connect executable tools only with explicit permissions, approvals, audit events, verification, and rollback/compensation.
-7. **Implement native video foundations.** Add authenticated job lifecycle, artifact persistence, playback, cancellation and truthful unavailable states before connecting a trained Fresh-owned video model.
-8. **Build multimodal and robotics pipelines.** Train/evaluate modality-specific Fresh models; keep physical robotics in simulation and observation-only until safety gates pass.
-9. **Train and serve the model.** Follow the training gates above; don't use training to conceal missing product contracts.
-10. **Verify the deployed product.** Run mobile/accessibility checks, production smoke tests, and capability-specific regressions before marking any capability done.
+7. **Train and serve the model.** Follow the training gates above; don't use training to conceal missing product contracts.
+8. **Verify the deployed product.** Run mobile/accessibility checks, production smoke tests, and capability-specific regressions before marking any capability done.
 
 ## Definition of done
 
