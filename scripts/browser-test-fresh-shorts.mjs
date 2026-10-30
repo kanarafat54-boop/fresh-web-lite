@@ -100,7 +100,7 @@ for (const width of WIDTHS) {
   const shortsTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
   check(JSON.stringify(shortsTabs) === JSON.stringify(["Live", "VR / AR", "Podcasts", "Music", "Others"]), `${tag} Shorts top navigation is Live · VR / AR · Podcasts · Music · Others (got ${shortsTabs.join(" · ")})`);
   check((await page.locator("header .fresh-shorts-brand").textContent()).includes("Fresh Shorts"), `${tag} Shorts world header is branded Fresh Shorts`);
-  for (const label of ["Search Fresh Flow", "Add or create a Short", "Open camera to record a Short", "Open your main Fresh ID profile"]) {
+  for (const label of ["Search Fresh Flow", "Notifications", "Add or create a Short", "Open camera to record a Short", "All media worlds and Flow profile photo", "Open your main Fresh ID profile"]) {
     const box = await page.locator(`header [aria-label="${label}"]`).first().boundingBox();
     check(Boolean(box) && box.x >= 0 && box.x + box.width <= width + 0.5 && box.width >= 36 && box.height >= 36, `${tag} header control "${label}" is on-screen and tappable`);
   }
@@ -222,6 +222,26 @@ for (const width of WIDTHS) {
   check(Boolean(pbox) && pbox.x >= -0.5 && pbox.x + pbox.width <= width + 0.5, `${tag} profile fits the viewport`);
   await profile.getByRole("button", { name: "Back to Shorts" }).click();
   check(!(await profile.isVisible().catch(() => false)), `${tag} Back closes the profile`);
+
+  // Notifications (signed-out visitor sees an honest sign-in prompt) and its tabs.
+  await page.locator('header [aria-label="Notifications"]').click();
+  const notify = page.getByRole("dialog", { name: "Notifications" });
+  check(await notify.isVisible(), `${tag} Notifications opens from the Shorts header`);
+  const nTabs = (await notify.locator(".shorts-notify-tabs button").allInnerTexts()).map((t) => t.trim());
+  check(JSON.stringify(nTabs) === JSON.stringify(["All", "Likes", "Comments", "Follows", "Gifts"]), `${tag} notification tabs are All · Likes · Comments · Follows · Gifts`);
+  check((await notify.innerText()).includes("Sign in to see likes, comments and follows"), `${tag} signed-out visitor gets a sign-in prompt, not fake activity`);
+  await notify.getByRole("button", { name: "Back to Shorts" }).click();
+  check(!(await notify.isVisible().catch(() => false)), `${tag} Notifications closes`);
+
+  // Creator Studio (bottom tab) with its sections; original capability grid is kept.
+  await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Creator Studio" }).click();
+  await page.locator(".shorts-studio").waitFor({ timeout: 8000 });
+  const sTabs = (await page.locator(".shorts-studio-tabs button").allInnerTexts()).map((t) => t.trim());
+  check(JSON.stringify(sTabs) === JSON.stringify(["Overview", "Videos", "Analytics", "Earnings", "Create & drafts"]), `${tag} Studio sections (got ${sTabs.join(" · ")})`);
+  check((await page.locator(".shorts-studio").innerText()).includes("Sign in to see your Studio numbers"), `${tag} Studio shows a sign-in prompt when signed out`);
+  check((await page.locator("#fresh-flow-system-tools").innerText()).includes("All Studio capabilities"), `${tag} existing Studio capability grid is kept`);
+  const overflowX = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  check(overflowX <= 1, `${tag} Studio has no horizontal overflow (${overflowX}px)`);
 
   check(pageErrors.length === 0, `${tag} no uncaught page errors (${pageErrors[0] ?? ""})`);
   await context.close();

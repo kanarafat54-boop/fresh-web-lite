@@ -1,3 +1,4 @@
+import ShortsStudio from "./ShortsStudio";
 import { useMemo, useState } from "react";
 import type { FreshFlowIndependentSystem } from "../core/freshFlowSystemRegistry";
 import "./FreshFlowSystemExperience.css";
@@ -111,12 +112,14 @@ function MusicWorkspace() {
 }
 
 export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio }: Props) {
+  const isStudio = system.id === "fresh-studio";
   const isLive = system.id === "live-creation";
   const isMusic = system.id === "fresh-music";
   const primaryActions = system.capabilities.slice(0, 3);
   const secondaryActions = system.capabilities.slice(3);
   return (
     <div className={`fresh-flow-system-page system-${system.id}`}>
+      {isStudio ? <ShortsStudio /> : (<>
       <header className="fresh-flow-system-header">
         <button type="button" onClick={onBack} className="fresh-flow-system-back" aria-label="Back to Fresh Flow Home">‹ <span>Fresh Flow</span></button>
         <span className="fresh-flow-system-status">{isLive ? "Live production workspace" : isMusic ? "Music workspace" : "Independent system · implementation in progress"}</span>
@@ -131,8 +134,9 @@ export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio
           <button type="button" className="secondary" onClick={onBack}>Explore Fresh Flow</button>
         </div>
       </section>
+      </>)}
       {isLive ? <LiveWorkspace onOpenStudio={onOpenStudio} /> : isMusic ? <MusicWorkspace /> : <section className="fresh-flow-system-content" aria-labelledby="fresh-flow-system-tools">
-        <div className="fresh-flow-system-section-heading"><div><span>YOUR WORKSPACE</span><h2 id="fresh-flow-system-tools">Explore {system.label}</h2></div><span className="fresh-flow-system-count">{system.capabilities.length} capabilities</span></div>
+        <div className="fresh-flow-system-section-heading"><div><span>YOUR WORKSPACE</span><h2 id="fresh-flow-system-tools">{isStudio ? "All Studio capabilities" : `Explore ${system.label}`}</h2></div><span className="fresh-flow-system-count">{system.capabilities.length} capabilities</span></div>
         <p className="fresh-flow-system-note">This system has a dedicated entry point. Each capability below needs its own data contract and connected service before it can be represented as live.</p>
         <div className="fresh-flow-system-capability-grid">
           {primaryActions.map((capability) => <article className="fresh-flow-system-capability featured" key={capability}><span className="fresh-flow-system-capability-icon" aria-hidden="true">{ICONS[capability] ?? "✦"}</span><h3>{capability.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())}</h3><p>A dedicated area for this {system.label} workflow, with its own navigation and state.</p><span className="fresh-flow-system-planned">Service connection needed</span></article>)}
