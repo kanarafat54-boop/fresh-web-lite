@@ -1,3 +1,4 @@
+// @ts-ignore Node native type-stripping tests import the TypeScript source directly; Vite resolves this extension under tsconfig.app.json.
 import {
   validateAstraObservation,
   type AstraModality,
