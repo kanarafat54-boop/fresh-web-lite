@@ -49,7 +49,7 @@ function imageSignatureMatches(bytes: Uint8Array, mimeType: AllowedMime): boolea
 
 function parseEntities(value: unknown): VisionEntity[] {
   if (!Array.isArray(value) || value.length > 100) throw new Error("Fresh AI vision engine returned an invalid entity list.");
-  return value.map((entry, index) => {
+  return value.map((entry) => {
     if (!entry || typeof entry !== "object") throw new Error("Fresh AI vision engine returned an invalid entity.");
     const entity = entry as Record<string, unknown>;
     if (typeof entity.id !== "string" || !entity.id.trim() || entity.id.length > 128
