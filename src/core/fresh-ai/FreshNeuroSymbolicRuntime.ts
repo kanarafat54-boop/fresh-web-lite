@@ -86,18 +86,30 @@ export function runFreshNeuroSymbolicAnalysis(input: string): FreshSymbolicAnaly
   for (const match of text.matchAll(negativePattern)) addFact(match[2] ?? "", "negative", "explicit-input");
 
   const inferredFacts: FreshSymbolicFact[] = [];
-  for (const rule of rules) {
-    const antecedentKnown = facts.some((fact) => fact.polarity === "positive" && fact.proposition === rule.antecedent);
-    if (antecedentKnown && !facts.some((fact) => fact.polarity === "positive" && fact.proposition === rule.consequent)) {
-      inferredFacts.push({ id: `inferred-${inferredFacts.length + 1}`, proposition: rule.consequent, polarity: "positive", source: "rule-inference" });
+  const knownPositive = new Set(facts.filter((fact) => fact.polarity === "positive").map((fact) => fact.proposition));
+  // Bounded forward chaining supports multi-step rule composition without an unbounded proof search.
+  for (let pass = 0; pass < 32 && inferredFacts.length < 256; pass += 1) {
+    let changed = false;
+    for (const rule of rules) {
+      if (knownPositive.has(rule.antecedent) && !knownPositive.has(rule.consequent)) {
+        knownPositive.add(rule.consequent);
+        inferredFacts.push({ id: `inferred-${inferredFacts.length + 1}`, proposition: rule.consequent, polarity: "positive", source: "rule-inference" });
+        changed = true;
+      }
     }
+    if (!changed) break;
   }
-  const unresolvedRules = rules.filter((rule) => !facts.some((fact) => fact.polarity === "positive" && fact.proposition === rule.antecedent));
+  const unresolvedRules = rules.filter((rule) => !knownPositive.has(rule.antecedent));
 
   const contradictions: FreshSymbolicContradiction[] = [];
   for (const fact of facts) {
     const opposite = facts.find((other) => other.proposition === fact.proposition && other.polarity !== fact.polarity);
     if (opposite) contradictions.push({ kind: "proposition", subject: fact.proposition, detail: `The input explicitly marks "${fact.proposition}" both true and false.` });
+  }
+  for (const inferred of inferredFacts) {
+    if (facts.some((fact) => fact.proposition === inferred.proposition && fact.polarity === "negative")) {
+      contradictions.push({ kind: "proposition", subject: inferred.proposition, detail: `A supplied rule infers "${inferred.proposition}" while the input explicitly marks it false.` });
+    }
   }
   const numeric = parseNumericConstraints(text);
   contradictions.push(...findNumericContradictions(numeric));
