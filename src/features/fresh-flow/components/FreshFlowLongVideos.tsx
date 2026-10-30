@@ -254,6 +254,13 @@ export default function FreshFlowLongVideos() {
     } catch { /* ignore */ }
     setActiveRoute(isGuest ? "auth-signin" : "creator");
   }
+  function openCreatorWorkspace() {
+    try {
+      sessionStorage.removeItem("fresh-flow-create-intent");
+      sessionStorage.setItem("fresh-creator-start-tab", "publish");
+    } catch { /* ignore */ }
+    setActiveRoute(isGuest ? "auth-signin" : "creator");
+  }
 
   const savedVideos = libraryVideos.filter((video) => saved.includes(video.id));
   const channelVideos = channelFor ? libraryVideos.filter((video) => video.authorId === channelFor.authorId) : [];
@@ -289,6 +296,7 @@ export default function FreshFlowLongVideos() {
       <button type="button" className={panel === "discover" ? "active" : ""} onClick={() => setPanel("discover")}>Discover</button>
       <button type="button" onClick={() => setPanel("explore")}>Explore</button>
       <button type="button" onClick={() => setPanel("library")}>Your Library</button>
+      <button type="button" onClick={openCreatorWorkspace}>Creator Studio</button>
       <button type="button" onClick={() => openCreatorStudio("publish")}>Upload video</button>
       <button type="button" onClick={() => openCreatorStudio("monetize")}>Monetization</button>
       <button type="button" onClick={() => openNotifications()}>Notifications</button>
