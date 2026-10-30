@@ -1,4 +1,8 @@
 import assert from "node:assert/strict";
+import { register } from "node:module";
+
+// Server modules import siblings as "./x.js" (bundler style) while the source is x.ts; teach Node to resolve that.
+register("data:text/javascript," + encodeURIComponent(`export async function resolve(s, c, next) { try { return await next(s, c); } catch (e) { if (/^\\.\\.?\\/.*\\.js$/.test(s)) return next(s.replace(/\\.js$/, ".ts"), c); throw e; } }`));
 
 process.env.FRESH_UNIFIED_CHECKPOINT_ID = "fresh-unified-1-test-checkpoint";
 process.env.FRESH_UNIFIED_INFERENCE_URL = "https://fresh-inference.internal";
