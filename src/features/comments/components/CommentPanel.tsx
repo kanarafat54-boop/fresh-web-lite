@@ -327,8 +327,8 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   }
 
   return (
-    <div className="comment-panel-backdrop" onClick={onClose}>
-      <div className="comment-panel" role="dialog" aria-label="Comments" style={{ height: `${sheetHeight}vh`, maxHeight: `${sheetHeight}vh` }} onClick={(event) => event.stopPropagation()}>
+    <div className="comment-panel-backdrop fresh-comments-backdrop" onClick={onClose}>
+      <div className="comment-panel fresh-comments" role="dialog" aria-label="Comments" style={{ height: `${sheetHeight}vh`, maxHeight: `${sheetHeight}vh` }} onClick={(event) => event.stopPropagation()}>
         <div className="sheet-drag-handle" onPointerDown={(event) => { dragY.current = event.clientY; dragH.current = sheetHeight; }} onPointerMove={(event) => { if (event.buttons === 1 && dragY.current !== null) setSheetHeight(Math.min(SHEET_MAX, Math.max(SHEET_MIN, dragH.current + ((dragY.current - event.clientY) / window.innerHeight) * 100))); }} onPointerUp={() => { dragY.current = null; setSheetHeight((height) => height > (SHEET_MIN + SHEET_MAX) / 2 ? SHEET_MAX : SHEET_MIN); }} />
         <div className="comment-panel-header">
           <h3>Comments{comments.length ? ` (${compact(countAll(comments))})` : ""}</h3>
