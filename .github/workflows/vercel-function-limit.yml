@@ -1,0 +1,28 @@
+name: Vercel function limit
+
+on:
+  pull_request:
+    paths:
+      - "api/**"
+      - "vercel.json"
+      - "scripts/verify-vercel-function-limit.mjs"
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - "vercel.json"
+
+permissions:
+  contents: read
+
+jobs:
+  function-limit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Hobby plan allows at most 12 serverless functions
+        run: node scripts/verify-vercel-function-limit.mjs

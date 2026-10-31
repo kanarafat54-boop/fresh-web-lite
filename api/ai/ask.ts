@@ -161,7 +161,9 @@ export async function GET(req: Request): Promise<Response> {
 }
 
 export async function POST(req: Request): Promise<Response> {
-  if (new URL(req.url).searchParams.has("__fresh_media_worker_path")) return handleMediaWorkerProxy(req);
+  const postUrl = new URL(req.url);
+  if (postUrl.searchParams.has("__fresh_media_worker_path")) return handleMediaWorkerProxy(req);
+  if (postUrl.searchParams.has("__fresh_astra_vision")) { const { handleAstraVision } = await import("../../src/server/freshAstraVision.js"); return handleAstraVision(req); }
   const requestId = crypto.randomUUID();
   try {
     const b = await req.json() as Body;
