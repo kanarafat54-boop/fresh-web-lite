@@ -1,0 +1,31 @@
+{
+  "schema": "fresh-astra-vision-model-spec-v1",
+  "model_id": "fresh-astra-vision-0.1",
+  "owner": "Fresh AI",
+  "status": "experimental-training-pipeline",
+  "architecture": {
+    "family": "small-from-scratch-multi-task-convolutional-network",
+    "input": "32x32 RGB",
+    "outputs": {
+      "shape": ["circle", "square", "triangle"],
+      "colour": ["blue", "green", "red", "yellow"]
+    },
+    "initialization": "random",
+    "pretrained_weights_allowed": false
+  },
+  "data": {
+    "pilot": "Fresh-generated geometric scenes",
+    "personal_data": "not-present",
+    "splits": ["train", "validation", "test"],
+    "manifest_required": true,
+    "asset_sha256_required": true,
+    "rights_review_required": true
+  },
+  "constraints": [
+    "This pilot recognizes only synthetic geometric shapes and colours.",
+    "It is not a general object detector, OCR system, face recognizer, or scene-understanding model.",
+    "No external model weights or inference provider may be used.",
+    "No paid compute may be created or used.",
+    "Production readiness remains false until real-world authorized datasets, independent evaluations, secure serving, and end-to-end deployment tests pass."
+  ]
+}
