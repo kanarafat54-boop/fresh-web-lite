@@ -24,6 +24,12 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
+      - name: Setup Python for Fresh checkpoint runtime tests
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fresh Unified run-3 artifact integrity tests
+        run: python -m unittest discover -s training -p 'test_serve_fresh_unified_v2.py' -v
       - name: Fresh AI unified contract
         run: npm run test:fresh-ai
       - name: Fresh AI cognitive diversity routing

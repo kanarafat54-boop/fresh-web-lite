@@ -48,9 +48,12 @@ export const FRESH_UNIFIED_MODEL = {
   modalities: ["text", "vision", "image", "3d", "video", "audio", "code", "simulation", "action"] as const,
   architectureStatus: "training-ready-sovereign-runtime",
   weightsStatus: "training-required",
-  /** First real optimizer evidence exists; production promotion still blocked. See training/STARTER_RUN1.md */
-  starterTrainingRunId: "fresh-unified-1-starter-run1",
-  starterCheckpointSha256: "86358db24d537a46d0097820ec485be5ce2453ae4e8b45904c856fb7976f7dcd",
+  /** Latest completed from-scratch training run. It is real but not production-promoted. */
+  latestTrainingRunId: "fresh-unified-1-run3",
+  latestCheckpointSha256: "298b558e89edab77745834389cb2b1979e632979f9be7b4adad1892c2f2fc25d",
+  latestTrainingPerplexity: 41.96267214492321,
+  latestTrainingParameters: 49947136,
+  latestTrainingStatus: "completed-not-promoted",
   checkpointEnv: "FRESH_UNIFIED_CHECKPOINT_ID",
 } as const;
 
