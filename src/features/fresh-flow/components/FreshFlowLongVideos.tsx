@@ -244,7 +244,7 @@ export default function FreshFlowLongVideos() {
   }
   useEffect(() => { void load(); }, [user?.id, isGuest]);
   useEffect(() => {
-    if (!user || isGuest) { setLongVideoAnalytics(null); return; }
+    if (!user || isGuest) { setLongVideoAnalytics(null); setAnalyticsLoading(false); setAnalyticsError(""); return; }
     let current = true;
     setAnalyticsLoading(true); setAnalyticsError("");
     void supabase.rpc("get_fresh_long_video_analytics", { p_days: 28 }).then(({ data, error: analyticsLoadError }) => {
