@@ -12,3 +12,9 @@
 .global-fresh-ai-overlay .global-fresh-ai-capabilities{order:8;margin-top:20px}
 .global-fresh-ai-overlay .global-fresh-ai-bottom-actions{order:9}
 .global-fresh-ai-overlay .global-fresh-ai-full{order:10}
+
+/* Fresh Shorts design (screen 10/11): compact AI button, top-right, never over the action rail or bottom nav. */
+.global-fresh-ai-trigger{top:calc(env(safe-area-inset-top,0px) + 108px);bottom:auto;right:10px;width:40px;height:40px;padding:0;gap:0;justify-content:center;background:linear-gradient(135deg,#6f30ff,#11a7e7);color:#fff;border-color:rgba(167,139,250,.6);box-shadow:0 0 0 3px rgba(111,48,255,.18),0 8px 22px rgba(111,48,255,.4);opacity:.92}
+.global-fresh-ai-trigger>span:not(.global-fresh-ai-mark){position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.global-fresh-ai-trigger .global-fresh-ai-mark{background:transparent;color:inherit}
+@media(max-width:640px){.global-fresh-ai-trigger{right:8px;bottom:auto;padding:0}}

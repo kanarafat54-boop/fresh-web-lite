@@ -45,6 +45,7 @@ let checks = 0;
 const check = (ok, label) => { checks += 1; if (!ok) failures.push(label); };
 
 const browser = await chromium.launch();
+for (const evt of ["uncaughtException", "unhandledRejection"]) process.on(evt, (error) => { if (process.env.GITHUB_ACTIONS) console.log(`::error title=navigation browser test threw::${String(error?.message ?? error).replace(/[\r\n]+/g, " ").slice(0, 600)}`); console.error(error); process.exit(1); });
 const WIDTHS = [320, 360, 390, 430];
 const fixtureAuthorId = "00000000-0000-4000-9000-000000000001";
 const longVideoFixtures = [
@@ -199,7 +200,9 @@ for (const width of WIDTHS) {
   await page.locator(".fresh-long-player-meta button", { hasText: "Open discussion" }).click();
   check(await page.locator(".fresh-long-player").count() === 0, `${tag} opening discussion closes cinema player`);
   check(await page.locator(".fresh-long-comments").isVisible(), `${tag} video discussion panel opens`);
-  await page.locator(".fresh-long-comments button", { hasText: "Close discussion" }).click();
+  // The discussion is now a styled bottom sheet with its own close button (the plain button sits underneath it).
+  await page.locator(".fresh-long-comments").getByRole("button", { name: "Close comments" }).click();
+  check(await page.locator(".fresh-long-comments").count() === 0, `${tag} video discussion closes from the sheet`);
   await page.locator(".fresh-long-feature-copy .fresh-long-author-link").click();
   check(await page.getByRole("heading", { name: "Fresh Cinema Creator" }).isVisible(), `${tag} dedicated creator channel opens`);
   check(await page.getByText("Videos from @cinemacreator").isVisible(), `${tag} creator channel lists its videos`);
@@ -281,6 +284,7 @@ for (const width of WIDTHS) {
 await browser.close();
 server.close();
 if (failures.length) {
+  if (process.env.GITHUB_ACTIONS) for (const f of failures.slice(0, 10)) console.log(`::error title=navigation browser test::${f.replace(/[\r\n]+/g, " ")}`);
   console.error(`Fresh Flow navigation browser test FAILED (${failures.length}/${checks}):`);
   for (const failure of failures) console.error(`  - ${failure}`);
   process.exit(1);
