@@ -21,3 +21,7 @@
 .shorts-studio-note{margin:16px 2px;color:rgba(255,255,255,.7);line-height:1.5}
 .shorts-studio-note button{min-height:44px;border:0;background:transparent;color:#a78bfa;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
 @media(min-width:520px){.shorts-studio-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* Design: all four tabs fit on a phone; content clears the floating bottom navigation. */
+.shorts-studio-tabs{overflow-x:visible}
+.shorts-studio-tabs button{flex:1 1 0;min-width:0;padding:6px 4px;font-size:clamp(.8rem,3.6vw,.95rem);text-align:center}

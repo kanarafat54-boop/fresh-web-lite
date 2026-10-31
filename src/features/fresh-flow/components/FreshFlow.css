@@ -120,12 +120,18 @@
 .fresh-flow-stream[data-discovery] .fresh-flow-tabs button.active{color:#fff;background:transparent;border:0;box-shadow:inset 0 -2px 0 #fff}
 .fresh-flow-stream[data-discovery] .fresh-flow-filters{position:absolute;z-index:21;top:54px;left:8px;right:8px;background:rgba(8,10,16,.72);border-radius:14px;padding:8px}
 /* clear the floating bottom navigation (≈74px + safe area) */
-.fresh-flow-stream[data-discovery] .fresh-flow-overlay{bottom:calc(92px + env(safe-area-inset-bottom));right:84px}
-.fresh-flow-stream[data-discovery] .fresh-flow-actions{bottom:calc(92px + env(safe-area-inset-bottom));gap:8px}
+/* The overlay fills the Short so the caption and the action rail anchor to the Short itself (they used to
+   anchor to the overlay, which pushed the rail ~90px too high and hid the Like button under the header). */
+.fresh-flow-stream[data-discovery] .fresh-flow-overlay{inset:0;left:0;right:0;bottom:0;pointer-events:none}
+.fresh-flow-stream[data-discovery] .fresh-flow-overlay>*{pointer-events:auto}
+.fresh-flow-stream[data-discovery] .fresh-flow-meta{position:absolute;left:14px;right:76px;bottom:calc(92px + env(safe-area-inset-bottom))}
+.fresh-flow-stream[data-discovery] .fresh-flow-actions{right:4px;bottom:calc(92px + env(safe-area-inset-bottom));gap:4px;justify-content:flex-end;max-height:calc(100% - 64px - 92px - env(safe-area-inset-bottom))}
+.fresh-flow-stream[data-discovery] .fresh-flow-actions button>span:first-child svg{display:block}
+@media(max-height:700px){.fresh-flow-stream[data-discovery] .fresh-flow-actions button{min-height:44px}.fresh-flow-stream[data-discovery] .fresh-flow-actions button>span:nth-child(2){font-size:.64rem}}
 .fresh-flow-stream[data-discovery] .fresh-flow-actions button{min-width:48px;min-height:48px;padding:6px 4px;border:0;border-radius:16px;background:transparent;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;color:#fff;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;font-size:.7rem;font-weight:700;text-shadow:0 1px 8px rgba(0,0,0,.7)}
 .fresh-flow-stream[data-discovery] .fresh-flow-actions button>span:first-child{font-size:26px;line-height:1}
 .fresh-flow-stream[data-discovery] .fresh-flow-actions button.saved{color:#fcd34d}
-.fresh-flow-stream[data-discovery] .fresh-flow-advanced{right:12px;bottom:calc(92px + env(safe-area-inset-bottom));max-height:46vh;overflow-y:auto}
+.fresh-flow-stream[data-discovery] .fresh-flow-advanced{right:72px;bottom:calc(92px + env(safe-area-inset-bottom));max-height:46vh;overflow-y:auto}
 .fresh-flow-play-flash,.fresh-flow-heart-burst{position:absolute;z-index:6;left:50%;top:50%;display:grid;place-items:center;pointer-events:none;color:#fff;transform:translate(-50%,-50%);animation:fresh-flow-pop .7s ease-out forwards}
 .fresh-flow-play-flash{width:76px;height:76px;border-radius:50%;background:rgba(0,0,0,.5);font-size:30px}
 .fresh-flow-heart-burst{font-size:96px;color:#ff3b5c;text-shadow:0 6px 30px rgba(0,0,0,.45)}
@@ -139,3 +145,8 @@
 .fresh-flow-stream[data-discovery] .fresh-flow-tabs{justify-content:flex-start;padding-left:12px;padding-right:12px}
 .fresh-flow-author-link{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer}
 .fresh-flow-stream[data-discovery] .fresh-flow-empty{min-height:100%;padding:76px 24px calc(120px + env(safe-area-inset-bottom));text-align:center;align-content:center}
+
+/* Design (AI assistant, non-intrusive): in Fresh Shorts the Fresh AI button is a compact orb at the top right,
+   under the header, so it never covers the action rail or the bottom navigation. */
+body:has(.fresh-flow-stream[data-discovery]) .fresh-ai-unified-trigger{top:calc(env(safe-area-inset-top,0px) + 168px);bottom:auto;right:8px;width:36px;height:36px;padding:0;opacity:.92;box-shadow:0 0 0 3px rgba(111,48,255,.18),0 6px 18px rgba(111,48,255,.38);background:linear-gradient(135deg,#6f30ff,#11a7e7);color:#fff;border-color:rgba(167,139,250,.6)}
+body:has(.fresh-flow-stream[data-discovery]) .fresh-ai-unified-trigger>span{width:24px;height:24px;flex-basis:24px;font-size:14px}

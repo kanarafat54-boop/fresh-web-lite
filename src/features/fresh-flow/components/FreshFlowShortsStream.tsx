@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { useLayout } from "../../../app/contexts/useLayout";
+import { BookmarkIcon, CommentIcon, GiftIcon, MoreIcon, ShareIcon } from "./ShortsIcons";
 import { CommentPanel } from "../../comments/components/CommentPanel";
 import { ReactionPicker } from "../../reactions/components/ReactionPicker";
 import { loadFreshFlowShorts, FRESH_FLOW_SHORTS_PAGE_SIZE, type FreshFlowLoadOptions } from "../core/loadFreshFlowShorts";
@@ -825,23 +826,23 @@ export default function FreshFlowShortsStream({
                     onReact={(kind) => void handleReaction(short.id, kind as UniversalReactionKind)}
                   />
                   <button type="button" onClick={() => { setOpenCommentsFor(short.id); track("comment_open", short.id); }} aria-label="Comments">
-                    <span>💬</span>
+                    <span><CommentIcon /></span>
                     <span>{short.commentCount}</span>
                   </button>
                   <button type="button" onClick={() => void handleSave(short)} aria-label={savedIds.has(short.id) ? "Remove from saved" : "Save"} aria-pressed={savedIds.has(short.id)} className={savedIds.has(short.id) ? "saved" : ""}>
-                    <span>{savedIds.has(short.id) ? "🔖" : "🏷"}</span>
+                    <span><BookmarkIcon filled={savedIds.has(short.id)} /></span>
                     <span>{savedIds.has(short.id) ? "Saved" : "Save"}</span>
                   </button>
                   <button type="button" onClick={() => void handleShare(short)} aria-label="Share">
-                    <span>↗</span>
+                    <span><ShareIcon /></span>
                     <span>Share</span>
                   </button>
                   <button type="button" onClick={() => void handleGift(short, "100")} aria-label="Send gift" className="gift">
-                    <span>🎁</span>
+                    <span><GiftIcon /></span>
                     <span>{giftTotals.get(short.id)?.count ?? 0}</span>
                   </button>
                   <button type="button" onClick={() => setAdvancedOpen((v) => !v)} aria-label="More" aria-expanded={advancedOpen && index === currentIndex}>
-                    <span>⋯</span>
+                    <span><MoreIcon /></span>
                   </button>
                 </div>
                 {freshAiPanelOpen && index === currentIndex && (

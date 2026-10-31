@@ -134,6 +134,14 @@ for (const width of WIDTHS) {
   const navTop = await page.locator("nav.fresh-flow-bottom-nav").evaluate((el) => el.getBoundingClientRect().top);
   const actionsBottom = await page.locator(".fresh-flow-item").first().locator(".fresh-flow-actions").evaluate((el) => el.getBoundingClientRect().bottom);
   check(actionsBottom <= navTop + 1, `${tag} action column clears the bottom navigation (${Math.round(actionsBottom)} <= ${Math.round(navTop)})`);
+  // Regression: the rail used to anchor to the caption overlay, pushing the Like button under the header.
+  const railTop = await page.locator(".fresh-flow-item").first().locator(".fresh-flow-actions").evaluate((el) => el.getBoundingClientRect().top);
+  const headerBottom = await page.locator("header").first().evaluate((el) => el.getBoundingClientRect().bottom);
+  const likeBox = await page.locator(".fresh-flow-item").first().locator(".fresh-flow-actions .short-like-btn").boundingBox();
+  check(Boolean(likeBox) && likeBox.y >= headerBottom - 1 && railTop >= headerBottom - 1, `${tag} Like button is visible below the header (like y=${Math.round(likeBox?.y ?? -1)}, header bottom=${Math.round(headerBottom)})`);
+  const tabsBox = await page.locator(".fresh-flow-item").first().locator(".fresh-flow-actions").boundingBox();
+  const forYouBox = await page.locator(".fresh-flow-tabs button").first().boundingBox();
+  check(Boolean(tabsBox && forYouBox) && (forYouBox.y + forYouBox.height <= tabsBox.y + 1 || forYouBox.x + forYouBox.width <= tabsBox.x), `${tag} For You / Following tabs do not overlap the action rail`);
   for (const label of ["Comments", "Save", "Share", "Send gift", "More"]) {
     const box = await page.locator(".fresh-flow-item").first().locator(`.fresh-flow-actions [aria-label="${label}"]`).boundingBox();
     check(Boolean(box) && box.x >= 0 && box.x + box.width <= width + 0.5 && box.width >= 44 && box.height >= 44, `${tag} "${label}" is on-screen and at least 44px`);

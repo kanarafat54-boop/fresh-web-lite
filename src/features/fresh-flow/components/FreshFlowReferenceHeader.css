@@ -87,4 +87,9 @@
 .fresh-flow-hub .fresh-shorts-header .fresh-flow-header-world-nav{order:3;flex:1 1 100%;width:100%;padding:0 0 2px;margin-top:2px}
 .fresh-flow-hub .fresh-shorts-header .fresh-flow-search-icon-button,.fresh-flow-hub .fresh-shorts-header .fresh-flow-unified-profile{width:36px;height:36px;flex:0 0 36px}
 @media(max-width:420px){.fresh-flow-hub .fresh-shorts-header .fresh-flow-unified-brand small{display:none}.fresh-flow-hub .fresh-shorts-header .fresh-flow-brand-wordmark strong{font-size:.9rem}}
-@media(max-width:380px){.fresh-flow-hub .fresh-shorts-header .fresh-flow-unified-brand>span:last-child{display:none}.fresh-flow-hub .fresh-shorts-header .fresh-flow-header-actions{gap:0}}
+@media(max-width:380px){.fresh-flow-hub .fresh-shorts-header .fresh-flow-unified-brand>span:last-child{display:flex;min-width:0}.fresh-flow-hub .fresh-shorts-header .fresh-flow-brand-wordmark{min-width:0}.fresh-flow-hub .fresh-shorts-header .fresh-flow-brand-wordmark strong{font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}.fresh-flow-hub .fresh-shorts-header .fresh-flow-header-actions{gap:0}}
+@media(max-width:340px){.fresh-flow-hub .fresh-shorts-header .fresh-flow-unified-brand>span:last-child{display:none}}
+/* Design: world tabs are outlined pills; the header stays compact so the video keeps the screen. */
+.fresh-flow-hub .fresh-shorts-header .fresh-flow-header-world-nav{gap:6px;margin-top:0;padding-bottom:6px}
+.fresh-flow-hub .fresh-shorts-header .fresh-flow-header-world-nav button{min-height:32px;padding:5px 12px;border:1px solid rgba(139,124,255,.38);border-radius:10px;background:rgba(255,255,255,.03);color:var(--fresh-text,#e8eaf2)}
+.fresh-flow-hub .fresh-shorts-header .fresh-flow-header-world-nav button:hover,.fresh-flow-hub .fresh-shorts-header .fresh-flow-header-world-nav button.active{background:rgba(99,91,255,.22);border-color:rgba(167,139,250,.7)}
