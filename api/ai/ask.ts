@@ -1,6 +1,5 @@
 import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 import { handleFreshAIStatus } from "../../src/server/freshAIStatus.js";
-import { handleAstraVision } from "../../src/server/freshAstraVision.js";
 import { createClient } from "@supabase/supabase-js";
 import { createFreshAIIntelligenceGateway, type FreshAIResponse } from "../../src/core/fresh-ai/FreshAIIntelligenceGateway.js";
 import { createCoreFreshSkillRegistry } from "../../src/core/fresh-ai/FreshAISkillFabric.js";
@@ -164,7 +163,7 @@ export async function GET(req: Request): Promise<Response> {
 export async function POST(req: Request): Promise<Response> {
   const postUrl = new URL(req.url);
   if (postUrl.searchParams.has("__fresh_media_worker_path")) return handleMediaWorkerProxy(req);
-  if (postUrl.searchParams.has("__fresh_astra_vision")) return handleAstraVision(req);
+  if (postUrl.searchParams.has("__fresh_astra_vision")) { const { handleAstraVision } = await import("../../src/server/freshAstraVision.js"); return handleAstraVision(req); }
   const requestId = crypto.randomUUID();
   try {
     const b = await req.json() as Body;

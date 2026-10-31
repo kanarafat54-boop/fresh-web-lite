@@ -8,7 +8,7 @@
  */
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore Node native type stripping tests import TypeScript source directly; app bundler resolves this source import.
-import { validateAstraObservation, type AstraObservation, type AstraWorldState } from "./AstraContracts.ts";
+import { validateAstraObservation, type AstraObservation, type AstraWorldState } from "./AstraContracts.js";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const ENGINE_TIMEOUT_MS = 45_000;
