@@ -17,7 +17,7 @@ type VideoSeries = { id: string; creator_id: string; title: string; description:
 type VideoSeason = { id: string; series_id: string; season_number: number; title: string; description: string };
 type VideoEpisode = { id: string; series_id: string; season_id: string; post_id: string; episode_number: number; title_override: string | null; description_override: string | null };
 type LongVideoAnalytics = { days: number; views: number; qualified_sessions: number; unique_viewers: number; watch_seconds: number; watch_hours: number; average_watch_seconds: number; completed_sessions: number; completion_rate: number; videos: Array<{ post_id: string; title: string; views: number; unique_viewers: number; watch_seconds: number; completed_sessions: number }> };
-type PlaybackAnalyticsSession = { postId: string; sessionId: string; lastPosition: number | null; unsentSeconds: number; lastSentAt: number; maxPosition: number; duration: number | null; pending: boolean };
+type PlaybackAnalyticsSession = { postId: string; sessionId: string; lastPosition: number | null; unsentSeconds: number; lastSentAt: number; maxPosition: number; duration: number | null; pending: boolean; completedRequested: boolean };
 type Category = "Discover" | "Movies & Series" | "Documentaries" | "Education" | "Events" | "Following";
 const CATEGORIES: Category[] = ["Discover", "Movies & Series", "Documentaries", "Education", "Events", "Following"];
 const SAVED_KEY = "fresh-flow-long-video-saved-v1";
@@ -257,7 +257,7 @@ export default function FreshFlowLongVideos() {
   }, [user?.id, isGuest]);
   useEffect(() => {
     if (!active) { analyticsWatchRef.current = null; return; }
-    analyticsWatchRef.current = { postId: active.id, sessionId: crypto.randomUUID(), lastPosition: null, unsentSeconds: 0, lastSentAt: Date.now(), maxPosition: 0, duration: null, pending: false };
+    analyticsWatchRef.current = { postId: active.id, sessionId: crypto.randomUUID(), lastPosition: null, unsentSeconds: 0, lastSentAt: Date.now(), maxPosition: 0, duration: null, pending: false, completedRequested: false };
   }, [active?.id]);
   useEffect(() => {
     try { localStorage.setItem(PLAYBACK_KEY, JSON.stringify({ autoplay, dataSaver, playbackSpeed })); } catch { /* device storage unavailable */ }
@@ -362,7 +362,7 @@ export default function FreshFlowLongVideos() {
       });
     }
   }
-  function recordPlaybackAnalytics(video: VideoItem, currentTime: number, duration: number, completed = false) {
+  function recordPlaybackAnalytics(video: VideoItem, currentTime: number, duration: number, completed = false, force = false) {
     if (!user || isGuest || !Number.isFinite(currentTime) || currentTime < 0) return;
     const session = analyticsWatchRef.current;
     if (!session || session.postId !== video.id) return;
@@ -375,7 +375,8 @@ export default function FreshFlowLongVideos() {
     session.lastPosition = currentTime;
     session.maxPosition = Math.max(session.maxPosition, currentTime);
     const now = Date.now();
-    if (session.pending || (!completed && now - session.lastSentAt < 15000)) return;
+    if (completed) session.completedRequested = true;
+    if (session.pending || (!completed && !force && now - session.lastSentAt < 15000)) return;
     const increment = Math.min(30, Math.max(0, session.unsentSeconds));
     if (!completed && increment < 2) return;
     session.pending = true;
@@ -389,6 +390,9 @@ export default function FreshFlowLongVideos() {
       if (recordError) { setAnalyticsError("Some playback analytics could not sync. Watch progress remains available."); return; }
       session.unsentSeconds = Math.max(0, session.unsentSeconds - increment);
       session.lastSentAt = Date.now();
+      const finishSession = session.completedRequested;
+      session.completedRequested = false;
+      if (finishSession && !completed) recordPlaybackAnalytics(video, session.maxPosition, session.duration ?? duration, true, true);
     });
   }
   async function createPlaylist() {
@@ -709,7 +713,7 @@ export default function FreshFlowLongVideos() {
     <section className="fresh-long-section fresh-long-library"><div><h2>Your library</h2><p>{saved.length} saved videos · {user && !isGuest ? "synced to your Fresh ID" : "saved on this device"}</p></div><button type="button" onClick={() => { setCategory("Discover"); setQuery(""); }}>Browse all videos</button></section>
     {active && <div className="fresh-long-player" role="dialog" aria-modal="true" aria-label={active.title} onKeyDown={(event) => { if (event.key === "Escape") closePlayer(); }}>
       <div className="fresh-long-player-bar"><button type="button" onClick={closePlayer} aria-label="Close cinema player">✕</button><div><strong>{active.title}</strong><small>@{active.username}</small></div><button type="button" onClick={() => void toggleSave(active)}>{saved.includes(active.id) ? "Saved" : "Save"}</button></div>
-      <div className="fresh-long-player-stage"><video ref={playerRef} key={active.id} src={active.videoUrl} poster={active.posterUrl ?? undefined} controls playsInline autoPlay={autoplay && !dataSaver} preload={dataSaver ? "none" : "metadata"} onLoadedMetadata={(e) => { e.currentTarget.playbackRate = Number(playbackSpeed); saveDuration(active.id, e.currentTarget.duration); }} onTimeUpdate={(e) => { saveProgress(active, e.currentTarget.currentTime); recordPlaybackAnalytics(active, e.currentTarget.currentTime, e.currentTarget.duration); }} onPause={(e) => recordPlaybackAnalytics(active, e.currentTarget.currentTime, e.currentTarget.duration)} onEnded={(e) => { recordPlaybackAnalytics(active, e.currentTarget.currentTime, e.currentTarget.duration, true); clearProgress(active.id); }} onError={() => setError("This video could not be played. The creator's media URL may be unavailable.")} /><div className="fresh-long-player-meta"><span>FRESH FLOW CINEMA</span><h2>{active.title}</h2><p>{active.description}</p><button type="button" aria-pressed={likedIds.includes(active.id)} onClick={() => void toggleLike(active)}>{likedIds.includes(active.id) ? "♥ Liked" : "♡ Like"} · {active.likes}</button><button type="button" onClick={() => void shareVideo(active)}>Share</button><button type="button" onClick={() => { setCommentsFor(active.id); closePlayer(); }}>Open discussion · {active.comments}</button>
+      <div className="fresh-long-player-stage"><video ref={playerRef} key={active.id} src={active.videoUrl} poster={active.posterUrl ?? undefined} controls playsInline autoPlay={autoplay && !dataSaver} preload={dataSaver ? "none" : "metadata"} onLoadedMetadata={(e) => { e.currentTarget.playbackRate = Number(playbackSpeed); saveDuration(active.id, e.currentTarget.duration); }} onTimeUpdate={(e) => { saveProgress(active, e.currentTarget.currentTime); recordPlaybackAnalytics(active, e.currentTarget.currentTime, e.currentTarget.duration); }} onPause={(e) => recordPlaybackAnalytics(active, e.currentTarget.currentTime, e.currentTarget.duration, false, true)} onEnded={(e) => { recordPlaybackAnalytics(active, e.currentTarget.currentTime, e.currentTarget.duration, true, true); clearProgress(active.id); }} onError={() => setError("This video could not be played. The creator's media URL may be unavailable.")} /><div className="fresh-long-player-meta"><span>FRESH FLOW CINEMA</span><h2>{active.title}</h2><p>{active.description}</p><button type="button" aria-pressed={likedIds.includes(active.id)} onClick={() => void toggleLike(active)}>{likedIds.includes(active.id) ? "♥ Liked" : "♡ Like"} · {active.likes}</button><button type="button" onClick={() => void shareVideo(active)}>Share</button><button type="button" onClick={() => { setCommentsFor(active.id); closePlayer(); }}>Open discussion · {active.comments}</button>
           {activeEpisode && activeEpisodeSeries && <section className="fresh-long-episode-player" aria-label="Series episode navigation">
             <div><span>{activeEpisodeSeries.title}</span><small>Season {activeEpisodeOrder[activeEpisodeIndex]?.season?.season_number ?? "—"} · Episode {activeEpisode.episode_number}</small></div>
             <div className="fresh-long-episode-player-controls">
