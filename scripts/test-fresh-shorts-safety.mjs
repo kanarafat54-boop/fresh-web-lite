@@ -1,0 +1,12 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { shortDeepLink, parseShortDeepLink } from "../src/features/fresh-flow/core/shortsLinks.ts";
+const id = "123e4567-e89b-42d3-a456-426614174000";
+assert.equal(shortDeepLink(id, "https://x.app/"), `https://x.app/fresh-flow-shorts?short=${id}`);
+assert.equal(parseShortDeepLink(`?short=${id}`), id);
+assert.equal(parseShortDeepLink("?short=../../evil"), null);
+assert.equal(parseShortDeepLink(""), null);
+const src = readFileSync("src/features/fresh-flow/core/shortsSafety.ts", "utf8");
+assert.match(src, /target_type: "short"/);
+assert.match(src, /muted_creators/);
+console.log("fresh-shorts-safety: ok");

@@ -31,6 +31,7 @@ import {
 } from "../core/shortDiscovery";
 import ShortsCreatorProfile from "./ShortsCreatorProfile";
 import { consumeOpenShortRequest } from "../core/shortsExplore";
+import { SHORT_REPORT_REASONS, loadMutedCreators, reportShort, setCreatorMuted, shortDeepLink, type ShortReportReason } from "../core/shortsSafety";
 import "./FreshFlow.css";
 
 type SubTab = ShortDiscoveryId;
@@ -136,6 +137,8 @@ export default function FreshFlowShortsStream({
 
   const tasteRef = useRef<TasteProfile | null>(null);
   const [openCreatorId, setOpenCreatorId] = useState<string | null>(null);
+  const [reportTarget, setReportTarget] = useState<Short | null>(null);
+  const mutedCreatorsRef = useRef<Set<string>>(new Set());
   const shortsRef = useRef<Short[]>([]);
   shortsRef.current = shorts;
 
@@ -186,7 +189,8 @@ export default function FreshFlowShortsStream({
       const category = shortDiscoveryToCategory(tab);
       if (category) options.category = category;
       const result = await loadFreshFlowShorts(user?.id ?? null, isGuest, options);
-      let candidates = result.shorts;
+      if (user && !isGuest) mutedCreatorsRef.current = await loadMutedCreators(user.id); else mutedCreatorsRef.current = new Set();
+      let candidates = result.shorts.filter((s) => !mutedCreatorsRef.current.has(s.authorId));
       if (tab === "following") candidates = candidates.filter((s) => s.isFollowingAuthor);
       else if (mode === "social") {
         if (!user || isGuest) candidates = [];
@@ -244,7 +248,7 @@ export default function FreshFlowShortsStream({
       const category = shortDiscoveryToCategory(subTab);
       if (category) options.category = category;
       const result = await loadFreshFlowShorts(user?.id ?? null, isGuest, options);
-      let candidates = result.shorts;
+      let candidates = result.shorts.filter((s) => !mutedCreatorsRef.current.has(s.authorId));
       if (subTab === "following") candidates = candidates.filter((s) => s.isFollowingAuthor);
       else if (filterMode === "social") {
         if (!user || isGuest) candidates = [];
@@ -656,8 +660,7 @@ export default function FreshFlowShortsStream({
 
   async function handleShare(short: Short) {
     setAdvancedOpen(false);
-    // There is no per-Short deep link yet, so we share the Fresh Flow entry point with the caption.
-    const url = `${window.location.origin}/fresh-flow`;
+    const url = shortDeepLink(short.id, window.location.origin);
     const text = short.caption ? `${short.caption} — @${short.authorUsername} on Fresh` : `A Short by @${short.authorUsername} on Fresh`;
     let channel = "copy";
     try {
@@ -683,6 +686,31 @@ export default function FreshFlowShortsStream({
     track("skip", short.id);
     setShorts((prev) => prev.filter((item) => item.id !== short.id));
     pushNotification({ title: "Hidden", message: "This Short is hidden for now." });
+  }
+
+  async function handleReport(short: Short, reason: ShortReportReason) {
+    setReportTarget(null);
+    if (!user || isGuest) { pushNotification({ title: "Sign in to report", message: "Reports are tied to your account.", type: "error" }); return; }
+    try {
+      await reportShort(user.id, short.id, reason);
+      track("skip", short.id);
+      setShorts((prev) => prev.filter((item) => item.id !== short.id));
+      pushNotification({ title: "Report sent", message: "Thanks. The Short is hidden for you and queued for review.", type: "success" });
+    } catch {
+      pushNotification({ title: "Report not sent", message: "Fresh could not save your report. Try again.", type: "error" });
+    }
+  }
+
+  async function handleMuteCreator(short: Short) {
+    setAdvancedOpen(false);
+    if (!user || isGuest) { pushNotification({ title: "Sign in to mute", message: "Muted creators are saved to your account.", type: "error" }); return; }
+    try {
+      mutedCreatorsRef.current = await setCreatorMuted(user.id, short.authorId, true);
+      setShorts((prev) => prev.filter((item) => item.authorId !== short.authorId));
+      pushNotification({ title: `Muted @${short.authorUsername}`, message: "You won't see their Shorts in your feed.", type: "success" });
+    } catch {
+      pushNotification({ title: "Mute failed", message: "Fresh could not save this. Try again.", type: "error" });
+    }
   }
 
   function openFreshAI(prompt: string) {
@@ -870,8 +898,15 @@ export default function FreshFlowShortsStream({
                         <span>{a.icon}</span> {a.label}
                       </button>
                     ))}
+                    <hr className="fresh-flow-advanced-divider" aria-hidden="true" />
                     <button type="button" onClick={() => handleNotInterested(short)}>
                       <span>🚫</span> Not interested
+                    </button>
+                    <button type="button" onClick={() => void handleMuteCreator(short)}>
+                      <span>🔕</span> Mute @{short.authorUsername}
+                    </button>
+                    <button type="button" onClick={() => { setAdvancedOpen(false); setReportTarget(short); }}>
+                      <span>⚑</span> Report
                     </button>
                   </div>
                 )}
@@ -889,6 +924,17 @@ export default function FreshFlowShortsStream({
           onMessage={() => { setOpenCreatorId(null); setActiveRoute("communication"); }}
           onSignIn={() => { setOpenCreatorId(null); setActiveRoute("auth-signin"); }}
         />
+      )}
+
+      {reportTarget && (
+        <div className="comment-panel-backdrop" onClick={() => setReportTarget(null)}>
+          <div className="comment-panel post-menu-sheet" role="dialog" aria-modal="true" aria-label="Report this Short" onClick={(event) => event.stopPropagation()}>
+            <div className="comment-panel-header"><h3>Report this Short</h3><button type="button" className="back-btn" onClick={() => setReportTarget(null)} aria-label="Close">✕</button></div>
+            {SHORT_REPORT_REASONS.map((reason) => (
+              <button key={reason.id} type="button" className="post-menu-item" onClick={() => void handleReport(reportTarget, reason.id)}>{reason.label}</button>
+            ))}
+          </div>
+        </div>
       )}
 
       {openCommentsFor && (

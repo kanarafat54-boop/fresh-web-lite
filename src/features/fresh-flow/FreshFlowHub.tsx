@@ -21,6 +21,8 @@ import "./components/FreshFlowSurfacePolish.css";
 import FreshFlowHome from "./components/FreshFlowHome";
 import FreshFlowSystemExperience from "./components/FreshFlowSystemExperience";
 import { getFreshFlowSystem } from "./core/freshFlowSystemRegistry";
+import { requestOpenShort } from "./core/shortsExplore";
+import { parseShortDeepLink } from "./core/shortsLinks";
 import { supabase } from "../../lib/supabase";
 
 type FreshFlowSection = FreshFlowRouteId;
@@ -121,6 +123,11 @@ export default function FreshFlowHub() {
     try { sessionStorage.setItem("fresh-flow-long-video-deep-link", requestedVideoId); } catch { /* keep the normal discovery route if session storage is unavailable */ }
     setActiveRoute("fresh-flow-long-videos");
   }, [setActiveRoute]);
+
+  useEffect(() => {
+    const sharedShortId = parseShortDeepLink(window.location.search);
+    if (sharedShortId) requestOpenShort(sharedShortId);
+  }, []);
 
   useEffect(() => {
     try { setFreshFlowAvatarUrl(window.localStorage.getItem("fresh-flow-avatar-data-url")); } catch { setFreshFlowAvatarUrl(null); }

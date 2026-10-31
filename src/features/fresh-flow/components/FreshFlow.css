@@ -139,3 +139,4 @@
 .fresh-flow-stream[data-discovery] .fresh-flow-tabs{justify-content:flex-start;padding-left:12px;padding-right:12px}
 .fresh-flow-author-link{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer}
 .fresh-flow-stream[data-discovery] .fresh-flow-empty{min-height:100%;padding:76px 24px calc(120px + env(safe-area-inset-bottom));text-align:center;align-content:center}
+.fresh-flow-advanced-divider { width:100%; height:1px; margin:4px 0; border:0; background:rgba(255,255,255,.14); }
