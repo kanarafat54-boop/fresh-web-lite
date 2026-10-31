@@ -537,7 +537,7 @@ export default function FreshFlowLongVideos() {
     }
   }
   function openPlayer(video: VideoItem) { setActive(video); }
-  function closePlayer() { if (active && playerRef.current) saveProgress(active, playerRef.current.currentTime, true); setActive(null); }
+  function closePlayer() { if (active && playerRef.current) { saveProgress(active, playerRef.current.currentTime, true); recordPlaybackAnalytics(active, playerRef.current.currentTime, playerRef.current.duration, false, true); } setActive(null); }
   function resumeVideo(video: VideoItem) {
     setActive(video);
     window.setTimeout(() => {
@@ -574,7 +574,7 @@ export default function FreshFlowLongVideos() {
     if (!active || activeEpisodeIndex < 0) return;
     const adjacent = activeEpisodeOrder[activeEpisodeIndex + offset]?.video;
     if (!adjacent) return;
-    if (playerRef.current) saveProgress(active, playerRef.current.currentTime, true);
+    if (playerRef.current) { saveProgress(active, playerRef.current.currentTime, true); recordPlaybackAnalytics(active, playerRef.current.currentTime, playerRef.current.duration, false, true); }
     setActive(adjacent);
   }
   if (channelFor) return <section className="fresh-long" aria-label="Creator channel">
