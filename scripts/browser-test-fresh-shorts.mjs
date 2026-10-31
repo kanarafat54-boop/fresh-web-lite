@@ -58,6 +58,7 @@ const rows = [1, 2, 3].map((n) => ({
   like_count: n, comment_count: n, view_count: 0, repost_count: 0, created_at: `2026-10-0${n}T00:00:00Z`,
 }));
 
+for (const evt of ["uncaughtException", "unhandledRejection"]) process.on(evt, (error) => { if (process.env.GITHUB_ACTIONS) console.log(`::error title=shorts browser test threw::${String(error?.message ?? error).replace(/[\r\n]+/g, " ").slice(0, 700)}`); console.error(error); process.exit(1); });
 const failures = []; let checks = 0;
 const check = (ok, label) => { checks += 1; if (!ok) failures.push(label); };
 
