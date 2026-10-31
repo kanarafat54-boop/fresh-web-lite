@@ -97,3 +97,6 @@
 .fresh-long-episode-player-controls button{min-height:42px;padding:8px 12px;border:1px solid #635bff;border-radius:10px;background:#24213a;color:#f5f5f7;font:inherit;cursor:pointer}
 .fresh-long-episode-player-controls button:disabled{opacity:.4;cursor:not-allowed}
 @media(max-width:520px){.fresh-long-episode-player{align-items:stretch;flex-direction:column}.fresh-long-episode-player-controls button{flex:1}}
+
+/* Long-video creator analytics: distinct from Shorts analytics. */
+.fresh-long-analytics-videos{display:grid;gap:8px;margin-top:14px}.fresh-long-analytics-videos h3{margin:0 0 2px;font-size:.95rem}.fresh-long-analytics-videos>div{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;padding:10px 12px;border:1px solid rgba(128,128,160,.18);border-radius:12px}.fresh-long-analytics-videos>div strong{min-width:0;overflow-wrap:anywhere}.fresh-long-analytics-videos>div span{font-size:.82rem;opacity:.72}.fresh-long-analytics-error{color:#e58b96;font-size:.86rem}.fresh-long-analytics-error button{margin-left:8px}
