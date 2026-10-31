@@ -11,6 +11,7 @@ import FreshFlowLongVideos from "./components/FreshFlowLongVideos";
 import FreshFlowMediaWorkspace from "./components/FreshFlowMediaWorkspace";
 import FreshFlowSearchSurface from "./components/FreshFlowSearchSurface";
 import FreshFlowSwitch from "./components/FreshFlowSwitch";
+import ShortsNotifications from "./components/ShortsNotifications";
 import "./components/FreshFlow.css";
 import "./components/FreshFlowReferenceShell.css";
 import "./components/FreshFlowReferenceHeader.css";
@@ -85,6 +86,7 @@ export default function FreshFlowHub() {
   const independentSystem = section.startsWith(systemRoutePrefix) ? getFreshFlowSystem(section.slice(systemRoutePrefix.length)) : undefined;
 
   const [searchOpen, setSearchOpen] = useState(false);
+  const [shortsNotificationsOpen, setShortsNotificationsOpen] = useState(false);
   const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
   const scrollIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -169,7 +171,7 @@ export default function FreshFlowHub() {
       data-media-world={world.id}
       data-surface={world.surface}
     >
-      <header className="fresh-flow-reference-header fresh-flow-unified-header" data-navigation="top">
+      <header className={`fresh-flow-reference-header fresh-flow-unified-header${isShortsRoute ? " fresh-shorts-header" : ""}`} data-navigation="top">
           {isShortsRoute ? (
             <button type="button" className="fresh-flow-unified-brand fresh-shorts-brand" onClick={() => setActiveRoute("fresh-flow-shorts")} aria-label="Fresh Shorts home">
               <span className="fresh-flow-unified-mark fresh-shorts-mark" aria-hidden="true">▶</span>
@@ -193,6 +195,7 @@ export default function FreshFlowHub() {
             <button type="button" className="fresh-flow-search-icon-button" onClick={openFreshSearch} aria-label="Search Fresh Flow" title="Search">⌕</button>
             {isShortsRoute && (
               <>
+                <button type="button" className="fresh-flow-search-icon-button fresh-shorts-bell" onClick={() => setShortsNotificationsOpen(true)} aria-label="Notifications" title="Notifications">🔔</button>
                 <button type="button" className="fresh-flow-search-icon-button fresh-shorts-add" onClick={() => openCreator("create")} aria-label="Add or create a Short" title="Add / Create">＋</button>
                 <button type="button" className="fresh-flow-search-icon-button fresh-shorts-camera" onClick={() => openCreator("camera")} aria-label="Open camera to record a Short" title="Camera">◉</button>
               </>
@@ -267,6 +270,13 @@ export default function FreshFlowHub() {
       <input ref={flowAvatarInputRef} className="fresh-flow-hidden-avatar-input" type="file" accept="image/*" onChange={handleFlowAvatarChange} aria-label="Choose a Fresh Flow avatar image" />
       <input ref={flowCameraInputRef} className="fresh-flow-hidden-avatar-input" type="file" accept="image/*" capture="user" onChange={handleFlowAvatarChange} aria-label="Take a Fresh Flow avatar photo" />
 
+      {shortsNotificationsOpen && isShortsRoute && (
+        <ShortsNotifications
+          onClose={() => setShortsNotificationsOpen(false)}
+          onOpenCreator={(authorId) => { window.dispatchEvent(new CustomEvent("fresh-shorts-open-creator", { detail: { authorId } })); }}
+        />
+      )}
+
       {searchOpen && (
         <FreshFlowSearchSurface
           onClose={() => {
@@ -275,6 +285,8 @@ export default function FreshFlowHub() {
           }}
           initialTab={searchSeed?.tab}
           initialQuery={searchSeed?.query}
+          scope={isShortsRoute ? "shorts" : "flow"}
+          onOpenCreator={isShortsRoute ? (authorId) => { setSearchOpen(false); setSearchSeed(null); try { sessionStorage.setItem("fresh-shorts-open-creator", authorId); } catch { /* ignore */ } window.dispatchEvent(new CustomEvent("fresh-shorts-open-creator", { detail: { authorId } })); } : undefined}
         />
       )}
     </div>

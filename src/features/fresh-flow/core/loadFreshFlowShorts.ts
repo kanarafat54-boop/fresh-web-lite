@@ -13,6 +13,8 @@ export type FreshFlowLoadOptions = {
   authorIds?: string[];
   limit?: number;
   offset?: number;
+  /** Load exactly these Shorts (deep-link / "open this Short"). */
+  shortIds?: string[];
 };
 
 export async function loadFreshFlowShorts(
@@ -32,6 +34,10 @@ export async function loadFreshFlowShorts(
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
+  if (options.shortIds) {
+    if (options.shortIds.length === 0) return { shorts: [], savedIds: new Set() };
+    query = query.in("id", options.shortIds);
+  }
   if (options.category) query = query.eq("category", options.category);
   if (options.authorIds) {
     if (options.authorIds.length === 0) return { shorts: [], savedIds: new Set() };
