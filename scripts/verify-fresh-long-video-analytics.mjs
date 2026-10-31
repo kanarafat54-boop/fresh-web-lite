@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import assert from "node:assert/strict";
 
-const migration = fs.readFileSync("supabase/migrations/20261031090000_fresh_long_video_creator_analytics.sql", "utf8");
+const migration = fs.readFileSync("supabase/migrations/20261031093350_fresh_long_video_creator_analytics.sql", "utf8");
+const completionMigration = fs.readFileSync("supabase/migrations/20261031093437_fresh_long_video_analytics_completion_guard.sql", "utf8");
 const component = fs.readFileSync("src/features/fresh-flow/components/FreshFlowLongVideos.tsx", "utf8");
 const css = fs.readFileSync("src/features/fresh-flow/components/FreshFlowLongVideos.css", "utf8");
 
