@@ -9,6 +9,7 @@ import { validateInteractionAttachments } from "../../../core/interactions/Fresh
 import { announceInteraction } from "../../../core/interactions/FreshInteractionA11y";
 import type { UniversalCommentAttachment, InteractionMediaKind } from "../../../core/interactions/FreshReactionModel";
 import { rankRootsBySignal } from "../../../core/platform/commentSignalRanking";
+import "./CommentPanel.css";
 
 interface CommentPanelProps {
   targetType: CommentTargetType;
@@ -61,6 +62,16 @@ function buildTree(rows: ViewRow[]): ViewRow[] {
   return roots;
 }
 
+function countAll(rows: ViewRow[]): number {
+  return rows.reduce((total, row) => total + 1 + countAll(row.replies), 0);
+}
+
+function compact(count: number): string {
+  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (count >= 1_000) return `${(count / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+  return String(count);
+}
+
 function inferKind(file: File): InteractionMediaKind {
   if (file.type.startsWith("image/")) return "image";
   if (file.type.startsWith("audio/")) return "audio";
@@ -86,6 +97,8 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const [recording, setRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [likes, setLikes] = useState<Record<string, { count: number; mine: boolean }>>({});
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const dragY = useRef<number | null>(null);
   const dragH = useRef(SHEET_MIN);
   const recorder = useRef<MediaRecorder | null>(null);
@@ -138,6 +151,30 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     }));
     setComments(buildTree(rows));
     setLoading(false);
+    if (targetType === "short" && rows.length) {
+      const reactions = await supabase.from("short_comment_reactions").select("comment_id,user_id").eq("reaction_type", "like").in("comment_id", rows.map((row) => row.id));
+      const next: Record<string, { count: number; mine: boolean }> = {};
+      for (const reaction of (reactions.data ?? []) as any[]) {
+        const entry = next[reaction.comment_id] ?? { count: 0, mine: false };
+        entry.count += 1;
+        if (reaction.user_id === user?.id) entry.mine = true;
+        next[reaction.comment_id] = entry;
+      }
+      setLikes(next);
+    }
+  }
+
+  async function toggleLike(commentId: string) {
+    if (!user || isGuest || targetType !== "short") return;
+    const current = likes[commentId] ?? { count: 0, mine: false };
+    setLikes((all) => ({ ...all, [commentId]: { count: Math.max(0, current.count + (current.mine ? -1 : 1)), mine: !current.mine } }));
+    const result = current.mine
+      ? await supabase.from("short_comment_reactions").delete().eq("comment_id", commentId).eq("user_id", user.id)
+      : await supabase.from("short_comment_reactions").upsert({ comment_id: commentId, user_id: user.id, reaction_type: "like" }, { onConflict: "comment_id,user_id" });
+    if (result.error) {
+      setLikes((all) => ({ ...all, [commentId]: current }));
+      setError(result.error.message);
+    }
   }
 
   async function startRecording(mode: "audio" | "video") {
@@ -251,27 +288,37 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   }
 
   function renderComment(comment: ViewRow, depth = 0): React.ReactNode {
+    const like = likes[comment.id] ?? { count: 0, mine: false };
+    const hidden = comment.moderation_state && comment.moderation_state !== "visible";
     return (
-      <div key={comment.id} style={{ marginLeft: depth * 20 }}>
+      <div key={comment.id} className={depth ? "comment-reply" : "comment-root"}>
         <div className="comment-item">
-          <div className="comment-header">
-            <button type="button" className="comment-author-profile" onClick={() => openProfile(comment.author_id)} aria-label={`Open ${comment.authorName}'s profile`}>{comment.authorName}</button>
-            <span className="post-username">@{comment.authorUsername}</span>
-            <span className="post-time">{timeAgo(comment.created_at)}</span>
+          <button type="button" className="comment-avatar" onClick={() => openProfile(comment.author_id)} aria-label={`Open ${comment.authorName}'s profile`}>{(comment.authorName || "?").slice(0, 1).toUpperCase()}</button>
+          <div className="comment-body">
+            <div className="comment-header">
+              <button type="button" className="comment-author-profile" onClick={() => openProfile(comment.author_id)}>{comment.authorUsername !== "unknown" ? comment.authorUsername : comment.authorName}</button>
+              <span className="post-time">{timeAgo(comment.created_at)}</span>
+            </div>
+            {hidden ? (
+              <p className="empty-state">This comment is {comment.moderation_state}.</p>
+            ) : (
+              <>
+                {comment.content && <p className="comment-content">{comment.content}</p>}
+                {comment.attachments.map((attachment, index) => {
+                  if (attachment.kind === "video") return <video key={index} controls src={attachment.url} className="comment-video-player" />;
+                  if (attachment.kind === "audio") return <audio key={index} controls src={attachment.url} className="comment-audio-player" />;
+                  if (attachment.kind === "image") return <img key={index} src={attachment.url} alt={attachment.altText ?? "Comment attachment"} className="comment-image" />;
+                  return <a key={index} href={attachment.url} target="_blank" rel="noreferrer">{attachment.altText ?? "Open attachment"}</a>;
+                })}
+                <button className="reply-btn" onClick={() => setReplyingTo({ id: comment.id, authorName: comment.authorName })}>Reply</button>
+              </>
+            )}
           </div>
-          {comment.moderation_state && comment.moderation_state !== "visible" ? (
-            <p className="empty-state">This comment is {comment.moderation_state}.</p>
-          ) : (
-            <>
-              {comment.content && <p className="comment-content">{comment.content}</p>}
-              {comment.attachments.map((attachment, index) => {
-                if (attachment.kind === "video") return <video key={index} controls src={attachment.url} className="comment-video-player" />;
-                if (attachment.kind === "audio") return <audio key={index} controls src={attachment.url} className="comment-audio-player" />;
-                if (attachment.kind === "image") return <img key={index} src={attachment.url} alt={attachment.altText ?? "Comment attachment"} style={{ maxWidth: "100%", borderRadius: 12 }} />;
-                return <a key={index} href={attachment.url} target="_blank" rel="noreferrer">{attachment.altText ?? "Open attachment"}</a>;
-              })}
-              <button className="reply-btn" onClick={() => setReplyingTo({ id: comment.id, authorName: comment.authorName })}>Reply</button>
-            </>
+          {targetType === "short" && !hidden && (
+            <button type="button" className={`comment-like${like.mine ? " liked" : ""}`} onClick={() => void toggleLike(comment.id)} aria-pressed={like.mine} aria-label={like.mine ? "Unlike comment" : "Like comment"} disabled={isGuest || !user}>
+              <span aria-hidden="true">{like.mine ? "♥" : "♡"}</span>
+              <small>{like.count ? compact(like.count) : ""}</small>
+            </button>
           )}
         </div>
         {comment.replies.map((reply) => renderComment(reply, depth + 1))}
@@ -281,10 +328,10 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
 
   return (
     <div className="comment-panel-backdrop" onClick={onClose}>
-      <div className="comment-panel" style={{ height: `${sheetHeight}vh`, maxHeight: `${sheetHeight}vh` }} onClick={(event) => event.stopPropagation()}>
+      <div className="comment-panel" role="dialog" aria-label="Comments" style={{ height: `${sheetHeight}vh`, maxHeight: `${sheetHeight}vh` }} onClick={(event) => event.stopPropagation()}>
         <div className="sheet-drag-handle" onPointerDown={(event) => { dragY.current = event.clientY; dragH.current = sheetHeight; }} onPointerMove={(event) => { if (event.buttons === 1 && dragY.current !== null) setSheetHeight(Math.min(SHEET_MAX, Math.max(SHEET_MIN, dragH.current + ((dragY.current - event.clientY) / window.innerHeight) * 100))); }} onPointerUp={() => { dragY.current = null; setSheetHeight((height) => height > (SHEET_MIN + SHEET_MAX) / 2 ? SHEET_MAX : SHEET_MIN); }} />
         <div className="comment-panel-header">
-          <h3>Comments</h3>
+          <h3>Comments{comments.length ? ` (${compact(countAll(comments))})` : ""}</h3>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button type="button" className="reply-btn" onClick={() => setSortMode("time")} aria-pressed={sortMode === "time"}>
               Time
@@ -311,13 +358,14 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
           </div>
         </div>}
         {!isGuest && user ? <>
-          <div className="quick-reaction-row">{QUICK_REACTIONS.map((reaction) => <button key={reaction} className="quick-reaction-chip" onClick={() => setDraft((value) => value + reaction)} aria-label={`Add ${reaction}`}>{reaction}</button>)}</div>
+          {emojiOpen && <div className="quick-reaction-row">{QUICK_REACTIONS.map((reaction) => <button key={reaction} className="quick-reaction-chip" onClick={() => setDraft((value) => value + reaction)} aria-label={`Add ${reaction}`}>{reaction}</button>)}</div>}
           <div className="comment-input-row">
+            <input type="text" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={replyingTo ? `Reply to ${replyingTo.authorName}...` : "Add a comment..."} className="comment-input" aria-label="Add a comment" onKeyDown={(event) => { if (event.key === "Enter") void addComment(); }} />
+            <button className="icon-only-btn" onClick={() => setEmojiOpen((open) => !open)} aria-label="Emoji" aria-pressed={emojiOpen}>☺</button>
             <label className="icon-only-btn" aria-label="Attach images or files"><input hidden type="file" multiple accept="image/*,audio/*,video/*,.pdf,.txt,.doc,.docx" onChange={(event) => selectFiles(event.target.files)} />📎</label>
             <button className="icon-only-btn" onClick={() => void startRecording("audio")} aria-label="Record audio"><MicIcon size={18} /></button>
             <button className="icon-only-btn" onClick={() => void startRecording("video")} aria-label="Record video"><VideoCameraIcon size={18} /></button>
-            <input type="text" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={replyingTo ? `Reply to ${replyingTo.authorName}...` : "Add a comment..."} className="auth-input" onKeyDown={(event) => { if (event.key === "Enter") void addComment(); }} />
-            <button className="add-note-btn" onClick={() => void addComment()} disabled={posting} aria-label={posting ? "Posting" : "Send comment"}>{posting ? "..." : <SendIcon size={16} />}</button>
+            <button className="comment-send" onClick={() => void addComment()} disabled={posting} aria-label={posting ? "Posting" : "Send comment"}>{posting ? "…" : <SendIcon size={16} />}</button>
           </div>
           {files.length > 0 && <div aria-label="Selected attachments">{files.map((file, index) => <span key={`${file.name}-${index}`} className="quick-reaction-chip">{file.name}<button onClick={() => setFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Remove ${file.name}`}>×</button></span>)}</div>}
         </> : <p className="empty-state">Register to comment.</p>}

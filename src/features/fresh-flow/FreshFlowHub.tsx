@@ -12,6 +12,7 @@ import FreshFlowMediaWorkspace from "./components/FreshFlowMediaWorkspace";
 import FreshFlowSearchSurface from "./components/FreshFlowSearchSurface";
 import FreshFlowSwitch from "./components/FreshFlowSwitch";
 import ShortsNotifications from "./components/ShortsNotifications";
+import ShortsCreateCamera from "./components/ShortsCreateCamera";
 import "./components/FreshFlow.css";
 import "./components/FreshFlowReferenceShell.css";
 import "./components/FreshFlowReferenceHeader.css";
@@ -87,6 +88,7 @@ export default function FreshFlowHub() {
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [shortsNotificationsOpen, setShortsNotificationsOpen] = useState(false);
+  const [shortsCreateMode, setShortsCreateMode] = useState<"create" | "camera" | null>(null);
   const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
   const scrollIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -155,6 +157,7 @@ export default function FreshFlowHub() {
   };
 
   const openCreator = (action: "create" | "camera") => {
+    if (isShortsRoute) { setShortsCreateMode(action); return; }
     try { sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action, requestedAt: new Date().toISOString() })); } catch { /* ignore */ }
     setActiveRoute(isGuest ? "auth-signin" : "creator");
   };
@@ -270,6 +273,13 @@ export default function FreshFlowHub() {
       <input ref={flowAvatarInputRef} className="fresh-flow-hidden-avatar-input" type="file" accept="image/*" onChange={handleFlowAvatarChange} aria-label="Choose a Fresh Flow avatar image" />
       <input ref={flowCameraInputRef} className="fresh-flow-hidden-avatar-input" type="file" accept="image/*" capture="user" onChange={handleFlowAvatarChange} aria-label="Take a Fresh Flow avatar photo" />
 
+      {shortsCreateMode && isShortsRoute && (
+        <ShortsCreateCamera
+          initialMode={shortsCreateMode}
+          onClose={() => setShortsCreateMode(null)}
+          onOpenTemplates={() => { setShortsCreateMode(null); try { sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: "create", requestedAt: new Date().toISOString() })); } catch { /* ignore */ } setActiveRoute("creator"); }}
+        />
+      )}
       {shortsNotificationsOpen && isShortsRoute && (
         <ShortsNotifications
           onClose={() => setShortsNotificationsOpen(false)}

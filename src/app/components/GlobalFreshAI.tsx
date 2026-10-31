@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLayout } from "../contexts/useLayout";
-import { useTheme } from "../providers/ThemeProvider";
 import { supabase } from "../../lib/supabase";
 import "./GlobalFreshAI.css";
 
@@ -133,7 +132,6 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 export default function GlobalFreshAI() {
   const { activeRoute } = useLayout();
-  const { theme, toggle } = useTheme();
 
   const [open, setOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -316,9 +314,6 @@ export default function GlobalFreshAI() {
         </div>
 
         <div className="global-fresh-ai-header-actions">
-          <button type="button" onClick={toggle}>
-            {theme === "dark" ? "☀" : "☾"}
-          </button>
           <button
             type="button"
             onClick={() => setFullscreen((value) => !value)}

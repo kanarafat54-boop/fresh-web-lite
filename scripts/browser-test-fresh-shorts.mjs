@@ -253,6 +253,36 @@ for (const width of WIDTHS) {
   await notify.getByRole("button", { name: "Back to Shorts" }).click();
   check(!(await notify.isVisible().catch(() => false)), `${tag} Notifications closes`);
 
+  // Create Short (design screen 5): camera tools, Upload and Templates, close returns to the feed.
+  await page.locator('header [aria-label="Add or create a Short"]').click();
+  const create = page.getByRole("dialog", { name: "Create Short" });
+  await create.waitFor({ state: "visible", timeout: 8000 }).catch(() => undefined);
+  check(await create.isVisible().catch(() => false), `${tag} Create Short opens from the Add button`);
+  const toolText = (await create.locator(".shorts-create-tools").innerText().catch(() => "")).replace(/\s+/g, " ");
+  for (const tool of ["Flip", "Speed", "Filters", "Beauty", "Timer"]) check(toolText.includes(tool), `${tag} Create Short has the ${tool} tool`);
+  const barText = (await create.locator(".shorts-create-bar").innerText().catch(() => "")).replace(/\s+/g, " ");
+  check(barText.includes("Upload") && barText.includes("Templates"), `${tag} Create Short has Upload and Templates`);
+  check(await create.locator(".shorts-create-record").count() === 1, `${tag} Create Short has the record button`);
+  await create.getByRole("button", { name: "Close" }).click();
+  check(!(await create.isVisible().catch(() => false)), `${tag} Create Short closes back to the feed`);
+
+  // Comments sheet (design screen 7): a styled bottom sheet with the count in its title and a composer or sign-in prompt.
+  await page.locator('.fresh-flow-stream[data-discovery] [aria-label="Comments"]').first().click();
+  const sheet = page.getByRole("dialog", { name: "Comments" });
+  await sheet.waitFor({ state: "visible", timeout: 8000 }).catch(() => undefined);
+  check(await sheet.isVisible().catch(() => false), `${tag} Comments sheet opens`);
+  const sheetBox = await sheet.boundingBox().catch(() => null);
+  check(!!sheetBox && sheetBox.y > 40 && sheetBox.y + sheetBox.height <= 760 + 1 && sheetBox.width <= width + 1, `${tag} Comments sheet is a bottom sheet inside the viewport`);
+  check((await sheet.locator("h3").innerText().catch(() => "")).startsWith("Comments"), `${tag} Comments sheet is titled Comments`);
+  const sheetText = await sheet.innerText().catch(() => "");
+  check(sheetText.includes("Register to comment") || (await sheet.getByPlaceholder("Add a comment...").count()) === 1, `${tag} Comments sheet has the composer or a sign-in prompt`);
+  await sheet.getByRole("button", { name: "Close comments" }).click();
+  check(!(await sheet.isVisible().catch(() => false)), `${tag} Comments sheet closes`);
+
+  // Fresh AI button: compact and top-right, so it never covers the action rail or bottom navigation.
+  const aiBox = await page.locator(".global-fresh-ai-trigger").first().boundingBox().catch(() => null);
+  if (aiBox) check(aiBox.width <= 48 && aiBox.y < 200 && aiBox.x + aiBox.width >= width - 24, `${tag} Fresh AI button is compact and top-right`);
+
   // Creator Studio (bottom tab) with its sections; original capability grid is kept.
   await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Creator Studio" }).click();
   await page.locator(".shorts-studio").waitFor({ timeout: 8000 });
