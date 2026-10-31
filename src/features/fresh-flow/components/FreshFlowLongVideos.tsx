@@ -16,6 +16,8 @@ type VideoPlaylist = { id: string; title: string; description: string; visibilit
 type VideoSeries = { id: string; creator_id: string; title: string; description: string; poster_url: string | null; visibility: "private" | "unlisted" | "public"; created_at: string };
 type VideoSeason = { id: string; series_id: string; season_number: number; title: string; description: string };
 type VideoEpisode = { id: string; series_id: string; season_id: string; post_id: string; episode_number: number; title_override: string | null; description_override: string | null };
+type LongVideoAnalytics = { days: number; views: number; qualified_sessions: number; unique_viewers: number; watch_seconds: number; watch_hours: number; average_watch_seconds: number; completed_sessions: number; completion_rate: number; videos: Array<{ post_id: string; title: string; views: number; unique_viewers: number; watch_seconds: number; completed_sessions: number }> };
+type PlaybackAnalyticsSession = { postId: string; sessionId: string; lastPosition: number | null; unsentSeconds: number; lastSentAt: number; maxPosition: number; duration: number | null; pending: boolean; completedRequested: boolean };
 type Category = "Discover" | "Movies & Series" | "Documentaries" | "Education" | "Events" | "Following";
 const CATEGORIES: Category[] = ["Discover", "Movies & Series", "Documentaries", "Education", "Events", "Following"];
 const SAVED_KEY = "fresh-flow-long-video-saved-v1";
@@ -106,6 +108,10 @@ export default function FreshFlowLongVideos() {
   const [playbackSpeed, setPlaybackSpeed] = useState(() => readPlaybackPreferences().playbackSpeed);
   const playerRef = useRef<HTMLVideoElement>(null);
   const progressWriteAt = useRef(0);
+  const analyticsWatchRef = useRef<PlaybackAnalyticsSession | null>(null);
+  const [longVideoAnalytics, setLongVideoAnalytics] = useState<LongVideoAnalytics | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState("");
 
   async function load() {
     setLoading(true); setError("");
@@ -238,6 +244,22 @@ export default function FreshFlowLongVideos() {
   }
   useEffect(() => { void load(); }, [user?.id, isGuest]);
   useEffect(() => {
+    if (!user || isGuest) { setLongVideoAnalytics(null); setAnalyticsLoading(false); setAnalyticsError(""); return; }
+    let current = true;
+    setAnalyticsLoading(true); setAnalyticsError("");
+    void supabase.rpc("get_fresh_long_video_analytics", { p_days: 28 }).then(({ data, error: analyticsLoadError }) => {
+      if (!current) return;
+      if (analyticsLoadError) { setAnalyticsError("Long-video analytics are not available yet. Try refreshing this section."); setLongVideoAnalytics(null); }
+      else setLongVideoAnalytics((data ?? null) as LongVideoAnalytics | null);
+      setAnalyticsLoading(false);
+    });
+    return () => { current = false; };
+  }, [user?.id, isGuest]);
+  useEffect(() => {
+    if (!active) { analyticsWatchRef.current = null; return; }
+    analyticsWatchRef.current = { postId: active.id, sessionId: crypto.randomUUID(), lastPosition: null, unsentSeconds: 0, lastSentAt: Date.now(), maxPosition: 0, duration: null, pending: false, completedRequested: false };
+  }, [active?.id]);
+  useEffect(() => {
     try { localStorage.setItem(PLAYBACK_KEY, JSON.stringify({ autoplay, dataSaver, playbackSpeed })); } catch { /* device storage unavailable */ }
   }, [autoplay, dataSaver, playbackSpeed]);
   useEffect(() => {
@@ -339,6 +361,39 @@ export default function FreshFlowLongVideos() {
         if (historyError) setError("Completed watch history could not sync to Fresh ID.");
       });
     }
+  }
+  function recordPlaybackAnalytics(video: VideoItem, currentTime: number, duration: number, completed = false, force = false) {
+    if (!user || isGuest || !Number.isFinite(currentTime) || currentTime < 0) return;
+    const session = analyticsWatchRef.current;
+    if (!session || session.postId !== video.id) return;
+    if (Number.isFinite(duration) && duration > 0) session.duration = duration;
+    if (session.lastPosition !== null) {
+      const delta = currentTime - session.lastPosition;
+      // Count only normal forward playback; seeking, rewinding and tab-resume jumps do not add watch time.
+      if (delta > 0 && delta <= 2.5) session.unsentSeconds += delta;
+    }
+    session.lastPosition = currentTime;
+    session.maxPosition = Math.max(session.maxPosition, currentTime);
+    const now = Date.now();
+    if (completed) session.completedRequested = true;
+    if (session.pending || (!completed && !force && now - session.lastSentAt < 15000)) return;
+    const increment = Math.min(30, Math.max(0, session.unsentSeconds));
+    if (!completed && increment < 2) return;
+    session.pending = true;
+    void supabase.rpc("record_fresh_long_video_watch", {
+      p_post_id: video.id, p_session_id: session.sessionId, p_watch_seconds: Number(increment.toFixed(3)),
+      p_max_position_seconds: Number(session.maxPosition.toFixed(3)), p_duration_seconds: session.duration,
+      p_completed: completed,
+    }).then(({ error: recordError }) => {
+      if (analyticsWatchRef.current !== session) return;
+      session.pending = false;
+      if (recordError) { setAnalyticsError("Some playback analytics could not sync. Watch progress remains available."); return; }
+      session.unsentSeconds = Math.max(0, session.unsentSeconds - increment);
+      session.lastSentAt = Date.now();
+      const finishSession = session.completedRequested;
+      session.completedRequested = false;
+      if (finishSession && !completed) recordPlaybackAnalytics(video, session.maxPosition, session.duration ?? duration, true, true);
+    });
   }
   async function createPlaylist() {
     if (!user || isGuest) { setActiveRoute("auth-signin"); return; }
@@ -482,7 +537,7 @@ export default function FreshFlowLongVideos() {
     }
   }
   function openPlayer(video: VideoItem) { setActive(video); }
-  function closePlayer() { if (active && playerRef.current) saveProgress(active, playerRef.current.currentTime, true); setActive(null); }
+  function closePlayer() { if (active && playerRef.current) { saveProgress(active, playerRef.current.currentTime, true); recordPlaybackAnalytics(active, playerRef.current.currentTime, playerRef.current.duration, false, true); } setActive(null); }
   function resumeVideo(video: VideoItem) {
     setActive(video);
     window.setTimeout(() => {
@@ -519,7 +574,7 @@ export default function FreshFlowLongVideos() {
     if (!active || activeEpisodeIndex < 0) return;
     const adjacent = activeEpisodeOrder[activeEpisodeIndex + offset]?.video;
     if (!adjacent) return;
-    if (playerRef.current) saveProgress(active, playerRef.current.currentTime, true);
+    if (playerRef.current) { saveProgress(active, playerRef.current.currentTime, true); recordPlaybackAnalytics(active, playerRef.current.currentTime, playerRef.current.duration, false, true); }
     setActive(adjacent);
   }
   if (channelFor) return <section className="fresh-long" aria-label="Creator channel">
@@ -538,15 +593,22 @@ export default function FreshFlowLongVideos() {
     {historyVideos.length > 0 && <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Recently watched</h2><span>{historyVideos.length} videos</span></div><div className="fresh-long-rail">{historyVideos.map((video) => <button key={video.id} type="button" className="fresh-long-resume-card" onClick={() => openPlayer(video)}><span className="fresh-long-thumb">{video.posterUrl ? <img src={video.posterUrl} alt="" /> : "▶"}</span><strong>{video.title}</strong><small>@{video.username}</small></button>)}</div></section>}
     <section className="fresh-long-section"><div className="fresh-long-section-title"><h2>Watch later</h2><span>{savedVideos.length} saved</span></div>{savedVideos.length ? <div className="fresh-long-grid">{savedVideos.map((video) => <article className="fresh-long-card" key={video.id}><button className="fresh-long-card-media" type="button" onClick={() => openPlayer(video)} aria-label={`Play ${video.title}`}>{video.posterUrl ? <img src={video.posterUrl} alt="" /> : <span>▶</span>}<b>▶</b></button><div className="fresh-long-card-copy"><h3>{video.title}</h3><p>{video.authorName}</p><div><button type="button" onClick={() => openPlayer(video)}>Watch</button><button type="button" onClick={() => void toggleSave(video)}>Remove</button></div></div></article>)}</div> : <p className="fresh-long-state">Your Watch Later library is empty. Save a video to find it here.</p>}</section>
     {user && !isGuest && <section className="fresh-long-section fresh-long-analytics">
-      <div className="fresh-long-section-title"><h2>Creator performance</h2><span>From videos currently loaded into Your Library</span></div>
+      <div className="fresh-long-section-title"><h2>Creator performance</h2><span>Audience activity across your public long videos · last 28 days</span></div>
       <div className="fresh-long-analytics-grid">
+        <article><strong>{analyticsLoading ? "—" : (longVideoAnalytics?.views ?? 0).toLocaleString()}</strong><span>Qualified views · 28 days</span></article>
+        <article><strong>{analyticsLoading ? "—" : (longVideoAnalytics?.unique_viewers ?? 0).toLocaleString()}</strong><span>Unique signed-in viewers</span></article>
+        <article><strong>{analyticsLoading ? "—" : (longVideoAnalytics?.watch_hours ?? 0).toLocaleString()}</strong><span>Watch hours</span></article>
+        <article><strong>{analyticsLoading || !longVideoAnalytics?.views ? "—" : String(longVideoAnalytics.completion_rate) + "%"}</strong><span>Completion rate</span></article>
         <article><strong>{ownVideos.length}</strong><span>Videos</span></article>
         <article><strong>{ownVideoLikes}</strong><span>Likes</span></article>
         <article><strong>{ownVideoComments}</strong><span>Comments</span></article>
         <article><strong>{ownVideoLikes + ownVideoComments}</strong><span>Total interactions</span></article>
       </div>
       {topEngagedVideo && <div className="fresh-long-top-video"><div><span>Most engaged video</span><strong>{topEngagedVideo.title}</strong><small>{topEngagedVideo.likes} likes · {topEngagedVideo.comments} comments</small></div><button type="button" onClick={() => openPlayer(topEngagedVideo)}>Open video</button></div>}
-      <p className="fresh-long-honesty">These figures use saved post reaction and comment counts. Long-video reach, impressions, unique viewers, watch time and revenue are not yet measured, so they are not estimated here.</p>
+      {analyticsError && <p className="fresh-long-analytics-error" role="status">{analyticsError} <button type="button" onClick={() => { setAnalyticsLoading(true); setAnalyticsError(""); void supabase.rpc("get_fresh_long_video_analytics", { p_days: 28 }).then(({ data, error: loadError }) => { if (loadError) setAnalyticsError("Long-video analytics could not be loaded."); else setLongVideoAnalytics((data ?? null) as LongVideoAnalytics | null); setAnalyticsLoading(false); }); }}>Retry</button></p>}
+      {longVideoAnalytics?.videos?.length ? <div className="fresh-long-analytics-videos"><h3>Top videos · last {longVideoAnalytics.days} days</h3>{longVideoAnalytics.videos.slice(0, 5).map((item) => <div key={item.post_id}><strong>{item.title}</strong><span>{item.views} views · {item.unique_viewers} viewers · {(item.watch_seconds / 60).toFixed(1)} min watched</span></div>)}</div> : !analyticsLoading && <p className="fresh-long-state">No qualified audience sessions have been recorded in this period yet.</p>}
+      <p className="fresh-long-honesty">Views count signed-in viewer sessions after at least 2 seconds of playback; unique viewers are distinct Fresh IDs. Watch time is estimated from normal forward playback reported by the browser. Self-views and guest sessions are excluded. These client-reported figures are not fraud-proof and begin only after this analytics feature is deployed. Impressions, traffic source and revenue are not measured.</p>
+      <p className="fresh-long-honesty">Likes and comments above come from saved post counts; they are not reach or watch metrics.</p>
     </section>}
     <section className="fresh-long-section fresh-long-series-manager">
       <div className="fresh-long-section-title"><h2>Your series</h2><span>{series.filter((item) => item.creator_id === user?.id).length} series</span></div>
@@ -651,7 +713,7 @@ export default function FreshFlowLongVideos() {
     <section className="fresh-long-section fresh-long-library"><div><h2>Your library</h2><p>{saved.length} saved videos · {user && !isGuest ? "synced to your Fresh ID" : "saved on this device"}</p></div><button type="button" onClick={() => { setCategory("Discover"); setQuery(""); }}>Browse all videos</button></section>
     {active && <div className="fresh-long-player" role="dialog" aria-modal="true" aria-label={active.title} onKeyDown={(event) => { if (event.key === "Escape") closePlayer(); }}>
       <div className="fresh-long-player-bar"><button type="button" onClick={closePlayer} aria-label="Close cinema player">✕</button><div><strong>{active.title}</strong><small>@{active.username}</small></div><button type="button" onClick={() => void toggleSave(active)}>{saved.includes(active.id) ? "Saved" : "Save"}</button></div>
-      <div className="fresh-long-player-stage"><video ref={playerRef} key={active.id} src={active.videoUrl} poster={active.posterUrl ?? undefined} controls playsInline autoPlay={autoplay && !dataSaver} preload={dataSaver ? "none" : "metadata"} onLoadedMetadata={(e) => { e.currentTarget.playbackRate = Number(playbackSpeed); saveDuration(active.id, e.currentTarget.duration); }} onTimeUpdate={(e) => saveProgress(active, e.currentTarget.currentTime)} onEnded={() => clearProgress(active.id)} onError={() => setError("This video could not be played. The creator's media URL may be unavailable.")} /><div className="fresh-long-player-meta"><span>FRESH FLOW CINEMA</span><h2>{active.title}</h2><p>{active.description}</p><button type="button" aria-pressed={likedIds.includes(active.id)} onClick={() => void toggleLike(active)}>{likedIds.includes(active.id) ? "♥ Liked" : "♡ Like"} · {active.likes}</button><button type="button" onClick={() => void shareVideo(active)}>Share</button><button type="button" onClick={() => { setCommentsFor(active.id); closePlayer(); }}>Open discussion · {active.comments}</button>
+      <div className="fresh-long-player-stage"><video ref={playerRef} key={active.id} src={active.videoUrl} poster={active.posterUrl ?? undefined} controls playsInline autoPlay={autoplay && !dataSaver} preload={dataSaver ? "none" : "metadata"} onLoadedMetadata={(e) => { e.currentTarget.playbackRate = Number(playbackSpeed); saveDuration(active.id, e.currentTarget.duration); }} onTimeUpdate={(e) => { saveProgress(active, e.currentTarget.currentTime); recordPlaybackAnalytics(active, e.currentTarget.currentTime, e.currentTarget.duration); }} onPause={(e) => recordPlaybackAnalytics(active, e.currentTarget.currentTime, e.currentTarget.duration, false, true)} onEnded={(e) => { recordPlaybackAnalytics(active, e.currentTarget.currentTime, e.currentTarget.duration, true, true); clearProgress(active.id); }} onError={() => setError("This video could not be played. The creator's media URL may be unavailable.")} /><div className="fresh-long-player-meta"><span>FRESH FLOW CINEMA</span><h2>{active.title}</h2><p>{active.description}</p><button type="button" aria-pressed={likedIds.includes(active.id)} onClick={() => void toggleLike(active)}>{likedIds.includes(active.id) ? "♥ Liked" : "♡ Like"} · {active.likes}</button><button type="button" onClick={() => void shareVideo(active)}>Share</button><button type="button" onClick={() => { setCommentsFor(active.id); closePlayer(); }}>Open discussion · {active.comments}</button>
           {activeEpisode && activeEpisodeSeries && <section className="fresh-long-episode-player" aria-label="Series episode navigation">
             <div><span>{activeEpisodeSeries.title}</span><small>Season {activeEpisodeOrder[activeEpisodeIndex]?.season?.season_number ?? "—"} · Episode {activeEpisode.episode_number}</small></div>
             <div className="fresh-long-episode-player-controls">
