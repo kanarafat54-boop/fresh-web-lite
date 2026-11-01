@@ -201,8 +201,8 @@ export default function FreshStudioProductionDesk({ onBack }: { onBack: () => vo
           </section>}
           <section className="fpd-panel fpd-render-panel">
             <div className="fpd-panel-heading"><div><span className="fpd-kicker">3D WORLD & VFX FOUNDATION</span><h3>Blender scene renderer</h3></div><span>CPU render</span></div>
-            <p className="fpd-render-description">Submit a bounded fantasy portal scene to the separate Blender worker. The worker builds geometry, materials, camera and lighting, then returns a validated PNG render.</p>
-            <button type="button" className="fpd-primary" onClick={renderFantasyPreview} disabled={["submitting","queued","running"].includes(renderState)}>{renderState === "submitting" ? "Submitting…" : renderState === "queued" || renderState === "running" ? "Rendering…" : "Render fantasy scene"}</button>
+            <p className="fpd-render-description">Render a starter fantasy portal test scene with real Blender geometry, materials, camera and lighting. This first render validates the 3D worker path; it is not yet a conversion of your written scene into 3D.</p>
+            <button type="button" className="fpd-primary" onClick={renderFantasyPreview} disabled={["submitting","queued","running"].includes(renderState)}>{renderState === "submitting" ? "Submitting…" : renderState === "queued" || renderState === "running" ? "Rendering…" : "Render 3D test scene"}</button>
             {renderMessage && <p className={`fpd-render-status is-${renderState}`} role="status">{renderMessage}</p>}
             {renderPreviewUrl && <img className="fpd-render-preview" src={renderPreviewUrl} alt="Rendered fantasy portal scene from the Blender worker" />}
             <small className="fpd-render-footnote">Requires the Fresh Blender worker to be deployed and its server-only URL and token configured. If it is not configured, the API returns a clear setup-required response.</small>
