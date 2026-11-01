@@ -11,6 +11,7 @@ const PORT = Number(process.env.PORT || 8081);
 const ROOT = "/tmp/fresh-blender-worker";
 const BLENDER_BIN = process.env.BLENDER_BIN || "blender";
 const MAX_ACTIVE_JOBS = 1;
+const MAX_RETAINED_JOBS = 60;
 const MAX_OUTPUT_BYTES = 20 * 1024 * 1024;
 const jobs = new Map();
 await mkdir(ROOT, { recursive: true });
@@ -73,6 +74,13 @@ const server = http.createServer(async (req, res) => {
       const checked = validateSceneSpec(body.scene);
       if (!checked.ok) return json(res, 400, { error: checked.errors.join("; ") });
       if ([...jobs.values()].some((job) => job.status === "queued" || job.status === "running")) return json(res, 429, { error: "Blender worker is busy. Try again shortly." });
+      if (jobs.size >= MAX_RETAINED_JOBS) {
+        const finished = [...jobs.values()].filter((job) => ["succeeded", "failed"].includes(job.status));
+        for (const old of finished.slice(0, Math.max(1, jobs.size - MAX_RETAINED_JOBS + 1))) {
+          if (old.outputPath) await rm(old.outputPath, { force: true }).catch(() => {});
+          jobs.delete(old.id);
+        }
+      }
       const job = { id: randomUUID(), status: "queued", scene: checked.scene, createdAt: new Date().toISOString() };
       jobs.set(job.id, job);
       void run(job);
