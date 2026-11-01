@@ -35,10 +35,11 @@ import { createThumbnail, probeMedia, submitMediaToWorker, waitForMediaWorker } 
 import { saveMediaAsset } from "../../core/platform/mediaStorage";
 import { useLayout } from "../../app/contexts/useLayout";
 import StudioMediaOpsPanels from "./StudioMediaOpsPanels";
+import FreshStudioProductionDesk from "./FreshStudioProductionDesk";
 import "./WorkspacePage.css";
 import "./StudioWorkspace.css";
 
-type StudioMode = "start" | "camera" | "photo" | "edit" | "pipeline" | "discover" | "business" | "system";
+type StudioMode = "start" | "camera" | "photo" | "edit" | "pipeline" | "discover" | "business" | "system" | "production";
 
 const MODE_TABS: { id: StudioMode; label: string }[] = [
   { id: "edit", label: "Edit" },
@@ -46,6 +47,7 @@ const MODE_TABS: { id: StudioMode; label: string }[] = [
   { id: "discover", label: "Discover" },
   { id: "business", label: "Business" },
   { id: "system", label: "System" },
+  { id: "production", label: "Director" },
 ];
 
 const candidates = [
@@ -659,6 +661,12 @@ export default function StudioWorkspace() {
               <small>Access media pipeline status, diagnostics and experimental controls.</small>
               <span className="studio-start-link">View tools →</span>
             </button>
+            <button type="button" className="studio-start-card studio-start-card-primary" onClick={() => setMode("production")}>
+              <span className="studio-start-icon" aria-hidden="true">🎬</span>
+              <strong>Plan a film or series</strong>
+              <small>Build a story brief, define worlds and characters, break it into scenes and create a camera shot list.</small>
+              <span className="studio-start-link">Open Fresh Director →</span>
+            </button>
           </div>
           {project && (
             <div className="studio-continue-card">
@@ -702,6 +710,8 @@ export default function StudioWorkspace() {
           </button>
         ))}
       </nav>}
+
+      {mode === "production" && <FreshStudioProductionDesk onBack={() => setMode("start")} />}
 
       {mode === "photo" && (
         <section className="studio-photo-workspace" aria-label="Photo editor">

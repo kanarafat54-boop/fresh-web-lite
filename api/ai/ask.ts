@@ -49,6 +49,7 @@ async function handleMediaWorkerProxy(req: Request): Promise<Response> {
     const workerToken = process.env.FRESH_MEDIA_WORKER_API_TOKEN?.trim();
     if (!workerUrl || !workerToken) return jsonProxy({ error: "Fresh media processing is not configured on the server." }, 503);
     const headers = new Headers({ authorization: "Bearer " + workerToken });
+    headers.set("x-fresh-user-id", authResult.data.user.id);
     let body: string | undefined;
     if (req.method === "POST") {
       if (!(req.headers.get("content-type") ?? "").toLowerCase().includes("application/json")) return jsonProxy({ error: "A JSON media job is required." }, 415);
@@ -74,6 +75,67 @@ async function handleMediaWorkerProxy(req: Request): Promise<Response> {
     return new Response(upstream.body, { status: upstream.status, headers: outHeaders });
   } catch {
     return jsonProxy({ error: "Fresh media worker request failed. Please try again." }, 502);
+  }
+}
+
+
+async function handleBlenderWorkerProxy(req: Request): Promise<Response> {
+  const reply = (value: unknown, status = 200) => Response.json(value, { status, headers: { "cache-control": "no-store" } });
+  try {
+    const requestUrl = new URL(req.url);
+    const suffix = requestUrl.searchParams.get("__fresh_blender_worker_path") ?? "";
+    const segments = suffix.split("/").filter(Boolean);
+    const validId = (value: string) => value.length === 36 && /^[0-9a-f-]+$/i.test(value);
+    const validPath = (segments.length === 1 && segments[0] === "jobs")
+      || (segments.length === 2 && segments[0] === "jobs" && validId(segments[1]))
+      || (segments.length === 3 && segments[0] === "jobs" && validId(segments[1]) && segments[2] === "output");
+    if (!validPath) return reply({ error: "Blender worker route not found." }, 404);
+    const path = "/" + segments.join("/");
+    if (!((req.method === "POST" && path === "/jobs") || (req.method === "GET" && path.startsWith("/jobs/")))) return reply({ error: "Method not allowed." }, 405);
+    const authorization = req.headers.get("authorization") ?? "";
+    const bearer = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+    const supabaseUrl = process.env.VITE_SUPABASE_URL;
+    const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
+    if (!bearer || !supabaseUrl || !anonKey) return reply({ error: "Authentication required." }, 401);
+    const authClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+    const authResult = await authClient.auth.getUser(bearer);
+    if (authResult.error || !authResult.data.user) return reply({ error: "Authentication required." }, 401);
+    let workerUrl = process.env.FRESH_BLENDER_WORKER_URL?.trim() ?? "";
+    while (workerUrl.endsWith("/")) workerUrl = workerUrl.slice(0, -1);
+    const workerToken = process.env.FRESH_BLENDER_WORKER_API_TOKEN?.trim();
+    if (!workerUrl || !workerToken) return reply({ error: "Fresh 3D rendering is not configured on the server yet." }, 503);
+    const parsedWorkerUrl = new URL(workerUrl);
+    if (parsedWorkerUrl.protocol !== "https:") return reply({ error: "Blender worker must use HTTPS." }, 503);
+    const headers = new Headers({ authorization: "Bearer " + workerToken });
+    let body: string | undefined;
+    if (req.method === "POST") {
+      if (!(req.headers.get("content-type") ?? "").toLowerCase().includes("application/json")) return reply({ error: "A JSON scene is required." }, 415);
+      body = await req.text();
+      if (body.length > 32 * 1024) return reply({ error: "Scene request exceeds 32 KB." }, 413);
+      let parsed: unknown;
+      try { parsed = JSON.parse(body); } catch { return reply({ error: "Invalid JSON scene." }, 400); }
+      const scene = parsed && typeof parsed === "object" ? (parsed as { scene?: unknown }).scene : null;
+      if (!scene || typeof scene !== "object" || Array.isArray(scene)) return reply({ error: "scene is required." }, 400);
+      headers.set("content-type", "application/json");
+    }
+    const upstream = await fetch(workerUrl + path, {
+      method: req.method, headers, ...(body === undefined ? {} : { body }),
+      cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(45_000),
+    });
+    const contentType = upstream.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      const payload = await upstream.json().catch(() => ({})) as Record<string, unknown>;
+      if (typeof payload.statusUrl === "string" && payload.statusUrl.startsWith("/")) payload.statusUrl = "/api/blender-worker" + payload.statusUrl;
+      if (typeof payload.outputUrl === "string" && payload.outputUrl.startsWith("/")) payload.outputUrl = "/api/blender-worker" + payload.outputUrl;
+      return reply(payload, upstream.status);
+    }
+    const outHeaders = new Headers({ "cache-control": "no-store", "x-content-type-options": "nosniff" });
+    if (contentType) outHeaders.set("content-type", contentType);
+    const length = upstream.headers.get("content-length");
+    if (length) outHeaders.set("content-length", length);
+    return new Response(upstream.body, { status: upstream.status, headers: outHeaders });
+  } catch {
+    return reply({ error: "Fresh 3D render worker request failed. Please try again." }, 502);
   }
 }
 
@@ -157,12 +219,14 @@ export async function GET(req: Request): Promise<Response> {
   const url = new URL(req.url);
   if (url.searchParams.has("__fresh_ai_status")) return handleFreshAIStatus();
   if (url.searchParams.has("__fresh_media_worker_path")) return handleMediaWorkerProxy(req);
+  if (url.searchParams.has("__fresh_blender_worker_path")) return handleBlenderWorkerProxy(req);
   return json({ error: "Method not allowed." }, 405);
 }
 
 export async function POST(req: Request): Promise<Response> {
   const postUrl = new URL(req.url);
   if (postUrl.searchParams.has("__fresh_media_worker_path")) return handleMediaWorkerProxy(req);
+  if (postUrl.searchParams.has("__fresh_blender_worker_path")) return handleBlenderWorkerProxy(req);
   if (postUrl.searchParams.has("__fresh_astra_vision")) { const { handleAstraVision } = await import("../../src/server/freshAstraVision.js"); return handleAstraVision(req); }
   const requestId = crypto.randomUUID();
   try {
