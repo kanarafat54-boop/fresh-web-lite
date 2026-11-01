@@ -1,0 +1,146 @@
+name: Fresh Studio on-demand Blender render
+
+on:
+  workflow_dispatch:
+    inputs:
+      quality:
+        description: Render quality
+        type: choice
+        required: true
+        default: preview
+        options:
+          - preview
+          - standard
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fresh-studio-blender-render
+  cancel-in-progress: false
+
+jobs:
+  render:
+    name: Render a real Blender PNG
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out Fresh Web Lite
+        uses: actions/checkout@v4
+
+      - name: Build isolated Blender worker image
+        run: docker build --pull -t fresh-blender-render-worker:ci workers/blender-render-worker
+
+      - name: Start isolated worker with a one-run secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOKEN="$(openssl rand -hex 32)"
+          echo "::add-mask::$TOKEN"
+          echo "FRESH_RENDER_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+          docker run --detach --name fresh-blender-render-ci \
+            --publish 127.0.0.1:8081:8081 \
+            --env FRESH_BLENDER_WORKER_API_TOKEN="$TOKEN" \
+            fresh-blender-render-worker:ci
+
+      - name: Wait for Blender health check
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8081/health > /tmp/fresh-blender-health.json; then
+              cat /tmp/fresh-blender-health.json
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs fresh-blender-render-ci
+          echo "Blender worker did not become healthy." >&2
+          exit 1
+
+      - name: Submit and wait for a real Blender render
+        shell: bash
+        env:
+          QUALITY: ${{ inputs.quality }}
+        run: |
+          set -euo pipefail
+          if [ "$QUALITY" = "standard" ]; then
+            WIDTH=960
+            HEIGHT=540
+          else
+            WIDTH=640
+            HEIGHT=360
+          fi
+
+          cat > /tmp/fresh-blender-scene.json <<EOF
+          {
+            "scene": {
+              "title": "Fresh Studio GitHub Actions render verification",
+              "width": $WIDTH,
+              "height": $HEIGHT,
+              "objects": [
+                {"name":"Portal Frame","type":"torus","position":{"x":0,"y":0,"z":1.4},"scale":{"x":1.5,"y":1.5,"z":1.5},"color":"#635BFF"},
+                {"name":"Core Sphere","type":"sphere","position":{"x":0,"y":0,"z":1.4},"scale":{"x":0.62,"y":0.62,"z":0.62},"color":"#DC2626"},
+                {"name":"Ground","type":"plane","position":{"x":0,"y":0,"z":-0.2},"scale":{"x":5,"y":5,"z":1},"color":"#24243A"}
+              ]
+            }
+          }
+          EOF
+
+          RESPONSE="$(curl --fail --silent --show-error \
+            --request POST http://127.0.0.1:8081/jobs \
+            --header "Authorization: Bearer $FRESH_RENDER_TOKEN" \
+            --header "x-fresh-user-id: github-actions-render-smoke" \
+            --header "content-type: application/json" \
+            --data-binary @/tmp/fresh-blender-scene.json)"
+          JOB_ID="$(node -e 'const x=JSON.parse(process.argv[1]); if(!x.jobId) process.exit(2); process.stdout.write(x.jobId)' "$RESPONSE")"
+          echo "Submitted Blender job: $JOB_ID"
+
+          for attempt in $(seq 1 120); do
+            STATUS="$(curl --fail --silent --show-error \
+              http://127.0.0.1:8081/jobs/$JOB_ID \
+              --header "Authorization: Bearer $FRESH_RENDER_TOKEN" \
+              --header "x-fresh-user-id: github-actions-render-smoke")"
+            STATE="$(node -e 'const x=JSON.parse(process.argv[1]); process.stdout.write(x.status || "unknown")' "$STATUS")"
+            echo "Render state: $STATE"
+            if [ "$STATE" = "succeeded" ]; then
+              mkdir -p artifacts/fresh-studio
+              curl --fail --silent --show-error \
+                http://127.0.0.1:8081/jobs/$JOB_ID/output \
+                --header "Authorization: Bearer $FRESH_RENDER_TOKEN" \
+                --header "x-fresh-user-id: github-actions-render-smoke" \
+                --output artifacts/fresh-studio/blender-render.png
+              break
+            fi
+            if [ "$STATE" = "failed" ]; then
+              echo "$STATUS"
+              docker logs fresh-blender-render-ci
+              exit 1
+            fi
+            sleep 2
+          done
+
+          test -s artifacts/fresh-studio/blender-render.png
+          node --input-type=module -e '
+            import { readFileSync, statSync } from "node:fs";
+            const path = "artifacts/fresh-studio/blender-render.png";
+            const data = readFileSync(path);
+            const signature = Buffer.from("89504e470d0a1a0a", "hex");
+            if (data.length < 1000 || !data.subarray(0, 8).equals(signature)) {
+              throw new Error("Blender output is not a valid PNG.");
+            }
+            console.log("Validated PNG:", statSync(path).size, "bytes");
+          '
+
+      - name: Upload rendered PNG artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fresh-studio-blender-render
+          path: artifacts/fresh-studio/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop isolated Blender worker
+        if: always()
+        run: docker rm --force fresh-blender-render-ci || true
