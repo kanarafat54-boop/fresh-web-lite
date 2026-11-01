@@ -41,10 +41,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function submitBlenderRenderJob(scene: BlenderSceneSpec): Promise<{ jobId: string; status: "queued" }> {
-  return request("/jobs", { method: "POST", body: JSON.stringify({ scene }) });
+  return request<{ jobId: string; status: "queued" }>("/jobs", { method: "POST", body: JSON.stringify({ scene }) });
 }
 export async function getBlenderRenderJob(jobId: string): Promise<BlenderRenderJob> {
-  return request("/jobs/" + encodeURIComponent(jobId), { method: "GET" });
+  return request<BlenderRenderJob>("/jobs/" + encodeURIComponent(jobId), { method: "GET" });
 }
 export async function fetchBlenderRenderOutput(jobId: string): Promise<Blob> {
   const { data, error } = await supabase.auth.getSession();
