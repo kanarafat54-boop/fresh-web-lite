@@ -81,7 +81,9 @@ const server = http.createServer(async (req, res) => {
           jobs.delete(old.id);
         }
       }
-      const job = { id: randomUUID(), status: "queued", scene: checked.scene, createdAt: new Date().toISOString() };
+      const ownerId = String(req.headers["x-fresh-user-id"] || "");
+      if (!ownerId) return json(res, 401, { error: "Authenticated owner context is required." });
+      const job = { id: randomUUID(), ownerId, status: "queued", scene: checked.scene, createdAt: new Date().toISOString() };
       jobs.set(job.id, job);
       void run(job);
       return json(res, 202, { jobId: job.id, status: "queued", statusUrl: "/jobs/" + job.id });
@@ -90,13 +92,14 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && match) {
       const job = jobs.get(match[1]);
       if (!job) return json(res, 404, { error: "Job not found." });
-      const { scene, outputPath, id, ...safe } = job;
+      if (job.ownerId !== String(req.headers["x-fresh-user-id"] || "")) return json(res, 404, { error: "Job not found." });
+      const { scene, outputPath, ownerId, id, ...safe } = job;
       return json(res, 200, { ...safe, jobId: id, outputUrl: job.status === "succeeded" ? "/jobs/" + id + "/output" : null });
     }
     const output = url.pathname.match(/^\/jobs\/([0-9a-f-]{36})\/output$/i);
     if (req.method === "GET" && output) {
       const job = jobs.get(output[1]);
-      if (!job || job.status !== "succeeded" || !job.outputPath) return json(res, 404, { error: "Render output is not ready." });
+      if (!job || job.ownerId !== String(req.headers["x-fresh-user-id"] || "") || job.status !== "succeeded" || !job.outputPath) return json(res, 404, { error: "Render output is not available." });
       const data = await readFile(job.outputPath);
       res.writeHead(200, { "content-type": "image/png", "content-length": data.byteLength, "cache-control": "no-store", "x-content-type-options": "nosniff" });
       return res.end(data);
