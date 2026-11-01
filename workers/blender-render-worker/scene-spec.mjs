@@ -19,13 +19,17 @@ export function validateSceneSpec(value) {
     const color = typeof object.color === "string" && /^#[0-9a-f]{6}$/i.test(object.color) ? object.color : "#8b83ff";
     const coords = ["x", "y", "z"].map((key) => position[key] ?? 0);
     const sizes = ["x", "y", "z"].map((key) => scale[key] ?? 1);
+    const rotation = object.rotation ?? {};
+    const angles = ["x", "y", "z"].map((key) => rotation[key] ?? 0);
     if (!coords.every((n) => finite(n) && Math.abs(n) <= 20)) errors.push(`object ${index + 1} position is outside the supported range`);
     if (!sizes.every((n) => finite(n) && n >= 0.1 && n <= 8)) errors.push(`object ${index + 1} scale is outside the supported range`);
+    if (!angles.every((n) => finite(n) && Math.abs(n) <= 6.2832)) errors.push(`object ${index + 1} rotation is outside the supported range`);
     normalized.push({
       name: typeof object.name === "string" ? object.name.trim().slice(0, 40) : `Object ${index + 1}`,
       type: object.type,
       position: { x: clamp(coords[0] || 0, -20, 20), y: clamp(coords[1] || 0, -20, 20), z: clamp(coords[2] || 0, -20, 20) },
       scale: { x: clamp(sizes[0] || 1, 0.1, 8), y: clamp(sizes[1] || 1, 0.1, 8), z: clamp(sizes[2] || 1, 0.1, 8) },
+      rotation: { x: clamp(angles[0] || 0, -6.2832, 6.2832), y: clamp(angles[1] || 0, -6.2832, 6.2832), z: clamp(angles[2] || 0, -6.2832, 6.2832) },
       color,
     });
   }
