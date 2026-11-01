@@ -83,8 +83,13 @@ async function handleBlenderWorkerProxy(req: Request): Promise<Response> {
   try {
     const requestUrl = new URL(req.url);
     const suffix = requestUrl.searchParams.get("__fresh_blender_worker_path") ?? "";
-    const path = "/" + suffix.replace(/^\\/+/, "");
-    if (!(path === "/jobs" || /^\\/jobs\\/[0-9a-f-]{36}$/i.test(path) || /^\\/jobs\\/[0-9a-f-]{36}\\/output$/i.test(path))) return reply({ error: "Blender worker route not found." }, 404);
+    const segments = suffix.split("/").filter(Boolean);
+    const validId = (value: string) => value.length === 36 && /^[0-9a-f-]+$/i.test(value);
+    const validPath = (segments.length === 1 && segments[0] === "jobs")
+      || (segments.length === 2 && segments[0] === "jobs" && validId(segments[1]))
+      || (segments.length === 3 && segments[0] === "jobs" && validId(segments[1]) && segments[2] === "output");
+    if (!validPath) return reply({ error: "Blender worker route not found." }, 404);
+    const path = "/" + segments.join("/");
     if (!((req.method === "POST" && path === "/jobs") || (req.method === "GET" && path.startsWith("/jobs/")))) return reply({ error: "Method not allowed." }, 405);
     const authorization = req.headers.get("authorization") ?? "";
     const bearer = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
@@ -94,7 +99,8 @@ async function handleBlenderWorkerProxy(req: Request): Promise<Response> {
     const authClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
     const authResult = await authClient.auth.getUser(bearer);
     if (authResult.error || !authResult.data.user) return reply({ error: "Authentication required." }, 401);
-    const workerUrl = process.env.FRESH_BLENDER_WORKER_URL?.trim().replace(/\\/$/, "");
+    let workerUrl = process.env.FRESH_BLENDER_WORKER_URL?.trim() ?? "";
+    while (workerUrl.endsWith("/")) workerUrl = workerUrl.slice(0, -1);
     const workerToken = process.env.FRESH_BLENDER_WORKER_API_TOKEN?.trim();
     if (!workerUrl || !workerToken) return reply({ error: "Fresh 3D rendering is not configured on the server yet." }, 503);
     const parsedWorkerUrl = new URL(workerUrl);
