@@ -15,6 +15,13 @@ const MAX_RETAINED_JOBS = 60;
 const MAX_OUTPUT_BYTES = 20 * 1024 * 1024;
 const jobs = new Map();
 await mkdir(ROOT, { recursive: true });
+let blenderVersion = null;
+try {
+  const version = await execFileAsync(BLENDER_BIN, ["--version"], { timeout: 10000, maxBuffer: 64 * 1024 });
+  blenderVersion = String(version.stdout).split("\\n")[0] || "Blender available";
+} catch {
+  console.error("Blender executable is unavailable; render jobs will fail until it is installed.");
+}
 
 function json(res, status, body) {
   res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
@@ -65,7 +72,7 @@ async function run(job) {
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url || "/", "http://localhost");
-    if (req.method === "GET" && url.pathname === "/health") return json(res, 200, { ok: true, service: "fresh-blender-render-worker", blender: BLENDER_BIN });
+    if (req.method === "GET" && url.pathname === "/health") return json(res, blenderVersion ? 200 : 503, { ok: Boolean(blenderVersion), service: "fresh-blender-render-worker", blender: blenderVersion || "unavailable" });
     const auth = authorized(req);
     if (auth === "unconfigured") return json(res, 503, { error: "Blender worker authentication is not configured." });
     if (auth !== "ok") return json(res, 401, { error: "Authentication required." });
