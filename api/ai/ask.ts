@@ -49,6 +49,7 @@ async function handleMediaWorkerProxy(req: Request): Promise<Response> {
     const workerToken = process.env.FRESH_MEDIA_WORKER_API_TOKEN?.trim();
     if (!workerUrl || !workerToken) return jsonProxy({ error: "Fresh media processing is not configured on the server." }, 503);
     const headers = new Headers({ authorization: "Bearer " + workerToken });
+    headers.set("x-fresh-user-id", authResult.data.user.id);
     let body: string | undefined;
     if (req.method === "POST") {
       if (!(req.headers.get("content-type") ?? "").toLowerCase().includes("application/json")) return jsonProxy({ error: "A JSON media job is required." }, 415);
