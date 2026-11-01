@@ -5,6 +5,7 @@ export type BlenderSceneObject = {
   type: "cube" | "sphere" | "cone" | "torus" | "plane";
   position?: { x?: number; y?: number; z?: number };
   scale?: { x?: number; y?: number; z?: number };
+  rotation?: { x?: number; y?: number; z?: number };
   color?: string;
 };
 export type BlenderSceneSpec = {
