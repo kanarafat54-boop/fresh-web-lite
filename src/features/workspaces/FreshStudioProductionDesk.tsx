@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./FreshStudioProductionDesk.css";
+import { fetchBlenderRenderOutput, getBlenderRenderJob, submitBlenderRenderJob } from "../../core/platform/blenderRenderWorker";
 
 type Shot = { id: string; title: string; framing: string; movement: string; duration: number; notes: string };
 type Scene = { id: string; title: string; location: string; timeOfDay: string; description: string; shots: Shot[] };
@@ -37,6 +38,9 @@ export default function FreshStudioProductionDesk({ onBack }: { onBack: () => vo
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"saved" | "saving" | "error">("saved");
   const [sceneDraft, setSceneDraft] = useState({ title: "", location: "", description: "" });
+  const [renderState, setRenderState] = useState<"idle" | "submitting" | "queued" | "running" | "ready" | "failed">("idle");
+  const [renderMessage, setRenderMessage] = useState("");
+  const [renderPreviewUrl, setRenderPreviewUrl] = useState<string | null>(null);
   const selectedScene = useMemo(
     () => production.scenes.find((scene) => scene.id === selectedSceneId) ?? production.scenes[0] ?? null,
     [production.scenes, selectedSceneId],
@@ -85,6 +89,47 @@ export default function FreshStudioProductionDesk({ onBack }: { onBack: () => vo
     setProduction((current) => ({ ...current, scenes: current.scenes.filter((scene) => scene.id !== id) }));
     if (selectedSceneId === id) setSelectedSceneId(null);
   };
+  useEffect(() => () => { if (renderPreviewUrl) URL.revokeObjectURL(renderPreviewUrl); }, [renderPreviewUrl]);
+
+  const renderFantasyPreview = async () => {
+    setRenderState("submitting");
+    setRenderMessage("Submitting a real Blender render job…");
+    try {
+      const accepted = await submitBlenderRenderJob({
+        title: selectedScene?.title || production.title,
+        width: 960,
+        height: 540,
+        objects: [
+          { name: "Portal ring", type: "torus", position: { x: 0, y: 0, z: 1.3 }, scale: { x: 1.5, y: 1.5, z: 1.5 }, rotation: { x: 1.5708, y: 0, z: 0 }, color: "#8b5cf6" },
+          { name: "Portal core", type: "sphere", position: { x: 0, y: 0, z: 1.3 }, scale: { x: 0.62, y: 0.18, z: 0.62 }, color: "#38bdf8" },
+          { name: "Left obelisk", type: "cone", position: { x: -2.4, y: 0, z: 0 }, scale: { x: 0.55, y: 0.55, z: 2.2 }, color: "#64748b" },
+          { name: "Right obelisk", type: "cone", position: { x: 2.4, y: 0, z: 0 }, scale: { x: 0.55, y: 0.55, z: 2.2 }, color: "#64748b" },
+          { name: "Ground", type: "plane", position: { x: 0, y: 0, z: -1.15 }, scale: { x: 5, y: 5, z: 1 }, color: "#172033" },
+        ],
+      });
+      setRenderState("queued");
+      setRenderMessage("Blender accepted the job. Waiting for the render worker…");
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1500));
+        const job = await getBlenderRenderJob(accepted.jobId);
+        if (job.status === "failed") throw new Error(job.error || "Blender render failed.");
+        if (job.status === "running") setRenderState("running");
+        if (job.status === "succeeded") {
+          const blob = await fetchBlenderRenderOutput(accepted.jobId);
+          const nextUrl = URL.createObjectURL(blob);
+          setRenderPreviewUrl(nextUrl);
+          setRenderState("ready");
+          setRenderMessage("Rendered by the Blender worker. This is a real PNG artifact.");
+          return;
+        }
+      }
+      throw new Error("The Blender render is taking longer than expected. Check the worker status before retrying.");
+    } catch (error) {
+      setRenderState("failed");
+      setRenderMessage(error instanceof Error ? error.message : "Unable to render this scene.");
+    }
+  };
+
   const exportPlan = () => {
     const lines = [
       `# ${production.title}`, `Genre: ${production.genre}`, `Format: ${production.format}`,
@@ -154,7 +199,15 @@ export default function FreshStudioProductionDesk({ onBack }: { onBack: () => vo
             </div>)}
             {!selectedScene.shots.length && <p className="fpd-empty">No shots yet. Add a shot to define framing, camera movement and duration.</p>}
           </section>}
-          <div className="fpd-capability-note"><strong>Production truth:</strong> This first Director workspace saves your planning data locally and exports a Markdown production plan. It does not yet generate 3D assets, animate scenes or render VFX. Those tools will be connected only when their execution backends are implemented and tested.</div>
+          <section className="fpd-panel fpd-render-panel">
+            <div className="fpd-panel-heading"><div><span className="fpd-kicker">3D WORLD & VFX FOUNDATION</span><h3>Blender scene renderer</h3></div><span>CPU render</span></div>
+            <p className="fpd-render-description">Submit a bounded fantasy portal scene to the separate Blender worker. The worker builds geometry, materials, camera and lighting, then returns a validated PNG render.</p>
+            <button type="button" className="fpd-primary" onClick={renderFantasyPreview} disabled={["submitting","queued","running"].includes(renderState)}>{renderState === "submitting" ? "Submitting…" : renderState === "queued" || renderState === "running" ? "Rendering…" : "Render fantasy scene"}</button>
+            {renderMessage && <p className={`fpd-render-status is-${renderState}`} role="status">{renderMessage}</p>}
+            {renderPreviewUrl && <img className="fpd-render-preview" src={renderPreviewUrl} alt="Rendered fantasy portal scene from the Blender worker" />}
+            <small className="fpd-render-footnote">Requires the Fresh Blender worker to be deployed and its server-only URL and token configured. If it is not configured, the API returns a clear setup-required response.</small>
+          </section>
+          <div className="fpd-capability-note"><strong>Production truth:</strong> Director plans save locally and export as Markdown. The Blender worker is a separate CPU-render service; 3D previews are available only when that service is deployed and connected. This does not claim that full animation, simulation or VFX compositing is complete.</div>
         </main>
       </div>
     </section>
