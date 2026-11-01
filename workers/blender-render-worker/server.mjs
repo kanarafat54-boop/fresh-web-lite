@@ -82,8 +82,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && match) {
       const job = jobs.get(match[1]);
       if (!job) return json(res, 404, { error: "Job not found." });
-      const { scene, outputPath, ...safe } = job;
-      return json(res, 200, { ...safe, outputUrl: job.status === "succeeded" ? "/jobs/" + job.id + "/output" : null });
+      const { scene, outputPath, id, ...safe } = job;
+      return json(res, 200, { ...safe, jobId: id, outputUrl: job.status === "succeeded" ? "/jobs/" + id + "/output" : null });
     }
     const output = url.pathname.match(/^\/jobs\/([0-9a-f-]{36})\/output$/i);
     if (req.method === "GET" && output) {
