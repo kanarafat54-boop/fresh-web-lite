@@ -22,15 +22,6 @@ const blankProduction = (): Production => ({
   version: 1, title: "Untitled production", genre: "Fantasy", format: "Feature film",
   logline: "", world: "", visualStyle: "Cinematic realism", characters: "", scenes: [], updatedAt: new Date().toISOString(),
 });
-const starterScene = (): Scene => ({
-  id: makeId(), title: "The first sign", location: "Ancient forest", timeOfDay: "Night",
-  description: "A strange light appears between the trees. The world is quiet before the danger is revealed.",
-  shots: [
-    { id: makeId(), title: "Establishing shot", framing: "Wide", movement: "Slow push-in", duration: 8, notes: "Reveal the environment and scale." },
-    { id: makeId(), title: "The mysterious light", framing: "Close-up", movement: "Static", duration: 5, notes: "Hold on the light; build suspense." },
-  ],
-});
-
 function loadProduction(): Production {
   try {
     const raw = localStorage.getItem(KEY);
