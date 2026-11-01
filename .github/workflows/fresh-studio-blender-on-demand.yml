@@ -1,6 +1,8 @@
 name: Fresh Studio on-demand Blender render
 
 on:
+  push:
+    branches: [feat/fresh-studio-github-actions-render]
   workflow_dispatch:
     inputs:
       quality:
