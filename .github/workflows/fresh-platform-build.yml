@@ -57,6 +57,8 @@ jobs:
         run: npm run test:remote-media-worker-contract
       - name: Unified media runtime contract
         run: npm run test:fresh-media-runtime
+      - name: Fresh Blender 3D render worker contract and scene validation
+        run: npm run test:fresh-blender-render-worker
       - name: Media publishing bridge contract
         run: npm run test:fresh-media-publishing
       - name: Phases 15-22 certification
