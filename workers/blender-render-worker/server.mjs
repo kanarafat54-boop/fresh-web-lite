@@ -18,7 +18,7 @@ await mkdir(ROOT, { recursive: true });
 let blenderVersion = null;
 try {
   const version = await execFileAsync(BLENDER_BIN, ["--version"], { timeout: 10000, maxBuffer: 64 * 1024 });
-  blenderVersion = String(version.stdout).split("\\n")[0] || "Blender available";
+  blenderVersion = String(version.stdout).split(String.fromCharCode(10))[0] || "Blender available";
 } catch {
   console.error("Blender executable is unavailable; render jobs will fail until it is installed.");
 }
