@@ -128,6 +128,11 @@ for (const width of WIDTHS) {
   check((await page.locator(".fresh-flow-item").first().locator(".fresh-flow-rail-avatar").count()) === 1, `${tag} rail starts with the creator profile photo`);
   check(rail.count >= 7, `${tag} action rail has profile, react, comment, repost, save, share and more (${rail.count})`);
   check(rail.top >= rail.tabsBottom - 1 && rail.bottom <= rail.itemBottom + 1, `${tag} every action sits inside the visible Short, below the tabs (${Math.round(rail.top)} >= ${Math.round(rail.tabsBottom)})`);
+  await page.locator('.fresh-flow-item [aria-label="Share"]').first().click();
+  await page.locator('[aria-label="Share this Short"]').waitFor({ timeout: 5000 });
+  const shareText = await page.locator('[aria-label="Share this Short"]').innerText();
+  check(shareText.includes("Fresh Messages") && shareText.includes("Copy link") && /Fresh Mail.*service connection needed/i.test(shareText), `${tag} Share panel offers Messages and Copy link and labels Fresh Mail honestly`);
+  await page.locator('[aria-label="Share this Short"] [aria-label="Close"]').click();
   check(await page.locator('nav[aria-label="Fresh Flow media"]').isVisible(), `${tag} top navigation visible on Shorts`);
   const shortsTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
   check(JSON.stringify(shortsTabs) === JSON.stringify(["Live", "VR / AR", "Podcasts", "Music", "Others"]), `${tag} Shorts top navigation is Live · VR / AR · Podcasts · Music · Others (got ${shortsTabs.join(" · ")})`);

@@ -31,6 +31,7 @@ import {
 import ShortsCreatorProfile from "./ShortsCreatorProfile";
 import { consumeOpenShortRequest } from "../core/shortsExplore";
 import ShortsTopicPage from "./ShortsTopicPage";
+import ShortsSharePanel from "./ShortsSharePanel";
 import { splitCaption, type TopicKind } from "../core/shortsTopics";
 import { SHORT_REPORT_REASONS, loadMutedCreators, reportShort, setCreatorMuted, shortDeepLink, type ShortReportReason } from "../core/shortsSafety";
 import "./FreshFlow.css";
@@ -147,6 +148,7 @@ export default function FreshFlowShortsStream({
   const tasteRef = useRef<TasteProfile | null>(null);
   const [openCreatorId, setOpenCreatorId] = useState<string | null>(null);
   const [reportTarget, setReportTarget] = useState<Short | null>(null);
+  const [shareTarget, setShareTarget] = useState<Short | null>(null);
   const [topicPage, setTopicPage] = useState<{ kind: TopicKind; value: string } | null>(null);
   const mutedCreatorsRef = useRef<Set<string>>(new Set());
   const shortsRef = useRef<Short[]>([]);
@@ -670,24 +672,12 @@ export default function FreshFlowShortsStream({
     }
   }
 
-  async function handleShare(short: Short) {
+  function handleShare(short: Short) {
     setAdvancedOpen(false);
-    const url = shortDeepLink(short.id, window.location.origin);
-    const text = short.caption ? `${short.caption} — @${short.authorUsername} on Fresh` : `A Short by @${short.authorUsername} on Fresh`;
-    let channel = "copy";
-    try {
-      if (typeof navigator.share === "function") {
-        channel = "native";
-        await navigator.share({ title: "Fresh Short", text, url });
-      } else {
-        await navigator.clipboard.writeText(`${text} ${url}`);
-        pushNotification({ title: "Link copied", message: "Paste it anywhere to share this Short.", type: "success" });
-      }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      pushNotification({ title: "Share failed", message: "Fresh could not open sharing on this device.", type: "error" });
-      return;
-    }
+    setShareTarget(short);
+  }
+
+  function recordShare(short: Short, channel: "messages" | "copy" | "native") {
     track("share", short.id);
     if (user && !isGuest) void interactWithShort(user.id, short.id, "share", { payload: { channel } }).catch(() => undefined);
   }
@@ -940,6 +930,16 @@ export default function FreshFlowShortsStream({
           onOpenShort={() => setOpenCreatorId(null)}
           onMessage={() => { setOpenCreatorId(null); setActiveRoute("communication"); }}
           onSignIn={() => { setOpenCreatorId(null); setActiveRoute("auth-signin"); }}
+        />
+      )}
+
+      {shareTarget && (
+        <ShortsSharePanel
+          url={shortDeepLink(shareTarget.id, window.location.origin)}
+          text={shareTarget.caption ? `${shareTarget.caption} — @${shareTarget.authorUsername} on Fresh` : `A Short by @${shareTarget.authorUsername} on Fresh`}
+          signedIn={Boolean(user && !isGuest)}
+          onClose={() => setShareTarget(null)}
+          onShared={(channel) => recordShare(shareTarget, channel)}
         />
       )}
 

@@ -153,3 +153,7 @@
 .fresh-flow-stream[data-discovery] .fresh-flow-tabs::-webkit-scrollbar{display:none}
 .fresh-flow-hashtag,.fresh-flow-sound-link{display:inline;min-height:0;padding:0;border:0;background:transparent;color:inherit;font:inherit;font-weight:800;text-decoration:underline;text-underline-offset:2px;cursor:pointer;text-shadow:inherit}
 .fresh-flow-tags .fresh-flow-sound-link{text-decoration:none}
+.shorts-share-panel h4{margin:8px 0 6px;font-size:.9rem}.shorts-share-panel p{margin:4px 0;opacity:.8;font-size:.85rem}
+.shorts-share-people{list-style:none;margin:0;padding:0;max-height:32vh;overflow-y:auto}.shorts-share-people li{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px}
+.shorts-share-rows{display:flex;flex-direction:column;gap:6px;margin-top:10px}.shorts-share-rows button,.shorts-share-people button{min-height:44px;padding:8px 12px;text-align:left}
+.shorts-share-rows button:disabled{opacity:.55}
