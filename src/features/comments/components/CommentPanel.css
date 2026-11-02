@@ -35,3 +35,5 @@
 .fresh-comments .comment-send{flex:0 0 44px;width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:50%;background:linear-gradient(135deg,#6f30ff,#11a7e7);color:#fff;cursor:pointer}
 .fresh-comments .comment-send:disabled{opacity:.5}
 @media (max-width:360px){.fresh-comments .comment-input-row .icon-only-btn{min-width:36px}}
+.comment-mention{display:inline;min-height:0;padding:0;border:0;background:transparent;color:#8b85ff;font:inherit;font-weight:700;cursor:pointer}
+.comment-menu{display:inline-flex;flex-wrap:wrap;gap:6px;margin-left:6px}

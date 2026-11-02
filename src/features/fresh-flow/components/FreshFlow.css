@@ -171,3 +171,13 @@
 .shorts-sheet button:disabled{opacity:.55;cursor:not-allowed}
 .shorts-sheet .shorts-reco-chips button{width:auto;min-height:32px;margin:0;padding:0 8px;background:transparent}
 .shorts-sheet .shorts-share-people button{width:auto;margin:0}
+.fresh-flow-progress{pointer-events:auto;cursor:pointer;height:3px}
+.fresh-flow-progress::before{content:"";position:absolute;left:0;right:0;bottom:0;height:22px}
+.fresh-flow-progress-fill{pointer-events:none}
+.shorts-rate-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0}.shorts-sheet .shorts-rate-row button{margin:0;text-align:center}.shorts-sheet .shorts-rate-row button[aria-pressed="true"]{background:#635bff}
+.shorts-sheet h4{margin:8px 0 4px;font-size:.9rem}.shorts-sheet p{margin:6px 0;opacity:.8;font-size:.85rem}
+.fresh-flow-stream[data-discovery] .fresh-flow-progress{bottom:calc(84px + env(safe-area-inset-bottom))}
+.fresh-flow-meta h3.clamped{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fresh-flow-meta h3.expanded{max-height:34vh;overflow-y:auto}
+.fresh-flow-caption-toggle{min-height:0;padding:0;border:0;background:transparent;color:#fff;font:inherit;font-weight:800;opacity:.85;cursor:pointer}
+.fresh-flow-verified{margin-left:4px;color:#8b85ff;font-size:.8em}

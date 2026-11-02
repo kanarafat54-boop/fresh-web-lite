@@ -19,6 +19,8 @@ export interface Short {
   authorId: string;
   authorName: string;
   authorUsername: string;
+  /** True only when the creator's public profile is marked verified. */
+  authorVerified?: boolean;
   caption: string;
   soundName: string | null;
   videoUrl: string;

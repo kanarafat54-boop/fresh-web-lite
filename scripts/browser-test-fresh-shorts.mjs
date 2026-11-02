@@ -140,6 +140,17 @@ for (const width of WIDTHS) {
   const reportBox = await page.locator('[aria-label="Report this Short"]').boundingBox();
   check(Boolean(reportBox) && reportBox.x >= -1 && reportBox.x + reportBox.width <= width + 1, `${tag} Report sheet sits on screen above the feed`);
   await page.locator('[aria-label="Report this Short"] [aria-label="Close"]').click();
+  // Long-press opens playback options; the progress bar is a seek control.
+  const tapBox = await page.locator(".fresh-flow-item .fresh-flow-tap-layer").first().boundingBox();
+  await page.mouse.move(tapBox.x + tapBox.width / 2, tapBox.y + tapBox.height * 0.4);
+  await page.mouse.down();
+  await page.waitForTimeout(700);
+  await page.mouse.up();
+  await page.locator('[aria-label="Playback options"]').waitFor({ timeout: 5000 });
+  check((await page.locator('[aria-label="Playback speed"] button').count()) === 4, `${tag} long-press shows four playback speeds`);
+  await page.locator('[aria-label="Playback options"] [aria-label="Close"]').click();
+  const seek = await page.locator('.fresh-flow-item [role="slider"][aria-label="Seek"]').first().boundingBox();
+  check(Boolean(seek) && seek.width > width * 0.9, `${tag} progress bar is a full-width seek control`);
   check(await page.locator('nav[aria-label="Fresh Flow media"]').isVisible(), `${tag} top navigation visible on Shorts`);
   const shortsTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
   check(JSON.stringify(shortsTabs) === JSON.stringify(["Live", "VR / AR", "Podcasts", "Music", "Others"]), `${tag} Shorts top navigation is Live · VR / AR · Podcasts · Music · Others (got ${shortsTabs.join(" · ")})`);
