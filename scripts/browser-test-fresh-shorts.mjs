@@ -123,7 +123,10 @@ for (const width of WIDTHS) {
     const boxes = [...item.querySelectorAll(".fresh-flow-actions button")].map((el) => el.getBoundingClientRect());
     return { count: boxes.length, top: Math.min(...boxes.map((r) => r.top)), bottom: Math.max(...boxes.map((r) => r.bottom)), itemBottom: itemBox.bottom, tabsBottom };
   });
-  check(rail.count >= 6, `${tag} action rail has react, comment, save, share, gift and more (${rail.count})`);
+  const modes = (await page.locator('.fresh-flow-tabs [role="tab"]').allInnerTexts()).map((t) => t.replace(/^\S+\s/, "").trim());
+  check(JSON.stringify(modes) === JSON.stringify(["For You", "Social", "Trending", "Fresh Picks", "Learn", "Relax"]), `${tag} discovery modes are For You · Social · Trending · Fresh Picks · Learn · Relax (got ${modes.join(" · ")})`);
+  check((await page.locator(".fresh-flow-item").first().locator(".fresh-flow-rail-avatar").count()) === 1, `${tag} rail starts with the creator profile photo`);
+  check(rail.count >= 7, `${tag} action rail has profile, react, comment, repost, save, share and more (${rail.count})`);
   check(rail.top >= rail.tabsBottom - 1 && rail.bottom <= rail.itemBottom + 1, `${tag} every action sits inside the visible Short, below the tabs (${Math.round(rail.top)} >= ${Math.round(rail.tabsBottom)})`);
   check(await page.locator('nav[aria-label="Fresh Flow media"]').isVisible(), `${tag} top navigation visible on Shorts`);
   const shortsTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
@@ -144,7 +147,7 @@ for (const width of WIDTHS) {
   const navTop = await page.locator("nav.fresh-flow-bottom-nav").evaluate((el) => el.getBoundingClientRect().top);
   const actionsBottom = await page.locator(".fresh-flow-item").first().locator(".fresh-flow-actions").evaluate((el) => el.getBoundingClientRect().bottom);
   check(actionsBottom <= navTop + 1, `${tag} action column clears the bottom navigation (${Math.round(actionsBottom)} <= ${Math.round(navTop)})`);
-  for (const label of ["Comments", "Save", "Share", "Send gift", "More"]) {
+  for (const label of ["Comments", "Repost", "Save", "Share", "More"]) {
     const box = await page.locator(".fresh-flow-item").first().locator(`.fresh-flow-actions [aria-label="${label}"]`).boundingBox();
     check(Boolean(box) && box.x >= 0 && box.x + box.width <= width + 0.5 && box.width >= 44 && box.height >= 44, `${tag} "${label}" is on-screen and at least 44px`);
   }
@@ -178,7 +181,7 @@ for (const width of WIDTHS) {
   const more = page.locator(".fresh-flow-advanced").first();
   check(await more.isVisible(), `${tag} More panel opens`);
   const moreText = await more.innerText();
-  for (const label of ["Repost", "Ask Fresh AI", "Not interested", "Remix"]) check(moreText.includes(label), `${tag} More panel has ${label}`);
+  for (const label of ["Send gift", "Ask Fresh AI", "Not interested", "Mute", "Report", "Remix"]) check(moreText.includes(label), `${tag} More panel has ${label}`);
   await page.locator(".fresh-flow-item").first().locator('[aria-label="More"]').click();
 
   // Paging by scroll: the next Short becomes the only one playing.

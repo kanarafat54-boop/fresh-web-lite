@@ -147,3 +147,7 @@
 .fresh-flow-stream[data-discovery] .fresh-flow-actions{right:8px;bottom:calc(92px + env(safe-area-inset-bottom));gap:2px;pointer-events:auto;max-height:calc(100% - 150px)}
 .fresh-flow-stream[data-discovery] .fresh-flow-actions button{min-height:44px}
 .fresh-flow-stream[data-discovery] .fresh-flow-overlay>*{pointer-events:auto}
+.fresh-flow-stream[data-discovery] .fresh-flow-actions .fresh-flow-rail-avatar{min-width:44px;min-height:44px;width:44px;height:44px;padding:0;border:2px solid #fff;border-radius:50%;background:linear-gradient(135deg,#635bff,#11a7e7);justify-content:center}
+.fresh-flow-stream[data-discovery] .fresh-flow-actions .fresh-flow-rail-avatar>span:first-child{font-size:1.05rem;font-weight:800}
+.fresh-flow-stream[data-discovery] .fresh-flow-tabs{overflow-x:auto;justify-content:flex-start;scrollbar-width:none}
+.fresh-flow-stream[data-discovery] .fresh-flow-tabs::-webkit-scrollbar{display:none}
