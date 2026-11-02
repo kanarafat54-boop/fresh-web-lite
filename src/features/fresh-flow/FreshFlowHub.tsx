@@ -84,11 +84,11 @@ export default function FreshFlowHub() {
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
   const isOverview = section === "fresh-flow";
   const isShortsRoute = section === "fresh-flow-shorts";
-  /** Creator Studio is the Shorts creator surface, so it keeps the Fresh Shorts header and controls. */
-  const shortsHeader = isShortsRoute || section === "fresh-flow-system-fresh-studio";
   const world = isShortsRoute ? worldByRouteId("fresh-flow") : worldByRouteId(section);
   const systemRoutePrefix = "fresh-flow-system-";
   const independentSystem = section.startsWith(systemRoutePrefix) ? getFreshFlowSystem(section.slice(systemRoutePrefix.length)) : undefined;
+  /** Creator Studio is the Shorts creator surface, so it keeps the Fresh Shorts header and controls. */
+  const shortsHeader = isShortsRoute || independentSystem?.id === "fresh-studio";
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [shortsNotificationsOpen, setShortsNotificationsOpen] = useState(false);
