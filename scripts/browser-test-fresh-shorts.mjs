@@ -137,8 +137,8 @@ for (const width of WIDTHS) {
   await page.locator('.fresh-flow-item [aria-label="More"]').first().click();
   await page.locator(".fresh-flow-advanced").getByRole("button", { name: /Report/ }).click();
   await page.locator('[aria-label="Report this Short"]').waitFor({ timeout: 5000 });
-  const sheetBox = await page.locator('[aria-label="Report this Short"]').boundingBox();
-  check(Boolean(sheetBox) && sheetBox.x >= -1 && sheetBox.x + sheetBox.width <= width + 1, `${tag} Report sheet sits on screen above the feed`);
+  const reportBox = await page.locator('[aria-label="Report this Short"]').boundingBox();
+  check(Boolean(reportBox) && reportBox.x >= -1 && reportBox.x + reportBox.width <= width + 1, `${tag} Report sheet sits on screen above the feed`);
   await page.locator('[aria-label="Report this Short"] [aria-label="Close"]').click();
   check(await page.locator('nav[aria-label="Fresh Flow media"]').isVisible(), `${tag} top navigation visible on Shorts`);
   const shortsTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
