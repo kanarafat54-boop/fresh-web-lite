@@ -115,6 +115,16 @@ for (const width of WIDTHS) {
   check(Math.abs(geo.itemW - geo.vw) <= 1, `${tag} each Short is full width`);
   check(geo.radius === "0px" && geo.border === "0px", `${tag} Shorts are full-bleed (no card border/radius)`);
   check(/y\s+mandatory/.test(geo.snap), `${tag} vertical mandatory snap`);
+  const rail = await page.evaluate(() => {
+    const item = document.querySelector(".fresh-flow-item");
+    const tabs = document.querySelector(".fresh-flow-tabs");
+    const itemBox = item.getBoundingClientRect();
+    const tabsBottom = tabs ? tabs.getBoundingClientRect().bottom : itemBox.top;
+    const boxes = [...item.querySelectorAll(".fresh-flow-actions button")].map((el) => el.getBoundingClientRect());
+    return { count: boxes.length, top: Math.min(...boxes.map((r) => r.top)), bottom: Math.max(...boxes.map((r) => r.bottom)), itemBottom: itemBox.bottom, tabsBottom };
+  });
+  check(rail.count >= 6, `${tag} action rail has react, comment, save, share, gift and more (${rail.count})`);
+  check(rail.top >= rail.tabsBottom - 1 && rail.bottom <= rail.itemBottom + 1, `${tag} every action sits inside the visible Short, below the tabs (${Math.round(rail.top)} >= ${Math.round(rail.tabsBottom)})`);
   check(await page.locator('nav[aria-label="Fresh Flow media"]').isVisible(), `${tag} top navigation visible on Shorts`);
   const shortsTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
   check(JSON.stringify(shortsTabs) === JSON.stringify(["Live", "VR / AR", "Podcasts", "Music", "Others"]), `${tag} Shorts top navigation is Live · VR / AR · Podcasts · Music · Others (got ${shortsTabs.join(" · ")})`);
