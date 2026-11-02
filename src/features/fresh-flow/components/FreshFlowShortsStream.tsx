@@ -30,6 +30,8 @@ import {
 } from "../core/shortDiscovery";
 import ShortsCreatorProfile from "./ShortsCreatorProfile";
 import { consumeOpenShortRequest } from "../core/shortsExplore";
+import ShortsTopicPage from "./ShortsTopicPage";
+import { splitCaption, type TopicKind } from "../core/shortsTopics";
 import { SHORT_REPORT_REASONS, loadMutedCreators, reportShort, setCreatorMuted, shortDeepLink, type ShortReportReason } from "../core/shortsSafety";
 import "./FreshFlow.css";
 
@@ -145,6 +147,7 @@ export default function FreshFlowShortsStream({
   const tasteRef = useRef<TasteProfile | null>(null);
   const [openCreatorId, setOpenCreatorId] = useState<string | null>(null);
   const [reportTarget, setReportTarget] = useState<Short | null>(null);
+  const [topicPage, setTopicPage] = useState<{ kind: TopicKind; value: string } | null>(null);
   const mutedCreatorsRef = useRef<Set<string>>(new Set());
   const shortsRef = useRef<Short[]>([]);
   shortsRef.current = shorts;
@@ -841,7 +844,9 @@ export default function FreshFlowShortsStream({
               <div className="fresh-flow-progress" aria-hidden="true"><i className="fresh-flow-progress-fill" /></div>
               <div className="fresh-flow-overlay">
                 <div className="fresh-flow-meta">
-                  <h3>{short.caption || "Fresh Short"}</h3>
+                  <h3>{short.caption ? splitCaption(short.caption).map((segment, i) => segment.tag
+                    ? <button key={i} type="button" className="fresh-flow-hashtag" onClick={() => setTopicPage({ kind: "hashtag", value: segment.tag as string })}>{segment.text}</button>
+                    : <span key={i}>{segment.text}</span>) : "Fresh Short"}</h3>
                   <div className="fresh-flow-author-row">
                     <button type="button" className="fresh-flow-author-link" onClick={() => setOpenCreatorId(short.authorId)} aria-label={`Open @${short.authorUsername} profile`}>
                       <span className="fresh-flow-author-avatar" aria-hidden="true">{(short.authorUsername || "F")[0]?.toUpperCase()}</span>
@@ -850,7 +855,7 @@ export default function FreshFlowShortsStream({
                     <button type="button" className="fresh-flow-follow-btn" onClick={() => void handleFollow(short)}>{followingAuthors.has(short.authorId) ? "Following" : "Follow"}</button>
                   </div>
                   <div className="fresh-flow-tags">
-                    {short.soundName ? <span>♪ {short.soundName}</span> : <span>♪ Original sound</span>}
+                    {short.soundName ? <button type="button" className="fresh-flow-sound-link" onClick={() => setTopicPage({ kind: "sound", value: short.soundName as string })}>♪ {short.soundName}</button> : <span>♪ Original sound</span>}
                     {short.isHot ? <span>🔥 Hot</span> : null}
                   </div>
                 </div>
@@ -936,6 +941,10 @@ export default function FreshFlowShortsStream({
           onMessage={() => { setOpenCreatorId(null); setActiveRoute("communication"); }}
           onSignIn={() => { setOpenCreatorId(null); setActiveRoute("auth-signin"); }}
         />
+      )}
+
+      {topicPage && (
+        <ShortsTopicPage kind={topicPage.kind} value={topicPage.value} onClose={() => setTopicPage(null)} onOpenShort={() => setTopicPage(null)} />
       )}
 
       {reportTarget && (

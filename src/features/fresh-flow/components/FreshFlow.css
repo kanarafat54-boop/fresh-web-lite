@@ -151,3 +151,5 @@
 .fresh-flow-stream[data-discovery] .fresh-flow-actions .fresh-flow-rail-avatar>span:first-child{font-size:1.05rem;font-weight:800}
 .fresh-flow-stream[data-discovery] .fresh-flow-tabs{overflow-x:auto;justify-content:flex-start;scrollbar-width:none}
 .fresh-flow-stream[data-discovery] .fresh-flow-tabs::-webkit-scrollbar{display:none}
+.fresh-flow-hashtag,.fresh-flow-sound-link{display:inline;min-height:0;padding:0;border:0;background:transparent;color:inherit;font:inherit;font-weight:800;text-decoration:underline;text-underline-offset:2px;cursor:pointer;text-shadow:inherit}
+.fresh-flow-tags .fresh-flow-sound-link{text-decoration:none}

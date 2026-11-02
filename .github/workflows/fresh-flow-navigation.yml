@@ -10,6 +10,7 @@ on:
       - "scripts/browser-test-fresh-shorts.mjs"
       - "scripts/test-fresh-short-watch-signals.mjs"
       - "scripts/test-fresh-shorts-safety.mjs"
+      - "scripts/test-fresh-shorts-topics.mjs"
       - "scripts/eval-fresh-shorts-ranking.mjs"
       - "src/features/shorts/**"
       - ".github/workflows/fresh-flow-navigation.yml"
@@ -22,6 +23,7 @@ on:
       - "scripts/browser-test-fresh-shorts.mjs"
       - "scripts/test-fresh-short-watch-signals.mjs"
       - "scripts/test-fresh-shorts-safety.mjs"
+      - "scripts/test-fresh-shorts-topics.mjs"
       - ".github/workflows/fresh-flow-navigation.yml"
 
 permissions:
@@ -57,6 +59,8 @@ jobs:
         run: node scripts/eval-fresh-shorts-ranking.mjs
       - name: Short watch-signal logic
         run: node scripts/test-fresh-short-watch-signals.mjs
+      - name: Shorts caption hashtag parsing
+        run: node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-topics.mjs
       - name: Shorts safety and deep-link contract
         run: node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-safety.mjs
       - name: Install ffmpeg (synthetic test clips)

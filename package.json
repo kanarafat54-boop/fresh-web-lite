@@ -82,6 +82,7 @@
     "test:fresh-ai-cognitive-diversity": "node scripts/verify-fresh-ai-cognitive-diversity.mjs",
     "test:fresh-ai-direct-answer-quality": "node scripts/verify-fresh-ai-direct-answer-quality.mjs",
     "test:fresh-short-watch-signals": "node scripts/test-fresh-short-watch-signals.mjs",
+    "test:fresh-shorts-topics": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-topics.mjs",
     "test:fresh-shorts-safety": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-safety.mjs",
     "test:fresh-shorts-browser": "node scripts/browser-test-fresh-shorts.mjs dist",
     "eval:fresh-shorts-ranking": "node scripts/eval-fresh-shorts-ranking.mjs",
