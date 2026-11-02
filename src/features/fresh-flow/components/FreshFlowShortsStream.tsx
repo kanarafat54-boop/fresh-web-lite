@@ -152,6 +152,10 @@ export default function FreshFlowShortsStream({
   const [reportTarget, setReportTarget] = useState<Short | null>(null);
   const [shareTarget, setShareTarget] = useState<Short | null>(null);
   const [recoOpen, setRecoOpen] = useState(false);
+  const [expandedCaptions, setExpandedCaptions] = useState<Set<string>>(new Set());
+  const [playbackFor, setPlaybackFor] = useState<{ index: number; rate: number } | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressed = useRef(false);
   const [topicPage, setTopicPage] = useState<{ kind: TopicKind; value: string } | null>(null);
   const mutedCreatorsRef = useRef<Set<string>>(new Set());
   const prefsRef = useRef<ShortPrefs>(EMPTY_PREFS);
@@ -639,6 +643,35 @@ export default function FreshFlowShortsStream({
     }, DOUBLE_TAP_MS);
   }
 
+  function startLongPress(index: number) {
+    longPressed.current = false;
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    longPressTimer.current = setTimeout(() => {
+      longPressed.current = true;
+      setPlaybackFor({ index, rate: activeVideo(index)?.playbackRate ?? 1 });
+    }, 500);
+  }
+
+  function cancelLongPress() {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+  }
+
+  function setRate(rate: number) {
+    if (!playbackFor) return;
+    const video = activeVideo(playbackFor.index);
+    if (video) video.playbackRate = rate;
+    setPlaybackFor({ ...playbackFor, rate });
+  }
+
+  function seekFromPointer(event: React.PointerEvent<HTMLDivElement>, index: number) {
+    event.stopPropagation();
+    const video = activeVideo(index);
+    if (!video || !Number.isFinite(video.duration) || video.duration <= 0) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    video.currentTime = ratio * video.duration;
+  }
+
   function toggleSound() {
     const next = !soundOn;
     setSoundOn(next);
@@ -862,22 +895,25 @@ export default function FreshFlowShortsStream({
                 preload={Math.abs(index - currentIndex) <= FRESH_SHORTS_PREFETCH_RADIUS ? "auto" : "none"}
                 onError={(e) => retryVideo(e.currentTarget, 0)}
               />
-              <button type="button" className="fresh-flow-tap-layer" onClick={() => handleTap(short, index)} aria-label="Play or pause. Double tap to like." />
+              <button type="button" className="fresh-flow-tap-layer" onPointerDown={() => startLongPress(index)} onPointerUp={cancelLongPress} onPointerLeave={cancelLongPress} onPointerCancel={cancelLongPress} onContextMenu={(event) => event.preventDefault()} onClick={() => { if (longPressed.current) { longPressed.current = false; return; } handleTap(short, index); }} aria-label="Play or pause. Double tap to like. Press and hold for playback options." />
               {playFlash?.id === short.id && <span key={playFlash.key} className="fresh-flow-play-flash" aria-hidden="true">{playFlash.paused ? "❚❚" : "▶"}</span>}
               {heartBurst?.id === short.id && <span key={heartBurst.key} className="fresh-flow-heart-burst" aria-hidden="true">❤</span>}
               {index === currentIndex && soundBlocked && (
                 <button type="button" className="fresh-flow-sound-pill" onClick={() => enableSound(index)} aria-label="Turn sound on">🔇 Tap for sound</button>
               )}
-              <div className="fresh-flow-progress" aria-hidden="true"><i className="fresh-flow-progress-fill" /></div>
+              <div className="fresh-flow-progress" role="slider" aria-label="Seek" aria-valuemin={0} aria-valuemax={100} aria-valuenow={0} onPointerDown={(event) => seekFromPointer(event, index)}><i className="fresh-flow-progress-fill" /></div>
               <div className="fresh-flow-overlay">
                 <div className="fresh-flow-meta">
-                  <h3>{short.caption ? splitCaption(short.caption).map((segment, i) => segment.tag
+                  <h3 className={expandedCaptions.has(short.id) ? "expanded" : "clamped"}>{short.caption ? splitCaption(short.caption).map((segment, i) => segment.tag
                     ? <button key={i} type="button" className="fresh-flow-hashtag" onClick={() => setTopicPage({ kind: "hashtag", value: segment.tag as string })}>{segment.text}</button>
                     : <span key={i}>{segment.text}</span>) : "Fresh Short"}</h3>
+                  {(short.caption?.length ?? 0) > 80 && (
+                    <button type="button" className="fresh-flow-caption-toggle" aria-expanded={expandedCaptions.has(short.id)} onClick={() => setExpandedCaptions((current) => { const next = new Set(current); if (next.has(short.id)) next.delete(short.id); else next.add(short.id); return next; })}>{expandedCaptions.has(short.id) ? "less" : "more"}</button>
+                  )}
                   <div className="fresh-flow-author-row">
                     <button type="button" className="fresh-flow-author-link" onClick={() => setOpenCreatorId(short.authorId)} aria-label={`Open @${short.authorUsername} profile`}>
                       <span className="fresh-flow-author-avatar" aria-hidden="true">{(short.authorUsername || "F")[0]?.toUpperCase()}</span>
-                      <strong>@{short.authorUsername}</strong>
+                      <strong>@{short.authorUsername}</strong>{short.authorVerified && <span className="fresh-flow-verified" title="Verified" aria-label="Verified creator">✔</span>}
                     </button>
                     <button type="button" className="fresh-flow-follow-btn" onClick={() => void handleFollow(short)}>{followingAuthors.has(short.authorId) ? "Following" : "Follow"}</button>
                   </div>
@@ -982,6 +1018,22 @@ export default function FreshFlowShortsStream({
           onMessage={() => { setOpenCreatorId(null); setActiveRoute("communication"); }}
           onSignIn={() => { setOpenCreatorId(null); setActiveRoute("auth-signin"); }}
         />
+      )}
+
+      {playbackFor && (
+        <div className="shorts-sheet-backdrop" onClick={() => setPlaybackFor(null)}>
+          <div className="shorts-sheet" role="dialog" aria-modal="true" aria-label="Playback options" onClick={(event) => event.stopPropagation()}>
+            <div className="shorts-sheet-header"><h3>Playback options</h3><button type="button" className="shorts-sheet-close" onClick={() => setPlaybackFor(null)} aria-label="Close">✕</button></div>
+            <h4>Speed for this Short</h4>
+            <div className="shorts-rate-row" role="group" aria-label="Playback speed">
+              {[0.5, 1, 1.5, 2].map((rate) => (
+                <button key={rate} type="button" aria-pressed={playbackFor.rate === rate} onClick={() => setRate(rate)}>{rate}×</button>
+              ))}
+            </div>
+            <button type="button" onClick={() => { toggleSound(); }}>{soundOn ? "🔊 Mute sound" : "🔇 Turn sound on"}</button>
+            <p>Captions: this Short has no caption track yet. Auto captions need the video worker connection.</p>
+          </div>
+        </div>
       )}
 
       {recoOpen && user && (

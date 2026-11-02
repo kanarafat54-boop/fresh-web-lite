@@ -11,6 +11,7 @@ on:
       - "scripts/test-fresh-short-watch-signals.mjs"
       - "scripts/test-fresh-shorts-safety.mjs"
       - "scripts/test-fresh-shorts-topics.mjs"
+      - "scripts/test-fresh-comment-tools.mjs"
       - "scripts/test-fresh-shorts-prefs.mjs"
       - "scripts/eval-fresh-shorts-ranking.mjs"
       - "src/features/shorts/**"
@@ -25,6 +26,7 @@ on:
       - "scripts/test-fresh-short-watch-signals.mjs"
       - "scripts/test-fresh-shorts-safety.mjs"
       - "scripts/test-fresh-shorts-topics.mjs"
+      - "scripts/test-fresh-comment-tools.mjs"
       - "scripts/test-fresh-shorts-prefs.mjs"
       - ".github/workflows/fresh-flow-navigation.yml"
 
@@ -63,6 +65,8 @@ jobs:
         run: node scripts/test-fresh-short-watch-signals.mjs
       - name: Shorts recommendation preference logic
         run: node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-prefs.mjs
+      - name: Comment sorting and mention logic
+        run: node --experimental-strip-types --no-warnings scripts/test-fresh-comment-tools.mjs
       - name: Shorts caption hashtag parsing
         run: node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-topics.mjs
       - name: Shorts safety and deep-link contract
