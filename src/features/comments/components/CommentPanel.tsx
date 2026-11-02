@@ -29,6 +29,7 @@ type Row = {
   parent_id: string | null;
   moderation_state?: string;
   created_at: string;
+  pinned_at?: string | null;
 };
 
 type ViewRow = Row & {
@@ -87,6 +88,8 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const table = TABLE_MAP[targetType];
   const column = COLUMN_MAP[targetType];
   const [comments, setComments] = useState<ViewRow[]>([]);
+  const [shortAuthorId, setShortAuthorId] = useState<string | null>(null);
+  const [pinningId, setPinningId] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<CommentSortMode>("oldest");
   const [mutedAuthors, setMutedAuthors] = useState<Set<string>>(new Set());
   const [menuFor, setMenuFor] = useState<string | null>(null);
@@ -117,8 +120,8 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     const visible = comments.filter((row) => !mutedAuthors.has(row.author_id));
     const stripReplies = (row: ViewRow): ViewRow => ({ ...row, replies: row.replies.filter((reply) => !mutedAuthors.has(reply.author_id)).map(stripReplies) });
     const cleaned = visible.map(stripReplies);
-    if (sortMode === "relevant") return rankRootsBySignal(cleaned) as ViewRow[];
-    return sortCommentRoots(cleaned, sortMode, (id) => likes[id]?.count ?? 0);
+    const ordered = sortMode === "relevant" ? rankRootsBySignal(cleaned) as ViewRow[] : sortCommentRoots(cleaned, sortMode, (id) => likes[id]?.count ?? 0);
+    return [...ordered].sort((a, b) => Number(Boolean(b.pinned_at)) - Number(Boolean(a.pinned_at)));
   }, [comments, sortMode, mutedAuthors, likes]);
 
   useEffect(() => {
@@ -160,7 +163,11 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
 
   useEffect(() => {
     void loadComments();
-  }, [targetId, table, column]);
+    if (targetType === "short") {
+      void supabase.from("shorts").select("author_id").eq("id", targetId).maybeSingle()
+        .then(({ data }) => setShortAuthorId((data as any)?.author_id ?? null));
+    } else setShortAuthorId(null);
+  }, [targetId, table, column, targetType]);
 
   useEffect(() => {
     return () => {
@@ -172,11 +179,15 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   async function loadComments() {
     setLoading(true);
     setError(null);
-    const { data, error: queryError } = await supabase
-      .from(table)
-      .select("id,author_id,content,audio_url,video_url,attachments,parent_id,moderation_state,created_at")
-      .eq(column, targetId)
-      .order("created_at", { ascending: true });
+    let result = await supabase.from(table)
+      .select("id,author_id,content,audio_url,video_url,attachments,parent_id,moderation_state,created_at,pinned_at")
+      .eq(column, targetId).order("created_at", { ascending: true });
+    if (targetType === "short" && result.error && /pinned_at|column/i.test(result.error.message)) {
+      result = await supabase.from(table)
+        .select("id,author_id,content,audio_url,video_url,attachments,parent_id,moderation_state,created_at")
+        .eq(column, targetId).order("created_at", { ascending: true });
+    }
+    const { data, error: queryError } = result;
     if (queryError) {
       setError(queryError.message);
       setLoading(false);
@@ -191,6 +202,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
     const rows: ViewRow[] = (data ?? []).map((row: any) => ({
       ...row,
+      pinned_at: row.pinned_at ?? null,
       attachments: Array.isArray(row.attachments) ? row.attachments : [],
       authorName: profileMap.get(row.author_id)?.full_name ?? "Unknown",
       authorUsername: profileMap.get(row.author_id)?.username ?? "unknown",
@@ -209,6 +221,22 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
       }
       setLikes(next);
     }
+  }
+
+  async function togglePinned(commentId: string, currentlyPinned: boolean) {
+    if (!user || isGuest || targetType !== "short" || user.id !== shortAuthorId) return;
+    setPinningId(commentId);
+    setError(null);
+    const { error: pinError } = await supabase.rpc("pin_short_comment", { p_comment_id: commentId, p_pinned: !currentlyPinned });
+    if (pinError) {
+      setError(pinError.message.includes("function") || pinError.message.includes("schema cache")
+        ? "Pinned comments are waiting for the Fresh Shorts database migration."
+        : pinError.message);
+    } else {
+      setComments((rows) => rows.map((row) => ({ ...row, pinned_at: row.id === commentId ? (!currentlyPinned ? new Date().toISOString() : null) : (!currentlyPinned ? null : row.pinned_at) })));
+      setNotice(currentlyPinned ? "Comment unpinned." : "Comment pinned to the top.");
+    }
+    setPinningId(null);
   }
 
   async function toggleLike(commentId: string) {
@@ -353,6 +381,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
               <button type="button" className="comment-author-profile" onClick={() => openProfile(comment.author_id)}>{comment.authorUsername !== "unknown" ? comment.authorUsername : comment.authorName}</button>
               <span className="post-time">{timeAgo(comment.created_at)}</span>
             </div>
+            {comment.pinned_at && !hidden && <span className="short-comment-pinned" aria-label="Pinned by creator">📌 Pinned by creator</span>}
             {hidden ? (
               <p className="empty-state">This comment is {comment.moderation_state}.</p>
             ) : (
@@ -365,6 +394,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
                   return <a key={index} href={attachment.url} target="_blank" rel="noreferrer">{attachment.altText ?? "Open attachment"}</a>;
                 })}
                 <button className="reply-btn" onClick={() => setReplyingTo({ id: comment.id, authorName: comment.authorName })}>Reply</button>
+                {targetType === "short" && depth === 0 && user?.id === shortAuthorId && !isGuest && <button className="reply-btn" type="button" disabled={pinningId === comment.id} onClick={() => void togglePinned(comment.id, Boolean(comment.pinned_at))}>{pinningId === comment.id ? "…" : comment.pinned_at ? "Unpin" : "Pin"}</button>}
                 <button className="reply-btn" onClick={() => setMenuFor(menuFor === comment.id ? null : comment.id)} aria-expanded={menuFor === comment.id} aria-label="More comment actions">⋯</button>
                 {menuFor === comment.id && (
                   <span className="comment-menu" role="group" aria-label="Comment actions">
