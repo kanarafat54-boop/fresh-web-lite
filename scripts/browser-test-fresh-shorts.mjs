@@ -128,6 +128,18 @@ for (const width of WIDTHS) {
   check((await page.locator(".fresh-flow-item").first().locator(".fresh-flow-rail-avatar").count()) === 1, `${tag} rail starts with the creator profile photo`);
   check(rail.count >= 7, `${tag} action rail has profile, react, comment, repost, save, share and more (${rail.count})`);
   check(rail.top >= rail.tabsBottom - 1 && rail.bottom <= rail.itemBottom + 1, `${tag} every action sits inside the visible Short, below the tabs (${Math.round(rail.top)} >= ${Math.round(rail.tabsBottom)})`);
+  await page.locator('.fresh-flow-item [aria-label="Share"]').first().click();
+  await page.locator('[aria-label="Share this Short"]').waitFor({ timeout: 5000 });
+  const shareText = await page.locator('[aria-label="Share this Short"]').innerText();
+  check(shareText.includes("Fresh Messages") && shareText.includes("Copy link") && /Fresh Mail.*service connection needed/i.test(shareText), `${tag} Share panel offers Messages and Copy link and labels Fresh Mail honestly`);
+  await page.locator('[aria-label="Share this Short"] [aria-label="Close"]').click();
+  // Report sheet must be a real overlay above the feed (it previously rendered inline, unpositioned).
+  await page.locator('.fresh-flow-item [aria-label="More"]').first().click();
+  await page.locator(".fresh-flow-advanced").getByRole("button", { name: /Report/ }).click();
+  await page.locator('[aria-label="Report this Short"]').waitFor({ timeout: 5000 });
+  const reportBox = await page.locator('[aria-label="Report this Short"]').boundingBox();
+  check(Boolean(reportBox) && reportBox.x >= -1 && reportBox.x + reportBox.width <= width + 1, `${tag} Report sheet sits on screen above the feed`);
+  await page.locator('[aria-label="Report this Short"] [aria-label="Close"]').click();
   check(await page.locator('nav[aria-label="Fresh Flow media"]').isVisible(), `${tag} top navigation visible on Shorts`);
   const shortsTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
   check(JSON.stringify(shortsTabs) === JSON.stringify(["Live", "VR / AR", "Podcasts", "Music", "Others"]), `${tag} Shorts top navigation is Live · VR / AR · Podcasts · Music · Others (got ${shortsTabs.join(" · ")})`);
@@ -181,7 +193,7 @@ for (const width of WIDTHS) {
   const more = page.locator(".fresh-flow-advanced").first();
   check(await more.isVisible(), `${tag} More panel opens`);
   const moreText = await more.innerText();
-  for (const label of ["Send gift", "Ask Fresh AI", "Not interested", "Mute", "Report", "Remix"]) check(moreText.includes(label), `${tag} More panel has ${label}`);
+  for (const label of ["Send gift", "Ask Fresh AI", "Show more like this", "Show less like this", "Manage recommendations", "Not interested", "Mute", "Report", "Remix"]) check(moreText.includes(label), `${tag} More panel has ${label}`);
   await page.locator(".fresh-flow-item").first().locator('[aria-label="More"]').click();
 
   // Paging by scroll: the next Short becomes the only one playing.

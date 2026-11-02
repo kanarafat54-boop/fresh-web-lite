@@ -10,10 +10,13 @@ const WINDOW_DAYS = 45;
  * (owner-only RLS) and the public fields of the Shorts they touched. Returns an
  * empty profile on any failure so ranking falls back to the baseline signals.
  */
-export async function loadTasteProfile(userId: string): Promise<TasteProfile> {
+export async function loadTasteProfile(userId: string, resetAt: string | null = null): Promise<TasteProfile> {
   const empty = buildTasteProfile([], new Map());
   try {
-    const since = new Date(Date.now() - WINDOW_DAYS * 86_400_000).toISOString();
+    const windowStart = Date.now() - WINDOW_DAYS * 86_400_000;
+    const resetMs = resetAt ? Date.parse(resetAt) : NaN;
+    // "Reset recommendations" moves this marker; older events stay stored but stop shaping the feed.
+    const since = new Date(Number.isFinite(resetMs) ? Math.max(windowStart, resetMs) : windowStart).toISOString();
     const { data: rows, error } = await supabase
       .from("fresh_flow_events")
       .select("media_id, event_type, created_at")
