@@ -84,6 +84,8 @@ export default function FreshFlowHub() {
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
   const isOverview = section === "fresh-flow";
   const isShortsRoute = section === "fresh-flow-shorts";
+  /** Creator Studio is the Shorts creator surface, so it keeps the Fresh Shorts header and controls. */
+  const shortsHeader = isShortsRoute || section === "fresh-flow-system-fresh-studio";
   const world = isShortsRoute ? worldByRouteId("fresh-flow") : worldByRouteId(section);
   const systemRoutePrefix = "fresh-flow-system-";
   const independentSystem = section.startsWith(systemRoutePrefix) ? getFreshFlowSystem(section.slice(systemRoutePrefix.length)) : undefined;
@@ -181,8 +183,8 @@ export default function FreshFlowHub() {
       data-media-world={world.id}
       data-surface={world.surface}
     >
-      <header className={`fresh-flow-reference-header fresh-flow-unified-header${isShortsRoute ? " fresh-shorts-header" : ""}`} data-navigation="top">
-          {isShortsRoute ? (
+      <header className={`fresh-flow-reference-header fresh-flow-unified-header${shortsHeader ? " fresh-shorts-header" : ""}`} data-navigation="top">
+          {shortsHeader ? (
             <button type="button" className="fresh-flow-unified-brand fresh-shorts-brand" onClick={() => setActiveRoute("fresh-flow-shorts")} aria-label="Fresh Shorts home">
               <span className="fresh-flow-unified-mark fresh-shorts-mark" aria-hidden="true">▶</span>
               <span className="fresh-flow-brand-wordmark"><strong>Fresh Shorts</strong><small>Short videos. Big ideas. Real people.</small></span>
@@ -194,7 +196,7 @@ export default function FreshFlowHub() {
             </button>
           )}
           <nav className="fresh-flow-header-world-nav" aria-label="Fresh Flow media">
-            {(isShortsRoute ? SHORTS_TOP_NAVIGATION : TOP_NAVIGATION).map((item) => {
+            {(shortsHeader ? SHORTS_TOP_NAVIGATION : TOP_NAVIGATION).map((item) => {
               const active = item.isActive(section, independentSystem?.id);
               return (
                 <button key={item.label} type="button" className={active ? "active" : ""} aria-current={active ? "page" : undefined} onClick={() => setActiveRoute(item.route)}>{item.label}</button>
@@ -203,7 +205,7 @@ export default function FreshFlowHub() {
           </nav>
           <div className="fresh-flow-header-actions">
             <button type="button" className="fresh-flow-search-icon-button" onClick={openFreshSearch} aria-label="Search Fresh Flow" title="Search">⌕</button>
-            {isShortsRoute && (
+            {shortsHeader && (
               <>
                 <button type="button" className="fresh-flow-search-icon-button fresh-shorts-bell" onClick={() => setShortsNotificationsOpen(true)} aria-label="Notifications" title="Notifications">🔔</button>
                 <button type="button" className="fresh-flow-search-icon-button fresh-shorts-add" onClick={() => openCreator("create")} aria-label="Add or create a Short" title="Add / Create">＋</button>

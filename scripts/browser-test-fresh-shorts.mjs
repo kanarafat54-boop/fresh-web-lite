@@ -289,6 +289,9 @@ for (const width of WIDTHS) {
   await page.locator(".shorts-studio").waitFor({ timeout: 8000 });
   const sTabs = (await page.locator(".shorts-studio-tabs button").allInnerTexts()).map((t) => t.trim());
   check(JSON.stringify(sTabs) === JSON.stringify(["Overview", "Videos", "Analytics", "Earnings", "Create & drafts"]), `${tag} Studio sections (got ${sTabs.join(" · ")})`);
+  const studioTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
+  check(JSON.stringify(studioTabs) === JSON.stringify(["Live", "VR / AR", "Podcasts", "Music", "Others"]), `${tag} Creator Studio keeps the Shorts top navigation (got ${studioTabs.join(" · ")})`);
+  check((await page.locator("header .fresh-shorts-brand").count()) === 1, `${tag} Creator Studio header is the Fresh Shorts header`);
   check((await page.locator(".shorts-studio").innerText()).includes("Sign in to see your Studio numbers"), `${tag} Studio shows a sign-in prompt when signed out`);
   check((await page.locator("#fresh-flow-system-tools").innerText()).includes("All Studio capabilities"), `${tag} existing Studio capability grid is kept`);
   const overflowX = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
