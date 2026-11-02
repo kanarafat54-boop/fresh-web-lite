@@ -1,0 +1,13 @@
+import assert from "node:assert/strict";
+import { applyShortPrefs, hashtagsOf, addUnique, removeValue, EMPTY_PREFS } from "../src/features/fresh-flow/core/shortsPrefsLogic.ts";
+const s = (id, authorId, caption) => ({ id, authorId, caption });
+const feed = [s(1, "a", "x #cats"), s(2, "b", "y #concrete"), s(3, "c", "z #news"), s(4, "a", "w")];
+assert.deepEqual(hashtagsOf("A #Cats #cats #ÇaVa b"), ["cats", "çava"]);
+assert.deepEqual(applyShortPrefs(feed, EMPTY_PREFS).map((x) => x.id), [1, 2, 3, 4]);
+assert.deepEqual(applyShortPrefs(feed, { ...EMPTY_PREFS, mutedTopics: ["cats"] }).map((x) => x.id), [2, 3, 4]);
+assert.deepEqual(applyShortPrefs(feed, { ...EMPTY_PREFS, mutedCreators: ["a"] }).map((x) => x.id), [2, 3]);
+assert.deepEqual(applyShortPrefs(feed, { ...EMPTY_PREFS, interests: ["news"] }).map((x) => x.id), [3, 1, 2, 4]);
+assert.deepEqual(applyShortPrefs(feed, { ...EMPTY_PREFS, showLessTopics: ["concrete"] }).map((x) => x.id), [1, 3, 4, 2]);
+assert.deepEqual(addUnique(["a"], ["a", "b"]), ["a", "b"]);
+assert.deepEqual(removeValue(["a", "b"], "a"), ["b"]);
+console.log("fresh-shorts-prefs: ok");

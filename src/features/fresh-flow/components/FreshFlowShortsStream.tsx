@@ -33,7 +33,9 @@ import { consumeOpenShortRequest } from "../core/shortsExplore";
 import ShortsTopicPage from "./ShortsTopicPage";
 import ShortsSharePanel from "./ShortsSharePanel";
 import { splitCaption, type TopicKind } from "../core/shortsTopics";
-import { SHORT_REPORT_REASONS, loadMutedCreators, reportShort, setCreatorMuted, shortDeepLink, type ShortReportReason } from "../core/shortsSafety";
+import ShortsRecommendationControls from "./ShortsRecommendationControls";
+import { EMPTY_PREFS, addUnique, applyShortPrefs, hashtagsOf, loadShortPrefs, removeValue, saveShortPrefs, type ShortPrefs } from "../core/shortsPreferences";
+import { SHORT_REPORT_REASONS, reportShort, setCreatorMuted, shortDeepLink, type ShortReportReason } from "../core/shortsSafety";
 import "./FreshFlow.css";
 
 type SubTab = ShortDiscoveryId;
@@ -149,8 +151,10 @@ export default function FreshFlowShortsStream({
   const [openCreatorId, setOpenCreatorId] = useState<string | null>(null);
   const [reportTarget, setReportTarget] = useState<Short | null>(null);
   const [shareTarget, setShareTarget] = useState<Short | null>(null);
+  const [recoOpen, setRecoOpen] = useState(false);
   const [topicPage, setTopicPage] = useState<{ kind: TopicKind; value: string } | null>(null);
   const mutedCreatorsRef = useRef<Set<string>>(new Set());
+  const prefsRef = useRef<ShortPrefs>(EMPTY_PREFS);
   const shortsRef = useRef<Short[]>([]);
   shortsRef.current = shorts;
 
@@ -201,7 +205,10 @@ export default function FreshFlowShortsStream({
       const category = shortDiscoveryToCategory(tab);
       if (category) options.category = category;
       const result = await loadFreshFlowShorts(user?.id ?? null, isGuest, options);
-      if (user && !isGuest) mutedCreatorsRef.current = await loadMutedCreators(user.id); else mutedCreatorsRef.current = new Set();
+      if (user && !isGuest) {
+        prefsRef.current = await loadShortPrefs(user.id);
+        mutedCreatorsRef.current = new Set(prefsRef.current.mutedCreators);
+      } else { prefsRef.current = EMPTY_PREFS; mutedCreatorsRef.current = new Set(); }
       let candidates = result.shorts.filter((s) => !mutedCreatorsRef.current.has(s.authorId));
       if (tab === "following") candidates = candidates.filter((s) => s.isFollowingAuthor);
       else if (mode === "social") {
@@ -213,14 +220,15 @@ export default function FreshFlowShortsStream({
       }
       // Fresh Picks is discovery: personalised ranking over creators you do not already follow.
       if (tab === "more") candidates = candidates.filter((s) => !s.isFollowingAuthor);
-      if (user && !isGuest && (tab === "for-you" || tab === "more")) { await flushTelemetry(); tasteRef.current = await loadTasteProfile(user.id); }
+      if (user && !isGuest && (tab === "for-you" || tab === "more")) { await flushTelemetry(); tasteRef.current = await loadTasteProfile(user.id, prefsRef.current.tasteResetAt); }
       else if (!user || isGuest) tasteRef.current = null;
-      const ranked =
+      const rankedBase =
         tab === "trending"
           ? rankTrending(candidates)
           : tab === "for-you" || tab === "more"
             ? rankPersonal(candidates, tasteRef.current ?? EMPTY_TASTE, viewedRef.current)
             : rankFreshFlow(candidates);
+      const ranked = applyShortPrefs(rankedBase, prefsRef.current);
       setShorts(ranked);
       setSavedIds(new Set(result.savedIds));
       replaceQueue(ranked.map((short) => ({
@@ -271,12 +279,14 @@ export default function FreshFlowShortsStream({
           candidates = candidates.filter((s) => socialIds.has(s.authorId));
         }
       }
-      const ranked =
+      if (subTab === "more") candidates = candidates.filter((s) => !s.isFollowingAuthor);
+      const rankedBase =
         subTab === "trending"
           ? rankTrending(candidates)
           : subTab === "for-you" || subTab === "more"
             ? rankPersonal(candidates, tasteRef.current ?? EMPTY_TASTE, viewedRef.current)
             : rankFreshFlow(candidates);
+      const ranked = applyShortPrefs(rankedBase, prefsRef.current);
       setShorts((current) => {
         const existing = new Set(current.map((s) => s.id));
         return [...current, ...ranked.filter((s) => !existing.has(s.id))];
@@ -708,10 +718,37 @@ export default function FreshFlowShortsStream({
     if (!user || isGuest) { pushNotification({ title: "Sign in to mute", message: "Muted creators are saved to your account.", type: "error" }); return; }
     try {
       mutedCreatorsRef.current = await setCreatorMuted(user.id, short.authorId, true);
+      prefsRef.current = { ...prefsRef.current, mutedCreators: [...mutedCreatorsRef.current] };
       setShorts((prev) => prev.filter((item) => item.authorId !== short.authorId));
       pushNotification({ title: `Muted @${short.authorUsername}`, message: "You won't see their Shorts in your feed.", type: "success" });
     } catch {
       pushNotification({ title: "Mute failed", message: "Fresh could not save this. Try again.", type: "error" });
+    }
+  }
+
+  /** Show more / less / hide topic: saved to the viewer's own preferences and applied to the feed right away. */
+  async function updateTopicPrefs(short: Short, mode: "more" | "less" | "hide", onlyTag?: string) {
+    setAdvancedOpen(false);
+    if (!user || isGuest) { pushNotification({ title: "Sign in to tune your feed", message: "Recommendation controls are saved to your account.", type: "error" }); return; }
+    const tags = onlyTag ? [onlyTag] : hashtagsOf(short.caption || "");
+    if (tags.length === 0) {
+      pushNotification({ title: "No topic on this Short", message: "It has no hashtags, so Fresh can't tell what to change. Not interested still teaches your feed." });
+      return;
+    }
+    const current = prefsRef.current;
+    const next: ShortPrefs = mode === "more"
+      ? { ...current, interests: addUnique(current.interests, tags), showLessTopics: tags.reduce((list, tag) => removeValue(list, tag), current.showLessTopics) }
+      : mode === "less"
+        ? { ...current, showLessTopics: addUnique(current.showLessTopics, tags), interests: tags.reduce((list, tag) => removeValue(list, tag), current.interests) }
+        : { ...current, mutedTopics: addUnique(current.mutedTopics, tags) };
+    try {
+      await saveShortPrefs(user.id, next);
+      prefsRef.current = next;
+      setShorts((prev) => applyShortPrefs(prev, next));
+      if (mode === "less") track("skip", short.id);
+      pushNotification({ title: mode === "more" ? "You'll see more like this" : mode === "less" ? "You'll see less like this" : `Hidden ${tags.map((t) => `#${t}`).join(" ")}`, message: "Saved to your recommendation controls.", type: "success" });
+    } catch {
+      pushNotification({ title: "Not saved", message: "Fresh could not save that change. Try again.", type: "error" });
     }
   }
 
@@ -906,6 +943,20 @@ export default function FreshFlowShortsStream({
                       </button>
                     ))}
                     <hr className="fresh-flow-advanced-divider" aria-hidden="true" />
+                    <button type="button" onClick={() => void updateTopicPrefs(short, "more")}>
+                      <span>➕</span> Show more like this
+                    </button>
+                    <button type="button" onClick={() => void updateTopicPrefs(short, "less")}>
+                      <span>➖</span> Show less like this
+                    </button>
+                    {hashtagsOf(short.caption || "").slice(0, 3).map((tag) => (
+                      <button key={tag} type="button" onClick={() => void updateTopicPrefs(short, "hide", tag)}>
+                        <span>🙈</span> Hide topic #{tag}
+                      </button>
+                    ))}
+                    <button type="button" onClick={() => { setAdvancedOpen(false); if (!user || isGuest) pushNotification({ title: "Sign in", message: "Recommendation controls are saved to your account.", type: "error" }); else setRecoOpen(true); }}>
+                      <span>⚙</span> Manage recommendations
+                    </button>
                     <button type="button" onClick={() => handleNotInterested(short)}>
                       <span>🚫</span> Not interested
                     </button>
@@ -931,6 +982,10 @@ export default function FreshFlowShortsStream({
           onMessage={() => { setOpenCreatorId(null); setActiveRoute("communication"); }}
           onSignIn={() => { setOpenCreatorId(null); setActiveRoute("auth-signin"); }}
         />
+      )}
+
+      {recoOpen && user && (
+        <ShortsRecommendationControls userId={user.id} onClose={() => setRecoOpen(false)} onChanged={() => { void loadShortPrefs(user.id).then((fresh) => { prefsRef.current = fresh; mutedCreatorsRef.current = new Set(fresh.mutedCreators); }); }} />
       )}
 
       {shareTarget && (

@@ -186,7 +186,7 @@ for (const width of WIDTHS) {
   const more = page.locator(".fresh-flow-advanced").first();
   check(await more.isVisible(), `${tag} More panel opens`);
   const moreText = await more.innerText();
-  for (const label of ["Send gift", "Ask Fresh AI", "Not interested", "Mute", "Report", "Remix"]) check(moreText.includes(label), `${tag} More panel has ${label}`);
+  for (const label of ["Send gift", "Ask Fresh AI", "Show more like this", "Show less like this", "Manage recommendations", "Not interested", "Mute", "Report", "Remix"]) check(moreText.includes(label), `${tag} More panel has ${label}`);
   await page.locator(".fresh-flow-item").first().locator('[aria-label="More"]').click();
 
   // Paging by scroll: the next Short becomes the only one playing.
