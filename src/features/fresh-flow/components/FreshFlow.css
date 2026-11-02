@@ -146,3 +146,4 @@
 .fresh-flow-stream[data-discovery] .fresh-flow-meta{position:absolute;left:16px;right:84px;bottom:calc(92px + env(safe-area-inset-bottom));pointer-events:auto}
 .fresh-flow-stream[data-discovery] .fresh-flow-actions{right:8px;bottom:calc(92px + env(safe-area-inset-bottom));gap:2px;pointer-events:auto;max-height:calc(100% - 150px)}
 .fresh-flow-stream[data-discovery] .fresh-flow-actions button{min-height:44px}
+.fresh-flow-stream[data-discovery] .fresh-flow-overlay>*{pointer-events:auto}
