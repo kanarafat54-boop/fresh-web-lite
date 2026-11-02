@@ -25,7 +25,6 @@ import { FreshFlowTelemetryBuffer, type FreshFlowTelemetryEvent } from "../core/
 import { WatchTracker } from "../core/shortWatchSignals";
 import { recordFreshFlowEvents } from "../../../core/platform/freshPlatformRuntime";
 import {
-  SHORT_DISCOVERY_TABS,
   shortDiscoveryToCategory,
   type ShortDiscoveryId,
 } from "../core/shortDiscovery";
@@ -46,7 +45,15 @@ type FreshFlowShortsStreamProps = {
 };
 
 /** Layer B from architecture: For You · Following · Trending · Learn · Relax · More */
-const SUB_TABS = SHORT_DISCOVERY_TABS;
+/** Spec section 2A: For You · Social · Trending · Fresh Picks · Learn · Relax (Filters is the gear). Ids stay compatible with saved positions. */
+const SUB_TABS: Array<{ id: SubTab; label: string; icon: string }> = [
+  { id: "for-you", label: "For You", icon: "★" },
+  { id: "following", label: "Social", icon: "👤" },
+  { id: "trending", label: "Trending", icon: "↗" },
+  { id: "more", label: "Fresh Picks", icon: "✦" },
+  { id: "learn", label: "Learn", icon: "📚" },
+  { id: "relax", label: "Relax", icon: "🌊" },
+];
 
 const FILTERS: Array<{ id: FilterMode; label: string }> = [
   { id: "all", label: "All" },
@@ -70,7 +77,7 @@ const DOUBLE_TAP_MS = 280;
 
 function normalizeSubTab(raw: unknown): SubTab {
   if (raw === "fresh-picks") return "more";
-  const ids = new Set(SHORT_DISCOVERY_TABS.map((t) => t.id));
+  const ids = new Set(SUB_TABS.map((t) => t.id));
   if (typeof raw === "string" && ids.has(raw as SubTab)) return raw as SubTab;
   return "for-you";
 }
@@ -199,6 +206,8 @@ export default function FreshFlowShortsStream({
           candidates = candidates.filter((s) => socialIds.has(s.authorId));
         }
       }
+      // Fresh Picks is discovery: personalised ranking over creators you do not already follow.
+      if (tab === "more") candidates = candidates.filter((s) => !s.isFollowingAuthor);
       if (user && !isGuest && (tab === "for-you" || tab === "more")) { await flushTelemetry(); tasteRef.current = await loadTasteProfile(user.id); }
       else if (!user || isGuest) tasteRef.current = null;
       const ranked =
@@ -846,6 +855,9 @@ export default function FreshFlowShortsStream({
                   </div>
                 </div>
                 <div className="fresh-flow-actions">
+                  <button type="button" className="fresh-flow-rail-avatar" onClick={() => setOpenCreatorId(short.authorId)} aria-label={`Open @${short.authorUsername} profile`}>
+                    <span aria-hidden="true">{(short.authorUsername || "F")[0]?.toUpperCase()}</span>
+                  </button>
                   <ReactionPicker
                     myReaction={short.myReaction ?? null}
                     count={Object.values(short.reactionBreakdown).reduce((total, value) => total + value, 0)}
@@ -856,6 +868,10 @@ export default function FreshFlowShortsStream({
                     <span>💬</span>
                     <span>{short.commentCount}</span>
                   </button>
+                  <button type="button" onClick={() => void handleRepost(short)} aria-label={short.repostedByMe ? "Undo repost" : "Repost"} aria-pressed={Boolean(short.repostedByMe)} className={short.repostedByMe ? "saved" : ""}>
+                    <span>🔁</span>
+                    <span>{short.repostCount || "Repost"}</span>
+                  </button>
                   <button type="button" onClick={() => void handleSave(short)} aria-label={savedIds.has(short.id) ? "Remove from saved" : "Save"} aria-pressed={savedIds.has(short.id)} className={savedIds.has(short.id) ? "saved" : ""}>
                     <span>{savedIds.has(short.id) ? "🔖" : "🏷"}</span>
                     <span>{savedIds.has(short.id) ? "Saved" : "Save"}</span>
@@ -863,10 +879,6 @@ export default function FreshFlowShortsStream({
                   <button type="button" onClick={() => void handleShare(short)} aria-label="Share">
                     <span>↗</span>
                     <span>Share</span>
-                  </button>
-                  <button type="button" onClick={() => void handleGift(short, "100")} aria-label="Send gift" className="gift">
-                    <span>🎁</span>
-                    <span>{giftTotals.get(short.id)?.count ?? 0}</span>
                   </button>
                   <button type="button" onClick={() => setAdvancedOpen((v) => !v)} aria-label="More" aria-expanded={advancedOpen && index === currentIndex}>
                     <span>⋯</span>
@@ -884,8 +896,8 @@ export default function FreshFlowShortsStream({
                 )}
                 {advancedOpen && index === currentIndex && (
                   <div className="fresh-flow-advanced" role="group" aria-label="More actions">
-                    <button type="button" onClick={() => void handleRepost(short)}>
-                      <span>🔁</span> {short.repostedByMe ? "Undo repost" : "Repost"}{short.repostCount ? ` · ${short.repostCount}` : ""}
+                    <button type="button" onClick={() => { setAdvancedOpen(false); void handleGift(short, "100"); }} aria-label="Send gift">
+                      <span>🎁</span> Send gift{(giftTotals.get(short.id)?.count ?? 0) > 0 ? ` · ${giftTotals.get(short.id)?.count}` : ""}
                     </button>
                     <button type="button" onClick={() => { setAdvancedOpen(false); setFreshAiPanelOpen(true); }}>
                       <span>✦</span> Ask Fresh AI
