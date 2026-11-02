@@ -43,6 +43,7 @@ export default function BottomNav() {
     { id: "feed", label: "Home", icon: "⌂" },
     { id: "fresh-flow-shorts", label: "Shorts", icon: "▶" },
     { id: "fresh-flow-system-fresh-studio", label: "Creator Studio", icon: "＋" },
+    { id: "fresh-flow-long-videos", label: "Video", icon: "▷" },
     { id: "communication", label: "Messages", icon: "▤" },
     { id: "fresh-mail", label: "Fresh Mail", icon: "✉" },
   ];
