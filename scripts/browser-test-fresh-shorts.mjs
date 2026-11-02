@@ -133,6 +133,13 @@ for (const width of WIDTHS) {
   const shareText = await page.locator('[aria-label="Share this Short"]').innerText();
   check(shareText.includes("Fresh Messages") && shareText.includes("Copy link") && /Fresh Mail.*service connection needed/i.test(shareText), `${tag} Share panel offers Messages and Copy link and labels Fresh Mail honestly`);
   await page.locator('[aria-label="Share this Short"] [aria-label="Close"]').click();
+  // Report sheet must be a real overlay above the feed (it previously rendered inline, unpositioned).
+  await page.locator('.fresh-flow-item [aria-label="More"]').first().click();
+  await page.locator(".fresh-flow-advanced").getByRole("button", { name: /Report/ }).click();
+  await page.locator('[aria-label="Report this Short"]').waitFor({ timeout: 5000 });
+  const sheetBox = await page.locator('[aria-label="Report this Short"]').boundingBox();
+  check(Boolean(sheetBox) && sheetBox.x >= -1 && sheetBox.x + sheetBox.width <= width + 1, `${tag} Report sheet sits on screen above the feed`);
+  await page.locator('[aria-label="Report this Short"] [aria-label="Close"]').click();
   check(await page.locator('nav[aria-label="Fresh Flow media"]').isVisible(), `${tag} top navigation visible on Shorts`);
   const shortsTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
   check(JSON.stringify(shortsTabs) === JSON.stringify(["Live", "VR / AR", "Podcasts", "Music", "Others"]), `${tag} Shorts top navigation is Live · VR / AR · Podcasts · Music · Others (got ${shortsTabs.join(" · ")})`);

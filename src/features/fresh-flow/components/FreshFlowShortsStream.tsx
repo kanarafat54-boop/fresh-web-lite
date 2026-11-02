@@ -1003,11 +1003,11 @@ export default function FreshFlowShortsStream({
       )}
 
       {reportTarget && (
-        <div className="comment-panel-backdrop" onClick={() => setReportTarget(null)}>
-          <div className="comment-panel post-menu-sheet" role="dialog" aria-modal="true" aria-label="Report this Short" onClick={(event) => event.stopPropagation()}>
-            <div className="comment-panel-header"><h3>Report this Short</h3><button type="button" className="back-btn" onClick={() => setReportTarget(null)} aria-label="Close">✕</button></div>
+        <div className="shorts-sheet-backdrop" onClick={() => setReportTarget(null)}>
+          <div className="shorts-sheet" role="dialog" aria-modal="true" aria-label="Report this Short" onClick={(event) => event.stopPropagation()}>
+            <div className="shorts-sheet-header"><h3>Report this Short</h3><button type="button" className="shorts-sheet-close" onClick={() => setReportTarget(null)} aria-label="Close">✕</button></div>
             {SHORT_REPORT_REASONS.map((reason) => (
-              <button key={reason.id} type="button" className="post-menu-item" onClick={() => void handleReport(reportTarget, reason.id)}>{reason.label}</button>
+              <button key={reason.id} type="button" className="shorts-sheet-item" onClick={() => void handleReport(reportTarget, reason.id)}>{reason.label}</button>
             ))}
           </div>
         </div>

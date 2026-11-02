@@ -47,9 +47,9 @@ export default function ShortsRecommendationControls({ userId, onClose, onChange
   );
 
   return (
-    <div className="comment-panel-backdrop" onClick={onClose}>
-      <div className="comment-panel post-menu-sheet shorts-reco" role="dialog" aria-modal="true" aria-label="Recommendation controls" onClick={(event) => event.stopPropagation()}>
-        <div className="comment-panel-header"><h3>Your recommendations</h3><button type="button" className="back-btn" onClick={onClose} aria-label="Close">✕</button></div>
+    <div className="shorts-sheet-backdrop" onClick={onClose}>
+      <div className="shorts-sheet shorts-reco" role="dialog" aria-modal="true" aria-label="Recommendation controls" onClick={(event) => event.stopPropagation()}>
+        <div className="shorts-sheet-header"><h3>Your recommendations</h3><button type="button" className="shorts-sheet-close" onClick={onClose} aria-label="Close">✕</button></div>
         {!prefs && <p>Loading…</p>}
         {prefs && (
           <>

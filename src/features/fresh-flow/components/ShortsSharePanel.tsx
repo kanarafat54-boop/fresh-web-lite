@@ -56,9 +56,9 @@ export default function ShortsSharePanel({ url, text, signedIn, onClose, onShare
   };
 
   return (
-    <div className="comment-panel-backdrop" onClick={onClose}>
-      <div className="comment-panel post-menu-sheet shorts-share-panel" role="dialog" aria-modal="true" aria-label="Share this Short" onClick={(event) => event.stopPropagation()}>
-        <div className="comment-panel-header"><h3>Share</h3><button type="button" className="back-btn" onClick={onClose} aria-label="Close">✕</button></div>
+    <div className="shorts-sheet-backdrop" onClick={onClose}>
+      <div className="shorts-sheet shorts-share-panel" role="dialog" aria-modal="true" aria-label="Share this Short" onClick={(event) => event.stopPropagation()}>
+        <div className="shorts-sheet-header"><h3>Share</h3><button type="button" className="shorts-sheet-close" onClick={onClose} aria-label="Close">✕</button></div>
         <section aria-label="Fresh Messages">
           <h4>Send in Fresh Messages</h4>
           {!signedIn && <p>Sign in to send this Short to your connections.</p>}
