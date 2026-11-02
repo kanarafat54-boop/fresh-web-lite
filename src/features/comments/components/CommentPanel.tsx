@@ -179,15 +179,18 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   async function loadComments() {
     setLoading(true);
     setError(null);
-    let result = await supabase.from(table)
+    const primary = await supabase.from(table)
       .select("id,author_id,content,audio_url,video_url,attachments,parent_id,moderation_state,created_at,pinned_at")
       .eq(column, targetId).order("created_at", { ascending: true });
-    if (targetType === "short" && result.error && /pinned_at|column/i.test(result.error.message)) {
-      result = await supabase.from(table)
+    let data: any[] | null = primary.data as any[] | null;
+    let queryError: any = primary.error;
+    if (targetType === "short" && primary.error && /pinned_at|column/i.test(primary.error.message)) {
+      const fallback = await supabase.from(table)
         .select("id,author_id,content,audio_url,video_url,attachments,parent_id,moderation_state,created_at")
         .eq(column, targetId).order("created_at", { ascending: true });
+      data = fallback.data as any[] | null;
+      queryError = fallback.error;
     }
-    const { data, error: queryError } = result;
     if (queryError) {
       setError(queryError.message);
       setLoading(false);
