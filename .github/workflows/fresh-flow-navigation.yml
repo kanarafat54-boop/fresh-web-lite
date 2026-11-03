@@ -12,6 +12,7 @@ on:
       - "scripts/test-fresh-shorts-safety.mjs"
       - "scripts/test-fresh-shorts-topics.mjs"
       - "scripts/test-fresh-studio-projects.mjs"
+      - "scripts/test-fresh-audience-lens.mjs"
       - "scripts/test-fresh-comment-tools.mjs"
       - "scripts/test-fresh-shorts-prefs.mjs"
       - "scripts/eval-fresh-shorts-ranking.mjs"
@@ -28,6 +29,7 @@ on:
       - "scripts/test-fresh-shorts-safety.mjs"
       - "scripts/test-fresh-shorts-topics.mjs"
       - "scripts/test-fresh-studio-projects.mjs"
+      - "scripts/test-fresh-audience-lens.mjs"
       - "scripts/test-fresh-comment-tools.mjs"
       - "scripts/test-fresh-shorts-prefs.mjs"
       - ".github/workflows/fresh-flow-navigation.yml"
@@ -71,6 +73,8 @@ jobs:
         run: node --experimental-strip-types --no-warnings scripts/test-fresh-comment-tools.mjs
       - name: Studio project rules
         run: node --experimental-strip-types --no-warnings scripts/test-fresh-studio-projects.mjs
+      - name: Audience Lens logic
+        run: node --experimental-strip-types --no-warnings scripts/test-fresh-audience-lens.mjs
       - name: Shorts caption hashtag parsing
         run: node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-topics.mjs
       - name: Shorts safety and deep-link contract
