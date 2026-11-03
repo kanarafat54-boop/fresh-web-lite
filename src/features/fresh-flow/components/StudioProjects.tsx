@@ -7,6 +7,8 @@ import {
 
 type Props = { userId: string };
 
+const KIND_ICONS: Record<ProjectCategory, string> = { video: "🎬", image: "🖼", audio: "🎵", podcast: "🎙", "3d": "🧊", design: "✏️", live: "📡", custom: "✦" };
+
 /** Studio Projects (spec section 3): real rows in fresh_projects, owner-only, versioned updates. */
 export default function StudioProjects({ userId }: Props) {
   const [projects, setProjects] = useState<StudioProject[] | null>(null);
@@ -38,12 +40,24 @@ export default function StudioProjects({ userId }: Props) {
 
   return (
     <section className="studio-projects" aria-label="Studio projects">
+      {visible[0] && !showArchived && (
+        <div className="studio-continue">
+          <small>Continue where you left off</small>
+          <strong>{visible[0].name}</strong>
+          <span>{label(visible[0].category)} · {STATUS_LABELS[visible[0].status]} · updated {timeAgo(visible[0].updatedAt)}</span>
+        </div>
+      )}
+      <h3 className="studio-projects-title">What do you want to make?</h3>
+      <div className="studio-kinds" role="radiogroup" aria-label="Project type">
+        {PROJECT_CATEGORIES.map((item) => (
+          <button key={item.id} type="button" role="radio" aria-checked={category === item.id} className={category === item.id ? "selected" : ""} onClick={() => setCategory(item.id)}>
+            <span aria-hidden="true">{KIND_ICONS[item.id]}</span>{item.label}
+          </button>
+        ))}
+      </div>
       <form className="studio-projects-new" onSubmit={(event) => { event.preventDefault(); void run(async () => { await createProject(userId, name, category); setName(""); }); }}>
-        <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} placeholder="New project name" aria-label="New project name" />
-        <select value={category} onChange={(event) => setCategory(event.target.value as ProjectCategory)} aria-label="Project type">
-          {PROJECT_CATEGORIES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-        </select>
-        <button type="submit" disabled={busy}>Create project</button>
+        <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} placeholder={`Name your ${label(category).toLowerCase()} project`} aria-label="New project name" />
+        <button type="submit" disabled={busy || !name.trim()}>Create project</button>
       </form>
       <p className="shorts-studio-note">Projects save to your account with version checks, so two devices never overwrite each other. Editors for each project type are added per workspace; until then a project holds your plan, status and history.</p>
       <div className="studio-projects-filter" role="group" aria-label="Project filter">
