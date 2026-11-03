@@ -8,19 +8,6 @@ import {
   type ClientJumpEvent,
   type InteractiveManifest,
 } from "../../core/platform/interactiveNodeEngine";
-import {
-  holdClaimProceeds,
-  openCopyrightClaim,
-  resolveClaim,
-  runFairUseClassifier,
-  type CopyrightClaim,
-} from "../../core/platform/copyrightArbitration";
-import {
-  authorizeMicroUnlock,
-  createMicroUnlock,
-  fulfillMicroUnlock,
-  type MicroUnlock,
-} from "../../core/platform/microSubscription";
 
 type Props = {
   onAddStemSeparate?: () => void;
@@ -41,8 +28,6 @@ export default function StudioMediaOpsPanels({
   const [activeNodeId, setActiveNodeId] = useState(manifest.nodes[0]?.id ?? "");
   const [lastJump, setLastJump] = useState<ClientJumpEvent | null>(null);
   const [quizResult, setQuizResult] = useState<string | null>(null);
-  const [claim, setClaim] = useState<CopyrightClaim | null>(null);
-  const [unlock, setUnlock] = useState<MicroUnlock | null>(null);
 
   const activeNode = useMemo(
     () => manifest.nodes.find((n) => n.id === activeNodeId) ?? manifest.nodes[0] ?? null,
@@ -67,31 +52,6 @@ export default function StudioMediaOpsPanels({
     else if (correct === false) setQuizResult("Not the marked answer — still jumped.");
     else setQuizResult(null);
     setActiveNodeId(jump.toNodeId);
-  }
-
-  function openClaim() {
-    const next = openCopyrightClaim({
-      contentId,
-      claimantId: "rights-holder-demo",
-      creatorId: "creator-demo",
-      reason: "Manual Content ID style claim (demo)",
-      heldAmountMinor: 25000,
-      currency: "UGX",
-    });
-    setClaim(holdClaimProceeds(next));
-  }
-
-  function startMicroUnlock() {
-    const next = createMicroUnlock({
-      buyerId: "viewer-demo",
-      sellerId: "creator-demo",
-      assetId: contentId,
-      assetKind: "video",
-      amountMinor: 1500,
-      currency: "UGX",
-      provider: "sandbox",
-    });
-    setUnlock(authorizeMicroUnlock(next));
   }
 
   if (showMapOnly) {
@@ -207,47 +167,8 @@ export default function StudioMediaOpsPanels({
           <button type="button" onClick={() => onAddStemSeparate?.()}>
             + Stem edit
           </button>
-          <button type="button" onClick={openClaim}>
-            Open claim + hold
-          </button>
-          <button type="button" onClick={startMicroUnlock}>
-            Micro-unlock
-          </button>
-          {claim && (
-            <>
-              <button type="button" onClick={() => setClaim((c) => (c ? runFairUseClassifier(c, 0.28) : c))}>
-                Fair-use
-              </button>
-              <button type="button" onClick={() => setClaim((c) => (c ? runFairUseClassifier(c, 0.91) : c))}>
-                High similarity
-              </button>
-              <button type="button" onClick={() => setClaim((c) => (c ? resolveClaim(c, "creator") : c))}>
-                Resolve creator
-              </button>
-            </>
-          )}
-          {unlock?.status === "authorized" && (
-            <button type="button" onClick={() => setUnlock((u) => (u ? fulfillMicroUnlock(u) : u))}>
-              Fulfill unlock
-            </button>
-          )}
         </div>
-        {claim && (
-          <div className="studio-job">
-            <span>Claim {claim.status}</span>
-            <b>
-              {claim.currency} {(claim.heldAmountMinor / 100).toFixed(2)}
-            </b>
-          </div>
-        )}
-        {unlock && (
-          <div className="studio-job">
-            <span>Unlock {unlock.status}</span>
-            <b>
-              {unlock.currency} {(unlock.amountMinor / 100).toFixed(2)}
-            </b>
-          </div>
-        )}
+        <p className="studio-muted">Copyright claims and paid unlocks need a rights-review service and a payment service. Neither is connected, so Fresh opens no claim and takes no payment from here.</p>
       </article>
     </>
   );
