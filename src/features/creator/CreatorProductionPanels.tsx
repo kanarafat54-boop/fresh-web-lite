@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
+import AudienceLens from "./AudienceLens";
 import {
-  buildRetentionCurve,
   defaultAudioLanes,
   defaultLiveControl,
   enqueueSchedule,
@@ -61,7 +61,6 @@ function AnalyticsPanel({
   isShort: boolean;
   onApplyCaption?: (text: string) => void;
 }) {
-  const curve = useMemo(() => buildRetentionCurve(analytics), [analytics]);
   const prediction = useMemo(
     () =>
       predictViralPerformance({
@@ -89,18 +88,10 @@ function AnalyticsPanel({
         <div className="creator-section-heading">
           <div>
             <span className="workspace-eyebrow">RETENTION</span>
-            <h2>Drop-off curve</h2>
+            <h2>Audience Lens</h2>
           </div>
         </div>
-        <p className="creator-muted">Estimated from your live views / likes until full player telemetry is connected.</p>
-        <div className="creator-retention">
-          {curve.map((p) => (
-            <div key={p.second} className="creator-retention-bar" title={`${p.second}s · ${Math.round(p.retained * 100)}%`}>
-              <div style={{ height: `${Math.max(8, p.retained * 100)}%` }} />
-              <span>{p.second}s</span>
-            </div>
-          ))}
-        </div>
+        <AudienceLens />
         <div className="creator-metric-row">
           <div>
             <strong>{Number(analytics.short_views ?? 0)}</strong>
