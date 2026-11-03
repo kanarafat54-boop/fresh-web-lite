@@ -74,6 +74,8 @@ export default function StudioWorkspace() {
   const [playbackRate, setPlaybackRate] = useState(1);
   const [exporting, setExporting] = useState(false);
   const [exportUrl, setExportUrl] = useState<string | null>(null);
+  const [formatExports, setFormatExports] = useState<Array<{ aspect: "9:16" | "1:1" | "16:9"; url: string; bytes: number }>>([]);
+  const [exportingAll, setExportingAll] = useState(false);
   const [browserSupport] = useState(() => getBrowserExportSupport());
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -286,9 +288,17 @@ export default function StudioWorkspace() {
     setMessage("Project saved on this device.");
   };
 
+  const clearFormatExports = () => {
+    setFormatExports((list) => {
+      list.forEach((f) => URL.revokeObjectURL(f.url));
+      return [];
+    });
+  };
+
   const newProject = () => {
     if (sourcePreview) URL.revokeObjectURL(sourcePreview);
     if (exportUrl) URL.revokeObjectURL(exportUrl);
+    clearFormatExports();
     const doc = createRenderDocument("local-media");
     setDocument(doc);
     setProject(null);
@@ -307,6 +317,7 @@ export default function StudioWorkspace() {
 
   const importMedia = (file: File) => {
     if (sourcePreview) URL.revokeObjectURL(sourcePreview);
+    clearFormatExports();
     if (exportUrl) {
       URL.revokeObjectURL(exportUrl);
       setExportUrl(null);
@@ -427,6 +438,51 @@ export default function StudioWorkspace() {
       setMessage(`WASM runtime OK · ${result}`);
     } catch (error) {
       setMessage(error instanceof Error ? `WASM check failed: ${error.message}` : "WASM check failed. Retry.");
+    }
+  };
+
+  /** One master, every shape: renders the same edits to 9:16, 1:1 and 16:9 on this device, one after another. */
+  const exportEveryFormat = async () => {
+    const video = videoRef.current;
+    if (!video) {
+      setMessage("Import and load a video in the preview first.");
+      return;
+    }
+    if (!browserSupport.mediaRecorder || !browserSupport.canvasCapture) {
+      setMessage("Browser export is not supported on this device.");
+      return;
+    }
+    const d = Number.isFinite(video.duration) ? video.duration : 0;
+    const ranges = keepRanges(d, document.edits);
+    if (d > 0 && ranges.length === 0) {
+      setMessage("Everything is trimmed or cut away. Undo an edit and try again.");
+      return;
+    }
+    const grade = [...document.edits].reverse().find((edit): edit is Extract<MediaEdit, { type: "grade" }> => edit.type === "grade");
+    const text = [...document.edits].reverse().find((edit): edit is Extract<MediaEdit, { type: "text" }> => edit.type === "text");
+    clearFormatExports();
+    setExportingAll(true);
+    const done: Array<{ aspect: "9:16" | "1:1" | "16:9"; url: string; bytes: number }> = [];
+    try {
+      for (const aspect of ["9:16", "1:1", "16:9"] as const) {
+        setMessage(`Rendering ${aspect} (${done.length + 1} of 3)…`);
+        const blob = await exportVideoFrameStream(video, {
+          aspect,
+          ranges: ranges.length ? ranges : undefined,
+          grade: grade ? { preset: grade.preset, intensity: grade.intensity } : undefined,
+          overlayText: text ? { text: text.text, start: text.start, end: text.end } : undefined,
+          fps: 30,
+        });
+        done.push({ aspect, url: URL.createObjectURL(blob), bytes: blob.size });
+        setFormatExports([...done]);
+      }
+      setMessage("All three formats are ready to download.");
+    } catch (error) {
+      setMessage(
+        `${error instanceof Error ? error.message : "Render failed."}${done.length ? ` ${done.length} of 3 finished and can still be downloaded.` : ""}`,
+      );
+    } finally {
+      setExportingAll(false);
     }
   };
 
@@ -815,16 +871,28 @@ export default function StudioWorkspace() {
                 </button>
               </div>
             )}
+            {formatExports.length > 0 && (
+              <div className="studio-actions" aria-label="Rendered formats">
+                {formatExports.map((f) => (
+                  <a key={f.aspect} className="studio-download" href={f.url} download={`fresh-${f.aspect.replace(":", "x")}.webm`}>
+                    {f.aspect} · {(f.bytes / 1048576).toFixed(1)} MB
+                  </a>
+                ))}
+              </div>
+            )}
             {sourcePreview && (
               <div className="studio-actions">
                 <button type="button" className="studio-btn-primary" onClick={() => void exportDocument()} disabled={exporting}>
                   {exporting ? "Rendering…" : "Render current graph"}
                 </button>
                 {exportUrl && (
-                  <a className="studio-download" href={exportUrl} download="fresh-web-lite-9x16.webm">
+                  <a className="studio-download" href={exportUrl} download="fresh-web-lite-export.webm">
                     Download WebM
                   </a>
                 )}
+                <button type="button" onClick={() => void exportEveryFormat()} disabled={exporting || exportingAll}>
+                  {exportingAll ? "Rendering formats…" : "Render all 3 formats"}
+                </button>
                 <button type="button" onClick={queueRender}>
                   Queue render
                 </button>
