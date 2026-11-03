@@ -1,0 +1,16 @@
+import assert from "node:assert/strict";
+import { keepRanges, totalLength, sourceToOutput } from "../src/core/platform/editSegments.ts";
+assert.deepEqual(keepRanges(10, []), [[0, 10]]);
+assert.deepEqual(keepRanges(0, []), []);
+assert.deepEqual(keepRanges(10, [{ type: "trim", start: 2, end: 8 }]), [[2, 8]]);
+assert.deepEqual(keepRanges(10, [{ type: "trim", start: -5, end: 99 }]), [[0, 10]]);
+assert.deepEqual(keepRanges(10, [{ type: "cut", start: 3, end: 5 }]), [[0, 3], [5, 10]]);
+assert.deepEqual(keepRanges(10, [{ type: "trim", start: 1, end: 9 }, { type: "cut", start: 0, end: 2 }, { type: "cut", start: 8, end: 12 }]), [[2, 8]]);
+assert.deepEqual(keepRanges(10, [{ type: "cut", start: 2, end: 4 }, { type: "cut", start: 3, end: 6 }]), [[0, 2], [6, 10]]);
+assert.deepEqual(keepRanges(10, [{ type: "cut", start: 0, end: 10 }]), []);
+assert.deepEqual(keepRanges(10, [{ type: "cut", start: 5, end: 5 }, { type: "cut", start: NaN, end: 2 }]), [[0, 10]]);
+assert.equal(totalLength(keepRanges(10, [{ type: "cut", start: 3, end: 5 }])), 8);
+const r = keepRanges(10, [{ type: "cut", start: 3, end: 5 }]);
+assert.equal(sourceToOutput(r, 6), 4);
+assert.equal(sourceToOutput(r, 4), null);
+console.log("fresh-edit-segments: ok");

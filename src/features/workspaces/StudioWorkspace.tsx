@@ -34,6 +34,7 @@ import { createThumbnail, probeMedia, submitMediaToWorker, waitForMediaWorker } 
 import { saveMediaAsset } from "../../core/platform/mediaStorage";
 import { useLayout } from "../../app/contexts/useLayout";
 import StudioMediaOpsPanels from "./StudioMediaOpsPanels";
+import { keepRanges } from "../../core/platform/editSegments";
 import FreshStudioProductionDesk from "./FreshStudioProductionDesk";
 import "./WorkspacePage.css";
 import "./StudioWorkspace.css";
@@ -457,6 +458,12 @@ export default function StudioWorkspace() {
         aspect: crop?.aspect ?? "9:16",
         startSeconds: trim?.start,
         endSeconds: trim?.end,
+        ranges: (() => {
+          const d = Number.isFinite(video.duration) ? video.duration : 0;
+          const r = keepRanges(d, document.edits);
+          if (d > 0 && r.length === 0) throw new Error("Everything is trimmed or cut away. Undo an edit and try again.");
+          return r.length ? r : undefined;
+        })(),
         grade: grade ? { preset: grade.preset, intensity: grade.intensity } : undefined,
         overlayText: text ? { text: text.text, start: text.start, end: text.end } : undefined,
         fps: 30,
@@ -887,7 +894,14 @@ export default function StudioWorkspace() {
                 + Grade
               </button>
               <button type="button" onClick={() => add({ type: "split", at: Math.max(0, trimStart) })}>
-                + Split
+                + Split mark
+              </button>
+              <button
+                type="button"
+                title="Removes the range between Trim start and Trim end from the export"
+                onClick={() => add({ type: "cut", start: Math.max(0, trimStart), end: Math.max(trimStart + 0.05, trimEnd) })}
+              >
+                Cut out range
               </button>
               <button
                 type="button"
