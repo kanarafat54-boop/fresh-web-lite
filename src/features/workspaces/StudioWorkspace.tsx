@@ -20,7 +20,6 @@ import {
   type MediaPipelineJob,
 } from "../../core/platform/mediaPipeline";
 import { createBrowserSpeechRecognition, getBrowserSpeechCapability } from "../../core/platform/browserSpeech";
-import { fundEscrow, releaseEscrow, verifyMilestone } from "../../core/platform/escrowLedger";
 import {
   createMediaProject,
   listMediaProjects,
@@ -100,15 +99,6 @@ export default function StudioWorkspace() {
   const [photoContrast, setPhotoContrast] = useState(100);
   const [photoSaturation, setPhotoSaturation] = useState(100);
   const [photoRotation, setPhotoRotation] = useState(0);
-  const [escrow, setEscrow] = useState(() =>
-    fundEscrow({
-      payerId: "brand-demo",
-      payeeId: "creator-demo",
-      amountMinor: 50000,
-      currency: "UGX",
-      milestone: "Deliver final vertical campaign asset",
-    }),
-  );
 
   useEffect(() => {
     if (mode === "camera" && cameraStream && cameraVideoRef.current) {
@@ -1056,25 +1046,7 @@ export default function StudioWorkspace() {
               <span>Escrow</span>
               <h2>Brand deal</h2>
             </div>
-            <p className="studio-muted">Separate from user Treasury balances.</p>
-            <div className="studio-escrow">
-              <div>
-                <strong>
-                  {escrow.currency} {(escrow.amountMinor / 100).toFixed(2)}
-                </strong>
-                <span>
-                  {escrow.status} · {escrow.milestone}
-                </span>
-              </div>
-            </div>
-            <div className="studio-actions">
-              <button type="button" onClick={() => setEscrow((c) => verifyMilestone(c))}>
-                Verify milestone
-              </button>
-              <button type="button" onClick={() => setEscrow((c) => releaseEscrow(c))}>
-                Release payout
-              </button>
-            </div>
+            <p className="studio-muted">Brand deals and escrow need a connected payment service. None is connected, so Fresh shows no deal, balance or payout here rather than an example.</p>
           </article>
           <StudioMediaOpsPanels
             contentId={project?.id ?? "studio-demo"}
