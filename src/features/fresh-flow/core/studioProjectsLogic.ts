@@ -31,6 +31,8 @@ export type StudioProject = {
   version: number;
   updatedAt: string;
   createdAt: string;
+  /** Free-form project content (e.g. the Director production). Never trusted as typed data. */
+  metadata: Record<string, unknown>;
 };
 
 export function validateProjectName(raw: string): { ok: true; name: string } | { ok: false; error: string } {
@@ -59,6 +61,7 @@ export function toProject(row: { id: string; name: string; status: unknown; meta
     version: Number(row.version) > 0 ? Number(row.version) : 1,
     updatedAt: row.updated_at,
     createdAt: row.created_at,
+    metadata,
   };
 }
 
