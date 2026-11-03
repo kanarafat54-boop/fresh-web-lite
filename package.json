@@ -86,6 +86,7 @@
     "test:fresh-shorts-prefs": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-prefs.mjs",
     "test:fresh-comment-tools": "node --experimental-strip-types --no-warnings scripts/test-fresh-comment-tools.mjs",
     "test:fresh-audience-lens": "node --experimental-strip-types --no-warnings scripts/test-fresh-audience-lens.mjs",
+    "test:fresh-edit-segments": "node --experimental-strip-types --no-warnings scripts/test-fresh-edit-segments.mjs",
     "test:fresh-studio-projects": "node --experimental-strip-types --no-warnings scripts/test-fresh-studio-projects.mjs",
     "test:fresh-shorts-safety": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-safety.mjs",
     "test:fresh-shorts-browser": "node scripts/browser-test-fresh-shorts.mjs dist",
