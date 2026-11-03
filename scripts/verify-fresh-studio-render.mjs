@@ -7,6 +7,7 @@ import path from "node:path";
 // Renders real files with the real ffmpeg and checks what comes out, not just the arguments.
 const have = (bin) => spawnSync(bin, ["-version"]).status === 0;
 if (!have("ffmpeg") || !have("ffprobe")) {
+  if (process.env.FRESH_REQUIRE_FFMPEG) throw new Error("ffmpeg and ffprobe are required for this test.");
   console.log("Fresh Studio render contract SKIPPED: ffmpeg/ffprobe are not installed here.");
   process.exit(0);
 }

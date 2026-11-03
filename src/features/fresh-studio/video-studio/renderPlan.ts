@@ -4,6 +4,7 @@
  * plus mixed music tracks, with trim, split, speed and gaps. Anything else is rejected
  * with a clear message instead of being silently ignored (spec §6.10, §26.7).
  */
+import { escapeFilterPath } from "./captions.ts";
 import { clipDuration, round3, timelineDuration, trackClips, validateTimeline, type TimelineClip, type TimelineDoc } from "./timeline.ts";
 
 export const EXPORT_PRESETS = [
@@ -32,6 +33,8 @@ export type RenderPlanInput = {
   sources: Record<string, string>;
   outputPath: string;
   fps?: number;
+  /** Path to an SRT/VTT file in timeline time to burn into the video. The caller writes the file. */
+  captionsFile?: string;
 };
 
 export type RenderPlan =
@@ -134,7 +137,12 @@ export function planRender(input: RenderPlanInput): RenderPlan {
   }
 
   const n = vLabels.length;
-  filters.push(`${vLabels.map((l) => `[${l}]`).join("")}concat=n=${n}:v=1:a=0[vout]`);
+  const burn = Boolean(input.captionsFile);
+  filters.push(`${vLabels.map((l) => `[${l}]`).join("")}concat=n=${n}:v=1:a=0[${burn ? "vcat" : "vout"}]`);
+  if (burn) {
+    const size = Math.max(14, Math.round(H * 0.045));
+    filters.push(`[vcat]subtitles=filename=${escapeFilterPath(input.captionsFile!)}:force_style='FontSize=${size},Outline=2,Shadow=0,MarginV=${Math.round(H * 0.08)}'[vout]`);
+  }
   filters.push(`${aLabels.map((l) => `[${l}]`).join("")}concat=n=${n}:v=0:a=1[abase]`);
 
   let audioOut = "abase";
