@@ -324,7 +324,7 @@ for (const width of WIDTHS) {
   await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Creator Studio" }).click();
   await page.locator(".shorts-studio").waitFor({ timeout: 8000 });
   const sTabs = (await page.locator(".shorts-studio-tabs button").allInnerTexts()).map((t) => t.trim());
-  check(JSON.stringify(sTabs) === JSON.stringify(["Overview", "Videos", "Analytics", "Earnings", "Create & drafts"]), `${tag} Studio sections (got ${sTabs.join(" · ")})`);
+  check(JSON.stringify(sTabs) === JSON.stringify(["Overview", "Projects", "Videos", "Analytics", "Earnings", "Create & drafts"]), `${tag} Studio sections (got ${sTabs.join(" · ")})`);
   const studioTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
   check(JSON.stringify(studioTabs) === JSON.stringify(["Live", "VR / AR", "Podcasts", "Music", "Others"]), `${tag} Creator Studio keeps the Shorts top navigation (got ${studioTabs.join(" · ")})`);
   check((await page.locator("header .fresh-shorts-brand").count()) === 1, `${tag} Creator Studio header is the Fresh Shorts header`);
