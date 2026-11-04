@@ -29,3 +29,15 @@
 .studio-project-card{display:grid;gap:8px;padding:12px;border-radius:16px;background:#12121a;border:1px solid rgba(255,255,255,.08)}
 .studio-project-main{display:grid;gap:2px}.studio-project-main small{opacity:.7}
 .studio-project-actions{display:flex;flex-wrap:wrap;gap:6px}.studio-project-actions button{background:rgba(255,255,255,.08)}.studio-project-actions button.danger{background:#dc2626}
+/* Calm, spacious project start: one question, big plain choices, nothing else competing. */
+.studio-projects{display:grid;gap:18px;padding-block:8px}
+.studio-projects-title{margin:4px 0 0;font-size:1.15rem;font-weight:600}
+.studio-continue{display:grid;gap:4px;padding:16px 18px;border-radius:18px;background:linear-gradient(135deg,rgba(99,91,255,.22),rgba(79,70,229,.08));border:1px solid rgba(99,91,255,.35)}
+.studio-continue small{opacity:.75}.studio-continue strong{font-size:1.1rem}.studio-continue span{opacity:.7;font-size:.88rem}
+.studio-kinds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media(min-width:640px){.studio-kinds{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.studio-kinds button{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:84px;padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:#12121a;color:#e5e7eb;font:inherit;font-weight:600;text-align:left;cursor:pointer}
+.studio-kinds button span{font-size:1.5rem;line-height:1}
+.studio-kinds button.selected{border-color:#635bff;background:rgba(99,91,255,.16)}
+.studio-projects-new{margin:0}
+.studio-project-card{padding:16px;gap:12px}

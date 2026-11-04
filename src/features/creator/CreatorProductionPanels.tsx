@@ -231,7 +231,7 @@ function DistributePanel({ caption, isShort }: { caption: string; isShort: boole
       scheduledAt: new Date(when).toISOString(),
     });
     setQueue(loadScheduleQueue());
-    setMsg(`Queued “${item.title}” for ${channels.length} channel(s).`);
+    setMsg(`Saved “${item.title}” as a reminder on this device for ${channels.length} channel(s). Automatic publishing is not connected yet, so nothing will post by itself: publish it at that time.`);
   }
 
   return (
@@ -257,9 +257,10 @@ function DistributePanel({ caption, isShort }: { caption: string; isShort: boole
             <input type="datetime-local" value={scheduleAt} onChange={(e) => setScheduleAt(e.target.value)} />
           </label>
           <button type="button" className="publish" onClick={queueSchedule}>
-            Queue release
+            Save reminder
           </button>
         </div>
+        <p className="creator-message">Scheduling is a reminder saved on this device. Automatic publishing needs a scheduler service, and other platforms need their official connections; neither is connected yet.</p>
         {msg && <p className="creator-message">{msg}</p>}
         {queue.length > 0 && (
           <div className="creator-schedule-list">
@@ -267,7 +268,7 @@ function DistributePanel({ caption, isShort }: { caption: string; isShort: boole
               <article key={q.id}>
                 <strong>{q.title}</strong>
                 <span>
-                  {q.status} · {new Date(q.scheduledAt).toLocaleString()} · {q.channels.join(", ")}
+                  Reminder only · {new Date(q.scheduledAt).toLocaleString()} · {q.channels.join(", ")}
                 </span>
               </article>
             ))}

@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./FreshStudioProductionDesk.css";
+import { useFreshId } from "../fresh-id/context/FreshIdContext";
+import { createDirectorProject, directorContent, findDirectorProject, saveDirectorProject, type StudioProject } from "../fresh-flow/core/studioProjects";
 import { fetchBlenderRenderOutput, getBlenderRenderJob, submitBlenderRenderJob } from "../../core/platform/blenderRenderWorker";
 
 type Shot = { id: string; title: string; framing: string; movement: string; duration: number; notes: string };
@@ -37,6 +39,10 @@ export default function FreshStudioProductionDesk({ onBack }: { onBack: () => vo
   const [production, setProduction] = useState<Production>(loadProduction);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"saved" | "saving" | "error">("saved");
+  const { user, isGuest } = useFreshId();
+  const [cloud, setCloud] = useState<"off" | "loading" | "synced" | "saving" | "offline" | "conflict">("off");
+  const cloudProject = useRef<StudioProject | null>(null);
+  const cloudReady = useRef(false);
   const [sceneDraft, setSceneDraft] = useState({ title: "", location: "", description: "" });
   const [renderState, setRenderState] = useState<"idle" | "submitting" | "queued" | "running" | "ready" | "failed">("idle");
   const [renderMessage, setRenderMessage] = useState("");
@@ -54,6 +60,66 @@ export default function FreshStudioProductionDesk({ onBack }: { onBack: () => vo
       setSaveState("saved");
     } catch { setSaveState("error"); }
   }, [production]);
+
+  // Account sync (spec 16.1): load the newest saved production on open, then autosave changes with a version check.
+  useEffect(() => {
+    if (!user || isGuest) { setCloud("off"); return; }
+    let cancelled = false;
+    setCloud("loading");
+    (async () => {
+      try {
+        const found = await findDirectorProject(user.id);
+        if (cancelled) return;
+        if (found) {
+          cloudProject.current = found;
+          const remote = directorContent(found) as Production | null;
+          if (remote?.version === 1 && Array.isArray(remote.scenes) && Date.parse(remote.updatedAt) >= Date.parse(production.updatedAt)) setProduction({ ...blankProduction(), ...remote });
+        }
+        cloudReady.current = true;
+        setCloud("synced");
+      } catch { if (!cancelled) setCloud("offline"); }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, isGuest]);
+
+  useEffect(() => {
+    if (!user || isGuest || !cloudReady.current) return;
+    const timer = window.setTimeout(async () => {
+      setCloud("saving");
+      try {
+        const snapshot = { ...production, updatedAt: new Date().toISOString() };
+        cloudProject.current = cloudProject.current
+          ? await saveDirectorProject(cloudProject.current, production.title, snapshot)
+          : await createDirectorProject(user.id, production.title, snapshot);
+        setCloud("synced");
+      } catch (cause) {
+        setCloud(cause instanceof Error && /changed somewhere else/.test(cause.message) ? "conflict" : "offline");
+      }
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [production, user, isGuest]);
+
+  const loadLatestFromAccount = async () => {
+    if (!user) return;
+    try {
+      const found = await findDirectorProject(user.id);
+      if (!found) return;
+      cloudProject.current = found;
+      const remote = directorContent(found) as Production | null;
+      if (remote?.version === 1 && Array.isArray(remote.scenes)) setProduction({ ...blankProduction(), ...remote });
+      setCloud("synced");
+    } catch { setCloud("offline"); }
+  };
+
+  const keepMine = async () => {
+    if (!user) return;
+    try {
+      const found = await findDirectorProject(user.id);
+      if (found) cloudProject.current = found;
+      setProduction((current) => ({ ...current }));
+    } catch { setCloud("offline"); }
+  };
 
   const update = (patch: Partial<Production>) => setProduction((current) => ({ ...current, ...patch }));
   const addScene = () => {
@@ -153,7 +219,7 @@ export default function FreshStudioProductionDesk({ onBack }: { onBack: () => vo
     <section className="fresh-production-desk" aria-label="Fresh Director production desk">
       <header className="fpd-header">
         <div><span className="fpd-kicker">FRESH STUDIO · PRE-PRODUCTION</span><h2>Fresh Director</h2><p>Turn an idea into a structured production plan, scene by scene and shot by shot.</p></div>
-        <div className="fpd-header-actions"><span className={`fpd-save-state is-${saveState}`}>{saveState === "saved" ? "Saved on this device" : saveState === "saving" ? "Saving…" : "Storage unavailable"}</span><button type="button" onClick={onBack}>Back to Studio</button><button type="button" className="fpd-primary" onClick={exportPlan}>Export production plan</button></div>
+        <div className="fpd-header-actions"><span className={`fpd-save-state is-${saveState}`}>{saveState === "saved" ? "Saved on this device" : saveState === "saving" ? "Saving…" : "Storage unavailable"}</span><span className={`fpd-save-state is-cloud-${cloud}`} role="status">{cloud === "off" ? "Sign in to back up to your account" : cloud === "loading" ? "Checking your account…" : cloud === "synced" ? "Backed up to your account" : cloud === "saving" ? "Backing up…" : cloud === "conflict" ? "Changed on another device" : "Account backup unavailable — kept on this device"}</span>{cloud === "conflict" && <><button type="button" onClick={() => void loadLatestFromAccount()}>Load latest</button><button type="button" onClick={() => void keepMine()}>Keep mine</button></>}<button type="button" onClick={onBack}>Back to Studio</button><button type="button" className="fpd-primary" onClick={exportPlan}>Export production plan</button></div>
       </header>
       <div className="fpd-layout">
         <aside className="fpd-sidebar">

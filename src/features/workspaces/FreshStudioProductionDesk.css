@@ -6,3 +6,6 @@
 .fpd-render-status.is-failed{color:#f87171}
 .fpd-render-status.is-ready{color:#86efac}
 .fpd-render-preview{display:block;width:100%;max-height:540px;object-fit:contain;border-radius:14px;background:#080810;border:1px solid var(--border-color,rgba(255,255,255,.12))}
+.fpd-save-state[class*="is-cloud-"]{margin-left:8px}
+.fpd-save-state.is-cloud-conflict,.fpd-save-state.is-cloud-offline{color:#f59e0b}
+.fpd-save-state.is-cloud-synced{color:#22c55e}

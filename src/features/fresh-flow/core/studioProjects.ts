@@ -60,6 +60,33 @@ export async function duplicateProject(userId: string, project: StudioProject, e
   return toProject(data as any);
 }
 
+const DIRECTOR_KEY = "directorProduction";
+
+/** The owner's most recently updated Director production project, if any. */
+export async function findDirectorProject(userId: string): Promise<StudioProject | null> {
+  const { data, error } = await supabase.from("fresh_projects").select(COLUMNS).eq("owner_id", userId).not(`metadata->>${DIRECTOR_KEY}`, "is", null).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? toProject(data as any) : null;
+}
+
+export async function createDirectorProject(userId: string, name: string, production: unknown): Promise<StudioProject> {
+  const workspaceId = await ensureWorkspace(userId);
+  const checked = validateProjectName(name);
+  const { data, error } = await supabase.from("fresh_projects").insert({ owner_id: userId, workspace_id: workspaceId, name: checked.ok ? checked.name : "Untitled production", status: "planning", metadata: { category: "video", [DIRECTOR_KEY]: production } }).select(COLUMNS).single();
+  if (error) throw new Error(error.message);
+  return toProject(data as any);
+}
+
+/** Saves Director content with a version check (conflicts are reported, never overwritten). */
+export async function saveDirectorProject(project: StudioProject, name: string, production: unknown): Promise<StudioProject> {
+  const checked = validateProjectName(name);
+  return versionedUpdate(project, { name: checked.ok ? checked.name : project.name, metadata: { ...project.metadata, category: "video", [DIRECTOR_KEY]: production } });
+}
+
+export function directorContent(project: StudioProject): unknown {
+  return project.metadata[DIRECTOR_KEY] ?? null;
+}
+
 /** Permanent delete. The UI must confirm first (spec 18). Archive is the reversible alternative. */
 export async function deleteProject(project: StudioProject): Promise<void> {
   const { error } = await supabase.from("fresh_projects").delete().eq("id", project.id);
