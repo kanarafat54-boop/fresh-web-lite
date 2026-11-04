@@ -37,6 +37,17 @@ assert.equal(sil.length, 2, JSON.stringify(sil));
 near(sil[0].start, 2.0, 0.12, "silence 1 start"); near(sil[0].end, 3.5, 0.12, "silence 1 end");
 near(sil[1].start, 5.5, 0.12, "silence 2 start"); near(sil[1].end, 6.3, 0.12, "silence 2 end");
 
+// --- The on-device (browser) detector agrees with ffmpeg on the same real file
+{
+  const { detectSilenceFromSamples } = await import(base + "audioAnalysis.ts");
+  const pcm = spawnSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", SPEECH, "-vn", "-ac", "1", "-ar", "8000", "-f", "f32le", "-"], { maxBuffer: 64 * 1024 * 1024 });
+  assert.equal(pcm.status, 0);
+  const samples = new Float32Array(pcm.stdout.buffer.slice(pcm.stdout.byteOffset, pcm.stdout.byteOffset + pcm.stdout.byteLength));
+  const local = detectSilenceFromSamples(samples, 8000);
+  assert.equal(local.length, sil.length, `browser detector found ${JSON.stringify(local)} vs ffmpeg ${JSON.stringify(sil)}`);
+  local.forEach((r, i) => { near(r.start, sil[i].start, 0.12, `on-device start ${i}`); near(r.end, sil[i].end, 0.12, `on-device end ${i}`); });
+}
+
 // --- parser edge cases
 assert.deepEqual(A.parseSilence("[x] silence_start: 1.5\n", 4), [{ start: 1.5, end: 4 }], "trailing silence runs to the end");
 assert.deepEqual(A.parseSilence("nothing here", 4), []);

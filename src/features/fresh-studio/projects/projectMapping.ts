@@ -16,6 +16,7 @@ import {
   type StudioWorkspaceId,
 } from "../shared/types.ts";
 import { defaultSettingsFor } from "../shared/projectSettings.ts";
+import { validateTimeline } from "../video-studio/timeline.ts";
 
 export type FreshProjectRow = {
   id: string;
@@ -68,7 +69,21 @@ export function parseStudioMeta(metadata: unknown): StudioProjectMeta | null {
     durationSeconds: typeof s.durationSeconds === "number" && Number.isFinite(s.durationSeconds) ? s.durationSeconds : null,
     deletedAt: typeof s.deletedAt === "string" ? s.deletedAt : null,
     statusBeforeRemoval: isStudioStatus(s.statusBeforeRemoval) ? s.statusBeforeRemoval : null,
+    // A corrupt stored timeline must never crash the editor: drop it and start empty.
+    timeline: isRecord(s.timeline) && validateTimeline(s.timeline).length === 0 ? s.timeline : null,
+    captions: parseStoredCaptions(s.captions),
   };
+}
+
+function parseStoredCaptions(value: unknown): StudioProjectMeta["captions"] {
+  if (!Array.isArray(value)) return [];
+  const out: StudioProjectMeta["captions"] = [];
+  for (const c of value.slice(0, 5000)) {
+    if (!isRecord(c) || typeof c.id !== "string" || typeof c.text !== "string") continue;
+    if (typeof c.start !== "number" || typeof c.end !== "number" || !Number.isFinite(c.start) || !Number.isFinite(c.end) || c.end <= c.start) continue;
+    out.push({ id: c.id, start: c.start, end: c.end, text: c.text.slice(0, 400), ...(typeof c.speaker === "string" ? { speaker: c.speaker.slice(0, 30) } : {}) });
+  }
+  return out;
 }
 
 /** Returns null for fresh_projects rows that were not created by Studio. */

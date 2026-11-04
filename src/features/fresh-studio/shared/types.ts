@@ -91,6 +91,10 @@ export type StudioProjectMeta = {
   deletedAt: string | null;
   /** Status to restore to when un-archiving or restoring from trash. */
   statusBeforeRemoval: StudioStatus | null;
+  /** Video timeline (Phase 2). Plain JSON; validated on load, dropped if corrupt. */
+  timeline: unknown | null;
+  /** Caption cues in timeline time. */
+  captions: Array<{ id: string; start: number; end: number; text: string; speaker?: string }>;
 };
 
 export const STARTING_POINTS = ["blank", "template", "import", "continue", "ai"] as const;

@@ -142,4 +142,62 @@ many = addAsset(many, asset("x", 1));
 for (let i = 0; i < 200; i += 1) many = addClip(many, { trackId: "v1", assetId: "x" });
 throwsTimeline(() => addClip(many, { trackId: "v1", assetId: "x" }), /at most 200/);
 
+
+// --- On-device silence detection (pure signal analysis) and timeline persistence in the project model
+{
+  const { detectSilenceFromSamples, mixToMono } = await import(base + "audioAnalysis.ts");
+  const rate = 8000;
+  const build = (segments) => {
+    const total = segments.reduce((n, [d]) => n + d, 0);
+    const out = new Float32Array(Math.round(total * rate));
+    let at = 0;
+    for (const [d, amp] of segments) { const n = Math.round(d * rate); for (let i = 0; i < n; i += 1) out[at + i] = amp * Math.sin((2 * Math.PI * 440 * (at + i)) / rate); at += n; }
+    return out;
+  };
+  const near = (a, e, tol, l) => assert.ok(Math.abs(a - e) <= tol, `${l}: ${a} vs ${e}`);
+  const sig = build([[2, 0.5], [1.5, 0], [2, 0.5], [0.8, 0], [1.5, 0.5]]);
+  const found = detectSilenceFromSamples(sig, rate);
+  assert.equal(found.length, 2, JSON.stringify(found));
+  near(found[0].start, 2, 0.03, "start 1"); near(found[0].end, 3.5, 0.03, "end 1");
+  near(found[1].start, 5.5, 0.03, "start 2"); near(found[1].end, 6.3, 0.03, "end 2");
+  assert.equal(detectSilenceFromSamples(build([[2, 0.5], [0.3, 0], [2, 0.5]]), rate).length, 0, "short pauses are not silence");
+  assert.equal(detectSilenceFromSamples(build([[2, 0.5], [0.3, 0], [2, 0.5]]), rate, { minSilence: 0.2 }).length, 1);
+  assert.deepEqual(detectSilenceFromSamples(build([[1, 0.5], [2, 0]]), rate), [{ start: 1, end: 3 }], "trailing silence runs to the end");
+  assert.equal(detectSilenceFromSamples(build([[3, 0.5]]), rate).length, 0, "continuous sound has no silence");
+  assert.equal(detectSilenceFromSamples(build([[3, 0.0005]]), rate).length, 1, "a very quiet noise floor counts as silence");
+  assert.equal(detectSilenceFromSamples(build([[3, 0.05]]), rate, { noiseDb: -35 }).length, 0, "quiet speech above the threshold is kept");
+  assert.deepEqual(detectSilenceFromSamples(new Float32Array(0), rate), []);
+  assert.deepEqual(detectSilenceFromSamples(sig, 0), []);
+  // Faint noise inside a silence does not split it, but an audible pop does (it is sound, not dead air)
+  const faint = build([[3, 0]]); faint[12000] = 0.05;
+  assert.equal(detectSilenceFromSamples(faint, rate).length, 1, "a faint blip does not end a silence");
+  const pop = build([[3, 0]]); pop[12000] = 0.9;
+  assert.equal(detectSilenceFromSamples(pop, rate, { minSilence: 0.4 }).length, 2, "a loud pop splits the silence in two");
+  assert.equal(mixToMono([Float32Array.of(1, 1), Float32Array.of(-1, 0)])[0], 0);
+  assert.equal(mixToMono([]).length, 0);
+
+  // Timeline + captions survive storage; a corrupt stored timeline is dropped instead of crashing
+  const { parseStudioMeta, metaToMetadata } = await import(base + "../projects/projectMapping.ts");
+  const { createStudioProjectService } = await import(base + "../projects/projectService.ts");
+  const { createDeviceBackend, MemoryStore } = await import(base + "../projects/deviceBackend.ts");
+  const svc = createStudioProjectService(createDeviceBackend(new MemoryStore()));
+  let project = await svc.create({ name: "Editor", kind: "video" });
+  assert.equal(project.meta.timeline, null);
+  assert.deepEqual(project.meta.captions, []);
+  const tl = addClip(addAsset(createTimeline(30), asset("a", 6)), { trackId: "v1", assetId: "a", id: "k1" });
+  const saved = await svc.saveEditor(project, { timeline: tl, captions: [{ id: "c", start: 0, end: 1, text: "Hi" }] });
+  assert.equal(saved.meta.status, "editing", "first edit moves planning to editing");
+  assert.equal(saved.version, project.version + 1);
+  const back = parseStudioMeta(metaToMetadata({}, saved.meta));
+  assert.deepEqual(back.timeline, tl);
+  assert.equal(back.captions[0].text, "Hi");
+  assert.equal(parseStudioMeta({ studio: { ...saved.meta, timeline: { version: 9 } } }).timeline, null, "corrupt timeline is dropped");
+  assert.equal(parseStudioMeta({ studio: { ...saved.meta, captions: [{ id: "x", start: 3, end: 1, text: "bad" }, "junk", { id: "y", start: 0, end: 1, text: "ok" }] } }).captions.length, 1, "bad captions are dropped");
+  try { await svc.saveEditor(saved, { timeline: { ...tl, clips: [{ ...tl.clips[0], assetId: "ghost" }] }, captions: [] }); assert.fail("must reject"); } catch (e) { assert.match(e.message, /missing media/i); }
+  const dup = await svc.duplicate(saved);
+  assert.deepEqual(dup.meta.timeline, tl, "duplicating a project keeps its edit");
+  const trashed = await svc.moveToTrash(saved);
+  try { await svc.saveEditor(trashed, { timeline: tl, captions: [] }); assert.fail("must reject"); } catch (e) { assert.match(e.message, /trash/i); }
+}
+
 console.log("Fresh Studio timeline contract passed.");

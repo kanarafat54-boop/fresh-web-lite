@@ -16,6 +16,7 @@ import {
   type StudioStatus,
 } from "../shared/types.ts";
 import { defaultSettingsFor, mergeSettings, validateSettings } from "../shared/projectSettings.ts";
+import { validateTimeline, type TimelineDoc } from "../video-studio/timeline.ts";
 
 /** Thrown when the stored version no longer matches the version the caller edited (spec §15.3). */
 export class StudioConflictError extends Error {
@@ -85,6 +86,8 @@ function blankMeta(kind: StudioMediaKind, settings: StudioSettings, startingPoin
     durationSeconds,
     deletedAt: null,
     statusBeforeRemoval: null,
+    timeline: null,
+    captions: [],
   };
 }
 
@@ -155,6 +158,15 @@ export function createStudioProjectService(backend: StudioBackend, now: () => Da
         meta = { ...meta, status: changes.status };
       }
       return mutate(project, { name: changes.name !== undefined ? normalizeName(changes.name) : undefined, meta });
+    },
+
+    /** Saves the editor state. Validates first so a corrupt timeline can never be stored. */
+    async saveEditor(project: StudioProject, editor: { timeline: TimelineDoc; captions: StudioProjectMeta["captions"] }) {
+      if (isTrashed(project)) throw new StudioValidationError(["Restore this project from the trash first."]);
+      const problems = validateTimeline(editor.timeline);
+      if (problems.length) throw new StudioValidationError([problems[0]]);
+      const status: StudioStatus = project.meta.status === "planning" ? "editing" : project.meta.status;
+      return mutate(project, { meta: { ...project.meta, status, timeline: editor.timeline, captions: editor.captions.slice(0, 5000) } });
     },
 
     moveToFolder: (project: StudioProject, folder: string | null) =>
