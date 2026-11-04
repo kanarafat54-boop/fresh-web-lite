@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { FlagIcon } from "../../../components/Icons";
+import * as ShortsIcons from "./shortsIcons";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { useLayout } from "../../../app/contexts/useLayout";
 import { CommentPanel } from "../../comments/components/CommentPanel";
@@ -51,13 +53,13 @@ type FreshFlowShortsStreamProps = {
 
 /** Layer B from architecture: For You · Following · Trending · Learn · Relax · More */
 /** Spec section 2A: For You · Social · Trending · Fresh Picks · Learn · Relax (Filters is the gear). Ids stay compatible with saved positions. */
-const SUB_TABS: Array<{ id: SubTab; label: string; icon: string }> = [
-  { id: "for-you", label: "For You", icon: "★" },
-  { id: "following", label: "Social", icon: "👤" },
-  { id: "trending", label: "Trending", icon: "↗" },
-  { id: "more", label: "Fresh Picks", icon: "✦" },
-  { id: "learn", label: "Learn", icon: "📚" },
-  { id: "relax", label: "Relax", icon: "🌊" },
+const SUB_TABS: Array<{ id: SubTab; label: string; icon: ReactNode }> = [
+  { id: "for-you", label: "For You", icon: <ShortsIcons.ForYouIcon size={16} /> },
+  { id: "following", label: "Following", icon: <ShortsIcons.FollowingIcon size={16} /> },
+  { id: "trending", label: "Trending", icon: <ShortsIcons.TrendingIcon size={16} /> },
+  { id: "more", label: "Fresh Picks", icon: <ShortsIcons.PicksIcon size={16} /> },
+  { id: "learn", label: "Learn", icon: <ShortsIcons.LearnTabIcon size={16} /> },
+  { id: "relax", label: "Relax", icon: <ShortsIcons.RelaxIcon size={16} /> },
 ];
 
 const FILTERS: Array<{ id: FilterMode; label: string }> = [
@@ -65,14 +67,14 @@ const FILTERS: Array<{ id: FilterMode; label: string }> = [
   { id: "social", label: "Social" },
 ];
 
-const ADVANCED_ACTIONS: Array<{ id: AdvancedAction; label: string; icon: string; description: string }> = [
-  { id: "quote", label: "Quote", icon: "❝", description: "Create a quoted response to this Short." },
-  { id: "remix", label: "Remix", icon: "✦", description: "Open Creator Studio to remix this Short." },
-  { id: "duet", label: "Duet", icon: "◫", description: "Open Creator Studio for a side-by-side duet." },
-  { id: "collaborate", label: "Collaborate", icon: "♧", description: "Invite this creator into a collaboration." },
-  { id: "edit", label: "Edit tools", icon: "✂", description: "Rotate, speed, text overlay and True Mode editor tools." },
-  { id: "captions", label: "Captions", icon: "CC", description: "Generate or edit captions for this Short." },
-  { id: "effects", label: "Effects", icon: "✧", description: "Apply effects and filters in Creator Studio." },
+const ADVANCED_ACTIONS: Array<{ id: AdvancedAction; label: string; icon: ReactNode; description: string }> = [
+  { id: "quote", label: "Quote", icon: <ShortsIcons.QuoteIcon size={18} />, description: "Create a quoted response to this Short." },
+  { id: "remix", label: "Remix", icon: <ShortsIcons.RemixIcon size={18} />, description: "Open Creator Studio to remix this Short." },
+  { id: "duet", label: "Duet", icon: <ShortsIcons.DuetIcon size={18} />, description: "Open Creator Studio for a side-by-side duet." },
+  { id: "collaborate", label: "Collaborate", icon: <ShortsIcons.CollabIcon size={18} />, description: "Invite this creator into a collaboration." },
+  { id: "edit", label: "Edit tools", icon: <ShortsIcons.EditToolsIcon size={18} />, description: "Rotate, speed, text overlay and True Mode editor tools." },
+  { id: "captions", label: "Captions", icon: <ShortsIcons.CaptionsIcon size={18} />, description: "Generate or edit captions for this Short." },
+  { id: "effects", label: "Effects", icon: <ShortsIcons.EffectsIcon size={18} />, description: "Apply effects and filters in Creator Studio." },
 ];
 
 const FRESH_FLOW_POSITION_KEY = "fresh-flow-position";
@@ -933,23 +935,23 @@ export default function FreshFlowShortsStream({
                     onReact={(kind) => void handleReaction(short.id, kind as UniversalReactionKind)}
                   />
                   <button type="button" onClick={() => { setOpenCommentsFor(short.id); track("comment_open", short.id); }} aria-label="Comments">
-                    <span>💬</span>
+                    <span><ShortsIcons.RailCommentIcon size={26} /></span>
                     <span>{short.commentCount}</span>
                   </button>
                   <button type="button" onClick={() => void handleRepost(short)} aria-label={short.repostedByMe ? "Undo repost" : "Repost"} aria-pressed={Boolean(short.repostedByMe)} className={short.repostedByMe ? "saved" : ""}>
-                    <span>🔁</span>
+                    <span><ShortsIcons.RailRepostIcon size={26} /></span>
                     <span>{short.repostCount || "Repost"}</span>
                   </button>
                   <button type="button" onClick={() => void handleSave(short)} aria-label={savedIds.has(short.id) ? "Remove from saved" : "Save"} aria-pressed={savedIds.has(short.id)} className={savedIds.has(short.id) ? "saved" : ""}>
-                    <span>{savedIds.has(short.id) ? "🔖" : "🏷"}</span>
+                    <span><ShortsIcons.RailSaveIcon size={26} filled={savedIds.has(short.id)} /></span>
                     <span>{savedIds.has(short.id) ? "Saved" : "Save"}</span>
                   </button>
                   <button type="button" onClick={() => void handleShare(short)} aria-label="Share">
-                    <span>↗</span>
+                    <span><ShortsIcons.RailShareIcon size={26} /></span>
                     <span>Share</span>
                   </button>
                   <button type="button" onClick={() => setAdvancedOpen((v) => !v)} aria-label="More" aria-expanded={advancedOpen && index === currentIndex}>
-                    <span>⋯</span>
+                    <span><ShortsIcons.RailMoreIcon size={26} /></span>
                   </button>
                 </div>
                 {freshAiPanelOpen && index === currentIndex && (
@@ -965,42 +967,42 @@ export default function FreshFlowShortsStream({
                 {advancedOpen && index === currentIndex && (
                   <div className="fresh-flow-advanced" role="group" aria-label="More actions">
                     <button type="button" onClick={() => { setAdvancedOpen(false); void handleGift(short, "100"); }} aria-label="Send gift">
-                      <span>🎁</span> Send gift{(giftTotals.get(short.id)?.count ?? 0) > 0 ? ` · ${giftTotals.get(short.id)?.count}` : ""}
+                      <span className="fresh-flow-menu-icon"><ShortsIcons.GiftIcon size={18} /></span> Send gift{(giftTotals.get(short.id)?.count ?? 0) > 0 ? ` · ${giftTotals.get(short.id)?.count}` : ""}
                     </button>
                     <button type="button" onClick={() => { setAdvancedOpen(false); setFreshAiPanelOpen(true); }}>
-                      <span>✦</span> Ask Fresh AI
+                      <span className="fresh-flow-menu-icon"><ShortsIcons.AskAIIcon size={18} /></span> Ask Fresh AI
                     </button>
                     <button type="button" onClick={toggleSound}>
-                      <span>{soundOn ? "🔊" : "🔇"}</span> {soundOn ? "Mute sound" : "Turn sound on"}
+                      <span className="fresh-flow-menu-icon">{soundOn ? <ShortsIcons.VolumeOnIcon size={18} /> : <ShortsIcons.VolumeOffIcon size={18} />}</span> {soundOn ? "Mute sound" : "Turn sound on"}
                     </button>
                     {ADVANCED_ACTIONS.map((a) => (
                       <button key={a.id} type="button" onClick={() => openAdvanced(a.id, short)} title={a.description}>
-                        <span>{a.icon}</span> {a.label}
+                        <span className="fresh-flow-menu-icon">{a.icon}</span> {a.label}
                       </button>
                     ))}
                     <hr className="fresh-flow-advanced-divider" aria-hidden="true" />
                     <button type="button" onClick={() => void updateTopicPrefs(short, "more")}>
-                      <span>➕</span> Show more like this
+                      <span className="fresh-flow-menu-icon"><ShortsIcons.MoreLikeIcon size={18} /></span> Show more like this
                     </button>
                     <button type="button" onClick={() => void updateTopicPrefs(short, "less")}>
-                      <span>➖</span> Show less like this
+                      <span className="fresh-flow-menu-icon"><ShortsIcons.LessLikeIcon size={18} /></span> Show less like this
                     </button>
                     {hashtagsOf(short.caption || "").slice(0, 3).map((tag) => (
                       <button key={tag} type="button" onClick={() => void updateTopicPrefs(short, "hide", tag)}>
-                        <span>🙈</span> Hide topic #{tag}
+                        <span className="fresh-flow-menu-icon"><ShortsIcons.HideTopicIcon size={18} /></span> Hide topic #{tag}
                       </button>
                     ))}
                     <button type="button" onClick={() => { setAdvancedOpen(false); if (!user || isGuest) pushNotification({ title: "Sign in", message: "Recommendation controls are saved to your account.", type: "error" }); else setRecoOpen(true); }}>
-                      <span>⚙</span> Manage recommendations
+                      <span className="fresh-flow-menu-icon"><ShortsIcons.ManageIcon size={18} /></span> Manage recommendations
                     </button>
                     <button type="button" onClick={() => handleNotInterested(short)}>
-                      <span>🚫</span> Not interested
+                      <span className="fresh-flow-menu-icon"><ShortsIcons.NotInterestedIcon size={18} /></span> Not interested
                     </button>
                     <button type="button" onClick={() => void handleMuteCreator(short)}>
-                      <span>🔕</span> Mute @{short.authorUsername}
+                      <span className="fresh-flow-menu-icon"><ShortsIcons.MuteCreatorIcon size={18} /></span> Mute @{short.authorUsername}
                     </button>
                     <button type="button" onClick={() => { setAdvancedOpen(false); setReportTarget(short); }}>
-                      <span>⚑</span> Report
+                      <span className="fresh-flow-menu-icon"><FlagIcon size={18} /></span> Report
                     </button>
                   </div>
                 )}
