@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FlagIcon } from "../../../components/Icons";
 import * as ShortsIcons from "./shortsIcons";
 import { ShortsStateScreen } from "./ShortsStateScreen";
+import { ShortsFilterSheet } from "./ShortsFilterSheet";
+import { applyShortFilters, activeFilterCount, normalizeShortFilters, DEFAULT_SHORT_FILTERS, type ShortFilters } from "../core/shortsFilters";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { useLayout } from "../../../app/contexts/useLayout";
 import { CommentPanel } from "../../comments/components/CommentPanel";
@@ -63,11 +65,6 @@ const SUB_TABS: Array<{ id: SubTab; label: string; icon: ReactNode }> = [
   { id: "relax", label: "Relax", icon: <ShortsIcons.RelaxIcon size={16} /> },
 ];
 
-const FILTERS: Array<{ id: FilterMode; label: string }> = [
-  { id: "all", label: "All" },
-  { id: "social", label: "Social" },
-];
-
 const ADVANCED_ACTIONS: Array<{ id: AdvancedAction; label: string; icon: ReactNode; description: string }> = [
   { id: "quote", label: "Quote", icon: <ShortsIcons.QuoteIcon size={18} />, description: "Create a quoted response to this Short." },
   { id: "remix", label: "Remix", icon: <ShortsIcons.RemixIcon size={18} />, description: "Open Creator Studio to remix this Short." },
@@ -115,6 +112,12 @@ export default function FreshFlowShortsStream({
   const { pushNotification, setActiveRoute } = useLayout();
   const [subTab, setSubTab] = useState<SubTab>(() => readSavedPosition().subTab ?? "for-you");
   const [filterOpen, setFilterOpen] = useState(false);
+  const [shortFilters, setShortFilters] = useState<ShortFilters>(() => {
+    try { return normalizeShortFilters(JSON.parse(window.sessionStorage.getItem("fresh-flow-short-filters") ?? "null")); } catch { return DEFAULT_SHORT_FILTERS; }
+  });
+  const shortFiltersRef = useRef<ShortFilters>(shortFilters);
+  shortFiltersRef.current = shortFilters;
+  const shortFiltersKey = JSON.stringify(shortFilters);
   const [filterMode, setFilterMode] = useState<FilterMode>(() => readSavedPosition().filterMode ?? "all");
   const restoreIndexRef = useRef<number | null>(readSavedPosition().currentIndex ?? null);
   const [shorts, setShorts] = useState<Short[]>([]);
@@ -237,7 +240,7 @@ export default function FreshFlowShortsStream({
           : tab === "for-you" || tab === "more"
             ? rankPersonal(candidates, tasteRef.current ?? EMPTY_TASTE, viewedRef.current)
             : rankFreshFlow(candidates);
-      const ranked = applyShortPrefs(rankedBase, prefsRef.current);
+      const ranked = applyShortFilters(applyShortPrefs(rankedBase, prefsRef.current), shortFiltersRef.current);
       setShorts(ranked);
       setSavedIds(new Set(result.savedIds));
       replaceQueue(ranked.map((short) => ({
@@ -295,7 +298,7 @@ export default function FreshFlowShortsStream({
           : subTab === "for-you" || subTab === "more"
             ? rankPersonal(candidates, tasteRef.current ?? EMPTY_TASTE, viewedRef.current)
             : rankFreshFlow(candidates);
-      const ranked = applyShortPrefs(rankedBase, prefsRef.current);
+      const ranked = applyShortFilters(applyShortPrefs(rankedBase, prefsRef.current), shortFiltersRef.current);
       setShorts((current) => {
         const existing = new Set(current.map((s) => s.id));
         return [...current, ...ranked.filter((s) => !existing.has(s.id))];
@@ -322,8 +325,9 @@ export default function FreshFlowShortsStream({
   };
 
   useEffect(() => {
+    try { window.sessionStorage.setItem("fresh-flow-short-filters", shortFiltersKey); } catch { /* filters just reset next visit */ }
     void load(subTab, filterMode);
-  }, [subTab, filterMode, user?.id, isGuest]);
+  }, [subTab, filterMode, user?.id, isGuest, shortFiltersKey]);
 
   useFreshFlowFeedRefresh(() => {
     void load(subTab, filterMode);
@@ -863,7 +867,8 @@ export default function FreshFlowShortsStream({
           </button>
         ))}
         <button type="button" className="fresh-flow-filter-toggle" onClick={() => setFilterOpen((v) => !v)} aria-expanded={filterOpen} aria-label="Filters">
-          ⚙
+          <ShortsIcons.ManageIcon size={20} />
+          {activeFilterCount(shortFilters) > 0 ? <span className="fresh-flow-filter-badge" aria-hidden="true">{activeFilterCount(shortFilters)}</span> : null}
         </button>
       </header>
       {!online && shorts.length > 0 ? <div className="fresh-shorts-offline-banner" role="status">You are offline. Showing Shorts already loaded.</div> : null}
@@ -875,18 +880,13 @@ export default function FreshFlowShortsStream({
       ) : null}
 
       {filterOpen && (
-        <div className="fresh-flow-filters" role="group" aria-label="Content filters">
-          {FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              className={filterMode === f.id ? "active" : ""}
-              onClick={() => setFilterMode(f.id)}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        <ShortsFilterSheet
+          filters={shortFilters}
+          mode={filterMode}
+          onApply={setShortFilters}
+          onModeChange={setFilterMode}
+          onClose={() => setFilterOpen(false)}
+        />
       )}
 
       <div className="fresh-flow-viewport" ref={containerRef}>
@@ -894,9 +894,9 @@ export default function FreshFlowShortsStream({
           <div className="fresh-flow-empty">
             <ShortsStateScreen
               kind="empty"
-              title={subTab === "following" ? "Nothing from people you follow yet" : subTab === "learn" || subTab === "relax" ? `No ${subTab} Shorts yet` : "No Shorts yet"}
-              message={subTab === "following" ? "Follow creators and their Shorts will appear here." : "Be the first to create something amazing."}
-              primary={{ label: "Create Short", onClick: () => setActiveRoute("fresh-flow-system-fresh-studio") }}
+              title={activeFilterCount(shortFilters) > 0 ? "No Shorts match your filters" : subTab === "following" ? "Nothing from people you follow yet" : subTab === "learn" || subTab === "relax" ? `No ${subTab} Shorts yet` : "No Shorts yet"}
+              message={activeFilterCount(shortFilters) > 0 ? "Try removing a filter to see more." : subTab === "following" ? "Follow creators and their Shorts will appear here." : "Be the first to create something amazing."}
+              primary={activeFilterCount(shortFilters) > 0 ? { label: "Clear filters", onClick: () => setShortFilters(DEFAULT_SHORT_FILTERS) } : { label: "Create Short", onClick: () => setActiveRoute("fresh-flow-system-fresh-studio") }}
               secondary={subTab === "following" ? { label: "Browse For You", onClick: () => setSubTab("for-you") } : undefined}
             />
           </div>
@@ -995,6 +995,9 @@ export default function FreshFlowShortsStream({
                     </button>
                     <button type="button" onClick={toggleSound}>
                       <span className="fresh-flow-menu-icon">{soundOn ? <ShortsIcons.VolumeOnIcon size={18} /> : <ShortsIcons.VolumeOffIcon size={18} />}</span> {soundOn ? "Mute sound" : "Turn sound on"}
+                    </button>
+                    <button type="button" onClick={() => { setAdvancedOpen(false); setPlaybackFor({ index, rate: activeVideo(index)?.playbackRate ?? 1 }); }}>
+                      <span className="fresh-flow-menu-icon"><ShortsIcons.SpeedIcon size={18} /></span> Playback speed
                     </button>
                     {ADVANCED_ACTIONS.map((a) => (
                       <button key={a.id} type="button" onClick={() => openAdvanced(a.id, short)} title={a.description}>

@@ -50,6 +50,7 @@ export const GiftIcon = (p: ShortsIconProps) => svg(p, <><rect x="3" y="8" width
 export const AskAIIcon = PicksIcon;
 export const VolumeOnIcon = (p: ShortsIconProps) => svg(p, <><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z" /><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11" /></>);
 export const VolumeOffIcon = (p: ShortsIconProps) => svg(p, <><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4Z" /><path d="m16 9.5 5 5M21 9.5l-5 5" /></>);
+export const SpeedIcon = (p: ShortsIconProps) => svg(p, <><path d="M4 18a8 8 0 1 1 16 0" /><path d="m12 18 4-6" /><circle cx="12" cy="18" r="1" fill="currentColor" /></>);
 export const QuoteIcon = (p: ShortsIconProps) => svg(p, <><path d="M5 17v-4a5 5 0 0 1 5-5" /><path d="M5 13h4v4H5zM14 17v-4a5 5 0 0 1 5-5" /><path d="M14 13h4v4h-4z" /></>);
 export const RemixIcon = (p: ShortsIconProps) => svg(p, <><path d="M3 7h4l10 10h4" /><path d="M3 17h4l3-3M14 10l3-3h4" /><path d="m19 5 2 2-2 2M19 15l2 2-2 2" /></>);
 export const DuetIcon = (p: ShortsIconProps) => svg(p, <><rect x="3" y="5" width="8" height="14" rx="2" /><rect x="13" y="5" width="8" height="14" rx="2" /></>);
