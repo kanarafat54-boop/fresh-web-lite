@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FlagIcon } from "../../../components/Icons";
 import * as ShortsIcons from "./shortsIcons";
+import { ShortsStateScreen } from "./ShortsStateScreen";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { useLayout } from "../../../app/contexts/useLayout";
 import { CommentPanel } from "../../comments/components/CommentPanel";
@@ -119,6 +120,8 @@ export default function FreshFlowShortsStream({
   const [shorts, setShorts] = useState<Short[]>([]);
   const [giftTotals, setGiftTotals] = useState<Map<string, GiftTotal>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [online, setOnline] = useState<boolean>(() => (typeof navigator === "undefined" ? true : navigator.onLine));
+  const [unavailableNotice, setUnavailableNotice] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -177,11 +180,11 @@ export default function FreshFlowShortsStream({
     }
     try {
       const result = await loadFreshFlowShorts(user?.id ?? null, isGuest, { shortIds: [id] });
-      if (result.shorts.length === 0) return;
+      if (result.shorts.length === 0) { setUnavailableNotice(true); return; }
       setShorts((current) => [result.shorts[0], ...current.filter((item) => item.id !== id)]);
       setCurrentIndex(0);
       containerRef.current?.scrollTo({ top: 0, behavior: "instant" });
-    } catch { /* keep the current feed */ }
+    } catch { setUnavailableNotice(true); }
   };
 
   const flushTelemetry = async () => {
@@ -325,6 +328,16 @@ export default function FreshFlowShortsStream({
   useFreshFlowFeedRefresh(() => {
     void load(subTab, filterMode);
   });
+
+  // Offline awareness: show the state, and reload the feed by itself when the connection returns.
+  useEffect(() => {
+    const goOnline = () => { setOnline(true); void load(subTab, filterMode); };
+    const goOffline = () => setOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => { window.removeEventListener("online", goOnline); window.removeEventListener("offline", goOffline); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subTab, filterMode, user?.id, isGuest]);
 
   useEffect(() => {
     if (!loading) void focusRequestedShort();
@@ -817,7 +830,7 @@ export default function FreshFlowShortsStream({
   if (loading && shorts.length === 0) {
     return (
       <div className="fresh-flow-stream fresh-flow-loading">
-        <p>Loading Fresh Flow…</p>
+        <ShortsStateScreen kind="loading" title="Loading Fresh Shorts…" />
       </div>
     );
   }
@@ -825,10 +838,11 @@ export default function FreshFlowShortsStream({
   if (error && shorts.length === 0) {
     return (
       <div className="fresh-flow-stream fresh-flow-error">
-        <p>{error}</p>
-        <button type="button" onClick={() => void load(subTab, filterMode)}>
-          Retry
-        </button>
+        {online ? (
+          <ShortsStateScreen kind="error" title="Fresh Shorts could not load" message={error} primary={{ label: "Try again", onClick: () => void load(subTab, filterMode) }} />
+        ) : (
+          <ShortsStateScreen kind="offline" title="No internet connection" message="Check your connection and try again." primary={{ label: "Try again", onClick: () => void load(subTab, filterMode) }} />
+        )}
       </div>
     );
   }
@@ -852,6 +866,13 @@ export default function FreshFlowShortsStream({
           ⚙
         </button>
       </header>
+      {!online && shorts.length > 0 ? <div className="fresh-shorts-offline-banner" role="status">You are offline. Showing Shorts already loaded.</div> : null}
+      {unavailableNotice ? (
+        <div className="fresh-shorts-offline-banner" role="status">
+          This Short is no longer available.{" "}
+          <button type="button" onClick={() => setUnavailableNotice(false)} aria-label="Dismiss">Dismiss</button>
+        </div>
+      ) : null}
 
       {filterOpen && (
         <div className="fresh-flow-filters" role="group" aria-label="Content filters">
@@ -871,13 +892,13 @@ export default function FreshFlowShortsStream({
       <div className="fresh-flow-viewport" ref={containerRef}>
         {shorts.length === 0 ? (
           <div className="fresh-flow-empty">
-            <p>
-              {subTab === "following"
-                ? "No Shorts from people you follow yet."
-                : subTab === "learn" || subTab === "relax"
-                  ? `No ${subTab} Shorts yet.`
-                  : "No Shorts yet. Be the first to publish from Creator Studio."}
-            </p>
+            <ShortsStateScreen
+              kind="empty"
+              title={subTab === "following" ? "Nothing from people you follow yet" : subTab === "learn" || subTab === "relax" ? `No ${subTab} Shorts yet` : "No Shorts yet"}
+              message={subTab === "following" ? "Follow creators and their Shorts will appear here." : "Be the first to create something amazing."}
+              primary={{ label: "Create Short", onClick: () => setActiveRoute("fresh-flow-system-fresh-studio") }}
+              secondary={subTab === "following" ? { label: "Browse For You", onClick: () => setSubTab("for-you") } : undefined}
+            />
           </div>
         ) : (
           shorts.map((short, index) => (
