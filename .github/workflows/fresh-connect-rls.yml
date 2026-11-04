@@ -1,0 +1,51 @@
+name: Fresh Connect RLS Behavior
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/test-fresh-connect-rls.*"
+      - ".github/workflows/fresh-connect-rls.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/test-fresh-connect-rls.*"
+      - ".github/workflows/fresh-connect-rls.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fresh-connect-rls-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  connect-rls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: connect_rls_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d connect_rls_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Replay Connect migrations and run two/three-account authorization test
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/connect_rls_test
+        run: bash scripts/test-fresh-connect-rls.sh

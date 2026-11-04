@@ -14,6 +14,10 @@
 - This does **not** establish two-account end-to-end delivery, private event authorization, or full Fresh Connect runtime correctness. Those checks remain open.
 - Supabase Security Advisor still reports leaked-password protection disabled and three authenticated-callable SECURITY DEFINER functions. The account-creation RPC is intentionally privileged; helper-function exposure needs a separate review.
 
+## Scope baseline
+
+The canonical definition of Fresh Flow as an open-ended, all-media ecosystem is [`FRESH_FLOW_UNIVERSAL_MEDIA_ARCHITECTURE.md`](./FRESH_FLOW_UNIVERSAL_MEDIA_ARCHITECTURE.md). The table below records delivery readiness, not the boundaries of product scope. A category absent from this status table is not excluded from Fresh Flow; it must be inventoried and assigned a truthful state before being presented as available.
+
 ## Current status by capability
 
 | Capability | Repository evidence | Honest status | Required completion evidence |

@@ -32,22 +32,26 @@ if (!routerSource.includes("resolveEntryRoute(false)")) {
   throw new Error("AppRouter must use the canonical entry route resolver to prevent journey drift.");
 }
 
-const aiHomeSource = fs.readFileSync("src/features/ai/components/FreshAIHome.tsx", "utf8");
-if (!aiHomeSource.includes('onClick={() => setActiveRoute("fresh-flow")}>Open Fresh Flow</button>')) {
-  throw new Error("Fresh AI must provide a working navigation path back into Fresh Flow.");
+const registrySource = fs.readFileSync("src/app/registry/FeatureRegistry.ts", "utf8");
+const unifiedSource = fs.readFileSync("src/app/components/FreshAIUnified.tsx", "utf8");
+if (!registrySource.includes('id: "ai", name: "Fresh AI", route: "/ai"') || !registrySource.includes('import("../components/FreshAIUnified")')) {
+  throw new Error("The dedicated /ai route must use the canonical unified Fresh AI surface.");
+}
+if (!unifiedSource.includes('className="fresh-ai-home-return"') || !unifiedSource.includes('window.location.assign("/")')) {
+  throw new Error("Fresh AI must provide a working return path to Fresh Home.");
 }
 
 const streamSource = fs.readFileSync("api/ai/stream.ts", "utf8");
 if (!streamSource.includes("intent: b.intent")) {
   throw new Error("Fresh AI API must forward the selected intent to the intelligence gateway.");
 }
-if (!aiHomeSource.includes("intent: ({ chat: \"chat\", research: \"research\", create: \"create\", build: \"code\", learn: \"learn\", act: \"act\" } as const)[mode]")) {
-  throw new Error("Fresh AI mode selector must influence the request sent to the gateway.");
+if (!unifiedSource.includes('mode: mode.toLowerCase()') || !unifiedSource.includes('model: "fresh-unified-1"')) {
+  throw new Error("Fresh AI mode and canonical model identity must influence the request sent to the gateway.");
 }
-if (!aiHomeSource.includes('void send(lastPrompt)')) {
-  throw new Error("Fresh AI retry must replay the failed prompt after the composer has been cleared.");
+if (!unifiedSource.includes("void submit(userTurn.content)")) {
+  throw new Error("Fresh AI retry must replay the prior user prompt after a failed request.");
 }
-if (!aiHomeSource.includes("previousUser.content")) {
+if (!unifiedSource.includes('function regenerate() { const userTurn = [...turns].reverse().find((turn) => turn.role === "user")')) {
   throw new Error("Fresh AI regenerate action must replay the prior user prompt, not the assistant answer.");
 }
 

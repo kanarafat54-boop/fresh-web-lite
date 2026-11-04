@@ -38,10 +38,11 @@ for (const [name, sql] of [["review", m1], ["grants", m2]]) {
 check(/to service_role/.test(m1) && /from public, anon, authenticated/.test(m1), "review functions must be service_role only");
 check(/set search_path = ''/.test(m1), "functions must pin search_path");
 check(m1.includes("secret-shaped or card-like"), "database must repeat the secret/card block");
+check(m1.includes("sync_fresh_ai_feedback_review") && /to service_role/.test(m1), "review must keep the consent ledger in sync");
 check(/revoke insert, update, delete/.test(m2), "grants migration must remove write privileges");
 
 const api = read("api/ai/feedback.ts");
-for (const s of ["fresh_ai_preference_pairs", "safety_checked: false", "body.share === true", "__fresh_corrections", "listCorrections", "reviewCorrection", "createVercelNodeHandler({ GET, POST })"]) check(api.includes(s), `feedback.ts must contain ${s}`);
+for (const s of ["fresh_ai_preference_pairs", "safety_checked: false", "trainingConsent", "__fresh_corrections", "listCorrections", "reviewCorrection", "createVercelNodeHandler({ GET, POST })"]) check(api.includes(s), `feedback.ts must contain ${s}`);
 const review = read("src/server/freshAICorrectionReview.ts");
 check(review.includes('role !== "admin"'), "review API must require the admin role");
 check(review.includes("review_fresh_ai_correction"), "review API must use the review function");

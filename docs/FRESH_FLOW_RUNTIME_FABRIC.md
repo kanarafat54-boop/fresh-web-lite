@@ -18,6 +18,10 @@ This is the implementation layer beneath the six-world Fresh Flow surface.
 12. **Recommendation/context** — ranking is a replaceable policy layer, not coupled to UI rendering.
 13. **Security/performance** — sensitive financial calls stay server-side; public profile reads use the safe profile boundary; media loading is bounded.
 
+## Universal scope contract
+
+The full open-world product scope and logical architecture are specified in [`FRESH_FLOW_UNIVERSAL_MEDIA_ARCHITECTURE.md`](./FRESH_FLOW_UNIVERSAL_MEDIA_ARCHITECTURE.md). This runtime fabric is a delivery/runtime layer, not a definition of all media categories. Six destinations remain entry points; capability registration and specialized adapters must support additional present and future formats without a navigation rewrite.
+
 ## Runtime laws
 
 - One active media owner per viewport.

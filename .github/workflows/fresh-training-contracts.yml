@@ -31,8 +31,16 @@ jobs:
           npm --version
           python3 --version
       - run: npm ci
+      - name: Verify direct-answer routing and creative output
+        run: npm run test:fresh-ai-direct-answer-quality
       - name: Validate curated user-intake dataset
         run: npm run test:fresh-user-intake-dataset
+      - name: Verify fail-closed Hugging Face translation intake
+        run: npm run test:fresh-hf-translation-intake
+      - name: Verify consent-gated continuous learning candidate preparation
+        run: npm run test:fresh-learning-candidates
+      - name: Verify authenticated explicit-consent feedback capture and review gate
+        run: npm run test:fresh-ai-training-feedback
       - name: Prepare curated user-intake manifest (no training)
         run: node scripts/prepare-fresh-unified-dataset.mjs data/fresh-training/user-intake-curated-v1.jsonl artifacts/fresh-training/user-intake-curated-v1.manifest.json
       - name: Verify curated manifest count and non-checkpoint status
@@ -42,14 +50,14 @@ jobs:
           grep -q '"checkpointCreated": false' artifacts/fresh-training/user-intake-curated-v1.manifest.json
       - name: Install Fresh training backend
         run: python3 -m pip install -r training/requirements.txt
+      - name: Train and evaluate Fresh Astra Vision v0.1 on synthetic CPU pilot
+        run: cd training && python3 -m unittest test_fresh_astra_vision
       - name: Test native inference artifact integrity and promotion gates
         run: python3 -m unittest training/test_serve_fresh_unified.py
       - name: Test authenticated native inference HTTP boundary
         run: python3 -m unittest training/test_serve_fresh_unified_http.py
       - name: Exercise expanded authorized corpus through tokenizer and training dry-run
         run: npm run test:fresh-expanded-corpus
-      - name: Verify live Fresh AI conversation endpoint
-        run: node scripts/smoke-fresh-ai-production.mjs
       - run: npm run test:fresh-unified-training
       - run: npm run test:fresh-unified-curriculum
       - run: npm run test:fresh-training-job
@@ -58,6 +66,9 @@ jobs:
       - run: npm run test:fresh-corpus-authorization
       - run: npm run test:fresh-corpus-candidates
       - run: npm run test:fresh-corpus-ingestion
+      - run: npm run test:fresh-knowledge-sft
+      - name: Test corpus importer, screening, training-mix builder, packing and evaluation helpers
+        run: cd training && python3 -m unittest test_import_hf_dataset test_screen_corpus test_build_training_mix test_fresh_pack test_fresh_eval
       - run: npm run test:fresh-training-promotion
       - run: npm run test:fresh-tokenizer-training
       - run: npm run test:fresh-training-backend

@@ -13,6 +13,8 @@ export type FreshFlowLoadOptions = {
   authorIds?: string[];
   limit?: number;
   offset?: number;
+  /** Load exactly these Shorts (deep-link / "open this Short"). */
+  shortIds?: string[];
 };
 
 export async function loadFreshFlowShorts(
@@ -32,6 +34,10 @@ export async function loadFreshFlowShorts(
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
+  if (options.shortIds) {
+    if (options.shortIds.length === 0) return { shorts: [], savedIds: new Set() };
+    query = query.in("id", options.shortIds);
+  }
   if (options.category) query = query.eq("category", options.category);
   if (options.authorIds) {
     if (options.authorIds.length === 0) return { shorts: [], savedIds: new Set() };
@@ -43,9 +49,9 @@ export async function loadFreshFlowShorts(
   const rows: any[] = shortsData ?? [];
 
   const authorIds = [...new Set(rows.map((row) => row.author_id))];
-  let profileMap = new Map<string, { full_name: string; username: string }>();
+  let profileMap = new Map<string, { full_name: string; username: string; verified?: boolean | null }>();
   if (authorIds.length > 0) {
-    const { data: profilesData } = await supabase.from("user_public_profiles").select("id, full_name, username").in("id", authorIds);
+    const { data: profilesData } = await supabase.from("user_public_profiles").select("id, full_name, username, verified").in("id", authorIds);
     profileMap = new Map((profilesData ?? []).map((u: any) => [u.id, u]));
   }
 
@@ -88,6 +94,7 @@ export async function loadFreshFlowShorts(
       authorId: row.author_id,
       authorName: profile?.full_name ?? "Unknown",
       authorUsername: profile?.username ?? "unknown",
+      authorVerified: Boolean(profile?.verified),
       caption: row.caption ?? "",
       soundName: row.sound_name,
       videoUrl: row.video_url,

@@ -1,23 +1,50 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useLayout } from "../../app/contexts/useLayout";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
-import { getWalletSummary, formatWalletBalance, type WalletSummary } from "./core/walletService";
 import {
   worldByRouteId,
   type FreshFlowRouteId,
 } from "./core/freshFlowArchitecture";
 import FreshFlowShortsExperience from "./components/FreshFlowShortsExperience";
 import FreshFlowNewsPosts from "./components/FreshFlowNewsPosts";
+import FreshFlowLongVideos from "./components/FreshFlowLongVideos";
 import FreshFlowMediaWorkspace from "./components/FreshFlowMediaWorkspace";
 import FreshFlowSearchSurface from "./components/FreshFlowSearchSurface";
 import FreshFlowSwitch from "./components/FreshFlowSwitch";
+import ShortsNotifications from "./components/ShortsNotifications";
+import ShortsCreateCamera from "./components/ShortsCreateCamera";
 import "./components/FreshFlow.css";
 import "./components/FreshFlowReferenceShell.css";
 import "./components/FreshFlowReferenceHeader.css";
 import "./components/FreshFlowSwitch.css";
 import "./components/FreshFlowSurfacePolish.css";
+import FreshFlowHome from "./components/FreshFlowHome";
+import FreshFlowSystemExperience from "./components/FreshFlowSystemExperience";
+import { getFreshFlowSystem } from "./core/freshFlowSystemRegistry";
+import { requestOpenShort } from "./core/shortsExplore";
+import { parseShortDeepLink } from "./core/shortsLinks";
+import { supabase } from "../../lib/supabase";
 
 type FreshFlowSection = FreshFlowRouteId;
+
+/**
+ * Top navigation (1 of exactly 2): which media you are in.
+ * Bottom navigation (2 of 2, BottomNav.tsx): platform destinations.
+ * Shorts is the bottom bar's Flow entry, so it is intentionally not repeated here.
+ */
+const TOP_NAVIGATION: Array<{ label: string; route: string; isActive: (section: string, systemId?: string) => boolean }> = [
+  { label: "Discover", route: "fresh-flow", isActive: (section) => section === "fresh-flow" },
+  { label: "Videos", route: "fresh-flow-long-videos", isActive: (section) => section === "fresh-flow-long-videos" },
+  { label: "News / Posts", route: "fresh-flow-news-posts", isActive: (section) => section === "fresh-flow-news-posts" },
+  { label: "Live", route: "fresh-flow-system-live-creation", isActive: (_section, systemId) => systemId === "live-creation" || systemId === "fresh-live" },
+  { label: "VR / AR", route: "fresh-flow-ar-vr", isActive: (section) => section === "fresh-flow-ar-vr" },
+  { label: "Podcasts", route: "fresh-flow-podcasts", isActive: (section) => section === "fresh-flow-podcasts" },
+  { label: "Music", route: "fresh-flow-system-fresh-music", isActive: (_section, systemId) => systemId === "fresh-music" },
+  { label: "Others", route: "fresh-flow-more", isActive: (section) => section === "fresh-flow-more" },
+];
+
+/** Fresh Shorts world: its own fixed top navigation (sibling worlds), per the Fresh Shorts design. */
+const SHORTS_TOP_NAVIGATION = TOP_NAVIGATION.filter((item) => ["Live", "VR / AR", "Podcasts", "Music", "Others"].includes(item.label));
 
 const SECTION_COPY = {
   "fresh-flow-long-videos": {
@@ -46,19 +73,6 @@ const SECTION_COPY = {
   },
 };
 
-function readInitialTheme(): "dark" | "light" {
-  try {
-    const saved = window.localStorage.getItem("fresh-theme");
-    if (saved === "light" || saved === "dark") return saved;
-  } catch {
-    // ignore storage errors
-  }
-  if (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: light)").matches) {
-    return "light";
-  }
-  return "dark";
-}
-
 /**
  * Fresh Flow Hub — media operating shell.
  * Layer A (Media Director) is organized as a compact media directorate with the Flow Switch retained for overflow.
@@ -68,56 +82,93 @@ export default function FreshFlowHub() {
   const { activeRoute, setActiveRoute, openSearch } = useLayout();
   const { isAuthenticated, user, isGuest } = useFreshId();
   const section = (activeRoute || "fresh-flow") as FreshFlowSection;
-  const world = worldByRouteId(section);
   const isOverview = section === "fresh-flow";
-
-  useEffect(() => {
-    if (!isOverview) setShortsImmersive(false);
-  }, [isOverview]);
+  const isShortsRoute = section === "fresh-flow-shorts";
+  const world = isShortsRoute ? worldByRouteId("fresh-flow") : worldByRouteId(section);
+  const systemRoutePrefix = "fresh-flow-system-";
+  const independentSystem = section.startsWith(systemRoutePrefix) ? getFreshFlowSystem(section.slice(systemRoutePrefix.length)) : undefined;
+  /** Creator Studio is the Shorts creator surface, so it keeps the Fresh Shorts header and controls. */
+  const shortsHeader = isShortsRoute || independentSystem?.id === "fresh-studio";
 
   const [searchOpen, setSearchOpen] = useState(false);
+  const [shortsNotificationsOpen, setShortsNotificationsOpen] = useState(false);
+  const [shortsCreateMode, setShortsCreateMode] = useState<"create" | "camera" | null>(null);
   const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
-  const [shortsImmersive, setShortsImmersive] = useState(false);
-  const [flowSwitchOpen, setFlowSwitchOpen] = useState(false);
-  const [discoveryId, setDiscoveryId] = useState(world.discovery[0]?.id ?? "for-you");
-  const [theme, setTheme] = useState<"dark" | "light">(readInitialTheme);
+  const scrollIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const setVisibility = (visible: boolean) => {
+      window.dispatchEvent(new CustomEvent("fresh-flow-navigation-visibility", { detail: { visible } }));
+    };
+    const markScrolling = () => {
+      setVisibility(false);
+      if (scrollIdleTimer.current) clearTimeout(scrollIdleTimer.current);
+      scrollIdleTimer.current = setTimeout(() => setVisibility(true), 700);
+    };
+    document.addEventListener("scroll", markScrolling, { passive: true, capture: true });
+    window.addEventListener("scroll", markScrolling, { passive: true });
+    return () => {
+      document.removeEventListener("scroll", markScrolling, true);
+      window.removeEventListener("scroll", markScrolling);
+      if (scrollIdleTimer.current) clearTimeout(scrollIdleTimer.current);
+      window.dispatchEvent(new CustomEvent("fresh-flow-navigation-visibility", { detail: { visible: true } }));
+    };
+  }, [section]);
 
+  const [flowSwitchOpen, setFlowSwitchOpen] = useState(false);
+  const flowAvatarInputRef = useRef<HTMLInputElement>(null);
+  const flowCameraInputRef = useRef<HTMLInputElement>(null);
+  const [freshFlowAvatarUrl, setFreshFlowAvatarUrl] = useState<string | null>(null);
+  const [mainProfileAvatarUrl, setMainProfileAvatarUrl] = useState<string | null>(null);
+  useEffect(() => {
+    const requestedVideoId = new URLSearchParams(window.location.search).get("videoId");
+    if (!requestedVideoId) return;
+    try { sessionStorage.setItem("fresh-flow-long-video-deep-link", requestedVideoId); } catch { /* keep the normal discovery route if session storage is unavailable */ }
+    setActiveRoute("fresh-flow-long-videos");
+  }, [setActiveRoute]);
+
+  useEffect(() => {
+    const sharedShortId = parseShortDeepLink(window.location.search);
+    if (sharedShortId) requestOpenShort(sharedShortId);
+  }, []);
+
+  useEffect(() => {
+    try { setFreshFlowAvatarUrl(window.localStorage.getItem("fresh-flow-avatar-data-url")); } catch { setFreshFlowAvatarUrl(null); }
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.id || isGuest) { setMainProfileAvatarUrl(null); return; }
+    void supabase.from("profile_details").select("avatar_url").eq("user_id", user.id).maybeSingle().then(({ data, error }) => {
+      if (!cancelled) setMainProfileAvatarUrl(error ? null : (data?.avatar_url ?? null));
+    });
+    return () => { cancelled = true; };
+  }, [user?.id, isGuest]);
+  const handleFlowAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file || !file.type.startsWith("image/")) return;
+    if (file.size > 2 * 1024 * 1024) { window.alert("Choose an image smaller than 2 MB for your Fresh Flow avatar."); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== "string") return;
+      setFreshFlowAvatarUrl(reader.result);
+      try { window.localStorage.setItem("fresh-flow-avatar-data-url", reader.result); } catch { window.alert("This image could not be saved on this device. Try a smaller image."); }
+    };
+    reader.readAsDataURL(file);
+  };
+  const [discoveryId, setDiscoveryId] = useState(world.discovery[0]?.id ?? "for-you");
   useEffect(() => {
     setDiscoveryId(world.discovery[0]?.id ?? "for-you");
   }, [world.id]);
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    try {
-      window.localStorage.setItem("fresh-theme", theme);
-    } catch {
-      // ignore
-    }
-  }, [theme]);
-
-  const [wallet, setWallet] = useState<WalletSummary | null | undefined>(undefined);
-  useEffect(() => {
-    if (!user?.id || isGuest) {
-      setWallet(null);
-      return;
-    }
-    let cancelled = false;
-    getWalletSummary(user.id)
-      .then((summary) => {
-        if (!cancelled) setWallet(summary);
-      })
-      .catch(() => {
-        if (!cancelled) setWallet(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, isGuest]);
-  const walletLabel = wallet === undefined ? "Loading…" : wallet ? formatWalletBalance(wallet) : "Open wallet";
-
   const openTopicSearch = (tag: string) => {
     setSearchSeed({ tab: "topics", query: tag });
     setSearchOpen(true);
+  };
+
+  const openCreator = (action: "create" | "camera") => {
+    if (isShortsRoute) { setShortsCreateMode(action); return; }
+    try { sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action, requestedAt: new Date().toISOString() })); } catch { /* ignore */ }
+    setActiveRoute(isGuest ? "auth-signin" : "creator");
   };
 
   const openFreshSearch = () => {
@@ -125,155 +176,87 @@ export default function FreshFlowHub() {
     setSearchOpen(true);
   };
 
-  const showChrome = !shortsImmersive;
-
   return (
     <div
-      className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}${shortsImmersive ? " immersive-shorts" : ""}`}
+      className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}`}
       aria-label="Fresh Flow"
       data-media-world={world.id}
       data-surface={world.surface}
     >
-      {showChrome && (
-        <header className="fresh-flow-reference-header fresh-flow-unified-header">
-          <div className="fresh-flow-unified-brand">
-            <span className="fresh-flow-unified-mark" aria-hidden="true">
-              F
-            </span>
-            <span>
-              <strong>Fresh Flow</strong>
-              <small>Everything you watch, read, hear and explore</small>
-            </span>
-          </div>
-          <button type="button" className="fresh-flow-search" onClick={openFreshSearch} aria-label="Search anything on Fresh">
-            <span className="fresh-flow-search-icon">⌕</span>
-            <span className="fresh-flow-search-text">Search anything on Fresh...</span>
-            <span className="fresh-flow-search-tool" aria-hidden="true">
-              ♩
-            </span>
-            <span className="fresh-flow-search-tool" aria-hidden="true">
-              文
-            </span>
-          </button>
-          <button
-            type="button"
-            className="fresh-flow-flow-switch-trigger"
-            onClick={() => setFlowSwitchOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={flowSwitchOpen}
-            aria-label="Open Flow Switch — choose media world"
-          >
-            <span aria-hidden="true">{world.icon}</span>
-            <span>{world.shortLabel}</span>
-            <span aria-hidden="true">▾</span>
-          </button>
-          <div className="fresh-theme-switch" role="group" aria-label="Appearance">
-            <button
-              type="button"
-              className={theme === "dark" ? "is-active" : ""}
-              onClick={() => setTheme("dark")}
-              aria-label="Dark mode"
-              title="Dark mode"
-            >
-              ◐
+      <header className={`fresh-flow-reference-header fresh-flow-unified-header${shortsHeader ? " fresh-shorts-header" : ""}`} data-navigation="top">
+          {shortsHeader ? (
+            <button type="button" className="fresh-flow-unified-brand fresh-shorts-brand" onClick={() => setActiveRoute("fresh-flow-shorts")} aria-label="Fresh Shorts home">
+              <span className="fresh-flow-unified-mark fresh-shorts-mark" aria-hidden="true">▶</span>
+              <span className="fresh-flow-brand-wordmark"><strong>Fresh Shorts</strong><small>Short videos. Big ideas. Real people.</small></span>
             </button>
-            <button
-              type="button"
-              className={theme === "light" ? "is-active" : ""}
-              onClick={() => setTheme("light")}
-              aria-label="Light mode"
-              title="Light mode"
-            >
-              ☼
+          ) : (
+            <button type="button" className="fresh-flow-unified-brand" onClick={() => setActiveRoute("fresh-flow")} aria-label="Fresh Flow home">
+            <span className="fresh-flow-unified-mark" aria-hidden="true">F</span>
+            <span className="fresh-flow-brand-wordmark"><strong>Fresh Flow</strong><small>Discover. Connect. Create.</small></span>
+            </button>
+          )}
+          <nav className="fresh-flow-header-world-nav" aria-label="Fresh Flow media">
+            {(shortsHeader ? SHORTS_TOP_NAVIGATION : TOP_NAVIGATION).map((item) => {
+              const active = item.isActive(section, independentSystem?.id);
+              return (
+                <button key={item.label} type="button" className={active ? "active" : ""} aria-current={active ? "page" : undefined} onClick={() => setActiveRoute(item.route)}>{item.label}</button>
+              );
+            })}
+          </nav>
+          <div className="fresh-flow-header-actions">
+            <button type="button" className="fresh-flow-search-icon-button" onClick={openFreshSearch} aria-label="Search Fresh Flow" title="Search">⌕</button>
+            {shortsHeader && (
+              <>
+                <button type="button" className="fresh-flow-search-icon-button fresh-shorts-bell" onClick={() => setShortsNotificationsOpen(true)} aria-label="Notifications" title="Notifications">🔔</button>
+                <button type="button" className="fresh-flow-search-icon-button fresh-shorts-add" onClick={() => openCreator("create")} aria-label="Add or create a Short" title="Add / Create">＋</button>
+                <button type="button" className="fresh-flow-search-icon-button fresh-shorts-camera" onClick={() => openCreator("camera")} aria-label="Open camera to record a Short" title="Camera">◉</button>
+              </>
+            )}
+            <button type="button" className="fresh-flow-search-icon-button fresh-flow-switch-open" onClick={() => setFlowSwitchOpen(true)} aria-label="All media worlds and Flow profile photo" title="All media worlds">⊞</button>
+            <button type="button" className="fresh-flow-unified-profile" onClick={() => setActiveRoute("profile")} aria-label="Open your main Fresh ID profile">
+              {mainProfileAvatarUrl ? <img src={mainProfileAvatarUrl} alt="" /> : <span>{isAuthenticated ? (user?.email?.slice(0, 1).toUpperCase() || "M") : "?"}</span>}
             </button>
           </div>
-          <button type="button" className="fresh-flow-wallet-card" onClick={() => setActiveRoute("wallet")} aria-label="Open My Wallet">
-            <span>
-              <strong>Wallet</strong>
-              <small>{walletLabel}</small>
-            </span>
-            <span className="fresh-flow-wallet-icon" aria-hidden="true">
-              ▣
-            </span>
-          </button>
-          <button
-            type="button"
-            className="fresh-flow-unified-profile"
-            onClick={() => setActiveRoute("profile")}
-            aria-label={isAuthenticated ? "Open profile" : "Open profile / sign in"}
-          >
-            <span aria-hidden="true">{isAuthenticated ? "M" : "?"}</span>
-          </button>
         </header>
-      )}
 
-      {showChrome && (
-        <nav className="fresh-flow-world-nav" aria-label="Fresh Flow media worlds">
-          <button type="button" className={section === "fresh-flow" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow")}>
-            Home
-          </button>
-          <button
-            type="button"
-            className={section === "fresh-flow-long-videos" ? "active" : ""}
-            onClick={() => setActiveRoute("fresh-flow-long-videos")}
-          >
-            Long Videos
-          </button>
-          <button
-            type="button"
-            className={section === "fresh-flow-news-posts" ? "active" : ""}
-            onClick={() => setActiveRoute("fresh-flow-news-posts")}
-          >
-            News / Posts
-          </button>
-          <button type="button" className={section === "fresh-flow-ar-vr" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-ar-vr")}>
-            AR / VR
-          </button>
-          <button
-            type="button"
-            className={section === "fresh-flow-podcasts" ? "active" : ""}
-            onClick={() => setActiveRoute("fresh-flow-podcasts")}
-          >
-            Podcasts
-          </button>
-          <button type="button" className={section === "fresh-flow-more" ? "active" : ""} onClick={() => setActiveRoute("fresh-flow-more")}>
-            Others
-          </button>
-        </nav>
-      )}
-
-      {showChrome && !isOverview && (
-        <div className="fresh-flow-section-bar">
-          <button type="button" className="fresh-flow-back-button" onClick={() => setActiveRoute("fresh-flow")} aria-label="Back to Fresh Flow home">
-            <span aria-hidden="true">‹</span>
-            <span>Home</span>
-          </button>
-          <span className="fresh-flow-section-title">
-            <span aria-hidden="true">{world.icon}</span>
-            {world.label}
-          </span>
-          <button type="button" className="fresh-flow-flow-switch-trigger" onClick={() => setFlowSwitchOpen(true)} aria-label="Switch media world">
-            Switch
-          </button>
-        </div>
-      )}
-
-      {((showChrome && !isOverview) || (isOverview && shortsImmersive)) && world.discovery.length > 0 && (
-        <nav
-          className={shortsImmersive ? "fresh-flow-discovery-rail fresh-flow-discovery-rail-immersive" : "fresh-flow-discovery-rail"}
-          aria-label={`${world.label} discovery`}
-        >
+      {!isOverview && !isShortsRoute && !independentSystem && world.discovery.length > 0 && (
+        <div className="fresh-flow-discovery-rail" role="group" aria-label={`${world.label} filters`}>
           {world.discovery.map((mode) => (
-            <button key={mode.id} type="button" className={discoveryId === mode.id ? "active" : ""} onClick={() => setDiscoveryId(mode.id)}>
+            <button key={mode.id} type="button" className={discoveryId === mode.id ? "active" : ""} aria-pressed={discoveryId === mode.id} onClick={() => setDiscoveryId(mode.id)}>
               {mode.label}
             </button>
           ))}
-        </nav>
+        </div>
       )}
 
       <main className="fresh-flow-media-content">
-        {section === "fresh-flow" ? (
-          <FreshFlowShortsExperience onOpenTopic={openTopicSearch} onImmersiveChange={setShortsImmersive} />
+        {isOverview ? (
+          <FreshFlowHome
+            onOpenSearch={openFreshSearch}
+            onOpenSystem={(systemId) => {
+              const routeMap: Record<string, string> = {
+                "fresh-shorts": "fresh-flow-shorts",
+                "long-video": "fresh-flow-long-videos",
+                "fresh-news": "fresh-flow-news-posts",
+                "fresh-posts": "fresh-flow-news-posts",
+                "vr-ar-spatial": "fresh-flow-ar-vr",
+                "fresh-podcasts": "fresh-flow-podcasts",
+                "fresh-studio": "fresh-flow-system-fresh-studio",
+                "fresh-music": "fresh-flow-system-fresh-music",
+              };
+              setActiveRoute(routeMap[systemId] ?? `fresh-flow-system-${systemId}`);
+            }}
+          />
+        ) : isShortsRoute ? (
+          <FreshFlowShortsExperience onOpenTopic={openTopicSearch} />
+        ) : independentSystem ? (
+          <FreshFlowSystemExperience
+            system={independentSystem}
+            onBack={() => setActiveRoute("fresh-flow")}
+            onOpenStudio={() => setActiveRoute("fresh-flow-system-fresh-studio")}
+          />
+        ) : section === "fresh-flow-long-videos" ? (
+          <FreshFlowLongVideos />
         ) : section === "fresh-flow-news-posts" ? (
           <FreshFlowNewsPosts discoveryId={discoveryId} />
         ) : (
@@ -290,7 +273,28 @@ export default function FreshFlowHub() {
         activeRouteId={section}
         onSelect={(routeId) => setActiveRoute(routeId)}
         onClose={() => setFlowSwitchOpen(false)}
+        avatar={{
+          url: freshFlowAvatarUrl,
+          onUpload: () => flowAvatarInputRef.current?.click(),
+          onCamera: () => flowCameraInputRef.current?.click(),
+        }}
       />
+      <input ref={flowAvatarInputRef} className="fresh-flow-hidden-avatar-input" type="file" accept="image/*" onChange={handleFlowAvatarChange} aria-label="Choose a Fresh Flow avatar image" />
+      <input ref={flowCameraInputRef} className="fresh-flow-hidden-avatar-input" type="file" accept="image/*" capture="user" onChange={handleFlowAvatarChange} aria-label="Take a Fresh Flow avatar photo" />
+
+      {shortsCreateMode && isShortsRoute && (
+        <ShortsCreateCamera
+          initialMode={shortsCreateMode}
+          onClose={() => setShortsCreateMode(null)}
+          onOpenTemplates={() => { setShortsCreateMode(null); try { sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: "create", requestedAt: new Date().toISOString() })); } catch { /* ignore */ } setActiveRoute("creator"); }}
+        />
+      )}
+      {shortsNotificationsOpen && isShortsRoute && (
+        <ShortsNotifications
+          onClose={() => setShortsNotificationsOpen(false)}
+          onOpenCreator={(authorId) => { window.dispatchEvent(new CustomEvent("fresh-shorts-open-creator", { detail: { authorId } })); }}
+        />
+      )}
 
       {searchOpen && (
         <FreshFlowSearchSurface
@@ -300,6 +304,8 @@ export default function FreshFlowHub() {
           }}
           initialTab={searchSeed?.tab}
           initialQuery={searchSeed?.query}
+          scope={isShortsRoute ? "shorts" : "flow"}
+          onOpenCreator={isShortsRoute ? (authorId) => { setSearchOpen(false); setSearchSeed(null); try { sessionStorage.setItem("fresh-shorts-open-creator", authorId); } catch { /* ignore */ } window.dispatchEvent(new CustomEvent("fresh-shorts-open-creator", { detail: { authorId } })); } : undefined}
         />
       )}
     </div>

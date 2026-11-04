@@ -55,6 +55,7 @@ Regression contract: `npm run test:fresh-ai-image-engine`. This static contract 
 - The starter architecture was deliberately reduced for a pipeline smoke test: hidden size 128, 2 layers, feed-forward size 256, context 256.
 - The reported final loss was approximately 107.75. This is not evidence of useful production intelligence.
 - The repository still declares `weightsStatus: training-required`.
+- Run 3 (`fresh-unified-1-run3`, 2026-10-29): a 49.9M-parameter model trained from scratch on 32.3M authorized, screened tokens reached held-out perplexity 42.0 (run 2 with a bad initialization: 356). Output is fluent-looking but not reliably correct; no safety, truthfulness or capability evaluation has run. See `docs/FRESH_AI_TRAINING_RUN3.md`. Still `training-required`.
 - `inferFreshUnified` currently returns `training-required`; even a registered checkpoint is not served because the native neural backend is not installed.
 
 ### Gates before model promotion

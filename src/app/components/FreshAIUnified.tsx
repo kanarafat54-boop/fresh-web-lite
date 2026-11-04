@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useLayout } from "../contexts/useLayout";
-import { useTheme } from "../providers/ThemeProvider";
 import { supabase } from "../../lib/supabase";
 import { createFreshAIWorkspaceContext } from "../../core/fresh-ai/FreshAIWorkspaceContext";
 import { getFreshAICapability, type FreshAICapabilityId } from "../../core/fresh-ai/FreshAICapabilityRegistry";
@@ -67,6 +66,7 @@ function isModeAvailable(candidate: FreshAIMode): boolean {
 }
 const capabilities = [
   ["◈", "Research", "Find, compare and verify information", "research", "Research"],
+  ["✧", "Astra", "Multimodal perception and future device intelligence", "astra", "Chat"],
   ["✦", "Create", "Images, media and native artifacts", "creation", "Create"],
   ["⌘", "Build", "Code, systems and engineering", "code", "Build"],
   ["◇", "Analyze", "Understand files, data and context", "vision", "Chat"],
@@ -78,7 +78,6 @@ const capabilities = [
 
 export default function FreshAIUnified() {
   const { activeRoute } = useLayout();
-  const { theme, toggle } = useTheme();
   const context = useMemo(() => createFreshAIWorkspaceContext(activeRoute ?? "/"), [activeRoute]);
   const normalizedRoute = (activeRoute ?? "").replace(/\/$/, "").toLowerCase();
   const isAI = ["ai", "/ai", "fresh-ai", "/fresh-ai"].includes(normalizedRoute);
@@ -89,6 +88,7 @@ export default function FreshAIUnified() {
   const [mode, setMode] = useState<FreshAIMode>("Chat");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [astraAnalyzingId, setAstraAnalyzingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [image, setImage] = useState<AskPayload["image"]>();
@@ -256,6 +256,43 @@ export default function FreshAIUnified() {
     }
   }
 
+  async function analyzeImageAttachment(file: Attachment) {
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.mimeType) || astraAnalyzingId) return;
+    const approved = window.confirm(`Allow Fresh AI Astra to analyze “${file.name}”? The image will be processed by a configured Fresh-owned vision engine when one is available.`);
+    if (!approved) return;
+    setAstraAnalyzingId(file.id);
+    setError(null);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) throw new Error("Sign in to analyze images with Astra.");
+      const response = await fetch("/api/ai/astra/vision", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+        body: JSON.stringify({ assetId: file.id, consentGranted: true }),
+      });
+      const payload = await response.json() as {
+        result?: { summary?: string; worldState?: { entities?: Array<{ label: string; confidence: number }>; uncertainty?: string[] } };
+        error?: string;
+      };
+      if (!response.ok || !payload.result) throw new Error(payload.error || "Astra image understanding is unavailable.");
+      const entities = payload.result.worldState?.entities ?? [];
+      const uncertainty = payload.result.worldState?.uncertainty ?? [];
+      const detail = [
+        `Astra image analysis — ${file.name}`,
+        payload.result.summary || "No scene summary was returned.",
+        entities.length ? `Detected: ${entities.map((entity) => `${entity.label} (${Math.round(entity.confidence * 100)}%)`).join(", ")}` : "No entities were returned.",
+        uncertainty.length ? `Uncertainty: ${uncertainty.join(" ")}` : "",
+      ].filter(Boolean).join("\n\n");
+      setTurns((current) => [...current, { role: "assistant", content: detail, createdAt: new Date().toISOString() }]);
+      setSource("Fresh AI · Astra Vision");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Astra could not analyze this image.");
+    } finally {
+      setAstraAnalyzingId(null);
+    }
+  }
+
   async function submit(goal: string, approve = false) {
     if (!goal || loading || uploading) return;
     const now = new Date().toISOString();
@@ -328,20 +365,53 @@ export default function FreshAIUnified() {
     try {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
-      if (!token) return;
-      let share = false, correction = "";
+      if (!token) {
+        setError("Sign in to submit feedback to Fresh AI.");
+        return;
+      }
+      let shareTrainingCorrection = false, correction = "";
       const lastUser = [...turns].reverse().find((turn) => turn.role === "user");
       const lastAssistant = [...turns].reverse().find((turn) => turn.role === "assistant" && turn.content);
       if (rating <= 2 && lastUser && lastAssistant) {
-        const typed = window.prompt("What should Fresh AI have said? Your correction can help teach Fresh AI. Leave it empty to send only the thumbs-down.", "");
+        const typed = window.prompt("What should Fresh AI have said? Your correction is not shared unless you choose to share it.", "");
         if (typed && typed.trim()) {
           correction = typed.trim().slice(0, 2000);
-          share = window.confirm("Share this question, Fresh AI's answer and your correction with Fresh AI's owner so it can be reviewed and used to teach Fresh AI? Nothing is shared unless you press OK.");
+          shareTrainingCorrection = window.confirm("Explicit training consent: share this question, Fresh AI's answer and your correction privately for human review and possible future model training? It will remain pending review and will not change model weights now. Choose OK only if you agree.");
         }
       }
-      const response = await fetch("/api/ai/feedback", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify({ requestId: id, rating, correct: rating >= 4, share, question: share ? lastUser?.content.slice(0, 2000) : undefined, answer: share ? lastAssistant?.content.slice(0, 2000) : undefined, correction: share ? correction : undefined }) });
-      if (response.ok) setFeedback((current) => ({ ...current, [id]: rating }));
-    } catch {}
+      const headers = { "content-type": "application/json", authorization: `Bearer ${token}` };
+      const ratingResponse = await fetch("/api/ai/feedback", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ requestId: id, rating, correct: rating >= 4, share: false }),
+      });
+      if (!ratingResponse.ok) {
+        setError("Fresh AI could not save your rating. Please try again.");
+        return;
+      }
+      if (shareTrainingCorrection && lastUser && lastAssistant && correction) {
+        const trainingResponse = await fetch("/api/ai/feedback", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            requestId: id,
+            question: lastUser.content.slice(0, 4000),
+            answer: lastAssistant.content.slice(0, 8000),
+            correction,
+            trainingConsent: "explicit-training-opt-in",
+            consentVersion: "fresh-ai-feedback-consent-v1",
+          }),
+        });
+        if (!trainingResponse.ok) {
+          setError("Your rating was saved, but the training correction could not be stored. It has not been used for training.");
+          return;
+        }
+      }
+      setFeedback((current) => ({ ...current, [id]: rating }));
+      setError(null);
+    } catch {
+      setError("Fresh AI feedback could not be submitted. Please try again.");
+    }
   }
   function startVoiceInput() {
     if (recognitionRef.current) {
@@ -439,7 +509,7 @@ export default function FreshAIUnified() {
   const errorPanel = error ? <div className="fresh-ai-unified-error"><b>Fresh AI couldn't complete that request.</b><span>{error}</span><button type="button" onClick={() => { const userTurn = [...turns].reverse().find((turn) => turn.role === "user"); setError(null); if (userTurn) void submit(userTurn.content); }}>Retry</button></div> : null;
 
   const body = <div className="fresh-ai-unified-shell">
-    <header><div className="fresh-ai-unified-brand"><button className="fresh-ai-unified-orb" type="button" onClick={() => setConstellation((current) => !current)} aria-label="Open Fresh AI capabilities"><span>✦</span></button><div><strong>Fresh AI</strong><small>One intelligence. Everywhere.</small></div></div><div className="fresh-ai-unified-actions"><span>{context.featureName}</span><button className="fresh-ai-home-return" type="button" onClick={() => { window.location.assign("/"); }} aria-label="Back to Fresh Home" title="Back to Fresh Home">⌂ <span>Back to Home</span></button><button type="button" onClick={toggle} aria-label="Toggle theme">{theme === "dark" ? "☀" : "☾"}</button>{!isAI ? <button type="button" onClick={() => setOpen(false)} aria-label="Close">×</button> : null}</div></header>
+    <header><div className="fresh-ai-unified-brand"><button className="fresh-ai-unified-orb" type="button" onClick={() => setConstellation((current) => !current)} aria-label="Open Fresh AI capabilities"><span>✦</span></button><div><strong>Fresh AI</strong><small>One intelligence. Everywhere.</small></div></div><div className="fresh-ai-unified-actions"><span>{context.featureName}</span><button className="fresh-ai-home-return" type="button" onClick={() => { window.location.assign("/"); }} aria-label="Back to Fresh Home" title="Back to Fresh Home">⌂ <span>Back to Home</span></button>{!isAI ? <button type="button" onClick={() => setOpen(false)} aria-label="Close">×</button> : null}</div></header>
     {capabilityPanel}
     <div className="fresh-ai-unified-context"><span className="fresh-ai-context-diamond">◇</span>{context.surface}<span>·</span>{context.featureName}<span>·</span>{conversationId ? `Session ${conversationId.slice(0, 8)}` : "New session"}</div>
     <section className="fresh-ai-unified-messages" ref={messagesRef} onScroll={onScroll}>{messageList}{loading ? <div className="fresh-ai-progress"><span className="fresh-ai-progress-diamond">◇</span><div><b>Fresh is working</b><small>Understanding · retrieving · checking · preparing</small></div></div> : null}{evidencePanel}{artifactPanel}{imagePanel}{actionPanel}{errorPanel}<div ref={endRef} /></section>
@@ -465,7 +535,7 @@ export default function FreshAIUnified() {
       </div>
       <form onSubmit={ask}><button className="fresh-ai-add" type="button" onClick={() => setConstellation((current) => !current)} aria-label="Open capabilities">＋</button><textarea ref={inputRef} rows={1} value={draft} onChange={(event) => { setDraft(event.target.value); resizeInput(); }} onKeyDown={keyDown} placeholder="Message Fresh AI…" /><button className={`fresh-ai-voice ${voice ? "active" : ""}`} type="button" onClick={startVoiceInput} aria-label={voice ? "Stop voice input" : "Start voice input"} title={voice ? "Stop voice input" : "Speak to Fresh AI"}>{voice ? "◉" : "◌"}</button><button className="fresh-ai-send" type="submit" disabled={!draft.trim() || loading || uploading} aria-label="Send">↑</button></form>
       <div className="fresh-ai-composer-tools"><label className="fresh-ai-attach">⌕ {uploading ? "Uploading…" : "Attach"}<input type="file" multiple onChange={(event) => { void uploadFiles(event.target.files); event.currentTarget.value = ""; }} /></label><div className="fresh-ai-mode-strip">{modes.map((item) => { const available = isModeAvailable(item); return <button key={item} className={mode === item ? "active" : ""} type="button" disabled={!available} title={available ? `${item} mode` : `${item} mode is in development and is not executable yet`} aria-label={`${item} mode — ${available ? "available" : "in development"}`} onClick={() => setMode(item)}>{item}{available ? "" : " · Soon"}</button>; })}</div><span>{loading ? "Fresh is working…" : uploading ? "Securing files…" : "Enter to send · Shift+Enter for newline"}</span>{loading ? <button type="button" onClick={stop}>Stop</button> : null}</div>
-      {attachments.length > 0 ? <div className="fresh-ai-composer-attachments" aria-label="Attached files">{attachments.map((file) => <span key={file.id}>◇ {file.name}</span>)}</div> : null}
+      {attachments.length > 0 ? <div className="fresh-ai-composer-attachments" aria-label="Attached files">{attachments.map((file) => <span key={file.id}>◇ {file.name}{["image/png", "image/jpeg", "image/webp"].includes(file.mimeType) ? <button type="button" onClick={() => void analyzeImageAttachment(file)} disabled={Boolean(astraAnalyzingId)}>{astraAnalyzingId === file.id ? "Astra analyzing…" : "Analyze with Astra"}</button> : null}</span>)}</div> : null}
       <small className="fresh-ai-unified-status"><span>✦</span> {source || "Fresh AI"} · Runtime evolving · Vault {vaultUnlocked ? "unlocked · at-rest E2EE" : "locked"} · Weights training-required · Beyond-SI doctrine</small>
     </div>
   </div>;

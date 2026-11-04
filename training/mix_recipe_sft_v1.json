@@ -1,0 +1,16 @@
+{
+  "schema": "fresh-mix-recipe-v1",
+  "seed": 43,
+  "validationFraction": 0.02,
+  "purpose": "Stage-2 fine-tune: teach Fresh facts (docs Q&A) while replaying general data so Swahili/English ability is not forgotten.",
+  "sources": [
+    {"id": "fresh-docs-qa", "path": "data/fresh-training/fresh-docs-qa-v1.jsonl", "repeat": 3},
+    {"id": "fresh-expanded", "path": "data/fresh-training/fresh-unified-expanded-v1.jsonl", "repeat": 5},
+    {"id": "fresh-user-intake", "path": "data/fresh-training/user-intake-curated-v1.jsonl", "repeat": 5},
+    {"id": "fresh-beyond-si", "path": "data/fresh-training/beyond-si-examples.jsonl", "repeat": 5},
+    {"id": "oasst1-replay", "path": "data/fresh-training/oasst1.screened.jsonl.gz", "repeat": 1, "maxRows": 6000},
+    {"id": "dolly-replay", "path": "data/fresh-training/dolly.screened.jsonl.gz", "repeat": 1, "maxRows": 3000},
+    {"id": "wikipedia-sw-replay", "path": "data/fresh-training/wikipedia-sw.screened.jsonl.gz", "repeat": 1, "maxRows": 4000},
+    {"id": "wikipedia-en-replay", "path": "data/fresh-training/wikipedia-en.screened.jsonl.gz", "repeat": 1, "maxRows": 2000}
+  ]
+}

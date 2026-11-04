@@ -1,0 +1,15 @@
+{
+  "schema": "fresh-mix-recipe-v1",
+  "seed": 42,
+  "validationFraction": 0.02,
+  "sources": [
+    {"id": "fresh-expanded", "path": "data/fresh-training/fresh-unified-expanded-v1.jsonl", "repeat": 20},
+    {"id": "fresh-user-intake", "path": "data/fresh-training/user-intake-curated-v1.jsonl", "repeat": 20},
+    {"id": "fresh-beyond-si", "path": "data/fresh-training/beyond-si-examples.jsonl", "repeat": 20},
+    {"id": "oasst1-screened", "path": "data/fresh-training/oasst1.screened.jsonl.gz", "repeat": 1},
+    {"id": "dolly-screened", "path": "data/fresh-training/dolly.screened.jsonl.gz", "repeat": 1, "optional": true},
+    {"id": "wikipedia-sw-screened", "path": "data/fresh-training/wikipedia-sw.screened.jsonl.gz", "repeat": 2, "optional": true, "maxRows": 15000},
+    {"id": "wikipedia-en-screened", "path": "data/fresh-training/wikipedia-en.screened.jsonl.gz", "repeat": 1, "optional": true, "maxRows": 15000}
+  ],
+  "excluded": ["data/fresh-training/synthetic-starter-v1.jsonl (pipeline smoke test only, not production data)"]
+}

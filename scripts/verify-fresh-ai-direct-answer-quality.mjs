@@ -1,0 +1,14 @@
+import fs from "node:fs";
+const goal=fs.readFileSync("src/core/fresh-ai/FreshGoalUnderstanding.ts","utf8");
+const kernel=fs.readFileSync("src/core/fresh-ai/FreshAIKernel.ts","utf8");
+for(const token of ["directSelfQuestion","creativeArtifactRequest","abstractReflectiveQuestion"]) if(!goal.includes(token)) throw new Error("Goal interpreter missing "+token);
+for(const token of ["createFreshSong","createFreshPoem","who are you","The honest test is whether I can explain your idea"]) if(!kernel.includes(token)) throw new Error("Kernel direct response missing "+token);
+if(!kernel.includes("native trained model is not yet ready")) throw new Error("Identity response must disclose training status");
+const answerBuilder=kernel.slice(kernel.indexOf("function buildGroundedAnswer("));
+const identity=answerBuilder.indexOf("/\\b(who are you|who are u|what are you)\\b/i");
+const reflective=answerBuilder.indexOf("/\\b(do you understand|understand because you understand|understanding)\\b/i");
+const genericChat=answerBuilder.indexOf('if(interpretation.intent==="chat")');
+if(identity<0||reflective<0||genericChat<0||identity>genericChat||reflective>genericChat) throw new Error("Direct identity and reflective answers must run before the generic chat response");
+if(!answerBuilder.includes('/\\b(song|lyrics)\\b/i')||!answerBuilder.includes('/\\bpoem\\b/i')) throw new Error("Creative request matching must use real word-boundary regexes");
+if(!kernel.includes('return "Still Becoming\\n\\nI am not finished')) throw new Error("Poem output must contain rendered newlines, not literal slash-n text");
+console.log("Fresh AI direct-answer routing and creative-artifact contract: PASS");

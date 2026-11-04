@@ -10,6 +10,8 @@ const required = [
   [runtime, "providerIndependent: true"],
   [runtime, "externalProviderRequired: false"],
   [runtime, "FRESH_UNIFIED_CHECKPOINT_ID"],
+  [runtime, "No image was generated."],
+  [runtime, "validated native inference backend"],
   [unified, 'weightsStatus: "training-required"'],
   [service, "generateFreshNeuralMedia"],
   [service, "FRESH_AI_IMAGE_ENGINE_URL"],

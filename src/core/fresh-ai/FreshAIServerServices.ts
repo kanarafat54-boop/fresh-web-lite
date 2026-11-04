@@ -11,6 +11,60 @@ export function isFreshAIImageEngineConfigured(): boolean {
   return Boolean(getServerEnv("FRESH_AI_IMAGE_ENGINE_URL")?.trim());
 }
 
+/**
+ * Safe, non-secret engine inventory for Fresh AI's status surface.
+ * A configured URL is not proof that the engine is healthy or that generation
+ * has passed an end-to-end test. Native inference remains unavailable until a
+ * real checkpoint AND serving backend have been installed and validated.
+ */
+export type FreshAIEngineReadiness = {
+  owner: "Fresh AI";
+  product: "Fresh Web Lite";
+  imageGeneration: {
+    status: "configuration-required" | "configured-not-verified" | "misconfigured";
+    endpointConfigured: boolean;
+    serverTokenConfigured: boolean;
+    nativeCheckpointRegistered: boolean;
+    nativeInferenceBackend: "not-installed";
+    note: string;
+  };
+  mediaProcessing: {
+    status: "configuration-required" | "configured-not-verified";
+    endpointConfigured: boolean;
+    serverTokenConfigured: boolean;
+    note: string;
+  };
+};
+
+export function getFreshAIEngineReadiness(): FreshAIEngineReadiness {
+  const imageUrl = Boolean(getServerEnv("FRESH_AI_IMAGE_ENGINE_URL")?.trim());
+  const imageToken = Boolean(getServerEnv("FRESH_AI_IMAGE_ENGINE_TOKEN")?.trim());
+  const checkpoint = Boolean(getServerEnv("FRESH_UNIFIED_CHECKPOINT_ID")?.trim());
+  const mediaUrl = Boolean(getServerEnv("FRESH_MEDIA_WORKER_URL")?.trim());
+  const mediaToken = Boolean(getServerEnv("FRESH_MEDIA_WORKER_API_TOKEN")?.trim());
+
+  return {
+    owner: "Fresh AI",
+    product: "Fresh Web Lite",
+    imageGeneration: {
+      status: imageUrl && imageToken ? "configured-not-verified" : imageUrl || imageToken ? "misconfigured" : "configuration-required",
+      endpointConfigured: imageUrl,
+      serverTokenConfigured: imageToken,
+      nativeCheckpointRegistered: checkpoint,
+      nativeInferenceBackend: "not-installed",
+      note: imageUrl && imageToken
+        ? "Image engine configuration exists, but authenticated generation, PNG validation, persistence, and production health still need an end-to-end test."
+        : "Fresh AI owns the image-generation contract, but no complete image engine is configured. Registering a checkpoint alone does not install inference.",
+    },
+    mediaProcessing: {
+      status: mediaUrl && mediaToken ? "configured-not-verified" : "configuration-required",
+      endpointConfigured: mediaUrl,
+      serverTokenConfigured: mediaToken,
+      note: "The FFmpeg media worker processes existing audio/video; it is not a text-to-image model.",
+    },
+  };
+}
+
 export type FreshAIServerConfig = {
   supabaseUrl: string | null;
   supabaseSecretKey: string | null;
@@ -137,7 +191,9 @@ export async function generateFreshAIImage(prompt: string, options?: { model?: s
   }
 
   const result = generateFreshNeuralMedia({ kind: "image", prompt: normalizedPrompt, size });
-  if (result.status !== "ready" || !result.output) throw new Error(result.reason || "Fresh neural image generation is not ready");
+  if (result.status !== "ready" || !result.output) {
+    throw new Error("Fresh AI image generation is unavailable in this deployment: no Fresh-managed image engine is configured, and the native Fresh Unified checkpoint/inference backend is not ready. No image was generated. Configure a Fresh-managed image inference worker or finish and validate native Fresh Unified serving.");
+  }
   return { b64Json: result.output.b64Json, model: "fresh-unified-1", outputFormat: "png", size, engine: "fresh-native" };
 }
 

@@ -5,6 +5,8 @@ import {
   type VideoResult, type PostResult, type PersonResult, type TopicResult,
 } from "../core/searchService";
 import type { IntelligenceResponse } from "../../ai/intelligence";
+import ShortsExplore from "./ShortsExplore";
+import { requestOpenShort } from "../core/shortsExplore";
 import "./FreshFlowSearchSurface.css";
 
 type SearchTab = "videos" | "posts" | "news" | "web" | "people" | "topics";
@@ -22,9 +24,13 @@ type FreshFlowSearchSurfaceProps = {
   onClose: () => void;
   initialTab?: SearchTab;
   initialQuery?: string;
+  /** "shorts" shows Explore (Trending Now, topics) before a query and a Shorts-specific placeholder. */
+  scope?: "flow" | "shorts";
+  /** Open a creator profile (People results). */
+  onOpenCreator?: (authorId: string) => void;
 };
 
-export default function FreshFlowSearchSurface({ onClose, initialTab, initialQuery }: FreshFlowSearchSurfaceProps) {
+export default function FreshFlowSearchSurface({ onClose, initialTab, initialQuery, scope = "flow", onOpenCreator }: FreshFlowSearchSurfaceProps) {
   const { setActiveRoute } = useLayout();
   const [tab, setTab] = useState<SearchTab>(initialTab ?? "videos");
   const [query, setQuery] = useState(initialQuery ?? "");
@@ -75,8 +81,8 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && void run(tab, query)}
-          placeholder="Search anything on Fresh..."
-          aria-label="Search anything on Fresh"
+          placeholder={scope === "shorts" ? "Search Fresh Shorts..." : "Search anything on Fresh..."}
+          aria-label={scope === "shorts" ? "Search Fresh Shorts" : "Search anything on Fresh"}
         />
         <button onClick={() => void run(tab, query)} aria-label="Search">⌕</button>
         <button onClick={onClose} aria-label="Close search">×</button>
@@ -102,7 +108,7 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
           videos.length === 0 ? <p className="fresh-flow-empty">No videos found.</p> : (
             <div className="fresh-flow-search-video-grid">
               {videos.map((v) => (
-                <button key={v.id} className="fresh-flow-search-video-card" onClick={() => { setActiveRoute("fresh-flow"); onClose(); }}>
+                <button key={v.id} className="fresh-flow-search-video-card" onClick={() => { requestOpenShort(v.id); setActiveRoute("fresh-flow-shorts"); onClose(); }}>
                   <video src={v.videoUrl} muted />
                   <div><strong>{v.authorName}</strong><p>{v.caption}</p><small>{v.likeCount} likes</small></div>
                 </button>
@@ -137,7 +143,7 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
         {!loading && !error && searched && tab === "people" && (
           people.length === 0 ? <p className="fresh-flow-empty">No people found.</p> : (
             <ul className="fresh-flow-search-list">
-              {people.map((p) => <li key={p.id}><strong>{p.fullName || p.username}</strong><small>@{p.username}</small></li>)}
+              {people.map((p) => <li key={p.id}>{onOpenCreator ? <button type="button" className="fresh-flow-search-person" onClick={() => onOpenCreator(p.id)}><strong>{p.fullName || p.username}</strong><small>@{p.username}</small></button> : <><strong>{p.fullName || p.username}</strong><small>@{p.username}</small></>}</li>)}
             </ul>
           )
         )}
@@ -148,7 +154,13 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
             </ul>
           )
         )}
-        {!searched && <p className="fresh-flow-empty">Search Videos, Posts, News, Web Info, People and Topics across Fresh.</p>}
+        {!searched && scope === "shorts" && (
+          <ShortsExplore
+            onOpenShort={() => { setActiveRoute("fresh-flow-shorts"); onClose(); }}
+            onSearchTopic={(tag) => { setQuery(tag); setTab("videos"); void run("videos", tag); }}
+          />
+        )}
+        {!searched && scope !== "shorts" && <p className="fresh-flow-empty">Search Videos, Posts, News, Web Info, People and Topics across Fresh.</p>}
       </div>
     </div>
   );

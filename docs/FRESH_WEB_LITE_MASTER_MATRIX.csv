@@ -2,14 +2,14 @@
 1,Ecosystem,Core Foundation,"Identity, auth, profiles, search, nav, notifications, settings, privacy, sync",P0-P1,Critical,IN PROGRESS,,,A1,Platform layer
 2,Ecosystem,Fresh Intelligence,"AI, Ara6, twin, memory, agents, knowledge, trust, opportunity",P0-P2,Critical,IN PROGRESS,,,A2,Continuous
 3,Ecosystem,Fresh Flow / Digital Life,"Shorts, long, posts, live, creator feeds, discovery",P0-P1,Critical,IN PROGRESS,,FreshFlow*,A3,Immersive Shorts path
-4,Ecosystem,Communication,"Messaging, voice, video, groups, channels",P1-P2,High,PLANNED,,,A4,
+4,Ecosystem,Communication,"Messaging, voice, video, groups, channels",P1-P2,High,IN PROGRESS,,src/features/workspaces/CommunicationWorkspace.tsx,A4,Messaging implemented; calls/groups/channels are placeholders
 5,Ecosystem,Creation,"Studio, AI create, publish, collab",P0-P2,High,IN PROGRESS,,Creator Studio,A5,CreateIntent
 6,Ecosystem,Learning & Growth,"Academy, tutors, courses, skills",P2-P3,High,PLANNED,,,A6,
-7,Ecosystem,Discovery,"Universal search, ranking, recommendations",P1-P2,High,PLANNED,,,A7,
+7,Ecosystem,Discovery,"Universal search, ranking, recommendations",P1-P2,High,IN PROGRESS,,src/features/workspaces/DiscoveryWorkspace.tsx,A7,Surface + search migrations; search index not yet populated
 8,Ecosystem,Work,"Jobs, projects, teams, AE workspace",P2-P3,High,PLANNED,,,A8,
-9,Ecosystem,Trade & Marketplace,"Shops, products, services, bookings",P3,High,PLANNED,,,A9,
+9,Ecosystem,Trade & Marketplace,"Shops, products, services, bookings",P3,High,IN PROGRESS,,src/features/workspaces/MarketplaceWorkspace.tsx,A9,Listing create/read implemented; settlement behind Treasury
 10,Ecosystem,Financial,"Payments, transfers, wallet, invoicing",P0-P3,Critical,IN PROGRESS,,wallet,A10,Chrome live
-11,Ecosystem,Fresh Crypto,"Assets, transfers, Web3 economics",P3-P4,High,PLANNED,,,A11,
+11,Ecosystem,Fresh Crypto,"Assets, transfers, Web3 economics",P3-P4,High,IN PROGRESS,,src/features/crypto/freshCryptoRouter.ts,A11,Payment router on static rails; no live rails or balances
 12,Ecosystem,Digital Life Services,"Travel, food, local, maps",P4,Medium,PLANNED,,,A12,
 13,Ecosystem,Community,"Groups, forums, reputation",P1-P2,High,PLANNED,,,A13,
 14,Ecosystem,Business,"CRM, marketing, analytics, agents",P3-P4,High,PLANNED,,,A14,
@@ -38,7 +38,7 @@
 37,Architecture,DR & Reliability,RPO/RTO rollback,P2,Critical,PLANNED,,,B16,
 38,Architecture,Observability,"Logs, metrics, traces, audit",P1,Critical,PLANNED,,,B17,
 39,Architecture,Production Gates G0-G11,Mandatory release path,Every,Critical,IN PROGRESS,,,B18,
-40,Architecture,Definition of Done,Feature complete checklist,Every,Critical,LIVE VERIFIED,,,B21,Documented
+40,Architecture,Definition of Done,Feature complete checklist,Every,Critical,APPROVED,,,B21,Locked document; not a runtime feature
 41,Control,Control Plane,Platform coordination layer,P1,Critical,PLANNED,,,C26,
 42,Control,Source-of-Truth Registry,Canonical domain owners,P1,Critical,PLANNED,,,C27,
 43,Control,Authorization & Policy Engine,Shared authz primitive,P1,Critical,PLANNED,,,C28,
@@ -51,7 +51,7 @@
 50,Control,Release & Feature Flags,Controlled rollout + kill switch,P1,Critical,PLANNED,,,C35,
 51,Control,Provider Governance,Dependencies + fallbacks,P2,High,PLANNED,,,C36,
 52,Control,Capacity & Cost,Performance + cost governance,P2,High,PLANNED,,,C37,
-53,Control,18 Platform Invariants,Non-negotiable rules,Every,Critical,LIVE VERIFIED,,,C38,Locked
+53,Control,18 Platform Invariants,Non-negotiable rules,Every,Critical,APPROVED,,,C38,Locked rules; not a runtime feature
 54,Control,Implementation Ledger,Evidence-based status,Every,Critical,IN PROGRESS,,,C39,
 55,Control,Architecture Acceptance Test,Completion checklist,P4,Critical,PLANNED,,,C40,
 56,Infra,Supabase,"Canonical DB, auth, storage",P0,Critical,IN PROGRESS,,supabase/,Infra,

@@ -23,6 +23,10 @@ screening result for each. The submitter's identity is never returned.
 - Every review records who, when and why (`reviewed_by`, `reviewed_at`, `review_note`) and which
   knowledge row it produced (`knowledge_id`).
 
+Reviewing also updates the matching consent record in `fresh_ai_feedback` (same request and user), so the
+consent ledger and the preference pair never disagree. Corrections arrive through the explicit,
+versioned training-consent flow described in `FRESH_AI_CONTINUOUS_LEARNING_LOOP.md`.
+
 Both routes share the existing `/api/ai/feedback` serverless function (the project is at its function
 limit), through the rewrite in `vercel.json`.
 

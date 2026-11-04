@@ -1,30 +1,26 @@
 import { useLayout } from "../contexts/useLayout";
+import { ACCOUNT_ITEMS, NAV_GROUPS, isNavItemActive, type NavItem } from "../navigation/navModel";
 import "./DesktopSidebar.css";
-
-type NavItem = { id: string; label: string; icon: string };
-
-const primary: NavItem[] = [
-  { id: "feed", label: "Home", icon: "⌂" },
-  { id: "fresh-flow", label: "Flow", icon: "✦" },
-  { id: "work", label: "Work", icon: "▦" },
-  { id: "studio", label: "Create", icon: "＋" },
-  { id: "saved", label: "Saved", icon: "◷" },
-];
-
-const explore: NavItem[] = [
-  { id: "communication", label: "Connect", icon: "◌" },
-  { id: "learning", label: "Academy", icon: "◎" },
-  { id: "marketplace", label: "Marketplace", icon: "◇" },
-];
 
 export default function DesktopSidebar() {
   const { activeRoute, setActiveRoute } = useLayout();
   const go = (id: string) => setActiveRoute(id);
 
-  const isActive = (id: string) => {
-    if (id === "feed") return activeRoute === "feed" || !activeRoute;
-    if (id === "fresh-flow") return typeof activeRoute === "string" && activeRoute.startsWith("fresh-flow");
-    return activeRoute === id;
+  const renderItem = (item: NavItem) => {
+    const active = isNavItemActive(item, activeRoute);
+    return (
+      <button
+        key={item.id}
+        type="button"
+        className={`fresh-sidebar-item ${active ? "active" : ""}`}
+        onClick={() => go(item.id)}
+        aria-current={active ? "page" : undefined}
+        title={item.hint}
+      >
+        <i aria-hidden="true">{item.icon}</i>
+        <span>{item.label}</span>
+      </button>
+    );
   };
 
   return (
@@ -44,52 +40,33 @@ export default function DesktopSidebar() {
       </button>
 
       <div className="fresh-sidebar-scroll">
-        <div className="fresh-sidebar-group">
-          <span className="fresh-sidebar-label">Main</span>
-          {primary.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`fresh-sidebar-item ${isActive(item.id) ? "active" : ""}`}
-              onClick={() => go(item.id)}
-              aria-current={isActive(item.id) ? "page" : undefined}
-            >
-              <i aria-hidden="true">{item.icon}</i>
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="fresh-sidebar-group">
-          <span className="fresh-sidebar-label">Explore</span>
-          {explore.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`fresh-sidebar-item ${isActive(item.id) ? "active" : ""}`}
-              onClick={() => go(item.id)}
-              aria-current={isActive(item.id) ? "page" : undefined}
-            >
-              <i aria-hidden="true">{item.icon}</i>
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </div>
+        {NAV_GROUPS.map((group) => (
+          <div className="fresh-sidebar-group" key={group.id} role="group" aria-label={group.label}>
+            <span className="fresh-sidebar-label">{group.label}</span>
+            {group.items.map(renderItem)}
+          </div>
+        ))}
       </div>
 
       <div className="fresh-sidebar-footer">
-        <button type="button" onClick={() => go("settings")}>
-          <span>⚙</span>
-          <span>Settings</span>
-        </button>
-        <button type="button" onClick={() => go("profile")}>
-          <span className="fresh-sidebar-avatar">M</span>
-          <span className="fresh-sidebar-profile-copy">
-            <strong>Profile</strong>
-            <small>Account & preferences</small>
-          </span>
-          <span>›</span>
-        </button>
+        {ACCOUNT_ITEMS.slice().reverse().map((item) => {
+          const active = isNavItemActive(item, activeRoute);
+          return item.id === "profile" ? (
+            <button key={item.id} type="button" onClick={() => go(item.id)} aria-current={active ? "page" : undefined}>
+              <span className="fresh-sidebar-avatar">M</span>
+              <span className="fresh-sidebar-profile-copy">
+                <strong>{item.label}</strong>
+                <small>Account &amp; preferences</small>
+              </span>
+              <span>›</span>
+            </button>
+          ) : (
+            <button key={item.id} type="button" onClick={() => go(item.id)} aria-current={active ? "page" : undefined}>
+              <span>{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
       </div>
     </aside>
   );

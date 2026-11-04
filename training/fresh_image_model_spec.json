@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0.0",
+  "model_id": "fresh-image-research-0",
+  "owner": "Fresh AI",
+  "status": "experimental-research-prototype-implemented-not-trained",
+  "intended_use": "bounded educational research prototype; requires an authorized local dataset and training run; not production image generation",
+  "training_policy": {
+    "initialization": "random-initialization-only",
+    "pretrained_weights_allowed": false,
+    "third_party_inference_allowed": false,
+    "paid_compute_allowed": false,
+    "data_must_be_authorized": true,
+    "require_dataset_manifest": true
+  },
+  "proposed_baseline": {
+    "family": "small caption-conditioned pixel-distribution MLP",
+    "purpose": "experimental 16x16 RGB research baseline that learns a low-resolution pixel-bin distribution from authorized caption/image pairs; not a quality image generator",
+    "image_width": 16,
+    "image_height": 16,
+    "color_channels": 3,
+    "conditioning": "Fresh-trained prompt tokenizer and compact prompt-conditioning embedding",
+    "weights": "must be trained from random initialization for this model ID",
+    "output_label": "experimental-research-only"
+  },
+  "reproducibility": {
+    "record_random_seed": true,
+    "record_code_revision": true,
+    "record_dependency_lock_hash": true,
+    "record_dataset_manifest_sha256": true,
+    "record_checkpoint_sha256": true,
+    "record_training_steps": true,
+    "record_training_metrics": true
+  },
+  "promotion": {
+    "production_eligible": false,
+    "require_explicit_review": true,
+    "require_held_out_evaluation": true,
+    "require_png_validation": true,
+    "require_end_to_end_auth_persistence_and_retrieval_tests": true
+  },
+  "constraints": [
+    "This specification does not implement a model or imply image generation works.",
+    "Do not reuse fresh-unified-1 language-model weights as image-model weights.",
+    "Do not load downloaded pretrained or open-weight model weights.",
+    "If free compute is insufficient, stop and document the blocker; do not create paid resources.",
+    "Outputs are limited to 16x16 pixels and are not intended to look polished or compete with commercial image generators."
+  ]
+}

@@ -69,6 +69,16 @@ export const MEDIA_OPS_FIT: MediaOpsFit[] = [
     note: "Local speech recognition available. Whisper / NMT / cloned TTS workers adapter-pending.",
   },
 
+  {
+    id: "blender-render-worker",
+    pillar: "creation",
+    title: "Fresh Studio 3D scene rendering (Blender CPU worker)",
+    fwlSurface: "Fresh Studio → Director → 3D scene preview",
+    coreModule: "blenderRenderWorker · workers/blender-render-worker",
+    status: "adapter-pending",
+    note: "Bounded scene specification, authenticated owner-scoped job API, Blender container and PNG artifact validation are implemented. Worker deployment and live render verification are still required.",
+  },
+
   // 2 · Recommendation & player
   {
     id: "multi-objective-score",

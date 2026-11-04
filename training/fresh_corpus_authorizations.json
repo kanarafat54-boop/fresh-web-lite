@@ -19,6 +19,73 @@
       "evidenceRef": "repo-authored-synthetic-v1",
       "restrictions": [],
       "status": "eligible"
+    },
+    {
+      "authorizationId": "hf-oasst1",
+      "name": "OpenAssistant Conversations (oasst1)",
+      "authorityType": "public-license",
+      "owner": "OpenAssistant / LAION community contributors",
+      "license": "Apache-2.0",
+      "trainingPermission": "verified",
+      "commercialTrainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "https://huggingface.co/datasets/OpenAssistant/oasst1 (dataset card: license apache-2.0; human-written, human-rated)",
+      "restrictions": [
+        "Import only messages with review_result != false and deleted == false",
+        "Keep attribution to OpenAssistant in the model card",
+        "Languages limited to the importer allowlist"
+      ],
+      "status": "eligible"
+    },
+    {
+      "authorizationId": "hf-dolly-15k",
+      "name": "databricks-dolly-15k",
+      "authorityType": "public-license",
+      "owner": "Databricks employees (CC-BY-SA-3.0 release)",
+      "license": "CC-BY-SA-3.0",
+      "trainingPermission": "verified",
+      "commercialTrainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "https://huggingface.co/datasets/databricks/databricks-dolly-15k (dataset card: usable for any purpose, academic or commercial, under CC-BY-SA-3.0)",
+      "restrictions": [
+        "Owner (Fresh project) accepted CC-BY-SA-3.0 attribution and share-alike obligations on 2026-10-27",
+        "Credit Databricks in the model card and dataset documentation",
+        "Keep derived dataset releases under CC-BY-SA-3.0"
+      ],
+      "status": "eligible"
+    },
+    {
+      "authorizationId": "hf-wikipedia",
+      "name": "Wikimedia Wikipedia (per-language subsets)",
+      "authorityType": "public-license",
+      "owner": "Wikimedia Foundation and Wikipedia contributors",
+      "license": "CC-BY-SA-3.0 / GFDL",
+      "trainingPermission": "verified",
+      "commercialTrainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "https://huggingface.co/datasets/wikimedia/wikipedia (dataset card: cc-by-sa-3.0 and gfdl; human-written)",
+      "restrictions": [
+        "Owner (Fresh project) accepted CC-BY-SA/GFDL attribution and share-alike obligations on 2026-10-27",
+        "Credit Wikipedia contributors in the model card and dataset documentation",
+        "Keep derived dataset releases under CC-BY-SA-3.0"
+      ],
+      "status": "eligible"
+    },
+    {
+      "authorizationId": "fwl-internal-docs-qa-v1",
+      "name": "Fresh Web Lite product docs, question-and-answer form",
+      "authorityType": "internal-authorship",
+      "owner": "Fresh Web Lite project",
+      "license": "internal-synthetic",
+      "trainingPermission": "verified",
+      "commercialTrainingPermission": "verified",
+      "derivativeModelPermission": "verified",
+      "evidenceRef": "scripts/generate-fresh-knowledge-sft.mjs over the owner-approved ALLOWLIST in scripts/generate-fresh-knowledge-from-docs.mjs (24 product docs; operational docs on the DENYLIST are excluded). Questions are fixed templates; answers are the docs' own text. No outside model.",
+      "restrictions": [
+        "Only allowlisted product docs; deployment/config lines and secret-shaped text are stripped and generation fails if any survive",
+        "Owner to confirm the docs' own provenance (authored for the project) before production promotion"
+      ],
+      "status": "eligible"
     }
   ]
 }

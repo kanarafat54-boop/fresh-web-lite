@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useLayout } from "../../app/contexts/useLayout";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
+import { useTheme } from "../../app/providers/ThemeProvider";
 import { supabase } from "../../lib/supabase";
 import type { FreshUser } from "../fresh-id/types/user";
 import DeviceSecurityPanel from "./DeviceSecurityPanel";
@@ -21,8 +22,10 @@ const prettyDate = (value?: string | null) => {
 
 export default function SettingsWorkspace() {
   const { setActiveRoute } = useLayout();
+  const { setTheme: setGlobalTheme } = useTheme();
   const { user, isAuthenticated, isGuest, loading, error, message, updateUser, logout, requestPasswordReset, passkeySupported, registerPasskey, listPasskeys, removePasskey, session } = useFreshId();
   const [theme, setTheme] = useState<Theme>("dark");
+  const [followSystem, setFollowSystem] = useState<boolean>(() => { try { const v = window.localStorage.getItem("fresh_theme"); return v !== "light" && v !== "dark"; } catch { return true; } });
   const [experienceMode, setExperienceMode] = useState<"simple" | "standard" | "advanced">("simple");
   const [workspaceMode, setWorkspaceMode] = useState<"personal" | "creator" | "business" | "developer" | "organization">("personal");
   const [textSize, setTextSize] = useState("normal");
@@ -46,9 +49,10 @@ export default function SettingsWorkspace() {
   const [accountBusy, setAccountBusy] = useState(false);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("fresh-theme");
+    const stored = window.localStorage.getItem("fresh_theme") ?? window.localStorage.getItem("fresh-theme");
     const next: Theme = stored === "light" || stored === "dark" ? stored : window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
     setTheme(next);
+    setGlobalTheme(next);
     document.documentElement.dataset.theme = next;
     const size = window.localStorage.getItem("fresh-text-size");
     if (size === "large" || size === "larger") setTextSize(size);
@@ -65,6 +69,7 @@ export default function SettingsWorkspace() {
     setEmailUpdates(user?.preferences?.emailNotifications ?? window.localStorage.getItem("fresh-notifications") !== "off");
     if (user?.preferences?.theme === "light" || user?.preferences?.theme === "dark") {
       setTheme(user.preferences.theme);
+      setGlobalTheme(user.preferences.theme);
       document.documentElement.dataset.theme = user.preferences.theme;
     }
     if (user?.preferences?.preferredWorkspaceMode) {
@@ -168,10 +173,23 @@ export default function SettingsWorkspace() {
     void persistPreferenceSettings({ experienceMode: next });
   };
 
-  const changeTheme = (next: Theme) => {
+  const useSystemTheme = () => {
+    const next: Theme = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    setFollowSystem(true);
     setTheme(next);
+    setGlobalTheme(next);
+    document.documentElement.dataset.theme = next;
+    window.localStorage.removeItem("fresh-theme");
+    window.localStorage.removeItem("fresh_theme");
+  };
+
+  const changeTheme = (next: Theme) => {
+    setFollowSystem(false);
+    setTheme(next);
+    setGlobalTheme(next);
     document.documentElement.dataset.theme = next;
     window.localStorage.setItem("fresh-theme", next);
+    window.localStorage.setItem("fresh_theme", next);
     void persistPreferenceSettings({ theme: next });
   };
   const changeTextSize = (next: string) => {
@@ -335,7 +353,7 @@ export default function SettingsWorkspace() {
 
     <section className="fresh-settings-card"><div><h2>How Fresh works for you</h2><p>Choose how much detail you want to see. You can change this at any time, and your other settings stay the same.</p></div><div className="fresh-settings-choice-row" role="group" aria-label="Experience level"><button type="button" className={experienceMode === "simple" ? "selected" : ""} onClick={() => changeExperienceMode("simple")} aria-pressed={experienceMode === "simple"}><span><strong>Simple</strong><small>Fewer choices and clearer steps</small></span></button><button type="button" className={experienceMode === "standard" ? "selected" : ""} onClick={() => changeExperienceMode("standard")} aria-pressed={experienceMode === "standard"}><span><strong>Standard</strong><small>More tools on your home screen</small></span></button><button type="button" className={experienceMode === "advanced" ? "selected" : ""} onClick={() => changeExperienceMode("advanced")} aria-pressed={experienceMode === "advanced"}><span><strong>Advanced</strong><small>More of the available controls</small></span></button></div><p className="fresh-settings-help">Simple mode does not remove your account or data. Use “Show more features” on Home whenever you need extra tools.</p></section>
 
-    <section className="fresh-settings-card"><div><h2>Appearance and accessibility</h2><p>Make text easier to read and reduce visual strain.</p></div><div className="fresh-settings-choice-row"><button type="button" className={theme === "dark" ? "selected" : ""} onClick={() => changeTheme("dark")} aria-pressed={theme === "dark"}>◐ <span><strong>Dark</strong><small>Low-light appearance</small></span></button><button type="button" className={theme === "light" ? "selected" : ""} onClick={() => changeTheme("light")} aria-pressed={theme === "light"}>☼ <span><strong>Light</strong><small>Bright appearance</small></span></button></div><label className="fresh-settings-inline-field">Text size<select value={textSize} onChange={(e) => changeTextSize(e.target.value)}><option value="normal">Standard</option><option value="large">Large</option><option value="larger">Extra large</option></select></label></section>
+    <section className="fresh-settings-card"><div><h2>Appearance and accessibility</h2><p>Make text easier to read and reduce visual strain.</p></div><div className="fresh-settings-choice-row"><button type="button" className={!followSystem && theme === "dark" ? "selected" : ""} onClick={() => changeTheme("dark")} aria-pressed={!followSystem && theme === "dark"}>◐ <span><strong>Dark</strong><small>Low-light appearance</small></span></button><button type="button" className={!followSystem && theme === "light" ? "selected" : ""} onClick={() => changeTheme("light")} aria-pressed={!followSystem && theme === "light"}>☼ <span><strong>Light</strong><small>Bright appearance</small></span></button><button type="button" className={followSystem ? "selected" : ""} onClick={useSystemTheme} aria-pressed={followSystem}>◑ <span><strong>System</strong><small>Match this device</small></span></button></div><label className="fresh-settings-inline-field">Text size<select value={textSize} onChange={(e) => changeTextSize(e.target.value)}><option value="normal">Standard</option><option value="large">Large</option><option value="larger">Extra large</option></select></label></section>
 
     <section className="fresh-settings-card"><div><h2>Notifications</h2><p>Choose whether Fresh sends product updates to your account email.</p></div><button type="button" className={emailUpdates ? "fresh-settings-toggle on" : "fresh-settings-toggle"} aria-pressed={emailUpdates} onClick={() => setEmailUpdates(!emailUpdates)}><span aria-hidden="true" />{emailUpdates ? "Email updates on" : "Email updates off"}</button><button type="button" className="fresh-settings-primary" disabled={!user || isGuest || saving} onClick={() => void persistProfile()}>Save notification preference</button></section>
 

@@ -15,3 +15,14 @@
   .fresh-sidebar-scroll { padding-block: 10px; }
   .fresh-sidebar-group { margin-bottom: 12px; }
 }
+
+/* Brand block + denser items so all grouped destinations fit without long scrolling. */
+.fresh-sidebar-workspace{display:flex;align-items:center;gap:10px;padding:6px 8px 14px}
+.fresh-sidebar-workspace>div:last-child{display:grid;min-width:0}
+.fresh-sidebar-workspace strong{font-size:15px;letter-spacing:-.02em}
+.fresh-sidebar-workspace span{font-size:11px;color:var(--fresh-muted)}
+.fresh-sidebar-group{margin-bottom:14px}
+.fresh-sidebar-label{font-size:10px}
+.fresh-sidebar-item{min-height:40px}
+.fresh-sidebar-item span{font-size:13px;font-weight:650}
+.fresh-sidebar-item:focus-visible,.fresh-sidebar-footer>button:focus-visible,.fresh-sidebar-create:focus-visible{outline:3px solid #a99dff;outline-offset:2px}

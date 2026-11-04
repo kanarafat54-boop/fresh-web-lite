@@ -5,7 +5,8 @@
  * share the same media foundation without forcing a visual redesign.
  */
 
-export type FreshFlowMediaType =
+/** Known built-in types keep editor autocomplete without closing the ecosystem. */
+export type KnownFreshFlowMediaType =
   | "short"
   | "long-video"
   | "post"
@@ -13,6 +14,13 @@ export type FreshFlowMediaType =
   | "podcast"
   | "ar-experience"
   | "vr-experience";
+
+/**
+ * Extensible media identifier: third-party and future Fresh Flow formats can
+ * flow through the shared item contract without editing this union. Runtime
+ * capability registration and server authorization remain separate concerns.
+ */
+export type FreshFlowMediaType = KnownFreshFlowMediaType | (string & {});
 
 export type FreshFlowModerationState =
   | "pending"

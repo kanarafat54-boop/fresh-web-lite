@@ -20,3 +20,22 @@
 @media (prefers-contrast: more) {
   .fresh-flow-media-nav-bottom .fresh-flow-media-button { border: 1px solid currentColor; }
 }
+
+
+/* Persistent, compact Fresh Flow chrome. Bars remain anchored; scroll activity briefly tucks them away. */
+.fresh-flow-hub .fresh-flow-unified-header{position:sticky;top:0;z-index:80;flex:0 0 auto;padding:8px clamp(8px,2vw,18px);background:rgba(9,10,17,.96);border-bottom:1px solid rgba(255,255,255,.09);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);transition:transform .18s ease,opacity .18s ease;}
+.fresh-flow-hub .fresh-flow-header-world-nav{display:flex;align-items:center;gap:clamp(2px,.7vw,8px);min-width:0;overflow-x:auto;scrollbar-width:none;white-space:nowrap;}
+.fresh-flow-hub .fresh-flow-header-world-nav::-webkit-scrollbar{display:none}
+.fresh-flow-hub .fresh-flow-header-world-nav button{min-height:38px;padding:6px clamp(7px,1.2vw,13px);border:1px solid transparent;border-radius:11px;background:transparent;color:inherit;font:inherit;font-size:clamp(.72rem,1.5vw,.88rem);white-space:nowrap;}
+.fresh-flow-hub .fresh-flow-header-world-nav button.active{border-color:rgba(99,91,255,.55);background:rgba(99,91,255,.16);}
+.fresh-flow-persistent-bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:90;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;padding:6px max(6px,env(safe-area-inset-left)) max(6px,env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.1);background:rgba(9,10,17,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);transition:transform .18s ease,opacity .18s ease;}
+.fresh-flow-persistent-bottom-nav button{display:flex;min-width:0;min-height:44px;align-items:center;justify-content:center;flex-direction:column;gap:2px;padding:3px 1px;border:0;border-radius:9px;background:transparent;color:#c8cad8;font:inherit;}
+.fresh-flow-persistent-bottom-nav button[aria-current="page"]{color:#b9b4ff;background:rgba(99,91,255,.13)}
+.fresh-flow-persistent-bottom-nav button>span{font-size:17px;line-height:1.1}.fresh-flow-persistent-bottom-nav small{font-size:clamp(.55rem,1.6vw,.7rem);line-height:1.2;white-space:nowrap;letter-spacing:-.02em}
+.fresh-flow-navigation-hidden .fresh-flow-unified-header{transform:translateY(-110%);opacity:0;pointer-events:none}
+.fresh-flow-navigation-hidden .fresh-flow-persistent-bottom-nav{transform:translateY(110%);opacity:0;pointer-events:none}
+.fresh-flow-navigation-visible .fresh-flow-unified-header,.fresh-flow-navigation-visible .fresh-flow-persistent-bottom-nav{transform:translateY(0);opacity:1}
+.fresh-flow-media-content{padding-bottom:calc(58px + env(safe-area-inset-bottom));}
+.fresh-flow-hub :is(button,a,input,select,textarea):focus-visible{outline:2px solid #a5a1ff;outline-offset:2px}
+@media(max-width:390px){.fresh-flow-hub .fresh-flow-unified-brand small{display:none}.fresh-flow-hub .fresh-flow-header-world-nav button{padding-inline:6px}.fresh-flow-persistent-bottom-nav{padding-inline:3px}.fresh-flow-persistent-bottom-nav small{font-size:.53rem}}
+@media(prefers-reduced-motion:reduce){.fresh-flow-hub .fresh-flow-unified-header,.fresh-flow-persistent-bottom-nav{transition:none}}

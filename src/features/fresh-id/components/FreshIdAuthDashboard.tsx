@@ -166,16 +166,17 @@ export default function FreshIdAuthDashboard() {
             : "Browser";
 
   function enterFresh() {
-    // Successful authentication should always enter the main Home surface.
-    // Onboarding remains available from the product and must not trap users
-    // between the independent Fresh ID gateway and the landing page.
+    // Resume a protected creator action after Fresh ID sign-in; otherwise enter Home.
+    let destination: "feed" | "creator" = "feed";
     try {
+      const pendingIntent = JSON.parse(window.sessionStorage.getItem("fresh-flow-create-intent") || "null");
+      if (pendingIntent?.action === "long-video" || pendingIntent?.action === "creator-studio") destination = "creator";
       window.localStorage.setItem("fresh.id.onboarded", "1");
-      window.history.replaceState({ freshRoute: "feed" }, "", "/");
+      window.history.replaceState({ freshRoute: destination }, "", destination === "creator" ? "/creation" : "/");
     } catch {
       // The main application still uses the authoritative auth session.
     }
-    setActiveRoute("feed");
+    setActiveRoute(destination);
   }
 
   return (
@@ -280,6 +281,15 @@ export default function FreshIdAuthDashboard() {
         {layer === "auth" && (
           <section className="fresh-id-screen fresh-id-screen-form" aria-labelledby="fresh-auth-title">
             <div className="fresh-id-auth-shell">
+              {standaloneAuth ? (
+                <div className="fresh-id-auth-identity fresh-id-auth-identity-compact">
+                  <div className="fresh-id-gateway-brand" aria-label="Fresh ID">
+                    <span className="fresh-id-gateway-mark" aria-hidden="true">F</span>
+                    <span>Fresh ID</span>
+                  </div>
+                  <h1 id="fresh-auth-title" className="fresh-id-sr-only">Fresh ID: log in or create your account</h1>
+                </div>
+              ) : (
               <div className="fresh-id-auth-identity">
                 <div className="fresh-id-auth-orb" aria-hidden="true">
                   <span>F</span>
@@ -290,6 +300,7 @@ export default function FreshIdAuthDashboard() {
                 <p>One focused gateway. Sign in, create your Fresh ID, then the identity surface gets out of your way.</p>
 
               </div>
+              )}
               <div className="fresh-id-form-stage">
                 <AuthForm />
               </div>
@@ -402,6 +413,7 @@ export default function FreshIdAuthDashboard() {
         )}
       </div>
 
+      {!standaloneAuth && (
       <div className="fresh-id-gateway-bottom">
         <button type="button" className="fresh-id-nav-arrow" onClick={back} disabled={layerIndex === 0} aria-label="Previous layer">←</button>
         <div className="fresh-id-pagination" role="group" aria-label="Choose a Fresh ID screen">
@@ -420,6 +432,7 @@ export default function FreshIdAuthDashboard() {
         <span className="fresh-id-gateway-hint">Swipe or choose a dot</span>
         <button type="button" className="fresh-id-nav-arrow" onClick={advance} disabled={layerIndex === layers.length - 1} aria-label="Next layer">→</button>
       </div>
+      )}
     </main>
   );
 }

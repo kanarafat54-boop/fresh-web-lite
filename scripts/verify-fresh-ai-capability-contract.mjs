@@ -7,11 +7,11 @@ const model = fs.readFileSync("src/core/fresh-ai/FreshUnifiedModelCore.ts", "utf
 const requiredCapabilities = [
   "conversation", "voice", "vision", "search", "research", "creation",
   "files", "data", "code", "projects", "knowledge", "memory", "skills",
-  "apps", "work", "tasks", "library", "automation", "media-3d", "trust", "safety",
+  "apps", "work", "tasks", "library", "automation", "media-3d", "astra", "trust", "safety",
 ];
 
 for (const capability of requiredCapabilities) {
-  if (!registry.includes(`\"${capability}\"`)) throw new Error(`Missing registry capability: ${capability}`);
+  if (!registry.includes(`"${capability}"`)) throw new Error(`Missing registry capability: ${capability}`);
 }
 for (const entry of ["Ask Fresh", "Voice", "Search", "Create", "Research", "Work", "Files", "Camera"]) {
   if (!contract.includes(entry)) throw new Error(`Missing primary entry point: ${entry}`);
@@ -21,7 +21,7 @@ if (!model.includes("externalProviderRequired: false")) throw new Error("Fresh m
 if (!contract.includes("training-required")) throw new Error("Training gate is missing from capability contract");
 if (!registry.includes("VALID_ENTRY_POINTS")) throw new Error("Capability registry lacks entry-point validation");
 if (!registry.includes("requiresVerification")) throw new Error("Capability registry lacks verification policy");
-if (!registry.includes('status === \"training-required\"')) throw new Error("Capability registry lacks truthful training-required handling");
+if (!registry.includes('status === "training-required"')) throw new Error("Capability registry lacks truthful training-required handling");
 if (!registry.includes("bypasses verification")) throw new Error("Capability registry must reject verification bypasses");
 
 console.log("Fresh AI capability product contract integrity: PASS");

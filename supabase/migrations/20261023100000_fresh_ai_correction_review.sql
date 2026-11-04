@@ -39,6 +39,28 @@ where coalesce(safety_checked, false) and review_status = 'pending';
 create index if not exists fresh_ai_preference_pairs_review_idx
   on public.fresh_ai_preference_pairs (review_status, created_at);
 
+-- Keeps the consent ledger (fresh_ai_feedback) in step with the review decision on the preference pair.
+create or replace function public.sync_fresh_ai_feedback_review(p_request_id text, p_user_id uuid, p_status text, p_reviewer uuid)
+returns void
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if to_regclass('public.fresh_ai_feedback') is null or p_request_id is null then
+    return;
+  end if;
+  update public.fresh_ai_feedback
+  set review_status = p_status, reviewed_at = now(), reviewed_by = p_reviewer
+  where request_id::text = p_request_id
+    and user_id is not distinct from p_user_id
+    and feedback_kind = 'correction'
+    and review_status = 'pending';
+end;
+$$;
+
+revoke all on function public.sync_fresh_ai_feedback_review(text, uuid, text, uuid) from public, anon, authenticated;
+grant execute on function public.sync_fresh_ai_feedback_review(text, uuid, text, uuid) to service_role;
+
 create or replace function public.review_fresh_ai_correction(
   p_pair_id uuid,
   p_decision text,
@@ -73,6 +95,7 @@ begin
     update public.fresh_ai_preference_pairs
     set review_status = 'rejected', reviewed_at = now(), reviewed_by = p_reviewer, review_note = nullif(v_note, '')
     where id = p_pair_id;
+    perform public.sync_fresh_ai_feedback_review(v_pair.request_id::text, v_pair.user_id, 'rejected', p_reviewer);
     return null;
   end if;
 
@@ -133,6 +156,7 @@ begin
       preferred_output = v_text
   where id = p_pair_id;
 
+  perform public.sync_fresh_ai_feedback_review(v_pair.request_id::text, v_pair.user_id, 'approved', p_reviewer);
   return v_id;
 end;
 $$;

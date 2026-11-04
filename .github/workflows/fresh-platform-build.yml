@@ -25,6 +25,8 @@ jobs:
         run: node scripts/verify-profile-runtime-schema.mjs
       - name: Architecture contract
         run: npm run test:fresh-ecosystem-architecture
+      - name: Fresh platform constitution contract
+        run: npm run test:fresh-platform-constitution
       - name: Production routing contract
         run: npm run test:production-routing
       - name: Fresh AI profile and creator contract
@@ -37,16 +39,26 @@ jobs:
         run: npm run test:fresh-id-onboarding
       - name: Fresh platform parity contract
         run: npm run test:fresh-platform-parity
+      - name: Fresh ID date-of-birth validation
+        run: npm run test:fresh-id-date-of-birth
       - name: Security/auth contract
         run: npm run test:fresh-security-contract
+      - name: Fresh Protofile privacy contract
+        run: npm run test:fresh-platform-privacy
+      - name: Fresh ambient interaction privacy contract
+        run: npm run test:fresh-ambient-interaction
       - name: Fresh Flow fabric contract
         run: npm run test:fresh-flow-fabric
+      - name: Fresh Flow 24-system and landing UI contract
+        run: npm run test:fresh-flow-system-registry
       - name: Media worker contract
         run: npm run test:fresh-media-worker-contract
       - name: Remote media worker client contract
         run: npm run test:remote-media-worker-contract
       - name: Unified media runtime contract
         run: npm run test:fresh-media-runtime
+      - name: Fresh Blender 3D render worker contract and scene validation
+        run: npm run test:fresh-blender-render-worker
       - name: Media publishing bridge contract
         run: npm run test:fresh-media-publishing
       - name: Phases 15-22 certification

@@ -183,7 +183,8 @@ Regression contract: npm run test:fresh-ai-image-engine. This static contract te
 - The starter architecture was deliberately reduced for a pipeline smoke test: hidden size 128, 2 layers, feed-forward size 256, context 256.
 - The reported final loss was approximately 107.75. This is not evidence of useful production intelligence.
 - The repository still declares weightsStatus: training-required.
-- inferFreshUnified currently returns training-required; even a registered checkpoint is not served because the native neural backend is not installed.','docs/FRESH_AI_READINESS_AUDIT.md','7149f854773200d2'),
+- Run 3 (fresh-unified-1-run3, 2026-10-29): a 49.9M-parameter model trained from scratch on 32.3M authorized, screened tokens reached held-out perplexity 42.0 (run 2 with a bad initialization: 356). Output is fluent-looking but not reliably correct; no safety, truthfulness or capability evaluation has run. See docs/FRESHAITRAINING_RUN3.md. Still training-required.
+- inferFreshUnified currently returns training-required; even a registered checkpoint is not served because the native neural backend is not installed.','docs/FRESH_AI_READINESS_AUDIT.md','bcac16979e4ed7f4'),
  ('Doc: FRESH_AI_READINESS_AUDIT — Gates before model promotion','Per docs/FRESH_AI_READINESS_AUDIT.md (Fresh AI Readiness Audit), section "Gates before model promotion": 1. Prepare a substantially larger, lawful, provenance-tracked corpus with verified training and derivative-model permissions.
 2. Train the versioned Fresh tokenizer on authorized data and record its hash.
 3. Run full-spec foundation training with suitable GPU compute; the v1 target is vocabulary 32,000, context 2,048, hidden size 512, 8 transformer layers, 8 attention heads, and feed-forward size 2,048.

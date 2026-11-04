@@ -1,4 +1,6 @@
 export type BrowserExportOptions = {
+  /** Kept source ranges in order (trim minus cuts). Overrides start/end when given. */
+  ranges?: Array<[number, number]>;
   aspect?: "16:9" | "9:16" | "1:1";
   fps?: number;
   mimeTypes?: string[];
@@ -60,8 +62,14 @@ export async function exportVideoFrameStream(
   });
 
   const duration = Number.isFinite(video.duration) ? video.duration : 0;
-  const start = Math.max(0, Math.min(options.startSeconds ?? 0, duration));
-  const end = Math.max(start + 0.05, Math.min(options.endSeconds ?? duration, duration || Number.MAX_SAFE_INTEGER));
+  const ranges = options.ranges?.length
+    ? options.ranges
+    : ([[
+        Math.max(0, Math.min(options.startSeconds ?? 0, duration)),
+        Math.max(Math.max(0, Math.min(options.startSeconds ?? 0, duration)) + 0.05, Math.min(options.endSeconds ?? duration, duration || Number.MAX_SAFE_INTEGER)),
+      ]] as Array<[number, number]>);
+  let rangeIndex = 0;
+  const start = ranges[0][0];
   const wasPaused = video.paused;
   const originalTime = video.currentTime;
   const originalRate = video.playbackRate;
@@ -113,9 +121,14 @@ export async function exportVideoFrameStream(
       context.shadowBlur = 0;
     }
 
-    if (currentTime >= end || video.ended) {
-      recorder.stop();
-      return;
+    if (currentTime >= ranges[rangeIndex][1] || video.ended) {
+      if (!video.ended && rangeIndex < ranges.length - 1) {
+        rangeIndex += 1;
+        video.currentTime = ranges[rangeIndex][0];
+      } else {
+        recorder.stop();
+        return;
+      }
     }
     requestAnimationFrame(draw);
   };

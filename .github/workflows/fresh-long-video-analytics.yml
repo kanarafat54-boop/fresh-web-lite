@@ -1,0 +1,32 @@
+name: Fresh Flow Long Video Analytics
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  long-video-analytics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Long-video analytics security and wiring contract
+        run: npm run test:fresh-long-video-analytics
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build

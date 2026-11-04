@@ -1,0 +1,30 @@
+{
+  "schema": "fresh-unified-checkpoint-v1",
+  "modelId": "fresh-unified-1",
+  "runId": "fresh-unified-1-run3",
+  "executionStatus": "completed",
+  "tokenizerId": "fresh-unified-tokenizer-v2",
+  "tokenizerSha256": "dc820bac32dd5f3bc0b47eac545d4baa33cde93da05014b2d90d0903b0c7b06c",
+  "trainBinSha256": "2aa79c88e57baa802f64973d4cf55bab7987b305ade0d3503ae4d4e729769a69",
+  "valBinSha256": "e81f1400c34b1c4de345fc990f9b9256c49c25d293b3d37cd04e3a069dea3c63",
+  "mixManifestSha256": "44b48cf35602a9a1b58c85134732cebb9be0a7dfe5955fa32e3a24213496c04f",
+  "checkpointSha256": "298b558e89edab77745834389cb2b1979e632979f9be7b4adad1892c2f2fc25d",
+  "parameters": 49947136,
+  "steps": 1476,
+  "seqLen": 1024,
+  "tokensSeen": 96731136,
+  "finalTrainLoss": 3.5440302193164825,
+  "heldOutLoss": 3.7367804646492004,
+  "heldOutPerplexity": 41.96267214492321,
+  "device": "cuda",
+  "pipelineSmokeTest": false,
+  "productionReady": false,
+  "evaluation": {
+    "heldOutLM": "done",
+    "safetyReview": "pending",
+    "groundingAndTruthEval": "pending",
+    "capabilityEval": "pending"
+  },
+  "note": "Real optimizer run on the authorized, screened mix. Not promoted: weightsStatus stays training-required until the evaluation gates pass.",
+  "recordedFrom": "Kaggle run log (GPU T4, 16,511 s wall clock); checkpoint file held outside git (191 MB)"
+}
