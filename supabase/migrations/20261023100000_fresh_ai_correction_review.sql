@@ -15,6 +15,25 @@
 --
 -- Keep the secret patterns in sync with src/core/fresh-ai/FreshAICorrectionScreening.ts.
 
+-- The table exists in production but no earlier migration creates it (see supabase/baseline). This
+-- definition mirrors production exactly, so it does nothing there and lets a clean replay work.
+create table if not exists public.fresh_ai_preference_pairs (
+  id uuid default gen_random_uuid() not null,
+  user_id uuid references auth.users(id) on delete set null,
+  request_id uuid,
+  prompt text not null,
+  preferred_output text not null,
+  rejected_output text not null,
+  rationale text,
+  label text default 'better'::text not null,
+  safety_checked boolean default false not null,
+  reward_signal numeric(6,4),
+  created_at timestamp with time zone default now() not null,
+  constraint fresh_ai_preference_pairs_label_check check ((label = any (array['better'::text, 'worse'::text, 'tie'::text]))),
+  constraint fresh_ai_preference_pairs_pkey primary key (id)
+);
+alter table public.fresh_ai_preference_pairs enable row level security;
+
 alter table public.fresh_ai_preference_pairs
   add column if not exists review_status text not null default 'pending',
   add column if not exists reviewed_at timestamptz,
