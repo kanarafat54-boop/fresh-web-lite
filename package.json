@@ -67,6 +67,7 @@
     "test:fresh-learning-candidates": "node scripts/test-fresh-learning-candidates.mjs",
     "test:fresh-ai-training-feedback": "node scripts/test-fresh-ai-training-feedback.mjs",
     "test:fresh-docs-knowledge": "node scripts/verify-fresh-docs-knowledge.mjs",
+    "test:fresh-correction-review": "node scripts/verify-fresh-correction-review.mjs",
     "generate:fresh-docs-knowledge": "node scripts/generate-fresh-knowledge-from-docs.mjs supabase/migrations/20261021200000_fresh_ai_platform_docs_knowledge.sql",
     "test:fresh-user-intake-dataset": "node scripts/verify-fresh-user-intake-dataset.mjs",
     "test:fresh-expanded-corpus": "node scripts/test-fresh-expanded-corpus.mjs",
