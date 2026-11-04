@@ -97,7 +97,8 @@
     "test:fresh-astra": "node --experimental-strip-types scripts/test-fresh-astra.mjs",
     "verify:vercel-function-limit": "node scripts/verify-vercel-function-limit.mjs",
     "test:fresh-long-video-analytics": "node scripts/verify-fresh-long-video-analytics.mjs",
-    "test:fresh-blender-render-worker": "node scripts/verify-fresh-blender-render-worker.mjs && node --test workers/blender-render-worker/scene-spec.test.mjs"
+    "test:fresh-blender-render-worker": "node scripts/verify-fresh-blender-render-worker.mjs && node --test workers/blender-render-worker/scene-spec.test.mjs",
+    "test:fresh-studio-export": "node --no-warnings scripts/verify-fresh-studio-export.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",

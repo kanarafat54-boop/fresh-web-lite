@@ -5,6 +5,7 @@ import { formatRelativeTime } from "../shared/format.ts";
 import { StudioConflictError, isTrashed } from "./projectService.ts";
 import { describeError } from "./useProjectActions.ts";
 import type { StudioScreenProps } from "../shared/context.ts";
+import VideoEditor from "../video-studio/VideoEditor.tsx";
 
 type SaveState = "saved" | "saving" | "conflict" | "error";
 const AUTOSAVE_MS = 800;
@@ -21,6 +22,7 @@ export default function ProjectDetails({ projectId, state, notify, goto, openDev
   const [status, setStatus] = useState<StudioStatus>(stored?.meta.status ?? "planning");
   const [settings, setSettings] = useState<Record<string, string | number | boolean>>(stored?.meta.settings ?? {});
   const [saveState, setSaveState] = useState<SaveState>("saved");
+  const [editing, setEditing] = useState(false);
   const [versions, setVersions] = useState<StudioProjectVersion[]>([]);
   const [checkpointLabel, setCheckpointLabel] = useState("");
   const timer = useRef<number | null>(null);
@@ -135,6 +137,11 @@ export default function ProjectDetails({ projectId, state, notify, goto, openDev
   }
 
   const trashed = isTrashed(base);
+  if (editing && !trashed && base.meta.kind === "video") {
+    // Flush any pending detail edits first so the editor starts from the newest saved version.
+    return <VideoEditor key={base.id} project={baseRef.current ?? base} service={service} signedIn={state.source === "account"} notify={notify}
+      onSaved={(p) => { baseRef.current = p; setBase(p); state.applyUpdate(p); }} onClose={() => setEditing(false)} />;
+  }
   const fields = settingFieldsFor(base.meta.kind);
   const saveLabel = saveState === "saved" ? "All changes saved" : saveState === "saving" ? "Saving…" : saveState === "conflict" ? "Changed elsewhere" : "Not saved";
 
@@ -156,6 +163,16 @@ export default function ProjectDetails({ projectId, state, notify, goto, openDev
         </div>
       )}
       {trashed && <p className="fs-banner" role="note">This project is in the trash. Restore it from Projects to edit it.</p>}
+
+      {!trashed && base.meta.kind === "video" && (
+        <section className="fs-panel" aria-label="Video editor">
+          <h2>Video editor</h2>
+          <p className="fs-muted">Cut, trim, speed up and caption your footage. Files stay on this device; exporting renders an MP4 on the Fresh media worker.</p>
+          <button type="button" className="fs-btn fs-btn-primary" onClick={async () => { if (timer.current) { window.clearTimeout(timer.current); timer.current = null; } await flushRef.current(); setEditing(true); }}>
+            {base.meta.timeline ? "Continue editing" : "Open editor"}
+          </button>
+        </section>
+      )}
 
       <section className="fs-panel" aria-label="Project details">
         <h2>Details</h2>
