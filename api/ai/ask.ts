@@ -36,8 +36,9 @@ async function handleMediaWorkerProxy(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const suffix = url.searchParams.get("__fresh_media_worker_path") ?? "";
     const path = "/" + suffix.replace(/^\/+/, "");
-    if (!(path === "/jobs" || /^\/jobs\/[0-9a-f-]{36}$/i.test(path) || /^\/jobs\/[0-9a-f-]{36}\/output$/i.test(path))) return jsonProxy({ error: "Media worker route not found." }, 404);
-    if (!((req.method === "POST" && path === "/jobs") || (req.method === "GET" && path.startsWith("/jobs/")))) return jsonProxy({ error: "Method not allowed." }, 405);
+    const isJobPath = /^\/jobs\/[0-9a-f-]{36}$/i.test(path);
+    if (!(path === "/jobs" || path === "/renders" || path === "/capabilities" || isJobPath || /^\/jobs\/[0-9a-f-]{36}\/output$/i.test(path))) return jsonProxy({ error: "Media worker route not found." }, 404);
+    if (!((req.method === "POST" && (path === "/jobs" || path === "/renders")) || (req.method === "GET" && (path === "/capabilities" || path.startsWith("/jobs/"))) || (req.method === "DELETE" && isJobPath))) return jsonProxy({ error: "Method not allowed." }, 405);
     const authorization = req.headers.get("authorization") ?? "";
     const bearer = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
     const supabaseUrl = process.env.VITE_SUPABASE_URL, anonKey = process.env.VITE_SUPABASE_ANON_KEY;
@@ -54,17 +55,19 @@ async function handleMediaWorkerProxy(req: Request): Promise<Response> {
     if (req.method === "POST") {
       if (!(req.headers.get("content-type") ?? "").toLowerCase().includes("application/json")) return jsonProxy({ error: "A JSON media job is required." }, 415);
       body = await req.text();
-      if (body.length > 64 * 1024) return jsonProxy({ error: "Media job request is too large." }, 413);
+      if (body.length > (path === "/renders" ? 256 * 1024 : 64 * 1024)) return jsonProxy({ error: "Media job request is too large." }, 413);
       let parsed: unknown;
       try { parsed = JSON.parse(body); } catch { return jsonProxy({ error: "Invalid JSON media job." }, 400); }
-      if (!parsed || typeof parsed !== "object" || typeof (parsed as { inputUrl?: unknown }).inputUrl !== "string") return jsonProxy({ error: "inputUrl is required." }, 400);
+      if (path === "/renders") {
+        if (!parsed || typeof parsed !== "object" || typeof (parsed as { timeline?: unknown }).timeline !== "object") return jsonProxy({ error: "A timeline is required." }, 400);
+      } else if (!parsed || typeof parsed !== "object" || typeof (parsed as { inputUrl?: unknown }).inputUrl !== "string") return jsonProxy({ error: "inputUrl is required." }, 400);
       headers.set("content-type", "application/json");
     }
     const upstream = await fetch(workerUrl + path, { method: req.method, headers, ...(body === undefined ? {} : { body }), cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(45_000) });
     const contentType = upstream.headers.get("content-type") ?? "";
     if (contentType.includes("application/json")) {
       const payload = await upstream.json().catch(() => ({})) as Record<string, unknown>;
-      if (typeof payload.statusUrl === "string" && path === "/jobs" && payload.statusUrl.startsWith("/")) payload.statusUrl = "/api/media-worker" + payload.statusUrl;
+      if (typeof payload.statusUrl === "string" && (path === "/jobs" || path === "/renders") && payload.statusUrl.startsWith("/")) payload.statusUrl = "/api/media-worker" + payload.statusUrl;
       if (typeof payload.outputUrl === "string" && payload.outputUrl.startsWith("/jobs/")) payload.outputUrl = "/api/media-worker" + payload.outputUrl;
       return jsonProxy(payload, upstream.status);
     }
@@ -220,6 +223,11 @@ export async function GET(req: Request): Promise<Response> {
   if (url.searchParams.has("__fresh_ai_status")) return handleFreshAIStatus();
   if (url.searchParams.has("__fresh_media_worker_path")) return handleMediaWorkerProxy(req);
   if (url.searchParams.has("__fresh_blender_worker_path")) return handleBlenderWorkerProxy(req);
+  return json({ error: "Method not allowed." }, 405);
+}
+
+export async function DELETE(req: Request): Promise<Response> {
+  if (new URL(req.url).searchParams.has("__fresh_media_worker_path")) return handleMediaWorkerProxy(req);
   return json({ error: "Method not allowed." }, 405);
 }
 
