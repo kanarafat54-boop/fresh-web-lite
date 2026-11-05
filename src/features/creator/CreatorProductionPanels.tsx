@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
+import AudienceLens from "./AudienceLens";
 import {
-  buildRetentionCurve,
   defaultAudioLanes,
   defaultLiveControl,
   enqueueSchedule,
@@ -19,25 +19,6 @@ import {
   type LiveControlState,
   type ScheduleItem,
 } from "../../core/platform/creatorProductionSuite";
-import {
-  fundEscrow,
-  releaseEscrow,
-  verifyMilestone,
-  type EscrowRecord,
-} from "../../core/platform/escrowLedger";
-import {
-  holdClaimProceeds,
-  openCopyrightClaim,
-  resolveClaim,
-  runFairUseClassifier,
-  type CopyrightClaim,
-} from "../../core/platform/copyrightArbitration";
-import {
-  authorizeMicroUnlock,
-  createMicroUnlock,
-  fulfillMicroUnlock,
-  type MicroUnlock,
-} from "../../core/platform/microSubscription";
 
 type Analytics = Record<string, number | null | undefined>;
 
@@ -80,7 +61,6 @@ function AnalyticsPanel({
   isShort: boolean;
   onApplyCaption?: (text: string) => void;
 }) {
-  const curve = useMemo(() => buildRetentionCurve(analytics), [analytics]);
   const prediction = useMemo(
     () =>
       predictViralPerformance({
@@ -108,18 +88,10 @@ function AnalyticsPanel({
         <div className="creator-section-heading">
           <div>
             <span className="workspace-eyebrow">RETENTION</span>
-            <h2>Drop-off curve</h2>
+            <h2>Audience Lens</h2>
           </div>
         </div>
-        <p className="creator-muted">Estimated from your live views / likes until full player telemetry is connected.</p>
-        <div className="creator-retention">
-          {curve.map((p) => (
-            <div key={p.second} className="creator-retention-bar" title={`${p.second}s · ${Math.round(p.retained * 100)}%`}>
-              <div style={{ height: `${Math.max(8, p.retained * 100)}%` }} />
-              <span>{p.second}s</span>
-            </div>
-          ))}
-        </div>
+        <AudienceLens />
         <div className="creator-metric-row">
           <div>
             <strong>{Number(analytics.short_views ?? 0)}</strong>
@@ -142,14 +114,15 @@ function AnalyticsPanel({
       <section className="creator-panel">
         <div className="creator-section-heading">
           <div>
-            <span className="workspace-eyebrow">20× PREDICT</span>
-            <h2>Viral & retention simulator</h2>
+            <span className="workspace-eyebrow">CAPTION CHECKLIST</span>
+            <h2>Rule-of-thumb score</h2>
           </div>
         </div>
+        <p className="creator-muted">A simple rule-of-thumb check on your caption and media. It is not a trained prediction model and does not use your audience data.</p>
         <div className="creator-metric-row">
           <div>
             <strong>{Math.round(prediction.viralProbability * 100)}%</strong>
-            <span>Viral probability</span>
+            <span>Checklist score</span>
           </div>
           <div>
             <strong>
@@ -258,7 +231,7 @@ function DistributePanel({ caption, isShort }: { caption: string; isShort: boole
       scheduledAt: new Date(when).toISOString(),
     });
     setQueue(loadScheduleQueue());
-    setMsg(`Queued “${item.title}” for ${channels.length} channel(s).`);
+    setMsg(`Saved “${item.title}” as a reminder on this device for ${channels.length} channel(s). Automatic publishing is not connected yet, so nothing will post by itself: publish it at that time.`);
   }
 
   return (
@@ -284,9 +257,10 @@ function DistributePanel({ caption, isShort }: { caption: string; isShort: boole
             <input type="datetime-local" value={scheduleAt} onChange={(e) => setScheduleAt(e.target.value)} />
           </label>
           <button type="button" className="publish" onClick={queueSchedule}>
-            Queue release
+            Save reminder
           </button>
         </div>
+        <p className="creator-message">Scheduling is a reminder saved on this device. Automatic publishing needs a scheduler service, and other platforms need their official connections; neither is connected yet.</p>
         {msg && <p className="creator-message">{msg}</p>}
         {queue.length > 0 && (
           <div className="creator-schedule-list">
@@ -294,7 +268,7 @@ function DistributePanel({ caption, isShort }: { caption: string; isShort: boole
               <article key={q.id}>
                 <strong>{q.title}</strong>
                 <span>
-                  {q.status} · {new Date(q.scheduledAt).toLocaleString()} · {q.channels.join(", ")}
+                  Reminder only · {new Date(q.scheduledAt).toLocaleString()} · {q.channels.join(", ")}
                 </span>
               </article>
             ))}
@@ -511,119 +485,30 @@ function AudioPanel({ onOpenStudio }: { onOpenStudio: () => void }) {
 }
 
 function MonetizePanel() {
-  const [escrow, setEscrow] = useState<EscrowRecord>(() =>
-    fundEscrow({
-      payerId: "brand-demo",
-      payeeId: "creator-demo",
-      amountMinor: 120000,
-      currency: "UGX",
-      milestone: "Deliver campaign cut + 10k views",
-    }),
-  );
-  const [claim, setClaim] = useState<CopyrightClaim | null>(null);
-  const [unlock, setUnlock] = useState<MicroUnlock | null>(null);
-  const [membership, setMembership] = useState({ tier: "Supporter", priceMinor: 5000, enabled: false });
-  const [actionMsg, setActionMsg] = useState<string | null>(null);
-
-  function doVerify() {
-    setEscrow((e) => {
-      const next = verifyMilestone(e);
-      setActionMsg(
-        next.status === "milestone-pending"
-          ? "Milestone verified — ready to release."
-          : `Escrow is ${next.status}; verify only applies while funded.`,
-      );
-      return next;
-    });
-  }
-
-  function doRelease() {
-    setEscrow((e) => {
-      const next = releaseEscrow(e);
-      if (next.status === "released" && e.status !== "released") {
-        setActionMsg("Funds released to creator (local contract). Treasury settlement attaches when Wallet rail is live.");
-      } else if (next.status === "released") {
-        setActionMsg("Already released.");
-      } else {
-        setActionMsg(`Cannot release while status is ${e.status}.`);
-      }
-      return next;
-    });
-  }
-
-  function doOpenClaim() {
-    try {
-      const c = openCopyrightClaim({
-        contentId: "creator-asset",
-        claimantId: "rights-holder",
-        creatorId: "creator-demo",
-        reason: "Content ID style claim",
-        heldAmountMinor: 18000,
-        currency: "UGX",
-      });
-      setClaim(holdClaimProceeds(c));
-      setActionMsg("Claim opened — revenue held pending resolution.");
-    } catch (err: unknown) {
-      setActionMsg(err instanceof Error ? err.message : "Could not open claim.");
-    }
-  }
-
   return (
     <div className="creator-prod-grid">
       <section className="creator-panel">
         <div className="creator-section-heading">
           <div>
-            <span className="workspace-eyebrow">ESCROW</span>
-            <h2>Sponsor deals</h2>
+            <span className="workspace-eyebrow">SPONSOR DEALS</span>
+            <h2>Escrow</h2>
           </div>
         </div>
-        <div className="creator-metric-row">
-          <div>
-            <strong>
-              {escrow.currency} {(escrow.amountMinor / 100).toFixed(2)}
-            </strong>
-            <span>{escrow.status}</span>
-          </div>
-        </div>
-        <p className="creator-muted">{escrow.milestone}</p>
-        <div className="creator-editor-actions">
-          <button type="button" onClick={doVerify}>
-            Verify milestone
-          </button>
-          <button type="button" className="publish" onClick={doRelease}>
-            Release funds
-          </button>
-        </div>
-        {actionMsg && <p className="creator-message">{actionMsg}</p>}
+        <p className="creator-muted">
+          Sponsor deals and escrow need a connected payment service. None is connected, so Fresh shows no deal, balance or payout here instead of an example.
+        </p>
       </section>
 
       <section className="creator-panel">
         <div className="creator-section-heading">
           <div>
             <span className="workspace-eyebrow">RIGHTS</span>
-            <h2>Copyright arbitration</h2>
+            <h2>Copyright claims</h2>
           </div>
         </div>
-        <div className="creator-editor-actions">
-          <button type="button" onClick={doOpenClaim}>
-            Open claim + hold revenue
-          </button>
-          {claim && (
-            <>
-              <button type="button" onClick={() => setClaim((c) => (c ? runFairUseClassifier(c, 0.3) : c))}>
-                Fair-use check
-              </button>
-              <button type="button" onClick={() => setClaim((c) => (c ? resolveClaim(c, "creator") : c))}>
-                Resolve → creator
-              </button>
-            </>
-          )}
-        </div>
-        {claim && (
-          <p className="creator-message">
-            Claim {claim.status} · held {claim.currency} {(claim.heldAmountMinor / 100).toFixed(2)}
-          </p>
-        )}
+        <p className="creator-muted">
+          Claims and held revenue need a rights-review service and a payout ledger. Neither is connected yet, so nothing can be opened or held from here.
+        </p>
       </section>
 
       <section className="creator-panel">
@@ -633,58 +518,9 @@ function MonetizePanel() {
             <h2>Memberships & unlocks</h2>
           </div>
         </div>
-        <label className="creator-inline-label">
-          Tier name
-          <input value={membership.tier} onChange={(e) => setMembership((m) => ({ ...m, tier: e.target.value }))} />
-        </label>
-        <label className="creator-inline-label">
-          Price (UGX minor/100)
-          <input
-            type="number"
-            value={membership.priceMinor / 100}
-            onChange={(e) => setMembership((m) => ({ ...m, priceMinor: Math.round(Number(e.target.value) * 100) }))}
-          />
-        </label>
-        <div className="creator-editor-actions">
-          <button type="button" onClick={() => setMembership((m) => ({ ...m, enabled: !m.enabled }))}>
-            {membership.enabled ? "Disable tier" : "Enable tier"}
-          </button>
-          <button
-            type="button"
-            className="publish"
-            onClick={() => {
-              const u = createMicroUnlock({
-                buyerId: "fan-demo",
-                sellerId: "creator-demo",
-                assetId: "series-1",
-                assetKind: "series",
-                amountMinor: membership.priceMinor,
-                currency: "UGX",
-              });
-              setUnlock(authorizeMicroUnlock(u));
-              setActionMsg("Micro-unlock authorized (sandbox).");
-            }}
-          >
-            Demo micro-unlock
-          </button>
-          {unlock?.status === "authorized" && (
-            <button
-              type="button"
-              onClick={() => {
-                setUnlock((u) => (u ? fulfillMicroUnlock(u) : u));
-                setActionMsg("Unlock fulfilled.");
-              }}
-            >
-              Fulfill
-            </button>
-          )}
-        </div>
-        {unlock && (
-          <p className="creator-message">
-            Unlock {unlock.status} · {unlock.currency} {(unlock.amountMinor / 100).toFixed(2)}
-          </p>
-        )}
-        <p className="creator-muted">Ad mid-rolls, CPM, Super Thanks, and gifts connect through Wallet/Live rails without inventing balances.</p>
+        <p className="creator-muted">
+          Paid tiers and unlocks need a connected payment service. Until one is connected, Fresh does not take or pretend to take payments. Ad revenue, Super Thanks and gifts will show real figures from Wallet and Live once those rails are live.
+        </p>
       </section>
     </div>
   );

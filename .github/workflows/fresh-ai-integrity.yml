@@ -78,5 +78,7 @@ jobs:
         run: npm run test:fresh-docs-knowledge
       - name: Repository lint
         run: npm run lint
+      - name: Fresh correction review gate
+        run: npm run test:fresh-correction-review
       - name: Production build
         run: npm run build

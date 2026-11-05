@@ -7,11 +7,13 @@ import { timeAgo } from "../core/shortsActivity";
 import "./ShortsStudio.css";
 
 // The full creator workspace (publish, drafts, remix/duet intents) already exists; it lives under "Create & drafts".
+const StudioProjects = lazy(() => import("./StudioProjects"));
 const CreatorStudioDashboard = lazy(() => import("../../creator/CreatorStudioDashboard"));
 
-type Tab = "overview" | "videos" | "analytics" | "earnings" | "create";
+type Tab = "overview" | "projects" | "videos" | "analytics" | "earnings" | "create";
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: "overview", label: "Overview" },
+  { id: "projects", label: "Projects" },
   { id: "videos", label: "Videos" },
   { id: "analytics", label: "Analytics" },
   { id: "earnings", label: "Earnings" },
@@ -122,6 +124,12 @@ export default function ShortsStudio() {
           </dl>
           <p className="shorts-studio-note">Gift totals come from your Fresh wallet ledger. Payouts, ad revenue and creator-fund earnings need a connected payout service; none is connected, so no earnings figure is shown for them.</p>
         </>
+      )}
+
+      {signedIn && user && tab === "projects" && (
+        <Suspense fallback={<p className="shorts-studio-note">Loading projects…</p>}>
+          <StudioProjects userId={user.id} />
+        </Suspense>
       )}
 
       {tab === "create" && (

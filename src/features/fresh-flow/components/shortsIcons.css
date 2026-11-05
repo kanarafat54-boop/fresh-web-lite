@@ -1,0 +1,16 @@
+/* Alignment and states for the Fresh Shorts SVG icons (see shortsIcons.tsx). Colours follow currentColor. */
+.fresh-flow-tabs button > span[aria-hidden] { display: inline-grid; place-items: center; vertical-align: -3px; margin-right: 2px; }
+.fresh-flow-tabs button > span[aria-hidden] svg { display: block; }
+.fresh-flow-tabs button.active > span[aria-hidden] { color: #635bff; }
+
+.fresh-flow-actions button > span:first-child { display: grid; place-items: center; }
+.fresh-flow-actions button > span:first-child svg { display: block; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55)); }
+.fresh-flow-actions button.saved > span:first-child svg { color: #fcd34d; }
+
+.fresh-flow-menu-icon { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: 4px; vertical-align: middle; color: #a5a1ff; }
+.fresh-flow-menu-icon svg { display: block; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .fresh-flow-actions button > span:first-child svg { transition: transform 120ms ease; }
+  .fresh-flow-actions button:active > span:first-child svg { transform: scale(0.9); }
+}
