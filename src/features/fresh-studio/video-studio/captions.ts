@@ -36,7 +36,7 @@ export type ParseResult = { cues: Cue[]; skipped: number };
 
 /** Tolerant parser for SRT and WebVTT: BOM, CRLF, missing indexes, cue settings and NOTE blocks. */
 export function parseCaptions(source: string): ParseResult {
-  const text = source.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
+  const text = source.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
   const blocks = text.split(/\n{2,}/);
   const cues: Cue[] = [];
   let skipped = 0;
@@ -128,5 +128,5 @@ export function getTranscriptionStatus(providers: readonly TranscriptionProvider
 
 /** Escapes a file path for use inside an ffmpeg filter argument. */
 export function escapeFilterPath(path: string): string {
-  return path.replace(/\\/g, "/").replace(/([:'\[\],;])/g, "\\$1");
+  return path.replace(/\\/g, "/").replace(/([:'[\],;])/g, "\\$1");
 }

@@ -6,6 +6,23 @@
 --
 -- NOT applied automatically. Review, then apply with `supabase db push` or the Supabase MCP.
 
+-- public.fresh_projects already exists in production (see supabase/baseline/production_public_schema_2026-10-23.sql)
+-- but no earlier migration creates it, so a from-scratch replay would fail on the foreign key below.
+-- This is a no-op wherever the table exists; its definition matches the production baseline exactly.
+create table if not exists public.fresh_projects (
+  id uuid default gen_random_uuid() not null,
+  workspace_id uuid not null,
+  owner_id uuid not null,
+  name text not null,
+  status text default 'draft'::text not null,
+  version integer default 1 not null,
+  metadata jsonb default '{}'::jsonb not null,
+  created_at timestamp with time zone default now() not null,
+  updated_at timestamp with time zone default now() not null,
+  constraint fresh_projects_pkey primary key (id),
+  constraint fresh_projects_version_check check (version > 0)
+);
+
 create table if not exists public.studio_project_versions (
   id uuid primary key default gen_random_uuid(),
   project_id uuid not null references public.fresh_projects (id) on delete cascade,

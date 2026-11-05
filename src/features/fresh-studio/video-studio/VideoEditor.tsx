@@ -98,7 +98,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
     const onKey = (e: KeyboardEvent) => {
       if (isTyping(e.target)) return;
       const mod = e.ctrlKey || e.metaKey;
-      if (mod && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? ed.redo() : ed.undo(); }
+      if (mod && e.key.toLowerCase() === "z") { e.preventDefault(); if (e.shiftKey) ed.redo(); else ed.undo(); }
       else if (mod && e.key.toLowerCase() === "y") { e.preventDefault(); ed.redo(); }
       else if (e.key === " ") { e.preventDefault(); togglePlay(); }
       else if (e.key.toLowerCase() === "s" && !mod) { e.preventDefault(); split(); }
