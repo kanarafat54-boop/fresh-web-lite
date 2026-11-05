@@ -5,6 +5,9 @@ import { getTranscriptionStatus, normalizeCues, parseCaptions, serializeSrt, ser
 import { ExportCancelled, ExportError, availableExportOptions, runExport, type ExportStage, type WorkerCapabilities } from "./exportJob.ts";
 import { createBrowserExportPorts } from "./renderClient.ts";
 import type { ExportPresetId } from "./renderPlan.ts";
+import { Icon, type IconName } from "./icons.tsx";
+import { ANALYSIS_SAMPLE_RATE } from "./audioAnalysis.ts";
+import { computePeaks, extractFilmstrip, filmstripCount, type Filmstrip } from "./mediaVisuals.ts";
 import Timeline, { formatClock } from "./Timeline.tsx";
 import * as T from "./timeline.ts";
 import { useVideoEditor } from "./useVideoEditor.ts";
@@ -20,12 +23,21 @@ function download(blob: Blob, name: string) {
 }
 const isTyping = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
 
+const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
+const PANELS: Array<{ id: Tab; label: string; icon: IconName }> = [
+  { id: "media", label: "Media", icon: "media" },
+  { id: "captions", label: "Captions", icon: "captions" },
+  { id: "smart", label: "Smart edit", icon: "sparkles" },
+  { id: "export", label: "Export", icon: "export" },
+];
+
 export default function VideoEditor({ project, service, onSaved, notify, onClose, signedIn }: Props) {
   const ed = useVideoEditor(project, service, onSaved, notify);
   const { doc, selected, playhead, duration, media } = ed;
-  const [tab, setTab] = useState<Tab>("media");
+  const [panel, setPanel] = useState<Tab | null>(() => (typeof window !== "undefined" && window.matchMedia?.("(min-width: 900px)").matches ? "media" : null));
   const [playing, setPlaying] = useState(false);
-  const [pxPerSec, setPxPerSec] = useState(60);
+  const [pxPerSec, setPxPerSec] = useState(70);
+  const [dropping, setDropping] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const videoEl = useRef<HTMLVideoElement>(null);
   const audioEl = useRef<HTMLAudioElement>(null);
@@ -35,6 +47,21 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
   const activeVideo = videoTrack ? T.clipAt(doc, videoTrack.id, playhead) : null;
   const activeAudio = musicTrack ? T.clipAt(doc, musicTrack.id, playhead) : null;
   const selectedClip = doc.clips.find((c) => c.id === selected) ?? null;
+
+  // --- thumbnails and waveforms, computed once per file
+  const [thumbs, setThumbs] = useState<Record<string, Filmstrip>>({});
+  const [peaks, setPeaks] = useState<Record<string, Float32Array>>({});
+  const visualsStarted = useRef(new Set<string>());
+  useEffect(() => {
+    for (const [id, entry] of Object.entries(media)) {
+      if (visualsStarted.current.has(id) || entry.missing) continue;
+      visualsStarted.current.add(id);
+      const samples = entry.samples;
+      if (samples) setPeaks((p) => ({ ...p, [id]: computePeaks(samples, ANALYSIS_SAMPLE_RATE) }));
+      const length = entry.asset.duration ?? 0;
+      if (entry.url && entry.asset.kind === "video" && length > 0) void extractFilmstrip(entry.url, length, filmstripCount(length)).then((f) => { if (f) setThumbs((t) => ({ ...t, [id]: f })); });
+    }
+  }, [media]);
 
   // --- preview sync: the media element follows the timeline, never the other way round while paused
   const sync = useCallback((el: HTMLMediaElement | null, clip: T.TimelineClip | null, muted: boolean, at: number) => {
@@ -58,6 +85,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
 
   // --- playback clock
   const lastTick = useRef(0);
+  const playheadRef = useRef(playhead); playheadRef.current = playhead;
   useEffect(() => {
     if (!playing) return;
     let raf = 0;
@@ -71,7 +99,6 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing, duration]);
-  const playheadRef = useRef(playhead); playheadRef.current = playhead;
   useEffect(() => { if (playing && playhead >= duration) setPlaying(false); }, [playing, playhead, duration]);
 
   const togglePlay = useCallback(() => {
@@ -93,6 +120,11 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
     ed.edit((d) => T.deleteClip(d, selectedClip.id, ripple)); ed.setSelected(null);
   };
   const duplicate = () => { if (selectedClip) ed.edit((d) => T.duplicateClip(d, selectedClip.id)); else notify("error", "Select a clip first."); };
+  const fit = () => {
+    const el = document.querySelector(".fs-tl-scroll");
+    const w = el instanceof HTMLElement ? el.clientWidth : 600;
+    setPxPerSec(Math.max(10, Math.min(200, Math.floor((w - 40) / Math.max(duration, 5)))));
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -110,74 +142,121 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  const saveLabel = ed.saveState === "saved" ? "All changes saved" : ed.saveState === "saving" ? "Saving…" : ed.saveState === "conflict" ? "Changed elsewhere" : "Not saved";
-  const storedWhere = service ? "" : " (not saving)";
+  const saveLabel = ed.saveState === "saved" ? "Saved" : ed.saveState === "saving" ? "Saving…" : ed.saveState === "conflict" ? "Changed elsewhere" : "Not saved";
+  const where = service ? "" : " · not saving";
+  const openImport = () => fileInput.current?.click();
+  const empty = doc.clips.length === 0;
 
   return (
-    <div className="fs-editor" aria-label="Video editor">
+    <div className="fs-editor" aria-label="Video editor" data-panel={panel ?? "none"}
+      onDragOver={(e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setDropping(true); } }}
+      onDragLeave={(e) => { if (e.currentTarget === e.target) setDropping(false); }}
+      onDrop={(e) => { e.preventDefault(); setDropping(false); const files = Array.from(e.dataTransfer.files); if (files.length) void ed.importFiles(files); }}>
+
+      <input ref={fileInput} type="file" accept="video/*,audio/*" multiple hidden onChange={(e) => { const files = Array.from(e.target.files ?? []); e.target.value = ""; if (files.length) void ed.importFiles(files); }} />
+
       <header className="fs-ed-top">
-        <button type="button" className="fs-btn" onClick={() => { void ed.flushNow(); onClose(); }}>← Project</button>
-        <strong className="fs-ed-title">{project.name}</strong>
-        <span className={`fs-save is-${ed.saveState}`} role="status">{saveLabel}{storedWhere}</span>
+        <button type="button" className="fs-iconbtn fs-iconbtn-lg" onClick={() => { void ed.flushNow(); onClose(); }} aria-label="Back to project"><Icon name="back" /></button>
+        <div className="fs-ed-heading"><strong className="fs-ed-title">{project.name}</strong><span className={`fs-save is-${ed.saveState}`} role="status">{saveLabel}{where}</span></div>
+        <button type="button" className="fs-btn fs-btn-primary fs-export-btn" onClick={() => setPanel("export")}><Icon name="export" size={18} /> Export</button>
       </header>
       {ed.saveState === "conflict" && (
         <div className="fs-banner is-error" role="alert"><span>This project was changed somewhere else. Autosave is paused so nothing is overwritten.</span><button type="button" className="fs-btn" onClick={() => void ed.reloadLatest()}>Load latest version</button></div>
       )}
 
-      <div className="fs-ed-main">
-        <section className="fs-ed-stage" aria-label="Preview">
-          <div className="fs-monitor" data-empty={!activeVideo}>
-            <video ref={videoEl} playsInline preload="auto" aria-label="Video preview" style={{ visibility: activeVideo ? "visible" : "hidden" }} />
-            {!activeVideo && <p className="fs-muted">{doc.clips.length === 0 ? "Import a video to start." : "No video at this point (gap renders as black)."}</p>}
-          </div>
-          <audio ref={audioEl} preload="auto" />
-          <div className="fs-transport">
-            <button type="button" className="fs-btn" onClick={togglePlay} disabled={duration <= 0} aria-label={playing ? "Pause" : "Play"}>{playing ? "⏸" : "▶"}</button>
-            <span className="fs-time" aria-live="off">{formatClock(playhead)} / {formatClock(duration)}</span>
-          </div>
-        </section>
+      <nav className="fs-rail" aria-label="Editor tools" role="tablist">
+        {PANELS.map((p) => (
+          <button key={p.id} type="button" role="tab" id={`tab-${p.id}`} aria-selected={panel === p.id} aria-controls="fs-sidepanel" className={panel === p.id ? "is-active" : ""} onClick={() => setPanel(panel === p.id ? null : p.id)}>
+            <Icon name={p.icon} size={22} /><span>{p.label}</span>
+          </button>
+        ))}
+      </nav>
 
-        <aside className="fs-ed-side">
-          <div role="tablist" className="fs-tabs" aria-label="Editor panels">
-            {([["media", "Media"], ["captions", "Captions"], ["smart", "Smart edit"], ["export", "Export"]] as const).map(([id, label]) => (
-              <button key={id} type="button" role="tab" id={`tab-${id}`} aria-selected={tab === id} aria-controls={`panel-${id}`} className={tab === id ? "is-active" : ""} onClick={() => setTab(id)}>{label}</button>
-            ))}
-          </div>
-          <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="fs-tabpanel">
-            {tab === "media" && <MediaPanel ed={ed} fileInput={fileInput} />}
-            {tab === "captions" && <CaptionsPanel ed={ed} />}
-            {tab === "smart" && <SmartPanel ed={ed} clip={selectedClip} />}
-            {tab === "export" && <ExportPanel ed={ed} projectId={project.id} settings={project.meta.settings} signedIn={signedIn} notify={notify} />}
-          </div>
-        </aside>
-      </div>
+      <div className="fs-sheet-backdrop" onClick={() => setPanel(null)} aria-hidden="true" />
+      <aside className="fs-sidepanel" id="fs-sidepanel" role="tabpanel" aria-labelledby={panel ? `tab-${panel}` : undefined} hidden={!panel}>
+        {panel && (
+          <>
+            <div className="fs-sidepanel-head"><h2>{PANELS.find((p) => p.id === panel)?.label}</h2><button type="button" className="fs-iconbtn" onClick={() => setPanel(null)} aria-label="Close panel"><Icon name="close" /></button></div>
+            <div className="fs-tabpanel">
+              {panel === "media" && <MediaPanel ed={ed} onImport={openImport} />}
+              {panel === "captions" && <CaptionsPanel ed={ed} />}
+              {panel === "smart" && <SmartPanel ed={ed} clip={selectedClip} />}
+              {panel === "export" && <ExportPanel ed={ed} projectId={project.id} settings={project.meta.settings} signedIn={signedIn} notify={notify} />}
+            </div>
+          </>
+        )}
+      </aside>
 
-      <div className="fs-ed-toolbar" role="toolbar" aria-label="Editing tools">
-        <button type="button" className="fs-btn" onClick={ed.undo} disabled={!ed.canUndo} aria-label="Undo">↶ Undo</button>
-        <button type="button" className="fs-btn" onClick={ed.redo} disabled={!ed.canRedo} aria-label="Redo">↷ Redo</button>
-        <button type="button" className="fs-btn" onClick={split}>✂ Split</button>
-        <button type="button" className="fs-btn" onClick={() => remove(false)} disabled={!selectedClip}>Delete</button>
-        <button type="button" className="fs-btn" onClick={() => remove(true)} disabled={!selectedClip} title="Delete and close the gap">Ripple delete</button>
-        <button type="button" className="fs-btn" onClick={duplicate} disabled={!selectedClip}>Duplicate</button>
-        <label className="fs-inline">Speed
-          <select value={selectedClip ? String(selectedClip.speed) : "1"} disabled={!selectedClip} onChange={(e) => selectedClip && ed.edit((d) => T.setClipSpeed(d, selectedClip.id, Number(e.target.value)))} aria-label="Clip speed">
-            {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4].map((s) => <option key={s} value={s}>{s}×</option>)}
-          </select>
-        </label>
-        <label className="fs-inline">Zoom
+      <section className="fs-stage" aria-label="Preview">
+        <div className="fs-monitor" data-empty={!activeVideo}>
+          <video ref={videoEl} playsInline preload="auto" aria-label="Video preview" style={{ visibility: activeVideo ? "visible" : "hidden" }} />
+          {!activeVideo && (empty
+            ? <button type="button" className="fs-empty-cta" onClick={openImport} disabled={!!ed.busy}><Icon name="import" size={30} /><strong>Import video or audio</strong><span>or drop files here</span></button>
+            : <p className="fs-muted">No video at this point. Gaps render as black.</p>)}
+          {ed.busy && <div className="fs-busy" role="status">{ed.busy}</div>}
+        </div>
+        <audio ref={audioEl} preload="auto" />
+        <div className="fs-transport">
+          <span className="fs-time fs-mono" aria-live="off"><b>{formatClock(playhead)}</b> / {formatClock(duration)}</span>
+          <button type="button" className="fs-play" onClick={togglePlay} disabled={duration <= 0} aria-label={playing ? "Pause" : "Play"}><Icon name={playing ? "pause" : "play"} size={22} /></button>
+          <span className="fs-transport-end" />
+        </div>
+      </section>
+
+      <aside className="fs-inspector" aria-label="Clip settings">
+        {selectedClip ? (
+          <>
+            <h2>Clip</h2>
+            <p className="fs-inspector-name">{doc.assets.find((a) => a.id === selectedClip.assetId)?.name ?? "Clip"}</p>
+            <dl className="fs-facts"><div><dt>Starts</dt><dd className="fs-mono">{formatClock(selectedClip.start)}</dd></div><div><dt>Length</dt><dd className="fs-mono">{formatClock(T.clipEnd(selectedClip) - selectedClip.start)}</dd></div></dl>
+            <div className="fs-label">Speed</div>
+            <div className="fs-chips" role="group" aria-label="Clip speed">
+              {SPEEDS.map((sp) => <button key={sp} type="button" className={`fs-chip${selectedClip.speed === sp ? " is-active" : ""}`} aria-pressed={selectedClip.speed === sp} onClick={() => ed.edit((d) => T.setClipSpeed(d, selectedClip.id, sp))}>{sp}×</button>)}
+            </div>
+          </>
+        ) : (
+          <>
+            <h2>Clip</h2>
+            <p className="fs-muted">{empty ? "Import a video to start editing." : "Tap a clip on the timeline to change its speed, split, duplicate or delete it."}</p>
+          </>
+        )}
+      </aside>
+
+      <div className="fs-tl-tools" role="toolbar" aria-label="Editing tools">
+        <div className="fs-toolgroup">
+          <ToolBtn icon="undo" label="Undo" onClick={ed.undo} disabled={!ed.canUndo} />
+          <ToolBtn icon="redo" label="Redo" onClick={ed.redo} disabled={!ed.canRedo} />
+        </div>
+        <div className="fs-toolgroup">
+          <ToolBtn icon="split" label="Split" onClick={split} disabled={empty} />
+          <ToolBtn icon="trash" label="Delete" onClick={() => remove(false)} disabled={!selectedClip} />
+          <ToolBtn icon="ripple" label="Ripple delete" short="Ripple" onClick={() => remove(true)} disabled={!selectedClip} title="Delete and close the gap" />
+          <ToolBtn icon="copy" label="Duplicate" onClick={duplicate} disabled={!selectedClip} />
+        </div>
+        <div className="fs-toolgroup fs-zoomgroup">
+          <button type="button" className="fs-iconbtn" aria-label="Zoom out" onClick={() => setPxPerSec((z) => Math.max(10, Math.round(z / 1.4)))}><Icon name="zoomOut" /></button>
           <input type="range" min={10} max={200} value={pxPerSec} onChange={(e) => setPxPerSec(Number(e.target.value))} aria-label="Timeline zoom" />
-        </label>
+          <button type="button" className="fs-iconbtn" aria-label="Zoom in" onClick={() => setPxPerSec((z) => Math.min(200, Math.round(z * 1.4)))}><Icon name="zoomIn" /></button>
+          <button type="button" className="fs-iconbtn" aria-label="Fit timeline to screen" onClick={fit}><Icon name="fit" /></button>
+        </div>
       </div>
 
-      <Timeline doc={doc} selected={selected} playhead={playhead} pxPerSec={pxPerSec} onSelect={ed.setSelected} onSeek={(t) => { setPlaying(false); ed.setPlayhead(Math.min(t, Math.max(duration, 0))); }} edit={ed.edit} />
-      <p className="fs-muted fs-ed-hint">Shortcuts: Space play · S split · Delete remove · Shift+Delete ripple · ←/→ step frame · Ctrl+Z undo</p>
+      <div className="fs-tl-wrap">
+        <Timeline doc={doc} selected={selected} playhead={playhead} pxPerSec={pxPerSec} thumbs={thumbs} peaks={peaks} onSelect={ed.setSelected} onImport={openImport}
+          onSeek={(t) => { setPlaying(false); ed.setPlayhead(Math.min(t, Math.max(duration, 0))); }} edit={ed.edit} />
+      </div>
+      {dropping && <div className="fs-dropzone" aria-hidden="true"><Icon name="import" size={36} /><strong>Drop to import</strong></div>}
     </div>
   );
 }
 
+function ToolBtn({ icon, label, short, onClick, disabled, title }: { icon: IconName; label: string; short?: string; onClick: () => void; disabled?: boolean; title?: string }) {
+  return <button type="button" className="fs-tool" onClick={onClick} disabled={disabled} title={title} aria-label={label}><Icon name={icon} size={20} /><span>{short ?? label}</span></button>;
+}
+
 type Ed = ReturnType<typeof useVideoEditor>;
 
-function MediaPanel({ ed, fileInput }: { ed: Ed; fileInput: React.RefObject<HTMLInputElement | null> }) {
+function MediaPanel({ ed, onImport }: { ed: Ed; onImport: () => void }) {
   const place = (assetId: string) => {
     const asset = ed.doc.assets.find((a) => a.id === assetId);
     if (!asset) return;
@@ -188,8 +267,7 @@ function MediaPanel({ ed, fileInput }: { ed: Ed; fileInput: React.RefObject<HTML
   };
   return (
     <div>
-      <input ref={fileInput} type="file" accept="video/*,audio/*" multiple hidden onChange={(e) => { const files = Array.from(e.target.files ?? []); e.target.value = ""; if (files.length) void ed.importFiles(files); }} />
-      <button type="button" className="fs-btn fs-btn-primary" onClick={() => fileInput.current?.click()} disabled={!!ed.busy}>＋ Import video or audio</button>
+      <button type="button" className="fs-btn fs-btn-primary" onClick={onImport} disabled={!!ed.busy}><Icon name="plus" size={18} /> Import video or audio</button>
       {ed.busy && <p className="fs-muted" role="status">{ed.busy}</p>}
       <p className="fs-muted">Files stay on this device until you export.</p>
       <ul className="fs-bin">
