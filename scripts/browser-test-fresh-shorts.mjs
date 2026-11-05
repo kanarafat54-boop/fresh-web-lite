@@ -272,7 +272,7 @@ for (const width of WIDTHS) {
   check(JSON.stringify(ptabs) === JSON.stringify(["Shorts", "Playlists", "About"]), `${tag} profile tabs are Shorts · Playlists · About`);
   check(await profile.getByRole("button", { name: "Follow" }).isVisible() && await profile.getByRole("button", { name: "Message" }).isVisible(), `${tag} profile has Follow and Message`);
   await profile.locator(".shorts-profile-tabs button", { hasText: "Playlists" }).click();
-  check((await profile.innerText()).includes("aren't available yet"), `${tag} Playlists is honest about not being connected`);
+  check(await profile.locator('[aria-label="Creator playlists"]').isVisible(), `${tag} Playlists tab shows the creator playlists section`);
   await profile.locator(".shorts-profile-tabs button", { hasText: "Shorts" }).click();
   check((await profile.locator(".shorts-profile-grid li").count()) >= 1, `${tag} profile lists the creator's Shorts`);
   const pbox = await profile.boundingBox();

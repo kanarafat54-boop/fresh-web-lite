@@ -29,6 +29,9 @@ jobs:
       - name: Static Shorts contract
         run: npm run test:shorts
 
+      - name: Playlists and pinned comments contract
+        run: npm run test:fresh-shorts-playlists
+
       - name: Shorts filters and links
         run: |
           npm run test:fresh-shorts-filters
@@ -47,7 +50,7 @@ jobs:
         run: npm run test:fresh-native-dimensions
 
       - name: Lint Shorts and Fresh Flow runtime changes
-        run: npx eslint src/features/shorts/core/FreshShortsRuntime.ts src/features/fresh-flow/components/FreshFlowShortsExperience.tsx src/features/fresh-flow/core/shortsTelemetry.ts src/features/fresh-flow/core/freshFlowRuntimeFabric.ts src/features/fresh-flow/core/freshFlowDiscovery.ts src/features/fresh-flow/core/freshFlowMediaPolicy.ts src/features/fresh-flow/core/freshFlowRealtime.ts src/features/fresh-flow/core/freshFlowTelemetry.ts api/shorts/telemetry.ts
+        run: npx eslint src/features/shorts/core/FreshShortsRuntime.ts src/features/fresh-flow/components/FreshFlowShortsExperience.tsx src/features/fresh-flow/core/shortsTelemetry.ts src/features/fresh-flow/core/freshFlowRuntimeFabric.ts src/features/fresh-flow/core/freshFlowDiscovery.ts src/features/fresh-flow/core/freshFlowMediaPolicy.ts src/features/fresh-flow/core/freshFlowRealtime.ts src/features/fresh-flow/core/freshFlowTelemetry.ts src/features/fresh-flow/components/ShortsCreatorProfile.tsx src/features/fresh-flow/core/shortsPlaylists.ts src/features/comments/components/CommentPanel.tsx api/shorts/telemetry.ts
 
       - name: Production build
         run: npm run build

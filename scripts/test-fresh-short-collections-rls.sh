@@ -25,5 +25,6 @@ grant select on public.shorts, public.short_comments to anon, authenticated;
 alter default privileges in schema public grant all on tables to anon, authenticated;
 SQL
 "${PSQL[@]}" -f supabase/migrations/20261102120000_fresh_short_collections_and_comment_pin.sql
+"${PSQL[@]}" -f supabase/migrations/20261102140000_harden_fresh_short_comment_pinning.sql
 "${PSQL[@]}" -f scripts/test-fresh-short-collections-rls.sql
 echo "Short collections / pin RLS behavioral test: PASS"
