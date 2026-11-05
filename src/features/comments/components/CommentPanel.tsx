@@ -7,6 +7,7 @@ import { CloseIcon, SendIcon, MicIcon, VideoCameraIcon, StopIcon } from "../../.
 import type { CommentTargetType } from "../types/comment";
 import { validateInteractionAttachments } from "../../../core/interactions/FreshAttachmentValidation";
 import { announceInteraction } from "../../../core/interactions/FreshInteractionA11y";
+import { COMMENT_REACTIONS, applyReactionChoice, breakdownChips, emptySummary, isUnappliedReactionError, reactionDef, summarizeReactions, type ReactionSummary } from "../core/commentReactions";
 import type { UniversalCommentAttachment, InteractionMediaKind } from "../../../core/interactions/FreshReactionModel";
 import { rankRootsBySignal } from "../../../core/platform/commentSignalRanking";
 import { sortCommentRoots, mentionQueryAt, insertMention, splitMentions, type CommentSortMode } from "../core/commentTools";
@@ -108,6 +109,8 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [likes, setLikes] = useState<Record<string, { count: number; mine: boolean }>>({});
+  const [reactions, setReactions] = useState<Record<string, ReactionSummary>>({});
+  const [pickerFor, setPickerFor] = useState<string | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const dragY = useRef<number | null>(null);
   const dragH = useRef(SHEET_MIN);
@@ -214,15 +217,12 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     setComments(buildTree(rows));
     setLoading(false);
     if (targetType === "short" && rows.length) {
-      const reactions = await supabase.from("short_comment_reactions").select("comment_id,user_id").eq("reaction_type", "like").in("comment_id", rows.map((row) => row.id));
+      const reactionRows = await supabase.from("short_comment_reactions").select("comment_id,user_id,reaction_type").in("comment_id", rows.map((row) => row.id));
+      const summaries = summarizeReactions((reactionRows.data ?? []) as any[], user?.id);
       const next: Record<string, { count: number; mine: boolean }> = {};
-      for (const reaction of (reactions.data ?? []) as any[]) {
-        const entry = next[reaction.comment_id] ?? { count: 0, mine: false };
-        entry.count += 1;
-        if (reaction.user_id === user?.id) entry.mine = true;
-        next[reaction.comment_id] = entry;
-      }
+      for (const [commentId, summary] of Object.entries(summaries)) next[commentId] = { count: summary.counts.like ?? 0, mine: summary.mine === "like" };
       setLikes(next);
+      setReactions(summaries);
     }
   }
 
@@ -245,13 +245,33 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   async function toggleLike(commentId: string) {
     if (!user || isGuest || targetType !== "short") return;
     const current = likes[commentId] ?? { count: 0, mine: false };
+    const before = reactions[commentId] ?? emptySummary();
     setLikes((all) => ({ ...all, [commentId]: { count: Math.max(0, current.count + (current.mine ? -1 : 1)), mine: !current.mine } }));
+    setReactions((all) => ({ ...all, [commentId]: applyReactionChoice(before, "like") }));
     const result = current.mine
       ? await supabase.from("short_comment_reactions").delete().eq("comment_id", commentId).eq("user_id", user.id)
       : await supabase.from("short_comment_reactions").upsert({ comment_id: commentId, user_id: user.id, reaction_type: "like" }, { onConflict: "comment_id,user_id" });
     if (result.error) {
       setLikes((all) => ({ ...all, [commentId]: current }));
+      setReactions((all) => ({ ...all, [commentId]: before }));
       setError(result.error.message);
+    }
+  }
+
+  async function chooseReaction(commentId: string, type: string) {
+    if (!user || isGuest || targetType !== "short") return;
+    const before = reactions[commentId] ?? emptySummary();
+    const after = applyReactionChoice(before, type);
+    setPickerFor(null);
+    setReactions((all) => ({ ...all, [commentId]: after }));
+    setLikes((all) => ({ ...all, [commentId]: { count: after.counts.like ?? 0, mine: after.mine === "like" } }));
+    const result = after.mine
+      ? await supabase.from("short_comment_reactions").upsert({ comment_id: commentId, user_id: user.id, reaction_type: type }, { onConflict: "comment_id,user_id" })
+      : await supabase.from("short_comment_reactions").delete().eq("comment_id", commentId).eq("user_id", user.id);
+    if (result.error) {
+      setReactions((all) => ({ ...all, [commentId]: before }));
+      setLikes((all) => ({ ...all, [commentId]: { count: before.counts.like ?? 0, mine: before.mine === "like" } }));
+      setError(isUnappliedReactionError(result.error) ? "That reaction is waiting for the Fresh Shorts database update. Try another reaction for now." : result.error.message);
     }
   }
 
@@ -422,7 +442,26 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
               <small>{like.count ? compact(like.count) : ""}</small>
             </button>
           )}
+          {targetType === "short" && !hidden && (
+            <button type="button" className="comment-react" onClick={() => setPickerFor((open) => (open === comment.id ? null : comment.id))} aria-expanded={pickerFor === comment.id} aria-label="React to comment" disabled={isGuest || !user}>
+              <span aria-hidden="true">{(() => { const mine = (reactions[comment.id] ?? emptySummary()).mine; const def = mine ? reactionDef(mine) : null; return def && mine !== "like" ? def.emoji : "☺"; })()}</span>
+            </button>
+          )}
         </div>
+        {targetType === "short" && !hidden && breakdownChips(reactions[comment.id] ?? emptySummary()).length > 0 && (
+          <div className="comment-reaction-chips" aria-label="Reactions">
+            {breakdownChips(reactions[comment.id] ?? emptySummary()).map((chip) => <span key={chip.type} className="comment-reaction-chip" title={chip.label}><span aria-hidden="true">{chip.emoji}</span> {compact(chip.count)}</span>)}
+          </div>
+        )}
+        {pickerFor === comment.id && (
+          <div className="comment-reaction-picker" role="group" aria-label="Choose a reaction">
+            {COMMENT_REACTIONS.map((def) => (
+              <button key={def.type} type="button" className={(reactions[comment.id] ?? emptySummary()).mine === def.type ? "selected" : ""} onClick={() => void chooseReaction(comment.id, def.type)} aria-label={def.label} aria-pressed={(reactions[comment.id] ?? emptySummary()).mine === def.type} title={def.label}>
+                <span aria-hidden="true">{def.emoji}</span>
+              </button>
+            ))}
+          </div>
+        )}
         {comment.replies.map((reply) => renderComment(reply, depth + 1))}
       </div>
     );
