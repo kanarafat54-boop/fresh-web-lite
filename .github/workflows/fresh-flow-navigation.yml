@@ -10,6 +10,12 @@ on:
       - "scripts/browser-test-fresh-shorts.mjs"
       - "scripts/test-fresh-short-watch-signals.mjs"
       - "scripts/test-fresh-shorts-safety.mjs"
+      - "scripts/test-fresh-shorts-topics.mjs"
+      - "scripts/test-fresh-studio-projects.mjs"
+      - "scripts/test-fresh-audience-lens.mjs"
+      - "scripts/test-fresh-edit-segments.mjs"
+      - "scripts/test-fresh-comment-tools.mjs"
+      - "scripts/test-fresh-shorts-prefs.mjs"
       - "scripts/eval-fresh-shorts-ranking.mjs"
       - "src/features/shorts/**"
       - ".github/workflows/fresh-flow-navigation.yml"
@@ -22,6 +28,12 @@ on:
       - "scripts/browser-test-fresh-shorts.mjs"
       - "scripts/test-fresh-short-watch-signals.mjs"
       - "scripts/test-fresh-shorts-safety.mjs"
+      - "scripts/test-fresh-shorts-topics.mjs"
+      - "scripts/test-fresh-studio-projects.mjs"
+      - "scripts/test-fresh-audience-lens.mjs"
+      - "scripts/test-fresh-edit-segments.mjs"
+      - "scripts/test-fresh-comment-tools.mjs"
+      - "scripts/test-fresh-shorts-prefs.mjs"
       - ".github/workflows/fresh-flow-navigation.yml"
 
 permissions:
@@ -57,6 +69,18 @@ jobs:
         run: node scripts/eval-fresh-shorts-ranking.mjs
       - name: Short watch-signal logic
         run: node scripts/test-fresh-short-watch-signals.mjs
+      - name: Shorts recommendation preference logic
+        run: node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-prefs.mjs
+      - name: Comment sorting and mention logic
+        run: node --experimental-strip-types --no-warnings scripts/test-fresh-comment-tools.mjs
+      - name: Studio project rules
+        run: node --experimental-strip-types --no-warnings scripts/test-fresh-studio-projects.mjs
+      - name: Edit segment logic
+        run: node --experimental-strip-types --no-warnings scripts/test-fresh-edit-segments.mjs
+      - name: Audience Lens logic
+        run: node --experimental-strip-types --no-warnings scripts/test-fresh-audience-lens.mjs
+      - name: Shorts caption hashtag parsing
+        run: node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-topics.mjs
       - name: Shorts safety and deep-link contract
         run: node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-safety.mjs
       - name: Install ffmpeg (synthetic test clips)

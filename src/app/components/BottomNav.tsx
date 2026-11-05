@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { HomeIcon, FeedIcon, AIIcon, PlusIcon, MoreIcon } from "../../components/Icons";
 import { useLayout } from "../contexts/useLayout";
 import { ALL_NAV_ITEMS, isMobilePrimaryRoute, isNavItemActive } from "../navigation/navModel";
 import MoreSheet from "./MoreSheet";
+import * as ShortsIcons from "../../features/fresh-flow/components/shortsIcons";
 import "./BottomNav.css";
 
 /** Mobile bar: Home · Flow · Create · AI · More. "More" opens every other workspace, grouped by purpose. */
@@ -39,13 +40,14 @@ export default function BottomNav() {
 
   const moreActive = !isMobilePrimaryRoute(activeRoute);
   const isFreshFlowRoute = activeRoute === "fresh-flow" || (activeRoute?.startsWith("fresh-flow-") ?? false);
-  const freshFlowDestinations = [
-    { id: "feed", label: "Home", icon: "⌂" },
-    { id: "fresh-flow-shorts", label: "Shorts", icon: "▶" },
-    { id: "fresh-flow-system-fresh-studio", label: "Creator Studio", icon: "＋" },
-    { id: "fresh-flow-long-videos", label: "Video", icon: "▷" },
-    { id: "communication", label: "Messages", icon: "▤" },
-    { id: "fresh-mail", label: "Fresh Mail", icon: "✉" },
+  // Fresh Flow bar: SVG icons (filled when active) instead of text glyphs, same destinations as before.
+  const freshFlowDestinations: Array<{ id: string; label: string; icon: (active: boolean) => ReactNode }> = [
+    { id: "feed", label: "Home", icon: (a) => <ShortsIcons.NavHomeIcon size={24} filled={a} /> },
+    { id: "fresh-flow-shorts", label: "Shorts", icon: (a) => <ShortsIcons.NavShortsIcon size={24} filled={a} /> },
+    { id: "fresh-flow-system-fresh-studio", label: "Creator Studio", icon: () => <ShortsIcons.NavCreateIcon size={24} /> },
+    { id: "fresh-flow-long-videos", label: "Video", icon: () => <ShortsIcons.NavVideoIcon size={24} /> },
+    { id: "communication", label: "Messages", icon: (a) => <ShortsIcons.NavMessagesIcon size={24} filled={a} /> },
+    { id: "fresh-mail", label: "Fresh Mail", icon: () => <ShortsIcons.NavMailIcon size={24} /> },
   ];
 
   return (
@@ -56,7 +58,7 @@ export default function BottomNav() {
             const active = activeRoute === id;
             return (
               <button key={id} type="button" className={`fresh-nav-item fresh-flow-nav-item${active ? " active" : ""}`} aria-current={active ? "page" : undefined} aria-label={label} onClick={() => setActiveRoute(id)}>
-                <span className="fresh-nav-icon fresh-flow-nav-glyph" aria-hidden="true">{icon}</span>
+                <span className="fresh-nav-icon fresh-flow-nav-glyph" aria-hidden="true">{icon(active)}</span>
                 <span className="fresh-nav-label">{label}</span>
               </button>
             );

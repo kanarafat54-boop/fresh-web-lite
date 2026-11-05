@@ -22,7 +22,7 @@ import FreshFlowHome from "./components/FreshFlowHome";
 import FreshFlowSystemExperience from "./components/FreshFlowSystemExperience";
 import { getFreshFlowSystem } from "./core/freshFlowSystemRegistry";
 import { requestOpenShort } from "./core/shortsExplore";
-import { parseShortDeepLink } from "./core/shortsLinks";
+import { parseRequestedShort } from "./core/shortsLinks";
 import { supabase } from "../../lib/supabase";
 
 type FreshFlowSection = FreshFlowRouteId;
@@ -127,7 +127,7 @@ export default function FreshFlowHub() {
   }, [setActiveRoute]);
 
   useEffect(() => {
-    const sharedShortId = parseShortDeepLink(window.location.search);
+    const sharedShortId = parseRequestedShort(window.location.search, window.location.pathname);
     if (sharedShortId) requestOpenShort(sharedShortId);
   }, []);
 

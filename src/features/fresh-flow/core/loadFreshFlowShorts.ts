@@ -49,9 +49,9 @@ export async function loadFreshFlowShorts(
   const rows: any[] = shortsData ?? [];
 
   const authorIds = [...new Set(rows.map((row) => row.author_id))];
-  let profileMap = new Map<string, { full_name: string; username: string }>();
+  let profileMap = new Map<string, { full_name: string; username: string; verified?: boolean | null }>();
   if (authorIds.length > 0) {
-    const { data: profilesData } = await supabase.from("user_public_profiles").select("id, full_name, username").in("id", authorIds);
+    const { data: profilesData } = await supabase.from("user_public_profiles").select("id, full_name, username, verified").in("id", authorIds);
     profileMap = new Map((profilesData ?? []).map((u: any) => [u.id, u]));
   }
 
@@ -94,6 +94,7 @@ export async function loadFreshFlowShorts(
       authorId: row.author_id,
       authorName: profile?.full_name ?? "Unknown",
       authorUsername: profile?.username ?? "unknown",
+      authorVerified: Boolean(profile?.verified),
       caption: row.caption ?? "",
       soundName: row.sound_name,
       videoUrl: row.video_url,

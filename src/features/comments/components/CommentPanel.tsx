@@ -9,6 +9,8 @@ import { validateInteractionAttachments } from "../../../core/interactions/Fresh
 import { announceInteraction } from "../../../core/interactions/FreshInteractionA11y";
 import type { UniversalCommentAttachment, InteractionMediaKind } from "../../../core/interactions/FreshReactionModel";
 import { rankRootsBySignal } from "../../../core/platform/commentSignalRanking";
+import { sortCommentRoots, mentionQueryAt, insertMention, splitMentions, type CommentSortMode } from "../core/commentTools";
+import { loadMutedCreators, setCreatorMuted } from "../../fresh-flow/core/shortsSafety";
 import "./CommentPanel.css";
 
 interface CommentPanelProps {
@@ -27,6 +29,7 @@ type Row = {
   parent_id: string | null;
   moderation_state?: string;
   created_at: string;
+  pinned_at?: string | null;
 };
 
 type ViewRow = Row & {
@@ -85,7 +88,14 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const table = TABLE_MAP[targetType];
   const column = COLUMN_MAP[targetType];
   const [comments, setComments] = useState<ViewRow[]>([]);
-  const [sortMode, setSortMode] = useState<"time" | "signal">("time");
+  const [shortAuthorId, setShortAuthorId] = useState<string | null>(null);
+  const [pinningId, setPinningId] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<CommentSortMode>("oldest");
+  const [mutedAuthors, setMutedAuthors] = useState<Set<string>>(new Set());
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [mentionHits, setMentionHits] = useState<Array<{ username: string; name: string }>>([]);
   const [draft, setDraft] = useState("");
   const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string } | null>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -107,13 +117,57 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const live = useRef<HTMLVideoElement>(null);
 
   const displayComments = useMemo(() => {
-    if (sortMode !== "signal") return comments;
-    return rankRootsBySignal(comments) as ViewRow[];
-  }, [comments, sortMode]);
+    const visible = comments.filter((row) => !mutedAuthors.has(row.author_id));
+    const stripReplies = (row: ViewRow): ViewRow => ({ ...row, replies: row.replies.filter((reply) => !mutedAuthors.has(reply.author_id)).map(stripReplies) });
+    const cleaned = visible.map(stripReplies);
+    const ordered = sortMode === "relevant" ? rankRootsBySignal(cleaned) as ViewRow[] : sortCommentRoots(cleaned, sortMode, (id) => likes[id]?.count ?? 0);
+    return [...ordered].sort((a, b) => Number(Boolean(b.pinned_at)) - Number(Boolean(a.pinned_at)));
+  }, [comments, sortMode, mutedAuthors, likes]);
+
+  useEffect(() => {
+    if (!user || isGuest) return;
+    void loadMutedCreators(user.id).then(setMutedAuthors);
+  }, [user, isGuest]);
+
+  useEffect(() => {
+    const query = mentionQueryAt(draft);
+    if (!query || query.length < 1) { setMentionHits([]); return; }
+    let cancelled = false;
+    void supabase.from("user_public_profiles").select("username, full_name").ilike("username", `${query.replace(/[\\%_]/g, "")}%`).limit(5).then(({ data }) => {
+      if (!cancelled) setMentionHits(((data ?? []) as any[]).filter((row) => row.username).map((row) => ({ username: row.username, name: row.full_name || row.username })));
+    });
+    return () => { cancelled = true; };
+  }, [draft]);
+
+  async function reportComment(commentId: string) {
+    setMenuFor(null);
+    if (!user || isGuest) { setNotice("Sign in to report a comment."); return; }
+    const { error: reportError } = await supabase.from("reports").insert({ target_type: `${targetType}_comment`, target_id: commentId, reporter_id: user.id, reason: "user_reported" });
+    setNotice(reportError ? "Fresh could not send your report. Try again." : "Report sent. Thanks.");
+  }
+
+  async function deleteComment(commentId: string) {
+    setConfirmDelete(null); setMenuFor(null);
+    const { error: deleteError } = await supabase.from(table).delete().eq("id", commentId);
+    if (deleteError) { setNotice("Fresh could not delete that comment."); return; }
+    setNotice("Comment deleted.");
+    await loadComments();
+  }
+
+  async function blockAuthor(authorId: string, name: string) {
+    setMenuFor(null);
+    if (!user || isGuest) { setNotice("Sign in to block someone."); return; }
+    try { setMutedAuthors(await setCreatorMuted(user.id, authorId, true)); setNotice(`Blocked ${name}. Their comments and Shorts are hidden for you.`); }
+    catch { setNotice("Fresh could not save that. Try again."); }
+  }
 
   useEffect(() => {
     void loadComments();
-  }, [targetId, table, column]);
+    if (targetType === "short") {
+      void supabase.from("shorts").select("author_id").eq("id", targetId).maybeSingle()
+        .then(({ data }) => setShortAuthorId((data as any)?.author_id ?? null));
+    } else setShortAuthorId(null);
+  }, [targetId, table, column, targetType]);
 
   useEffect(() => {
     return () => {
@@ -125,11 +179,18 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   async function loadComments() {
     setLoading(true);
     setError(null);
-    const { data, error: queryError } = await supabase
-      .from(table)
-      .select("id,author_id,content,audio_url,video_url,attachments,parent_id,moderation_state,created_at")
-      .eq(column, targetId)
-      .order("created_at", { ascending: true });
+    const primary = await supabase.from(table)
+      .select("id,author_id,content,audio_url,video_url,attachments,parent_id,moderation_state,created_at,pinned_at")
+      .eq(column, targetId).order("created_at", { ascending: true });
+    let data: any[] | null = primary.data as any[] | null;
+    let queryError: any = primary.error;
+    if (targetType === "short" && primary.error && /pinned_at|column/i.test(primary.error.message)) {
+      const fallback = await supabase.from(table)
+        .select("id,author_id,content,audio_url,video_url,attachments,parent_id,moderation_state,created_at")
+        .eq(column, targetId).order("created_at", { ascending: true });
+      data = fallback.data as any[] | null;
+      queryError = fallback.error;
+    }
     if (queryError) {
       setError(queryError.message);
       setLoading(false);
@@ -144,6 +205,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
     const rows: ViewRow[] = (data ?? []).map((row: any) => ({
       ...row,
+      pinned_at: row.pinned_at ?? null,
       attachments: Array.isArray(row.attachments) ? row.attachments : [],
       authorName: profileMap.get(row.author_id)?.full_name ?? "Unknown",
       authorUsername: profileMap.get(row.author_id)?.username ?? "unknown",
@@ -162,6 +224,22 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
       }
       setLikes(next);
     }
+  }
+
+  async function togglePinned(commentId: string, currentlyPinned: boolean) {
+    if (!user || isGuest || targetType !== "short" || user.id !== shortAuthorId) return;
+    setPinningId(commentId);
+    setError(null);
+    const { error: pinError } = await supabase.rpc("pin_short_comment", { p_comment_id: commentId, p_pinned: !currentlyPinned });
+    if (pinError) {
+      setError(pinError.message.includes("function") || pinError.message.includes("schema cache")
+        ? "Pinned comments are waiting for the Fresh Shorts database migration."
+        : pinError.message);
+    } else {
+      setComments((rows) => rows.map((row) => ({ ...row, pinned_at: row.id === commentId ? (!currentlyPinned ? new Date().toISOString() : null) : (!currentlyPinned ? null : row.pinned_at) })));
+      setNotice(currentlyPinned ? "Comment unpinned." : "Comment pinned to the top.");
+    }
+    setPinningId(null);
   }
 
   async function toggleLike(commentId: string) {
@@ -287,6 +365,13 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     return `${Math.floor(hours / 24)}d ago`;
   }
 
+  const mentionIds = useMemo(() => {
+    const map = new Map<string, string>();
+    const walk = (rows: ViewRow[]) => rows.forEach((row) => { if (row.authorUsername !== "unknown") map.set(row.authorUsername.toLowerCase(), row.author_id); walk(row.replies); });
+    walk(comments);
+    return map;
+  }, [comments]);
+
   function renderComment(comment: ViewRow, depth = 0): React.ReactNode {
     const like = likes[comment.id] ?? { count: 0, mine: false };
     const hidden = comment.moderation_state && comment.moderation_state !== "visible";
@@ -299,11 +384,12 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
               <button type="button" className="comment-author-profile" onClick={() => openProfile(comment.author_id)}>{comment.authorUsername !== "unknown" ? comment.authorUsername : comment.authorName}</button>
               <span className="post-time">{timeAgo(comment.created_at)}</span>
             </div>
+            {comment.pinned_at && !hidden && <span className="short-comment-pinned" aria-label="Pinned by creator">📌 Pinned by creator</span>}
             {hidden ? (
               <p className="empty-state">This comment is {comment.moderation_state}.</p>
             ) : (
               <>
-                {comment.content && <p className="comment-content">{comment.content}</p>}
+                {comment.content && <p className="comment-content">{splitMentions(comment.content).map((part, i) => part.mention ? <button key={i} type="button" className="comment-mention" onClick={() => { const known = mentionIds.get(part.mention!.toLowerCase()); if (known) openProfile(known); }}>{part.text}</button> : <span key={i}>{part.text}</span>)}</p>}
                 {comment.attachments.map((attachment, index) => {
                   if (attachment.kind === "video") return <video key={index} controls src={attachment.url} className="comment-video-player" />;
                   if (attachment.kind === "audio") return <audio key={index} controls src={attachment.url} className="comment-audio-player" />;
@@ -311,6 +397,22 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
                   return <a key={index} href={attachment.url} target="_blank" rel="noreferrer">{attachment.altText ?? "Open attachment"}</a>;
                 })}
                 <button className="reply-btn" onClick={() => setReplyingTo({ id: comment.id, authorName: comment.authorName })}>Reply</button>
+                {targetType === "short" && depth === 0 && user?.id === shortAuthorId && !isGuest && <button className="reply-btn" type="button" disabled={pinningId === comment.id} onClick={() => void togglePinned(comment.id, Boolean(comment.pinned_at))}>{pinningId === comment.id ? "…" : comment.pinned_at ? "Unpin" : "Pin"}</button>}
+                <button className="reply-btn" onClick={() => setMenuFor(menuFor === comment.id ? null : comment.id)} aria-expanded={menuFor === comment.id} aria-label="More comment actions">⋯</button>
+                {menuFor === comment.id && (
+                  <span className="comment-menu" role="group" aria-label="Comment actions">
+                    {user && comment.author_id === user.id ? (
+                      confirmDelete === comment.id
+                        ? <button type="button" className="reply-btn" onClick={() => void deleteComment(comment.id)}>Confirm delete</button>
+                        : <button type="button" className="reply-btn" onClick={() => setConfirmDelete(comment.id)}>Delete my comment</button>
+                    ) : (
+                      <>
+                        <button type="button" className="reply-btn" onClick={() => void reportComment(comment.id)}>Report</button>
+                        <button type="button" className="reply-btn" onClick={() => void blockAuthor(comment.author_id, comment.authorName)}>Block {comment.authorUsername !== "unknown" ? `@${comment.authorUsername}` : comment.authorName}</button>
+                      </>
+                    )}
+                  </span>
+                )}
               </>
             )}
           </div>
@@ -333,12 +435,9 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
         <div className="comment-panel-header">
           <h3>Comments{comments.length ? ` (${compact(countAll(comments))})` : ""}</h3>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button type="button" className="reply-btn" onClick={() => setSortMode("time")} aria-pressed={sortMode === "time"}>
-              Time
-            </button>
-            <button type="button" className="reply-btn" onClick={() => setSortMode("signal")} aria-pressed={sortMode === "signal"} title="Domain expertise / signal-value ranking">
-              Signal
-            </button>
+            {([ ["relevant", "Relevant"], ["newest", "Newest"], ["liked", "Most liked"], ["oldest", "Oldest"] ] as Array<[CommentSortMode, string]>).map(([mode, label]) => (
+              <button key={mode} type="button" className="reply-btn" onClick={() => setSortMode(mode)} aria-pressed={sortMode === mode} title={mode === "relevant" ? "Domain expertise / signal-value ranking" : undefined}>{label}</button>
+            ))}
             <button className="back-btn" onClick={onClose} aria-label="Close comments"><CloseIcon size={20} /></button>
           </div>
         </div>
@@ -348,6 +447,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
           {displayComments.map((comment) => renderComment(comment))}
         </div>
         {error && <p className="auth-error" role="alert">{error}</p>}
+        {notice && <p className="empty-state" role="status">{notice}</p>}
         {replyingTo && <div className="replying-banner"><span>Replying to {replyingTo.authorName}</span><button className="back-btn" onClick={() => setReplyingTo(null)} aria-label="Cancel reply"><CloseIcon size={14} /></button></div>}
         {recordMode !== "none" && <div className="recorder-panel">
           {recordMode === "video" && !preview && <video ref={live} muted playsInline className="recorder-live-video" />}
@@ -358,6 +458,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
           </div>
         </div>}
         {!isGuest && user ? <>
+          {mentionHits.length > 0 && <div className="quick-reaction-row" role="listbox" aria-label="Mention suggestions">{mentionHits.map((hit) => <button key={hit.username} type="button" role="option" aria-selected="false" className="quick-reaction-chip" onClick={() => { setDraft((value) => insertMention(value, hit.username)); setMentionHits([]); }}>@{hit.username}</button>)}</div>}
           {emojiOpen && <div className="quick-reaction-row">{QUICK_REACTIONS.map((reaction) => <button key={reaction} className="quick-reaction-chip" onClick={() => setDraft((value) => value + reaction)} aria-label={`Add ${reaction}`}>{reaction}</button>)}</div>}
           <div className="comment-input-row">
             <input type="text" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={replyingTo ? `Reply to ${replyingTo.authorName}...` : "Add a comment..."} className="comment-input" aria-label="Add a comment" onKeyDown={(event) => { if (event.key === "Enter") void addComment(); }} />

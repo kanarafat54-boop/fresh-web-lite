@@ -88,3 +88,52 @@
 .fresh-flow-hub .fresh-shorts-header .fresh-flow-search-icon-button,.fresh-flow-hub .fresh-shorts-header .fresh-flow-unified-profile{width:36px;height:36px;flex:0 0 36px}
 @media(max-width:420px){.fresh-flow-hub .fresh-shorts-header .fresh-flow-unified-brand small{display:none}.fresh-flow-hub .fresh-shorts-header .fresh-flow-brand-wordmark strong{font-size:.9rem}}
 @media(max-width:380px){.fresh-flow-hub .fresh-shorts-header .fresh-flow-unified-brand>span:last-child{display:none}.fresh-flow-hub .fresh-shorts-header .fresh-flow-header-actions{gap:0}}
+
+
+/* Fresh Shorts design parity: keep the product wordmark visible on phones.
+   The reference design uses a compact brand/actions row followed by its own
+   horizontally scrollable media-world row. Keep all existing destinations. */
+@media(max-width:760px){
+ .fresh-flow-unified-header.fresh-shorts-header{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:"brand actions" "world world";
+  align-items:center;
+  gap:5px 6px;
+  padding:7px 8px 5px;
+ }
+ .fresh-shorts-header>.fresh-shorts-brand{grid-area:brand;display:flex;min-width:0;gap:6px;align-items:center;}
+ .fresh-shorts-header .fresh-shorts-brand .fresh-flow-brand-wordmark{
+  display:flex;min-width:0;max-width:100%;flex-direction:column;
+ }
+ .fresh-shorts-header .fresh-shorts-brand .fresh-flow-brand-wordmark strong{
+  display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:.88rem;line-height:1.1;
+ }
+ .fresh-shorts-header .fresh-shorts-brand .fresh-flow-brand-wordmark small{
+  display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  margin-top:2px;font-size:.58rem;line-height:1.15;opacity:.72;
+ }
+ .fresh-shorts-header .fresh-flow-header-world-nav{
+  grid-area:world;width:100%;min-width:0;max-width:100%;
+  padding:1px 0 2px;gap:3px;overflow-x:auto;overscroll-behavior-x:contain;
+ }
+ .fresh-shorts-header .fresh-flow-header-world-nav button{
+  min-height:36px;padding:6px 9px;font-size:.76rem;
+ }
+ .fresh-shorts-header .fresh-flow-header-actions{
+  grid-area:actions;display:flex;align-items:center;justify-content:flex-end;
+  gap:3px;min-width:0;
+ }
+ .fresh-shorts-header .fresh-flow-header-actions .fresh-flow-search-icon-button{
+  display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;
+  border-radius:10px;font-size:1rem;
+ }
+ .fresh-shorts-header .fresh-flow-header-actions .fresh-flow-unified-profile{
+  flex:0 0 36px;width:36px;height:36px;
+ }
+}
+@media(max-width:360px){
+ .fresh-shorts-header .fresh-shorts-brand .fresh-flow-brand-wordmark small{display:none;}
+ .fresh-shorts-header .fresh-flow-header-actions{gap:2px;}
+}

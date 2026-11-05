@@ -1,0 +1,14 @@
+import assert from "node:assert/strict";
+import { sortCommentRoots, mentionQueryAt, insertMention, splitMentions } from "../src/features/comments/core/commentTools.ts";
+const roots = [{ id: "a", created_at: "2026-01-01T00:00:00Z" }, { id: "b", created_at: "2026-01-03T00:00:00Z" }, { id: "c", created_at: "2026-01-02T00:00:00Z" }];
+const likes = { a: 5, b: 1, c: 5 };
+assert.deepEqual(sortCommentRoots(roots, "oldest", (i) => likes[i]).map((r) => r.id), ["a", "c", "b"]);
+assert.deepEqual(sortCommentRoots(roots, "newest", (i) => likes[i]).map((r) => r.id), ["b", "c", "a"]);
+assert.deepEqual(sortCommentRoots(roots, "liked", (i) => likes[i]).map((r) => r.id), ["c", "a", "b"]);
+assert.equal(mentionQueryAt("hi @mem"), "mem");
+assert.equal(mentionQueryAt("hi @mem done"), null);
+assert.equal(mentionQueryAt("mail a@b"), null);
+assert.equal(insertMention("hi @mem", "memphis"), "hi @memphis ");
+assert.deepEqual(splitMentions("yo @ann and @bo!").filter((p) => p.mention).map((p) => p.mention), ["ann", "bo"]);
+assert.equal(splitMentions("yo @ann and @bo!").map((p) => p.text).join(""), "yo @ann and @bo!");
+console.log("fresh-comment-tools: ok");

@@ -27,3 +27,15 @@
 .shorts-profile-about{display:grid;gap:8px;margin:0}
 .shorts-profile-about div{display:flex;justify-content:space-between;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:12px}
 .shorts-profile-about dt{color:rgba(255,255,255,.68)}.shorts-profile-about dd{margin:0;font-weight:700}
+.shorts-profile-playlists{display:grid;gap:14px}
+.shorts-profile-playlist-form{display:grid;gap:8px;padding:14px;border:1px solid rgba(139,92,246,.35);border-radius:14px;background:rgba(99,91,255,.08)}
+.shorts-profile-playlist-form h3,.shorts-profile-playlist h3{margin:0;font-size:1rem}
+.shorts-profile-playlist-form input,.shorts-profile-playlist-form textarea{width:100%;min-height:42px;box-sizing:border-box;padding:10px 12px;border:1px solid rgba(255,255,255,.16);border-radius:10px;background:#111827;color:#fff;font:inherit}
+.shorts-profile-playlist-form button,.shorts-profile-add-row button{min-height:40px;padding:8px 12px;border:0;border-radius:10px;background:#635bff;color:#fff;font:inherit;font-weight:700}
+.shorts-profile-playlist-form button:disabled,.shorts-profile-add-row button:disabled{opacity:.45}
+.shorts-profile-playlist{display:grid;gap:8px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.1)}
+.shorts-profile-playlist>header{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.shorts-profile-playlist>header p{margin:4px 0 0;color:rgba(255,255,255,.68);font-size:.85rem}
+.shorts-profile-playlist>header>span{white-space:nowrap;color:rgba(255,255,255,.65);font-size:.78rem}
+.shorts-profile-add-row{display:flex;gap:5px;margin-top:5px}
+.shorts-profile-add-row select{min-width:0;flex:1;min-height:36px;padding:5px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:#111827;color:#fff}

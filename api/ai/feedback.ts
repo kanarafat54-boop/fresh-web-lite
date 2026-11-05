@@ -1,6 +1,7 @@
 import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 import { createClient } from "@supabase/supabase-js";
 import { createFreshAIServerSupabase } from "../../src/core/fresh-ai/FreshAIServerServices.js";
+import { listCorrections, reviewCorrection } from "../../src/server/freshAICorrectionReview.js";
 
 export const config = { maxDuration: 10 };
 
@@ -34,7 +35,7 @@ async function authenticatedUser(req: Request) {
   return error ? null : data.user ?? null;
 }
 
-export async function POST(req: Request): Promise<Response> {
+async function submitFeedback(req: Request): Promise<Response> {
   try {
     if (!(req.headers.get("content-type") ?? "").toLowerCase().includes("application/json")) {
       return json({ error: "Send feedback as JSON." }, 415);
@@ -150,4 +151,16 @@ export async function POST(req: Request): Promise<Response> {
   }
 }
 
-export default createVercelNodeHandler({ POST });
+const isCorrectionReview = (req: Request) => new URL(req.url).searchParams.get("__fresh_corrections") === "1";
+
+// /api/ai/corrections is rewritten to this function (vercel.json) so the repo stays within its serverless function limit.
+export async function GET(req: Request): Promise<Response> {
+  if (!isCorrectionReview(req)) return json({ error: "Not found" }, 404);
+  return listCorrections(req);
+}
+
+export async function POST(req: Request): Promise<Response> {
+  return isCorrectionReview(req) ? reviewCorrection(req) : submitFeedback(req);
+}
+
+export default createVercelNodeHandler({ GET, POST });

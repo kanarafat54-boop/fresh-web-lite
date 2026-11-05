@@ -1,0 +1,17 @@
+import assert from "node:assert/strict";
+import { validateProjectName, toProject, duplicateName, sortProjects, isStatus } from "../src/features/fresh-flow/core/studioProjectsLogic.ts";
+assert.deepEqual(validateProjectName("  My   film  "), { ok: true, name: "My film" });
+assert.equal(validateProjectName("   ").ok, false);
+assert.equal(validateProjectName("x".repeat(81)).ok, false);
+const row = { id: "1", name: "A", status: "weird", metadata: { category: "podcast" }, version: 3, updated_at: "2026-01-02T00:00:00Z", created_at: "2026-01-01T00:00:00Z" };
+assert.equal(toProject(row).status, "draft");
+assert.equal(toProject(row).category, "podcast");
+assert.equal(toProject({ ...row, metadata: null, version: 0 }).category, "custom");
+assert.equal(toProject({ ...row, metadata: null, version: 0 }).version, 1);
+assert.equal(isStatus("ready-to-publish"), true);
+assert.equal(duplicateName("Film", ["Film"]), "Film (copy)");
+assert.equal(duplicateName("Film (copy)", ["Film", "Film (copy)"]), "Film (copy 2)");
+assert.ok(duplicateName("x".repeat(80), []).length <= 80);
+const sorted = sortProjects([{ updatedAt: "2026-01-01T00:00:00Z", id: "a" }, { updatedAt: "2026-02-01T00:00:00Z", id: "b" }]);
+assert.equal(sorted[0].id, "b");
+console.log("fresh-studio-projects: ok");

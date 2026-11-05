@@ -123,8 +123,34 @@ for (const width of WIDTHS) {
     const boxes = [...item.querySelectorAll(".fresh-flow-actions button")].map((el) => el.getBoundingClientRect());
     return { count: boxes.length, top: Math.min(...boxes.map((r) => r.top)), bottom: Math.max(...boxes.map((r) => r.bottom)), itemBottom: itemBox.bottom, tabsBottom };
   });
-  check(rail.count >= 6, `${tag} action rail has react, comment, save, share, gift and more (${rail.count})`);
+  const modes = (await page.locator('.fresh-flow-tabs [role="tab"]').allInnerTexts()).map((t) => t.replace(/^\S+\s/, "").trim());
+  check(JSON.stringify(modes) === JSON.stringify(["For You", "Following", "Trending", "Fresh Picks", "Learn", "Relax"]), `${tag} discovery modes are For You · Social · Trending · Fresh Picks · Learn · Relax (got ${modes.join(" · ")})`);
+  check((await page.locator(".fresh-flow-item").first().locator(".fresh-flow-rail-avatar").count()) === 1, `${tag} rail starts with the creator profile photo`);
+  check(rail.count >= 7, `${tag} action rail has profile, react, comment, repost, save, share and more (${rail.count})`);
   check(rail.top >= rail.tabsBottom - 1 && rail.bottom <= rail.itemBottom + 1, `${tag} every action sits inside the visible Short, below the tabs (${Math.round(rail.top)} >= ${Math.round(rail.tabsBottom)})`);
+  await page.locator('.fresh-flow-item [aria-label="Share"]').first().click();
+  await page.locator('[aria-label="Share this Short"]').waitFor({ timeout: 5000 });
+  const shareText = await page.locator('[aria-label="Share this Short"]').innerText();
+  check(shareText.includes("Fresh Messages") && shareText.includes("Copy link") && /Fresh Mail.*service connection needed/i.test(shareText), `${tag} Share panel offers Messages and Copy link and labels Fresh Mail honestly`);
+  await page.locator('[aria-label="Share this Short"] [aria-label="Close"]').click();
+  // Report sheet must be a real overlay above the feed (it previously rendered inline, unpositioned).
+  await page.locator('.fresh-flow-item [aria-label="More"]').first().click();
+  await page.locator(".fresh-flow-advanced").getByRole("button", { name: /Report/ }).click();
+  await page.locator('[aria-label="Report this Short"]').waitFor({ timeout: 5000 });
+  const reportBox = await page.locator('[aria-label="Report this Short"]').boundingBox();
+  check(Boolean(reportBox) && reportBox.x >= -1 && reportBox.x + reportBox.width <= width + 1, `${tag} Report sheet sits on screen above the feed`);
+  await page.locator('[aria-label="Report this Short"] [aria-label="Close"]').click();
+  // Long-press opens playback options; the progress bar is a seek control.
+  const tapBox = await page.locator(".fresh-flow-item .fresh-flow-tap-layer").first().boundingBox();
+  await page.mouse.move(tapBox.x + tapBox.width / 2, tapBox.y + tapBox.height * 0.4);
+  await page.mouse.down();
+  await page.waitForTimeout(700);
+  await page.mouse.up();
+  await page.locator('[aria-label="Playback options"]').waitFor({ timeout: 5000 });
+  check((await page.locator('[aria-label="Playback speed"] button').count()) === 4, `${tag} long-press shows four playback speeds`);
+  await page.locator('[aria-label="Playback options"] [aria-label="Close"]').click();
+  const seek = await page.locator('.fresh-flow-item [role="slider"][aria-label="Seek"]').first().boundingBox();
+  check(Boolean(seek) && seek.width > width * 0.9, `${tag} progress bar is a full-width seek control`);
   check(await page.locator('nav[aria-label="Fresh Flow media"]').isVisible(), `${tag} top navigation visible on Shorts`);
   const shortsTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
   check(JSON.stringify(shortsTabs) === JSON.stringify(["Live", "VR / AR", "Podcasts", "Music", "Others"]), `${tag} Shorts top navigation is Live · VR / AR · Podcasts · Music · Others (got ${shortsTabs.join(" · ")})`);
@@ -144,7 +170,7 @@ for (const width of WIDTHS) {
   const navTop = await page.locator("nav.fresh-flow-bottom-nav").evaluate((el) => el.getBoundingClientRect().top);
   const actionsBottom = await page.locator(".fresh-flow-item").first().locator(".fresh-flow-actions").evaluate((el) => el.getBoundingClientRect().bottom);
   check(actionsBottom <= navTop + 1, `${tag} action column clears the bottom navigation (${Math.round(actionsBottom)} <= ${Math.round(navTop)})`);
-  for (const label of ["Comments", "Save", "Share", "Send gift", "More"]) {
+  for (const label of ["Comments", "Repost", "Save", "Share", "More"]) {
     const box = await page.locator(".fresh-flow-item").first().locator(`.fresh-flow-actions [aria-label="${label}"]`).boundingBox();
     check(Boolean(box) && box.x >= 0 && box.x + box.width <= width + 0.5 && box.width >= 44 && box.height >= 44, `${tag} "${label}" is on-screen and at least 44px`);
   }
@@ -178,7 +204,7 @@ for (const width of WIDTHS) {
   const more = page.locator(".fresh-flow-advanced").first();
   check(await more.isVisible(), `${tag} More panel opens`);
   const moreText = await more.innerText();
-  for (const label of ["Repost", "Ask Fresh AI", "Not interested", "Remix"]) check(moreText.includes(label), `${tag} More panel has ${label}`);
+  for (const label of ["Send gift", "Ask Fresh AI", "Show more like this", "Show less like this", "Manage recommendations", "Not interested", "Mute", "Report", "Remix"]) check(moreText.includes(label), `${tag} More panel has ${label}`);
   await page.locator(".fresh-flow-item").first().locator('[aria-label="More"]').click();
 
   // Paging by scroll: the next Short becomes the only one playing.
@@ -246,7 +272,7 @@ for (const width of WIDTHS) {
   check(JSON.stringify(ptabs) === JSON.stringify(["Shorts", "Playlists", "About"]), `${tag} profile tabs are Shorts · Playlists · About`);
   check(await profile.getByRole("button", { name: "Follow" }).isVisible() && await profile.getByRole("button", { name: "Message" }).isVisible(), `${tag} profile has Follow and Message`);
   await profile.locator(".shorts-profile-tabs button", { hasText: "Playlists" }).click();
-  check((await profile.innerText()).includes("aren't available yet"), `${tag} Playlists is honest about not being connected`);
+  check(await profile.locator('[aria-label="Creator playlists"]').isVisible(), `${tag} Playlists tab shows the creator playlists section`);
   await profile.locator(".shorts-profile-tabs button", { hasText: "Shorts" }).click();
   check((await profile.locator(".shorts-profile-grid li").count()) >= 1, `${tag} profile lists the creator's Shorts`);
   const pbox = await profile.boundingBox();
@@ -298,7 +324,7 @@ for (const width of WIDTHS) {
   await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Creator Studio" }).click();
   await page.locator(".shorts-studio").waitFor({ timeout: 8000 });
   const sTabs = (await page.locator(".shorts-studio-tabs button").allInnerTexts()).map((t) => t.trim());
-  check(JSON.stringify(sTabs) === JSON.stringify(["Overview", "Videos", "Analytics", "Earnings", "Create & drafts"]), `${tag} Studio sections (got ${sTabs.join(" · ")})`);
+  check(JSON.stringify(sTabs) === JSON.stringify(["Overview", "Projects", "Videos", "Analytics", "Earnings", "Create & drafts"]), `${tag} Studio sections (got ${sTabs.join(" · ")})`);
   const studioTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
   check(JSON.stringify(studioTabs) === JSON.stringify(["Live", "VR / AR", "Podcasts", "Music", "Others"]), `${tag} Creator Studio keeps the Shorts top navigation (got ${studioTabs.join(" · ")})`);
   check((await page.locator("header .fresh-shorts-brand").count()) === 1, `${tag} Creator Studio header is the Fresh Shorts header`);
