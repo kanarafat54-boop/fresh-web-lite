@@ -1,7 +1,7 @@
 # Fresh Shorts — implementation inventory (P0 repository audit)
 
 Baseline: `Fresh_Shorts_Master_Product_and_Engineering_Specification.docx` (Parts 1–18). Fresh Studio is excluded.
-Audited against `main` at `3e6100c` on 2026-11-04.
+Audited against `main` at `3e6100c` on 2026-11-04. Progress update on 2026-11-05 is in the section at the end.
 
 ## How to read the statuses
 
@@ -60,3 +60,25 @@ promoted. Nothing was changed, replaced or removed by this audit.
 - Migrations are additive and are not applied by the engineer; owner applies after review.
 - The API directory stays within the Vercel function limit (12 files); new endpoints reuse existing functions.
 - Fresh Studio stays out of scope.
+
+## Progress update (2026-11-05)
+
+Merged since the audit (all CI-green; Partial until a phone-sized browser pass, which the Shorts browser test now covers at 320, 390 and 430px):
+
+- **#219** SVG icon set for tabs, action rail, action menu and Fresh Flow bottom navigation; "Social" is now "Following".
+- **#220** Routes `/flow/shorts` and `/flow/shorts/watch/:shortId` (old links keep working); designed loading, offline, failed, empty and unavailable states.
+- **#221** Filter sheet (date, original or remixed, order, creator) and playback speed in the action menu.
+- **#209** Playlists on the creator profile, pinned comments, compact two-row header with 36px tap targets.
+
+Still open, and why:
+
+| Item | Blocked by |
+|---|---|
+| Captions and subtitle controls | No caption track data exists in the schema yet; needs a captions source (upload or generation service). |
+| Language and duration filters | Shorts carry no language or duration fields yet. |
+| Richer comment reactions | Needs an additive migration to the reactions check constraint; owner applies it. |
+| Use this sound | Needs the video worker connection. |
+| Context panel, TrueMode, provenance (Part 7) | No service to read from; spec rule 31 forbids a fake panel. |
+| Data Saver, Android device pass | Needs a defined data-saving policy and a real device run. |
+
+Migrations from #209 (`20261102120000`, `20261102140000`) are in the repo but not applied to the live database.
