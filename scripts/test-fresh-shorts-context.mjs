@@ -84,6 +84,10 @@ const unsafeHosts = interpretAskResponse(true, {
   evidence: [
     { title: "https://127.0.0.1/admin", snippet: "private" },
     { title: "https://localhost/private", snippet: "local" },
+    { title: "https://localhost./private", snippet: "trailing-dot localhost" },
+    { title: "https://metadata.google.internal./computeMetadata/v1/", snippet: "trailing-dot internal host" },
+    { title: "https://100.100.100.200/latest/meta-data/", snippet: "carrier-grade NAT address" },
+    { title: "https://[2001:db8::1]/private", snippet: "reserved IPv6 documentation range" },
     { title: "https://user:pass@public.example/page", snippet: "credentials" },
   ],
 });
