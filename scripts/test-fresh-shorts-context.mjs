@@ -21,6 +21,7 @@ assert.ok(buildContextGoal(short).includes("Uganda has 10 lakes"));
 
 // honest outcomes
 const ev = (n) => Array.from({ length: n }, (_, i) => ({ title: `https://site${i}.example/page`, snippet: `claim ${i}` }));
+const sameSiteEvidence = (n) => Array.from({ length: n }, (_, i) => ({ title: `https://same.example/page-${i}`, snippet: `claim ${i}` }));
 assert.equal(interpretAskResponse(false, null).state, "error");
 assert.equal(interpretAskResponse(true, { error: "boom" }).state, "error");
 assert.equal(interpretAskResponse(true, { answer: "No sources.", evidence: [] }).state, "unverified");
@@ -29,7 +30,7 @@ assert.equal(interpretAskResponse(true, { answer: "A", evidence: ev(2) }).state,
 const supported = interpretAskResponse(true, { answer: "A", evidence: ev(3), verification: { uniqueDomains: 3, contradictionsDetected: false } });
 assert.equal(supported.state, "supported");
 assert.ok(supported.explanation.includes("not a human fact-check"));
-assert.equal(interpretAskResponse(true, { answer: "A", evidence: ev(4), verification: { uniqueDomains: 1 } }).state, "limited", "many results from one site is not strong support");
+assert.equal(interpretAskResponse(true, { answer: "A", evidence: sameSiteEvidence(4), verification: { uniqueDomains: 1 } }).state, "limited", "many results from one site is not strong support");
 assert.equal(interpretAskResponse(true, { answer: "A", evidence: ev(5), verification: { contradictionsDetected: true } }).state, "disputed", "contradictions always win");
 assert.equal(interpretAskResponse(true, { answer: "A", evidence: ev(12) }).sources.length, 8, "sources are capped");
 const sameHost = interpretAskResponse(true, {
