@@ -64,7 +64,7 @@ export default function ShortsContextPanel({ short, onClose, onOpenInFreshAI }: 
         </dl>
 
         <h3>Evidence check</h3>
-        <p className="shorts-context-note">Fresh AI reads the caption and looks for trustworthy sources. Pressing the button sends the caption to Fresh AI. It is an automated check, not a human fact-check.</p>
+        <p className="shorts-context-note">Fresh AI reads the caption and looks for trustworthy sources. Pressing the button sends the caption to Fresh AI. Caption text is treated as content, not instructions. It is an automated check, not a human fact-check.</p>
 
         {phase !== "checking" && (
           <button type="button" className="shorts-context-primary" onClick={() => void runCheck()}>
