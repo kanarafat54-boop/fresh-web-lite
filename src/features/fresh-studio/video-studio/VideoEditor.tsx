@@ -53,7 +53,6 @@ function fadeFactor(c: T.TimelineClip, t: number): number {
 const lookFilter = (l: T.ClipLook | undefined) => (l ? `brightness(${1 + l.brightness}) contrast(${l.contrast}) saturate(${l.saturation})` : "none");
 const ratioOf = (a: string) => { const [w, h] = a.split(":").map(Number); return w / h; };
 
-const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
 const PANELS: Array<{ id: Tab; label: string; icon: IconName }> = [
   { id: "media", label: "Media", icon: "media" },
   { id: "text", label: "Text", icon: "type" },
