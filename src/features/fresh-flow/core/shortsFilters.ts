@@ -3,16 +3,18 @@
  * ordering. Pure and dependency-free so it can be tested without the app. Filters only narrow or reorder what
  * the feed has already loaded; they never fetch or expose anything new.
  *
- * Not offered yet because the data does not exist on a Short today: language, duration and intent. They are
- * listed as Planned in docs/FRESH_SHORTS_IMPLEMENTATION_INVENTORY.md rather than shown as dead controls.
+ * Duration and language use the values stored when a Short was published (see shortsDuration.ts). A Short with
+ * no stored value never matches those two filters. "Intent" is still not offered: no data exists for it.
  */
+import { matchesDurationBucket, normalizeDurationBucket, normalizeLanguage, type DurationBucket } from "./shortsDuration.ts";
+
 export type ShortDateFilter = "any" | "day" | "week" | "month";
 export type ShortOriginFilter = "all" | "original" | "remix";
 export type ShortOrder = "ranked" | "views" | "newest";
 
-export type ShortFilters = { date: ShortDateFilter; origin: ShortOriginFilter; order: ShortOrder; creator: string };
+export type ShortFilters = { date: ShortDateFilter; origin: ShortOriginFilter; order: ShortOrder; creator: string; duration: DurationBucket; language: string };
 
-export const DEFAULT_SHORT_FILTERS: ShortFilters = { date: "any", origin: "all", order: "ranked", creator: "" };
+export const DEFAULT_SHORT_FILTERS: ShortFilters = { date: "any", origin: "all", order: "ranked", creator: "", duration: "any", language: "" };
 
 type FilterableShort = {
   authorUsername: string;
@@ -21,6 +23,8 @@ type FilterableShort = {
   viewCount: number;
   remixOfShortId?: string | null;
   duetOfShortId?: string | null;
+  durationSeconds?: number | null;
+  language?: string | null;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -33,11 +37,13 @@ export function normalizeShortFilters(input: unknown): ShortFilters {
     origin: value.origin === "original" || value.origin === "remix" ? value.origin : "all",
     order: value.order === "views" || value.order === "newest" ? value.order : "ranked",
     creator: typeof value.creator === "string" ? value.creator.trim().slice(0, 40) : "",
+    duration: normalizeDurationBucket(value.duration),
+    language: normalizeLanguage(value.language) ?? "",
   };
 }
 
 export function activeFilterCount(filters: ShortFilters): number {
-  return (filters.date !== "any" ? 1 : 0) + (filters.origin !== "all" ? 1 : 0) + (filters.order !== "ranked" ? 1 : 0) + (filters.creator ? 1 : 0);
+  return (filters.date !== "any" ? 1 : 0) + (filters.origin !== "all" ? 1 : 0) + (filters.order !== "ranked" ? 1 : 0) + (filters.creator ? 1 : 0) + (filters.duration !== "any" ? 1 : 0) + (filters.language ? 1 : 0);
 }
 
 const time = (s: FilterableShort) => { const t = Date.parse(s.createdAt); return Number.isFinite(t) ? t : 0; };
@@ -53,6 +59,8 @@ export function applyShortFilters<T extends FilterableShort>(shorts: T[], filter
     }
     if (f.origin === "original" && isRemix(s)) return false;
     if (f.origin === "remix" && !isRemix(s)) return false;
+    if (!matchesDurationBucket(s.durationSeconds, f.duration)) return false;
+    if (f.language && normalizeLanguage(s.language) !== f.language) return false;
     if (creator && !s.authorUsername.toLowerCase().includes(creator) && !s.authorName.toLowerCase().includes(creator)) return false;
     return true;
   });

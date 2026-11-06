@@ -36,6 +36,8 @@ export interface Short {
   chapters: Chapter[];
   createdAt: string;
   remixOfShortId?: string | null;
+  durationSeconds?: number | null;
+  language?: string | null;
   duetOfShortId?: string | null;
   interactionMode?: ShortsInteractionMode;
   immersiveMetadata?: ImmersiveMetadata;

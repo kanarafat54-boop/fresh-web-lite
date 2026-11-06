@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { DEFAULT_SHORT_FILTERS, activeFilterCount, type ShortFilters } from "../core/shortsFilters";
+import { DURATION_BUCKETS, languageLabel, languagesPresent } from "../core/shortsDuration";
 import "./ShortsFilterSheet.css";
 
 type Option<T extends string> = { id: T; label: string };
@@ -28,14 +29,18 @@ function Chips<T extends string>({ label, value, options, onPick }: { label: str
 }
 
 /** Bottom sheet with the filters the loaded Shorts can actually support (see shortsFilters.ts). */
-export function ShortsFilterSheet({ filters, mode, onApply, onModeChange, onClose }: {
+export function ShortsFilterSheet({ filters, mode, shorts = [], onApply, onModeChange, onClose }: {
   filters: ShortFilters;
+  /** The Shorts currently loaded, used to offer only languages and lengths that exist. */
+  shorts?: Array<{ durationSeconds?: number | null; language?: string | null }>;
   mode: "all" | "social";
   onApply: (next: ShortFilters) => void;
   onModeChange: (mode: "all" | "social") => void;
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState<ShortFilters>(filters);
+  const hasDuration = shorts.some((s) => typeof s.durationSeconds === "number");
+  const languages = languagesPresent(shorts);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
@@ -58,6 +63,16 @@ export function ShortsFilterSheet({ filters, mode, onApply, onModeChange, onClos
         <Chips label="Published" value={draft.date} options={DATES} onPick={(date) => setDraft({ ...draft, date })} />
         <Chips label="Content" value={draft.origin} options={ORIGINS} onPick={(origin) => setDraft({ ...draft, origin })} />
         <Chips label="Order" value={draft.order} options={ORDERS} onPick={(order) => setDraft({ ...draft, order })} />
+        {hasDuration ? (
+          <Chips label="Length" value={draft.duration} options={DURATION_BUCKETS} onPick={(duration) => setDraft({ ...draft, duration })} />
+        ) : (
+          <p className="fresh-shorts-filter-note">Length filters appear once Shorts with a recorded length are loaded. Older Shorts have none.</p>
+        )}
+        {languages.length > 0 ? (
+          <Chips label="Language" value={draft.language} options={[{ id: "", label: "Any" }, ...languages.map((l) => ({ id: l.code, label: languageLabel(l.code) }))]} onPick={(language) => setDraft({ ...draft, language })} />
+        ) : (
+          <p className="fresh-shorts-filter-note">Language filters appear once Shorts with a recorded language are loaded.</p>
+        )}
         <label className="fresh-shorts-filter-creator">
           <span>Creator</span>
           <input type="search" value={draft.creator} maxLength={40} placeholder="Search by name or @username" onChange={(event) => setDraft({ ...draft, creator: event.target.value })} />

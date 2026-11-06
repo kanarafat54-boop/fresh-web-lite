@@ -1,4 +1,6 @@
 import { supabase } from "../../../lib/supabase";
+import { readVideoDuration } from "../../fresh-flow/core/readVideoDuration";
+import { isMissingColumnError, normalizeDuration, normalizeLanguage } from "../../fresh-flow/core/shortsDuration";
 
 export type PublishShortInput = {
   authorId: string;
@@ -8,6 +10,10 @@ export type PublishShortInput = {
   category?: "learn" | "relax" | null;
   remixOfShortId?: string | null;
   duetOfShortId?: string | null;
+  /** Seconds. When omitted it is read from the video; null means unknown. */
+  durationSeconds?: number | null;
+  /** Language code. When omitted it is taken from the device language. */
+  language?: string | null;
 };
 
 export type PublishShortResult = {
@@ -38,11 +44,17 @@ export async function publishFreshShort(input: PublishShortInput): Promise<Publi
   if (input.remixOfShortId) row.remix_of_short_id = input.remixOfShortId;
   if (input.duetOfShortId) row.duet_of_short_id = input.duetOfShortId;
 
-  const { data, error } = await supabase
-    .from("shorts")
-    .insert(row)
-    .select("id, author_id, caption, video_url, created_at")
-    .single();
+  const durationSeconds = input.durationSeconds !== undefined ? normalizeDuration(input.durationSeconds) : await readVideoDuration(videoUrl);
+  const language = normalizeLanguage(input.language ?? (typeof navigator !== "undefined" ? navigator.language : null));
+  const withMetadata: Record<string, unknown> = { ...row };
+  if (durationSeconds !== null) withMetadata.duration_seconds = durationSeconds;
+  if (language) withMetadata.language = language;
+
+  const hasMetadata = durationSeconds !== null || Boolean(language);
+  const insert = (values: Record<string, unknown>) => supabase.from("shorts").insert(values).select("id, author_id, caption, video_url, created_at").single();
+  let { data, error } = await insert(withMetadata);
+  // Duration and language columns arrive with a migration; publishing must work before and after it.
+  if (error && hasMetadata && isMissingColumnError(error)) ({ data, error } = await insert(row));
 
   if (error) throw new Error(error.message || "Could not publish Short.");
   if (!data?.id) throw new Error("Publish succeeded but no Short id was returned.");
