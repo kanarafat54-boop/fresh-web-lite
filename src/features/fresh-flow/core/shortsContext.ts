@@ -130,7 +130,7 @@ export function interpretAskResponse(ok: boolean, payload: AskPayload | null | u
     return { state: "unverified", label: "Not verified", explanation: "No usable sources were found, so nothing here is confirmed. This is not the same as false.", answer, sources };
   }
   if (usableSources.length >= 3 && uniqueHosts.size >= 2) {
-    return { state: "supported", label: "Supported by several sources", explanation: `Fresh AI found ${usableSources.length} usable sources across ${uniqueHosts.size} distinct hostnames. This is an automated evidence check, not a human fact-check.`, answer, sources };
+    return { state: "supported", label: "Supported by several sources", explanation: `Fresh AI found ${usableSources.length} usable sources across ${uniqueHosts.size} distinct hostnames. Source count alone does not establish truth; review the sources. This is an automated evidence check, not a human fact-check.`, answer, sources };
   }
   return { state: "limited", label: "Limited evidence", explanation: "Only a little evidence was found. Treat the answer as a starting point.", answer, sources };
 }
