@@ -36,6 +36,7 @@ jobs:
         run: |
           npm run test:fresh-shorts-filters
           npm run test:fresh-shorts-data-saver
+          npm run test:fresh-shorts-captions
           npm run test:fresh-shorts-safety
 
       - name: Fresh Flow performance contract
