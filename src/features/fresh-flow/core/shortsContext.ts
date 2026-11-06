@@ -72,18 +72,24 @@ export type ContextResult = {
 };
 
 function isNonPublicHost(hostname: string): boolean {
-  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal")) return true;
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".home.arpa")) return true;
   const octets = host.split(".").map(Number);
   if (octets.length === 4 && octets.every((part) => Number.isInteger(part) && part >= 0 && part <= 255)) {
     const [a, b] = octets;
+    const [a, b, c] = octets;
     return a === 0 || a === 10 || a === 127 || a >= 224 || (a === 169 && b === 254) ||
-      (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) ||
+      (a === 192 && b === 0 && (c === 0 || c === 2)) ||
+      (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) ||
+      (a === 203 && b === 0 && c === 113);
   }
   if (host.includes(":")) {
     return host === "::" || host === "::1" || host.startsWith("fc") || host.startsWith("fd") ||
       host.startsWith("fe8") || host.startsWith("fe9") || host.startsWith("fea") ||
-      host.startsWith("feb") || host.startsWith("::ffff:");
+      host.startsWith("feb") || host.startsWith("fec") || host.startsWith("ff") ||
+      host.startsWith("2001:db8:") || host.startsWith("::ffff:");
   }
   return false;
 }
