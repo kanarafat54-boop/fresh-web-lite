@@ -59,6 +59,15 @@ const sameHost = interpretAskResponse(true, {
   verification: { uniqueDomains: 3, contradictionsDetected: false },
 });
 assert.equal(sameHost.state, "limited", "distinct URLs on one hostname must not be counted as distinct sites");
+const trailingDotHost = interpretAskResponse(true, {
+  answer: "A",
+  evidence: [
+    { title: "https://same.example/one", snippet: "one" },
+    { title: "https://same.example./two", snippet: "two" },
+    { title: "https://same.example/three", snippet: "three" },
+  ],
+});
+assert.equal(trailingDotHost.state, "limited", "trailing-dot hostname aliases must not inflate source diversity");
 const mixedHosts = interpretAskResponse(true, {
   answer: "A",
   evidence: [
