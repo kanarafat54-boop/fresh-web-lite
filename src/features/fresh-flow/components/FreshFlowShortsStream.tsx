@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FlagIcon } from "../../../components/Icons";
 import * as ShortsIcons from "./shortsIcons";
+import ShortsContextPanel from "./ShortsContextPanel";
 import { dataSaverLabel, isDataSaverActive, nextDataSaverMode, prefetchRadiusFor, preloadFor, readConnectionHint, readDataSaverMode, writeDataSaverMode, type DataSaverMode } from "../core/shortsDataSaver";
 import { ShortsStateScreen } from "./ShortsStateScreen";
 import { ShortsFilterSheet } from "./ShortsFilterSheet";
@@ -140,6 +141,7 @@ export default function FreshFlowShortsStream({
   const telemetryRef = useRef(new FreshFlowTelemetryBuffer());
   const sessionIdRef = useRef<string>(crypto.randomUUID());
   const { replaceQueue, appendQueue, setActive: setRuntimeActive } = useFreshFlowRuntime();
+  const [contextShortId, setContextShortId] = useState<string | null>(null);
   const [dataSaverMode, setDataSaverMode] = useState<DataSaverMode>(() => readDataSaverMode());
   const dataSaverActive = isDataSaverActive(dataSaverMode, readConnectionHint());
   const prefetchRadius = prefetchRadiusFor(dataSaverActive, FRESH_SHORTS_PREFETCH_RADIUS);
@@ -876,6 +878,9 @@ export default function FreshFlowShortsStream({
         </button>
       </header>
       {!online && shorts.length > 0 ? <div className="fresh-shorts-offline-banner" role="status">You are offline. Showing Shorts already loaded.</div> : null}
+      {contextShortId && shorts.find((item) => item.id === contextShortId) ? (
+        <ShortsContextPanel short={shorts.find((item) => item.id === contextShortId)!} onClose={() => setContextShortId(null)} onOpenInFreshAI={(prompt) => { setContextShortId(null); openFreshAI(prompt); }} />
+      ) : null}
       {unavailableNotice ? (
         <div className="fresh-shorts-offline-banner" role="status">
           This Short is no longer available.{" "}
@@ -1005,6 +1010,9 @@ export default function FreshFlowShortsStream({
                     </button>
                     <button type="button" onClick={() => { const next = nextDataSaverMode(dataSaverMode); setDataSaverMode(next); writeDataSaverMode(next); }} title="Stops downloading upcoming Shorts ahead of time. Does not change video quality.">
                       <span className="fresh-flow-menu-icon"><ShortsIcons.DataSaverIcon size={18} /></span> {dataSaverLabel(dataSaverMode, dataSaverActive)}
+                    </button>
+                    <button type="button" onClick={() => { setAdvancedOpen(false); setContextShortId(short.id); }} title="Details about this Short and an on-demand evidence check">
+                      <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Context and sources
                     </button>
                     {ADVANCED_ACTIONS.map((a) => (
                       <button key={a.id} type="button" onClick={() => openAdvanced(a.id, short)} title={a.description}>
