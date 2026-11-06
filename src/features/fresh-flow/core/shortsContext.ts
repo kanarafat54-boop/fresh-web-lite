@@ -99,7 +99,7 @@ function hostOf(value: string): { url: string | null; host: string } {
     if ((u.protocol === "http:" || u.protocol === "https:") && u.hostname &&
         !u.username && !u.password && !isNonPublicHost(u.hostname)) {
       u.hash = "";
-      return { url: u.toString(), host: u.hostname.replace(/^www\./, "").toLowerCase() };
+      return { url: u.toString(), host: u.hostname.replace(/^www\./, "").replace(/\.$/, "").toLowerCase() };
     }
   } catch { /* not a URL */ }
   return { url: null, host: value.slice(0, 60) || "Source" };
