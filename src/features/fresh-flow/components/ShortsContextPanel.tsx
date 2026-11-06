@@ -35,7 +35,7 @@ export default function ShortsContextPanel({ short, onClose, onOpenInFreshAI }: 
         method: "POST",
         signal: controller.signal,
         headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ goal: buildContextGoal(short), route: "/flow/shorts", conversation: [] }),
+        body: JSON.stringify({ goal: buildContextGoal(short), route: "/flow/shorts/context-check", mode: "shorts-context-check", conversation: [] }),
       });
       const payload = (await response.json().catch(() => null)) as AskPayload | null;
       if (controller.signal.aborted) return;
