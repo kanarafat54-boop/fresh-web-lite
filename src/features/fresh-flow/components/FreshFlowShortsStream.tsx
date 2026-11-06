@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FlagIcon } from "../../../components/Icons";
 import * as ShortsIcons from "./shortsIcons";
+import { dataSaverLabel, isDataSaverActive, nextDataSaverMode, prefetchRadiusFor, preloadFor, readConnectionHint, readDataSaverMode, writeDataSaverMode, type DataSaverMode } from "../core/shortsDataSaver";
 import { ShortsStateScreen } from "./ShortsStateScreen";
 import { ShortsFilterSheet } from "./ShortsFilterSheet";
 import { applyShortFilters, activeFilterCount, normalizeShortFilters, DEFAULT_SHORT_FILTERS, type ShortFilters } from "../core/shortsFilters";
@@ -139,6 +140,9 @@ export default function FreshFlowShortsStream({
   const telemetryRef = useRef(new FreshFlowTelemetryBuffer());
   const sessionIdRef = useRef<string>(crypto.randomUUID());
   const { replaceQueue, appendQueue, setActive: setRuntimeActive } = useFreshFlowRuntime();
+  const [dataSaverMode, setDataSaverMode] = useState<DataSaverMode>(() => readDataSaverMode());
+  const dataSaverActive = isDataSaverActive(dataSaverMode, readConnectionHint());
+  const prefetchRadius = prefetchRadiusFor(dataSaverActive, FRESH_SHORTS_PREFETCH_RADIUS);
   const [soundOn, setSoundOn] = useState<boolean>(() => {
     try { return window.localStorage.getItem(FRESH_FLOW_SOUND_KEY) !== "off"; } catch { return true; }
   });
@@ -441,7 +445,7 @@ export default function FreshFlowShortsStream({
         if (!video.paused) video.pause();
       }
     });
-    releaseDistantMedia(videos, currentIndex, FRESH_SHORTS_PREFETCH_RADIUS + 2);
+    releaseDistantMedia(videos, currentIndex, prefetchRadius + 2);
     const active = videos.get(currentIndex);
     if (!active) return;
     if (openCreatorId) { active.pause(); return; }
@@ -456,7 +460,7 @@ export default function FreshFlowShortsStream({
       try { await active.play(); } catch { /* playback needs a tap; the tap layer starts it */ }
     });
     return () => { cancelled = true; };
-  }, [currentIndex, shorts, soundOn, openCreatorId]);
+  }, [currentIndex, shorts, soundOn, openCreatorId, prefetchRadius]);
 
   // Pause when the tab/app is hidden; resume the active video when it returns.
   useEffect(() => {
@@ -915,7 +919,7 @@ export default function FreshFlowShortsStream({
                 playsInline
                 muted={!soundOn || index !== currentIndex}
                 loop
-                preload={Math.abs(index - currentIndex) <= FRESH_SHORTS_PREFETCH_RADIUS ? "auto" : "none"}
+                preload={preloadFor(index, currentIndex, prefetchRadius)}
                 onError={(e) => retryVideo(e.currentTarget, 0)}
               />
               <button type="button" className="fresh-flow-tap-layer" onPointerDown={() => startLongPress(index)} onPointerUp={cancelLongPress} onPointerLeave={cancelLongPress} onPointerCancel={cancelLongPress} onContextMenu={(event) => event.preventDefault()} onClick={() => { if (longPressed.current) { longPressed.current = false; return; } handleTap(short, index); }} aria-label="Play or pause. Double tap to like. Press and hold for playback options." />
@@ -998,6 +1002,9 @@ export default function FreshFlowShortsStream({
                     </button>
                     <button type="button" onClick={() => { setAdvancedOpen(false); setPlaybackFor({ index, rate: activeVideo(index)?.playbackRate ?? 1 }); }}>
                       <span className="fresh-flow-menu-icon"><ShortsIcons.SpeedIcon size={18} /></span> Playback speed
+                    </button>
+                    <button type="button" onClick={() => { const next = nextDataSaverMode(dataSaverMode); setDataSaverMode(next); writeDataSaverMode(next); }} title="Stops downloading upcoming Shorts ahead of time. Does not change video quality.">
+                      <span className="fresh-flow-menu-icon"><ShortsIcons.DataSaverIcon size={18} /></span> {dataSaverLabel(dataSaverMode, dataSaverActive)}
                     </button>
                     {ADVANCED_ACTIONS.map((a) => (
                       <button key={a.id} type="button" onClick={() => openAdvanced(a.id, short)} title={a.description}>
