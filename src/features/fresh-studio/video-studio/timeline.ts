@@ -28,6 +28,20 @@ export type TimelineAsset = {
 
 export type TimelineTrack = { id: string; kind: TrackKind; name: string; muted: boolean; locked: boolean };
 
+/** Colour adjustments. Neutral is brightness 0, contrast 1, saturation 1. Rendered with ffmpeg `eq`; the editor preview approximates it. */
+export type ClipLook = { brightness: number; contrast: number; saturation: number };
+export const NEUTRAL_LOOK: ClipLook = { brightness: 0, contrast: 1, saturation: 1 };
+export const LOOK_PRESETS: ReadonlyArray<{ id: string; name: string; look: ClipLook }> = [
+  { id: "none", name: "Original", look: NEUTRAL_LOOK },
+  { id: "mono", name: "Mono", look: { brightness: 0, contrast: 1.1, saturation: 0 } },
+  { id: "vivid", name: "Vivid", look: { brightness: 0, contrast: 1.1, saturation: 1.6 } },
+  { id: "punchy", name: "Punchy", look: { brightness: -0.02, contrast: 1.3, saturation: 1.2 } },
+  { id: "faded", name: "Faded", look: { brightness: 0.06, contrast: 0.85, saturation: 0.7 } },
+  { id: "moody", name: "Moody", look: { brightness: -0.12, contrast: 1.2, saturation: 0.85 } },
+];
+export const MAX_VOLUME = 2;
+export type ClipFit = "fit" | "fill";
+
 export type TimelineClip = {
   id: string;
   trackId: string;
@@ -38,6 +52,34 @@ export type TimelineClip = {
   sourceIn: number;
   sourceOut: number;
   speed: number;
+  /** Audio gain, 0–2 (1 = unchanged). Optional so older saved timelines stay valid. */
+  volume?: number;
+  /** Fade from/to black (video) and silence (audio), seconds. */
+  fadeIn?: number;
+  fadeOut?: number;
+  look?: ClipLook;
+  /** "fit" letterboxes; "fill" crops to cover the frame. */
+  fit?: ClipFit;
+};
+
+export const MAX_TEXTS = 50;
+export const MAX_TEXT_CHARS = 200;
+export const MIN_TEXT_SECONDS = 0.2;
+export type TextLayer = {
+  id: string;
+  text: string;
+  start: number;
+  duration: number;
+  /** Centre of the text as a fraction of the frame (0–1). */
+  x: number;
+  y: number;
+  /** Font height as a fraction of frame height. */
+  size: number;
+  /** #rrggbb */
+  color: string;
+  bold: boolean;
+  /** Semi-transparent box behind the text for legibility. */
+  box: boolean;
 };
 
 export type TimelineDoc = {
@@ -46,6 +88,10 @@ export type TimelineDoc = {
   assets: TimelineAsset[];
   tracks: TimelineTrack[];
   clips: TimelineClip[];
+  /** Title and text layers. Optional so older saved timelines stay valid. */
+  texts?: TextLayer[];
+  /** Output aspect ratio the preview and export use, e.g. "16:9". */
+  aspect?: string;
 };
 
 export class TimelineError extends Error {
@@ -89,7 +135,15 @@ function unlocked(doc: TimelineDoc, trackId: string): TimelineTrack {
   if (t.locked) throw new TimelineError(`${t.name} is locked.`);
   return t;
 }
-const replace = (doc: TimelineDoc, clip: TimelineClip): TimelineDoc => ({ ...doc, clips: doc.clips.map((c) => (c.id === clip.id ? clip : c)) });
+/** Shrinks fades so they never exceed the clip, e.g. after a trim or a speed change. */
+export function withFittedFades(clip: TimelineClip): TimelineClip {
+  const d = clipDuration(clip);
+  const a = clip.fadeIn ?? 0, b = clip.fadeOut ?? 0;
+  if (a + b <= d + 1e-6) return clip;
+  const k = d / (a + b);
+  return { ...clip, fadeIn: round3(a * k), fadeOut: round3(b * k) };
+}
+const replace = (doc: TimelineDoc, clip: TimelineClip): TimelineDoc => ({ ...doc, clips: doc.clips.map((c) => (c.id === clip.id ? withFittedFades(clip) : c)) });
 
 function overlaps(doc: TimelineDoc, candidate: TimelineClip, ignoreId?: string): boolean {
   const s = candidate.start;
@@ -134,8 +188,8 @@ export function splitClip(doc: TimelineDoc, clipId: string, at: number, rightId?
   const t = round3(at);
   if (t <= clip.start + MIN_CLIP_SECONDS || t >= clipEnd(clip) - MIN_CLIP_SECONDS) throw new TimelineError("Move the playhead inside the clip to split it.");
   const sourceAt = round3(clip.sourceIn + (t - clip.start) * clip.speed);
-  const left: TimelineClip = { ...clip, sourceOut: sourceAt };
-  const right: TimelineClip = { ...clip, id: rightId ?? newId("clip"), start: t, sourceIn: sourceAt };
+  const left: TimelineClip = withFittedFades({ ...clip, sourceOut: sourceAt, ...(clip.fadeOut ? { fadeOut: 0 } : {}) });
+  const right: TimelineClip = withFittedFades({ ...clip, id: rightId ?? newId("clip"), start: t, sourceIn: sourceAt, ...(clip.fadeIn ? { fadeIn: 0 } : {}) });
   if (doc.clips.length >= MAX_CLIPS) throw new TimelineError(`A timeline can have at most ${MAX_CLIPS} clips.`);
   return { ...doc, clips: [...doc.clips.filter((c) => c.id !== clip.id), left, right] };
 }
@@ -207,7 +261,7 @@ export function setClipSpeed(doc: TimelineDoc, clipId: string, speed: number): T
   unlocked(doc, clip.trackId);
   if (!Number.isFinite(speed) || speed < MIN_SPEED || speed > MAX_SPEED) throw new TimelineError(`Speed must be between ${MIN_SPEED}× and ${MAX_SPEED}×.`);
   const before = clipDuration(clip);
-  const next = { ...clip, speed: round3(speed) };
+  const next = withFittedFades({ ...clip, speed: round3(speed) });
   const delta = round3(clipDuration(next) - before);
   const clips = doc.clips.map((c) => {
     if (c.id === clip.id) return next;
@@ -240,6 +294,96 @@ export function clipAt(doc: TimelineDoc, trackId: string, time: number): Timelin
   return trackClips(doc, trackId).find((c) => time >= c.start - 1e-6 && time < clipEnd(c) - 1e-6) ?? null;
 }
 
+
+
+/** Volume (0–2) and fades for one clip. Omitted fields stay unchanged. */
+export function setClipAudio(doc: TimelineDoc, clipId: string, patch: { volume?: number; fadeIn?: number; fadeOut?: number }): TimelineDoc {
+  const clip = find(doc, clipId);
+  unlocked(doc, clip.trackId);
+  const next: TimelineClip = { ...clip };
+  if (patch.volume !== undefined) {
+    if (!Number.isFinite(patch.volume) || patch.volume < 0 || patch.volume > MAX_VOLUME) throw new TimelineError(`Volume must be between 0 and ${MAX_VOLUME * 100}%.`);
+    next.volume = round3(patch.volume);
+  }
+  const d = clipDuration(clip);
+  for (const key of ["fadeIn", "fadeOut"] as const) {
+    const v = patch[key];
+    if (v === undefined) continue;
+    if (!Number.isFinite(v) || v < 0) throw new TimelineError("A fade cannot be negative.");
+    next[key] = round3(Math.min(v, d));
+  }
+  const other = patch.fadeIn !== undefined && patch.fadeOut === undefined ? "fadeOut" : patch.fadeOut !== undefined && patch.fadeIn === undefined ? "fadeIn" : null;
+  const changed = patch.fadeIn !== undefined && patch.fadeOut === undefined ? "fadeIn" : "fadeOut";
+  // When one fade grows into the other, shorten the one that was not just edited.
+  if (other && (next.fadeIn ?? 0) + (next.fadeOut ?? 0) > d) next[other] = round3(Math.max(0, d - (next[changed] ?? 0)));
+  return replace(doc, next);
+}
+
+/** Sets colour adjustments, or clears them with null. */
+export function setClipLook(doc: TimelineDoc, clipId: string, look: ClipLook | null): TimelineDoc {
+  const clip = find(doc, clipId);
+  unlocked(doc, clip.trackId);
+  if (look === null) { const { look: _drop, ...rest } = clip; return replace(doc, rest); }
+  const ok = (n: number, lo: number, hi: number) => Number.isFinite(n) && n >= lo && n <= hi;
+  if (!ok(look.brightness, -1, 1) || !ok(look.contrast, 0, 2) || !ok(look.saturation, 0, 3)) throw new TimelineError("That colour setting is out of range.");
+  return replace(doc, { ...clip, look: { brightness: round3(look.brightness), contrast: round3(look.contrast), saturation: round3(look.saturation) } });
+}
+
+export function setClipFit(doc: TimelineDoc, clipId: string, fit: ClipFit): TimelineDoc {
+  const clip = find(doc, clipId);
+  unlocked(doc, clip.trackId);
+  if (fit !== "fit" && fit !== "fill") throw new TimelineError("Unknown framing option.");
+  return replace(doc, { ...clip, fit });
+}
+
+export const ASPECT_RATIOS = ["16:9", "9:16", "1:1", "4:5", "21:9"] as const;
+export function setAspect(doc: TimelineDoc, aspect: string): TimelineDoc {
+  if (!(ASPECT_RATIOS as readonly string[]).includes(aspect)) throw new TimelineError("That aspect ratio is not available.");
+  return doc.aspect === aspect ? doc : { ...doc, aspect };
+}
+
+// ---- text layers
+
+const HEX = /^#[0-9a-fA-F]{6}$/;
+export function validateTextLayer(t: TextLayer): string | null {
+  if (typeof t.text !== "string" || t.text.trim().length === 0) return "Text cannot be empty.";
+  if (t.text.length > MAX_TEXT_CHARS) return `Text can be at most ${MAX_TEXT_CHARS} characters.`;
+  // eslint-disable-next-line no-control-regex -- control characters other than newline are never valid in a title
+  if (/[\u0000-\u0009\u000b-\u001f\u007f]/.test(t.text)) return "Text contains characters that cannot be shown.";
+  if (![t.start, t.duration, t.x, t.y, t.size].every(Number.isFinite)) return "Text has invalid numbers.";
+  if (t.start < 0) return "Text cannot start before 0.";
+  if (t.duration < MIN_TEXT_SECONDS - 1e-6) return `Text must last at least ${MIN_TEXT_SECONDS} seconds.`;
+  if (t.x < 0 || t.x > 1 || t.y < 0 || t.y > 1) return "Text must stay inside the frame.";
+  if (t.size < 0.02 || t.size > 0.3) return "Text size is out of range.";
+  if (!HEX.test(t.color)) return "Text colour is invalid.";
+  return null;
+}
+const findText = (doc: TimelineDoc, id: string) => {
+  const t = doc.texts?.find((x) => x.id === id);
+  if (!t) throw new TimelineError("That text no longer exists.");
+  return t;
+};
+
+export function addText(doc: TimelineDoc, input: { text?: string; start: number; duration?: number; id?: string }): TimelineDoc {
+  if ((doc.texts?.length ?? 0) >= MAX_TEXTS) throw new TimelineError(`A timeline can have at most ${MAX_TEXTS} text layers.`);
+  const layer: TextLayer = { id: input.id ?? newId("text"), text: input.text ?? "Your text", start: round3(Math.max(0, input.start)), duration: round3(input.duration ?? 3), x: 0.5, y: 0.5, size: 0.08, color: "#ffffff", bold: true, box: false };
+  const problem = validateTextLayer(layer);
+  if (problem) throw new TimelineError(problem);
+  return { ...doc, texts: [...(doc.texts ?? []), layer] };
+}
+export function updateText(doc: TimelineDoc, id: string, patch: Partial<Omit<TextLayer, "id">>): TimelineDoc {
+  const next: TextLayer = { ...findText(doc, id), ...patch };
+  next.start = round3(next.start); next.duration = round3(next.duration);
+  const problem = validateTextLayer(next);
+  if (problem) throw new TimelineError(problem);
+  return { ...doc, texts: (doc.texts ?? []).map((t) => (t.id === id ? next : t)) };
+}
+export function deleteText(doc: TimelineDoc, id: string): TimelineDoc {
+  findText(doc, id);
+  return { ...doc, texts: (doc.texts ?? []).filter((t) => t.id !== id) };
+}
+export const textsAt = (doc: TimelineDoc, time: number) => (doc.texts ?? []).filter((t) => time >= t.start - 1e-6 && time < t.start + t.duration - 1e-6);
+
 /** Full integrity check for a document loaded from storage or about to be rendered. */
 export function validateTimeline(doc: unknown): string[] {
   const errors: string[] = [];
@@ -261,6 +405,29 @@ export function validateTimeline(doc: unknown): string[] {
     if (c.speed < MIN_SPEED || c.speed > MAX_SPEED) errors.push(`Clip ${c.id} has an unsupported speed.`);
     if (a.duration !== null && c.sourceOut > a.duration + 1e-3) errors.push(`Clip ${c.id} extends past its media.`);
   }
+  for (const c of d.clips) {
+    if (c.volume !== undefined && !(Number.isFinite(c.volume) && c.volume >= 0 && c.volume <= MAX_VOLUME)) errors.push(`Clip ${c.id} has an invalid volume.`);
+    for (const f of [c.fadeIn, c.fadeOut]) if (f !== undefined && !(Number.isFinite(f) && f >= 0)) errors.push(`Clip ${c.id} has an invalid fade.`);
+    if ((c.fadeIn ?? 0) + (c.fadeOut ?? 0) > clipDuration(c) + 1e-3) errors.push(`Clip ${c.id} has fades longer than the clip.`);
+    if (c.fit !== undefined && c.fit !== "fit" && c.fit !== "fill") errors.push(`Clip ${c.id} has an unknown framing option.`);
+    if (c.look !== undefined) {
+      const l = c.look;
+      if (!(l && Number.isFinite(l.brightness) && Number.isFinite(l.contrast) && Number.isFinite(l.saturation) && l.brightness >= -1 && l.brightness <= 1 && l.contrast >= 0 && l.contrast <= 2 && l.saturation >= 0 && l.saturation <= 3)) errors.push(`Clip ${c.id} has invalid colour settings.`);
+    }
+  }
+  if (d.texts !== undefined) {
+    if (!Array.isArray(d.texts)) errors.push("Text layers are malformed.");
+    else {
+      if (d.texts.length > MAX_TEXTS) errors.push("Too many text layers.");
+      const seen = new Set<string>();
+      for (const t of d.texts) {
+        const problem = validateTextLayer(t);
+        if (problem) errors.push(`Text "${String(t?.text).slice(0, 20)}": ${problem}`);
+        if (seen.has(t?.id)) errors.push("Duplicate text id."); else seen.add(t?.id);
+      }
+    }
+  }
+  if (d.aspect !== undefined && !(ASPECT_RATIOS as readonly string[]).includes(d.aspect)) errors.push("The aspect ratio is not supported.");
   for (const t of d.tracks) {
     const list = trackClips(d, t.id);
     for (let i = 1; i < list.length; i += 1) if (list[i].start < clipEnd(list[i - 1]) - 1e-3) errors.push(`Clips overlap on ${t.name}.`);

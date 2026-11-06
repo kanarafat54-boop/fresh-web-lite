@@ -14,7 +14,20 @@ export type WorkerCapabilities = {
   maxSeconds: number;
   maxSources: number;
   maxInputBytes: number;
+  /** True when the worker has fonts installed, so text layers can be exported. */
+  text: boolean;
 };
+
+/** Reads the worker's `/capabilities` answer, which nests the limits under `render`. Throws a plain message if it is not usable. */
+export function parseCapabilities(raw: unknown): WorkerCapabilities {
+  const r = (raw as { render?: Partial<WorkerCapabilities> } | null)?.render;
+  const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
+  const numbers = (v: unknown): v is number[] => Array.isArray(v) && v.every((x) => typeof x === "number");
+  if (!r || !strings(r.presets) || !strings(r.aspectRatios) || !numbers(r.frameRates) || ![r.maxSeconds, r.maxSources, r.maxInputBytes].every((n) => typeof n === "number" && Number.isFinite(n))) {
+    throw new Error("The render service answered, but not with what this version of Fresh expects. It may need updating.");
+  }
+  return { presets: r.presets as ExportPresetId[], aspectRatios: r.aspectRatios, frameRates: r.frameRates, maxSeconds: r.maxSeconds!, maxSources: r.maxSources!, maxInputBytes: r.maxInputBytes!, text: r.text === true };
+}
 
 export type WorkerStatus = { status: "queued" | "running" | "succeeded" | "failed" | "cancelled"; progress?: number; error?: string };
 export type RenderRequestBody = { timeline: TimelineDoc; preset: ExportPresetId; aspectRatio: string; fps?: number; sources: Record<string, string>; captionsSrt?: string };
@@ -66,7 +79,9 @@ export function checkExport(input: ExportInput, caps: WorkerCapabilities): strin
     if (!blob) return `“${name}” is not stored on this device, so it cannot be exported from here.`;
     if (blob.size > caps.maxInputBytes) return `“${name}” is ${mb(blob.size)}. The render worker accepts files up to ${mb(caps.maxInputBytes)}. Trim or compress it first.`;
   }
-  const dry = planRender({ doc: input.doc, preset: input.preset, aspectRatio: input.aspectRatio, fps: input.fps, sources: Object.fromEntries(used.map((id) => [id, "x"])), outputPath: "out.mp4", captionsFile: input.captions.length ? "c.srt" : undefined });
+  const texts = input.doc.texts ?? [];
+  if (texts.length > 0 && !caps.text) return "This render worker cannot export text yet. Remove the text layers or update the worker.";
+  const dry = planRender({ doc: input.doc, preset: input.preset, aspectRatio: input.aspectRatio, fps: input.fps, sources: Object.fromEntries(used.map((id) => [id, "x"])), outputPath: "out.mp4", captionsFile: input.captions.length ? "c.srt" : undefined, textFiles: Object.fromEntries(texts.map((t) => [t.id, "t.txt"])), fonts: { regular: "r.ttf", bold: "b.ttf" } });
   if (!dry.ok) return dry.errors[0];
   if (dry.duration > caps.maxSeconds) return `This worker renders up to ${caps.maxSeconds} seconds at a time. Your video is ${Math.ceil(dry.duration)} seconds.`;
   return null;

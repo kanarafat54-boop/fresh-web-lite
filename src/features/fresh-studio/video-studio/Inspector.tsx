@@ -1,0 +1,128 @@
+import { useState } from "react";
+import * as T from "./timeline.ts";
+import { formatClock } from "./Timeline.tsx";
+
+type EditFn = (fn: (d: T.TimelineDoc) => T.TimelineDoc) => boolean;
+const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
+const SWATCHES = ["#ffffff", "#000000", "#ffd400", "#ff4d4d", "#ff7ab8", "#4dd2ff", "#5dff9a", "#a78bfa"];
+
+function Slider({ label, value, min, max, step, format, onChange, onCommit }: { label: string; value: number; min: number; max: number; step: number; format: (v: number) => string; onChange?: (v: number) => void; onCommit: (v: number) => void }) {
+  const [local, setLocal] = useState<number | null>(null);
+  const shown = local ?? value;
+  return (
+    <label className="fs-slider"><span><span>{label}</span><b className="fs-mono">{format(shown)}</b></span>
+      <input type="range" min={min} max={max} step={step} value={shown} aria-label={label}
+        onChange={(e) => { setLocal(Number(e.target.value)); onChange?.(Number(e.target.value)); }}
+        onPointerUp={() => { if (local !== null) { onCommit(local); setLocal(null); } }}
+        onKeyUp={() => { if (local !== null) { onCommit(local); setLocal(null); } }}
+        onBlur={() => { if (local !== null) { onCommit(local); setLocal(null); } }} />
+    </label>
+  );
+}
+
+type Section = "speed" | "audio" | "look" | "frame";
+export function ClipInspector({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T.TimelineClip; edit: EditFn }) {
+  const [section, setSection] = useState<Section>("speed");
+  const asset = doc.assets.find((a) => a.id === clip.assetId);
+  const track = doc.tracks.find((t) => t.id === clip.trackId);
+  const isVideo = track?.kind === "video";
+  const look = clip.look ?? T.NEUTRAL_LOOK;
+  const dur = T.clipDuration(clip);
+  const sections: Array<[Section, string]> = isVideo ? [["speed", "Speed"], ["audio", "Audio"], ["look", "Look"], ["frame", "Frame"]] : [["speed", "Speed"], ["audio", "Audio"]];
+  const active = sections.some(([id]) => id === section) ? section : "speed";
+  const setLook = (l: T.ClipLook | null) => edit((d) => T.setClipLook(d, clip.id, l ?? null));
+  return (
+    <>
+      <h2>Clip</h2>
+      <p className="fs-inspector-name">{asset?.name ?? "Clip"}</p>
+      <dl className="fs-facts"><div><dt>Starts</dt><dd className="fs-mono">{formatClock(clip.start)}</dd></div><div><dt>Length</dt><dd className="fs-mono">{formatClock(dur)}</dd></div></dl>
+      <div className="fs-seg" role="tablist" aria-label="Clip settings">
+        {sections.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={active === id} className={active === id ? "is-active" : ""} onClick={() => setSection(id)}>{label}</button>)}
+      </div>
+      <div className="fs-inspector-body">
+        {active === "speed" && (
+          <div className="fs-chips" role="group" aria-label="Clip speed">
+            {SPEEDS.map((sp) => <button key={sp} type="button" className={`fs-chip${clip.speed === sp ? " is-active" : ""}`} aria-pressed={clip.speed === sp} onClick={() => edit((d) => T.setClipSpeed(d, clip.id, sp))}>{sp}×</button>)}
+          </div>
+        )}
+        {active === "audio" && (
+          <>
+            <Slider label="Volume" value={clip.volume ?? 1} min={0} max={T.MAX_VOLUME} step={0.05} format={(v) => `${Math.round(v * 100)}%`} onCommit={(v) => edit((d) => T.setClipAudio(d, clip.id, { volume: v }))} />
+            <Slider label={isVideo ? "Fade in" : "Fade in"} value={clip.fadeIn ?? 0} min={0} max={Math.max(0.1, Math.min(5, dur))} step={0.1} format={(v) => `${v.toFixed(1)} s`} onCommit={(v) => edit((d) => T.setClipAudio(d, clip.id, { fadeIn: v }))} />
+            <Slider label="Fade out" value={clip.fadeOut ?? 0} min={0} max={Math.max(0.1, Math.min(5, dur))} step={0.1} format={(v) => `${v.toFixed(1)} s`} onCommit={(v) => edit((d) => T.setClipAudio(d, clip.id, { fadeOut: v }))} />
+            <p className="fs-muted">{isVideo ? "Fades apply to the picture (from/to black) and the sound. " : "Fades apply to the sound. "}Volume above 100% boosts quiet audio.{asset && !asset.hasAudio ? " This file has no audio." : ""}</p>
+          </>
+        )}
+        {active === "look" && (
+          <>
+            <div className="fs-chips" role="group" aria-label="Look presets">
+              {T.LOOK_PRESETS.map((p) => {
+                const on = Math.abs(look.brightness - p.look.brightness) < 1e-6 && Math.abs(look.contrast - p.look.contrast) < 1e-6 && Math.abs(look.saturation - p.look.saturation) < 1e-6;
+                return <button key={p.id} type="button" className={`fs-chip${on ? " is-active" : ""}`} aria-pressed={on} onClick={() => setLook(p.id === "none" ? null : p.look)}>{p.name}</button>;
+              })}
+            </div>
+            <Slider label="Brightness" value={look.brightness} min={-0.5} max={0.5} step={0.02} format={(v) => (v > 0 ? "+" : "") + Math.round(v * 100)} onCommit={(v) => setLook({ ...look, brightness: v })} />
+            <Slider label="Contrast" value={look.contrast} min={0.5} max={1.8} step={0.02} format={(v) => `${Math.round(v * 100)}%`} onCommit={(v) => setLook({ ...look, contrast: v })} />
+            <Slider label="Saturation" value={look.saturation} min={0} max={2} step={0.02} format={(v) => `${Math.round(v * 100)}%`} onCommit={(v) => setLook({ ...look, saturation: v })} />
+            <p className="fs-muted">The preview is an approximation. The exported video uses exact values.</p>
+          </>
+        )}
+        {active === "frame" && (
+          <>
+            <div className="fs-chips" role="group" aria-label="Framing">
+              {([["fit", "Fit (show everything)"], ["fill", "Fill (crop to cover)"]] as const).map(([id, label]) => <button key={id} type="button" className={`fs-chip${(clip.fit ?? "fit") === id ? " is-active" : ""}`} aria-pressed={(clip.fit ?? "fit") === id} onClick={() => edit((d) => T.setClipFit(d, clip.id, id))}>{label}</button>)}
+            </div>
+            <p className="fs-muted">Choose the project’s shape from the preview. “Fill” removes black bars by cropping the edges.</p>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+type TextSection = "text" | "style" | "place";
+export function TextInspector({ layer, edit, duration }: { layer: T.TextLayer; edit: EditFn; duration: number }) {
+  const [section, setSection] = useState<TextSection>("text");
+  const up = (patch: Partial<Omit<T.TextLayer, "id">>) => edit((d) => T.updateText(d, layer.id, patch));
+  return (
+    <>
+      <h2>Text</h2>
+      <div className="fs-seg" role="tablist" aria-label="Text settings">
+        {([["text", "Text"], ["style", "Style"], ["place", "Place"]] as const).map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={section === id} className={section === id ? "is-active" : ""} onClick={() => setSection(id)}>{label}</button>)}
+      </div>
+      <div className="fs-inspector-body">
+        {section === "text" && (
+          <>
+            <textarea className="fs-textarea" rows={3} maxLength={T.MAX_TEXT_CHARS} defaultValue={layer.text} key={layer.id} aria-label="Text content"
+              onBlur={(e) => { if (e.target.value !== layer.text) { if (!up({ text: e.target.value })) e.target.value = layer.text; } }} />
+            <p className="fs-muted">Up to {T.MAX_TEXT_CHARS} characters. New lines are kept.</p>
+          </>
+        )}
+        {section === "style" && (
+          <>
+            <Slider label="Size" value={layer.size} min={0.03} max={0.25} step={0.005} format={(v) => `${Math.round(v * 100)}%`} onCommit={(v) => up({ size: v })} />
+            <div className="fs-label">Colour</div>
+            <div className="fs-swatches" role="group" aria-label="Text colour">
+              {SWATCHES.map((c) => <button key={c} type="button" className={`fs-swatch${layer.color.toLowerCase() === c ? " is-active" : ""}`} style={{ background: c }} aria-label={`Colour ${c}`} aria-pressed={layer.color.toLowerCase() === c} onClick={() => up({ color: c })} />)}
+            </div>
+            <div className="fs-chips">
+              <button type="button" className={`fs-chip${layer.bold ? " is-active" : ""}`} aria-pressed={layer.bold} onClick={() => up({ bold: !layer.bold })}>Bold</button>
+              <button type="button" className={`fs-chip${layer.box ? " is-active" : ""}`} aria-pressed={layer.box} onClick={() => up({ box: !layer.box })}>Background</button>
+            </div>
+            <p className="fs-muted">Exports use the DejaVu Sans font.</p>
+          </>
+        )}
+        {section === "place" && (
+          <>
+            <Slider label="Left ↔ right" value={layer.x} min={0} max={1} step={0.01} format={(v) => `${Math.round(v * 100)}%`} onCommit={(v) => up({ x: v })} />
+            <Slider label="Top ↔ bottom" value={layer.y} min={0} max={1} step={0.01} format={(v) => `${Math.round(v * 100)}%`} onCommit={(v) => up({ y: v })} />
+            <Slider label="Shows for" value={layer.duration} min={T.MIN_TEXT_SECONDS} max={Math.max(10, Math.ceil(duration))} step={0.1} format={(v) => `${v.toFixed(1)} s`} onCommit={(v) => up({ duration: v })} />
+            <div className="fs-chips" role="group" aria-label="Quick position">
+              {([["Top", 0.12], ["Middle", 0.5], ["Bottom", 0.86]] as const).map(([n, y]) => <button key={n} type="button" className="fs-chip" onClick={() => up({ x: 0.5, y })}>{n}</button>)}
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}

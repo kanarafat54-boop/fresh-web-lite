@@ -6,6 +6,7 @@ import { ExportCancelled, ExportError, availableExportOptions, runExport, type E
 import { createBrowserExportPorts } from "./renderClient.ts";
 import type { ExportPresetId } from "./renderPlan.ts";
 import { Icon, type IconName } from "./icons.tsx";
+import { ClipInspector, TextInspector } from "./Inspector.tsx";
 import { ANALYSIS_SAMPLE_RATE } from "./audioAnalysis.ts";
 import { computePeaks, extractFilmstrip, filmstripCount, type Filmstrip } from "./mediaVisuals.ts";
 import Timeline, { formatClock } from "./Timeline.tsx";
@@ -13,7 +14,7 @@ import * as T from "./timeline.ts";
 import { useVideoEditor } from "./useVideoEditor.ts";
 
 type Props = { project: StudioProject; service: StudioProjectService | null; onSaved: (p: StudioProject) => void; notify: (kind: "info" | "error", text: string) => void; onClose: () => void; signedIn: boolean };
-type Tab = "media" | "captions" | "smart" | "export";
+type Tab = "media" | "text" | "captions" | "smart" | "export";
 
 function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -23,9 +24,39 @@ function download(blob: Blob, name: string) {
 }
 const isTyping = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
 
+/** Preview gain through Web Audio so volume above 100% and fades can be heard. Falls back to element.volume. */
+const audioGraphs = new WeakMap<HTMLMediaElement, { ctx: AudioContext; gain: GainNode }>();
+let sharedCtx: AudioContext | null = null;
+function setPreviewGain(el: HTMLMediaElement, value: number) {
+  let g = audioGraphs.get(el);
+  if (!g) {
+    try {
+      const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctx) throw new Error("no web audio");
+      sharedCtx ??= new Ctx();
+      const gain = sharedCtx.createGain();
+      sharedCtx.createMediaElementSource(el).connect(gain).connect(sharedCtx.destination);
+      g = { ctx: sharedCtx, gain }; audioGraphs.set(el, g);
+    } catch { el.volume = Math.min(1, Math.max(0, value)); return; }
+  }
+  if (g.ctx.state === "suspended") void g.ctx.resume().catch(() => {});
+  g.gain.gain.value = value;
+}
+/** 0–1 factor for a clip's fade in/out at timeline time `t`. */
+function fadeFactor(c: T.TimelineClip, t: number): number {
+  const end = T.clipEnd(c);
+  let f = 1;
+  if (c.fadeIn) f = Math.min(f, (t - c.start) / c.fadeIn);
+  if (c.fadeOut) f = Math.min(f, (end - t) / c.fadeOut);
+  return Math.min(1, Math.max(0, f));
+}
+const lookFilter = (l: T.ClipLook | undefined) => (l ? `brightness(${1 + l.brightness}) contrast(${l.contrast}) saturate(${l.saturation})` : "none");
+const ratioOf = (a: string) => { const [w, h] = a.split(":").map(Number); return w / h; };
+
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
 const PANELS: Array<{ id: Tab; label: string; icon: IconName }> = [
   { id: "media", label: "Media", icon: "media" },
+  { id: "text", label: "Text", icon: "type" },
   { id: "captions", label: "Captions", icon: "captions" },
   { id: "smart", label: "Smart edit", icon: "sparkles" },
   { id: "export", label: "Export", icon: "export" },
@@ -38,6 +69,8 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
   const [playing, setPlaying] = useState(false);
   const [pxPerSec, setPxPerSec] = useState(70);
   const [dropping, setDropping] = useState(false);
+  const [safeAreas, setSafeAreas] = useState(false);
+  const monitorRef = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const videoEl = useRef<HTMLVideoElement>(null);
   const audioEl = useRef<HTMLAudioElement>(null);
@@ -47,6 +80,11 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
   const activeVideo = videoTrack ? T.clipAt(doc, videoTrack.id, playhead) : null;
   const activeAudio = musicTrack ? T.clipAt(doc, musicTrack.id, playhead) : null;
   const selectedClip = doc.clips.find((c) => c.id === selected) ?? null;
+  const selectedText = (doc.texts ?? []).find((t) => t.id === selected) ?? null;
+  const aspect = doc.aspect ?? String(project.meta.settings.aspectRatio ?? "16:9");
+  const aspectValid = (T.ASPECT_RATIOS as readonly string[]).includes(aspect) ? aspect : "16:9";
+  const visibleTexts = T.textsAt(doc, playhead);
+  const videoFade = activeVideo ? fadeFactor(activeVideo, playhead) : 1;
 
   // --- thumbnails and waveforms, computed once per file
   const [thumbs, setThumbs] = useState<Record<string, Filmstrip>>({});
@@ -69,7 +107,8 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
     const entry = clip ? media[clip.assetId] : null;
     if (!clip || !entry?.url) { if (!el.paused) el.pause(); return; }
     if (el.dataset.src !== entry.url) { el.dataset.src = entry.url; el.src = entry.url; }
-    el.muted = muted; el.playbackRate = clip.speed;
+    el.muted = false; el.playbackRate = clip.speed;
+    setPreviewGain(el, muted ? 0 : (clip.volume ?? 1) * fadeFactor(clip, at));
     const target = clip.sourceIn + (at - clip.start) * clip.speed;
     if (Math.abs(el.currentTime - target) > (playing ? 0.35 : 0.04)) { try { el.currentTime = target; } catch { /* not seekable yet */ } }
   }, [media, playing]);
@@ -116,9 +155,20 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
     ed.edit((d) => T.splitClip(d, c.id, playhead));
   };
   const remove = (ripple: boolean) => {
+    if (selectedText) { ed.edit((d) => T.deleteText(d, selectedText.id)); ed.setSelected(null); return; }
     if (!selectedClip) return notify("error", "Select a clip first.");
     ed.edit((d) => T.deleteClip(d, selectedClip.id, ripple)); ed.setSelected(null);
   };
+  const addTextLayer = (patch: Partial<Omit<T.TextLayer, "id">> = {}) => {
+    const id = T.newId("text");
+    const ok = ed.edit((d) => {
+      const withText = T.addText(d, { start: playhead, id, duration: 3 });
+      return Object.keys(patch).length ? T.updateText(withText, id, patch) : withText;
+    });
+    if (ok) ed.setSelected(id);
+  };
+  const step = (dir: 1 | -1) => { setPlaying(false); ed.setPlayhead(Math.min(duration, Math.max(0, T.round3(playheadRef.current + dir / doc.fps)))); };
+  const fullscreen = () => { const el = monitorRef.current; if (!el) return; if (document.fullscreenElement) void document.exitFullscreen(); else void el.requestFullscreen?.().catch(() => notify("error", "Fullscreen is not available here.")); };
   const duplicate = () => { if (selectedClip) ed.edit((d) => T.duplicateClip(d, selectedClip.id)); else notify("error", "Select a clip first."); };
   const fit = () => {
     const el = document.querySelector(".fs-tl-scroll");
@@ -179,47 +229,59 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
             <div className="fs-sidepanel-head"><h2>{PANELS.find((p) => p.id === panel)?.label}</h2><button type="button" className="fs-iconbtn" onClick={() => setPanel(null)} aria-label="Close panel"><Icon name="close" /></button></div>
             <div className="fs-tabpanel">
               {panel === "media" && <MediaPanel ed={ed} onImport={openImport} />}
+              {panel === "text" && <TextPanel ed={ed} onAdd={addTextLayer} />}
               {panel === "captions" && <CaptionsPanel ed={ed} />}
               {panel === "smart" && <SmartPanel ed={ed} clip={selectedClip} />}
-              {panel === "export" && <ExportPanel ed={ed} projectId={project.id} settings={project.meta.settings} signedIn={signedIn} notify={notify} />}
+              {panel === "export" && <ExportPanel ed={ed} projectId={project.id} aspect={aspectValid} signedIn={signedIn} notify={notify} />}
             </div>
           </>
         )}
       </aside>
 
       <section className="fs-stage" aria-label="Preview">
-        <div className="fs-monitor" data-empty={!activeVideo}>
-          <video ref={videoEl} playsInline preload="auto" aria-label="Video preview" style={{ visibility: activeVideo ? "visible" : "hidden" }} />
-          {!activeVideo && (empty
-            ? <button type="button" className="fs-empty-cta" onClick={openImport} disabled={!!ed.busy}><Icon name="import" size={30} /><strong>Import video or audio</strong><span>or drop files here</span></button>
-            : <p className="fs-muted">No video at this point. Gaps render as black.</p>)}
-          {ed.busy && <div className="fs-busy" role="status">{ed.busy}</div>}
+        <div className="fs-monitor" ref={monitorRef} data-empty={!activeVideo}>
+          <div className="fs-frame" style={{ aspectRatio: aspectValid.replace(":", " / "), ["--ar" as string]: ratioOf(aspectValid) }} data-aspect={aspectValid}>
+            <video ref={videoEl} playsInline preload="auto" aria-label="Video preview"
+              style={{ visibility: activeVideo ? "visible" : "hidden", objectFit: activeVideo?.fit === "fill" ? "cover" : "contain", filter: lookFilter(activeVideo?.look), opacity: videoFade }} />
+            {!activeVideo && (empty
+              ? <button type="button" className="fs-empty-cta" onClick={openImport} disabled={!!ed.busy}><Icon name="import" size={30} /><strong>Import video or audio</strong><span>or drop files here</span></button>
+              : <p className="fs-muted fs-gap">No video at this point. Gaps render as black.</p>)}
+            {visibleTexts.map((t) => (
+              <div key={t.id} className={`fs-overlay-text${selected === t.id ? " is-selected" : ""}`} data-testid="overlay-text"
+                style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`, fontSize: `${t.size * 100}cqh`, color: t.color, fontWeight: t.bold ? 700 : 400, background: t.box ? "rgba(0,0,0,.55)" : "transparent", padding: t.box ? "0.25em" : 0, textShadow: t.box ? "none" : "0.05em 0.05em 0.05em rgba(0,0,0,.6)" }}
+                onPointerDown={(e) => { e.stopPropagation(); ed.setSelected(t.id); }}>{t.text}</div>
+            ))}
+            {safeAreas && <div className="fs-safe" aria-hidden="true"><i /><i /></div>}
+            {ed.busy && <div className="fs-busy" role="status">{ed.busy}</div>}
+          </div>
         </div>
         <audio ref={audioEl} preload="auto" />
         <div className="fs-transport">
-          <span className="fs-time fs-mono" aria-live="off"><b>{formatClock(playhead)}</b> / {formatClock(duration)}</span>
-          <button type="button" className="fs-play" onClick={togglePlay} disabled={duration <= 0} aria-label={playing ? "Pause" : "Play"}><Icon name={playing ? "pause" : "play"} size={22} /></button>
-          <span className="fs-transport-end" />
+          <span className="fs-time fs-mono" aria-live="off"><b>{formatClock(playhead)}</b><span className="fs-time-sep"> / </span><span>{formatClock(duration)}</span></span>
+          <div className="fs-transport-main">
+            <button type="button" className="fs-iconbtn" onClick={() => step(-1)} disabled={duration <= 0} aria-label="Back one frame"><Icon name="stepBack" /></button>
+            <button type="button" className="fs-play" onClick={togglePlay} disabled={duration <= 0} aria-label={playing ? "Pause" : "Play"}><Icon name={playing ? "pause" : "play"} size={22} /></button>
+            <button type="button" className="fs-iconbtn" onClick={() => step(1)} disabled={duration <= 0} aria-label="Forward one frame"><Icon name="stepForward" /></button>
+          </div>
+          <div className="fs-transport-end">
+            <select value={aspectValid} onChange={(e) => ed.edit((d) => T.setAspect(d, e.target.value))} aria-label="Preview aspect ratio" title="The shape of your video. Export uses the same shape.">
+              {T.ASPECT_RATIOS.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+            <button type="button" className="fs-iconbtn" aria-pressed={safeAreas} onClick={() => setSafeAreas((v) => !v)} aria-label="Safe areas" title="Show safe areas"><Icon name="safe" /></button>
+            <button type="button" className="fs-iconbtn" onClick={fullscreen} aria-label="Fullscreen preview"><Icon name="fullscreen" /></button>
+          </div>
         </div>
       </section>
 
       <aside className="fs-inspector" aria-label="Clip settings">
-        {selectedClip ? (
-          <>
-            <h2>Clip</h2>
-            <p className="fs-inspector-name">{doc.assets.find((a) => a.id === selectedClip.assetId)?.name ?? "Clip"}</p>
-            <dl className="fs-facts"><div><dt>Starts</dt><dd className="fs-mono">{formatClock(selectedClip.start)}</dd></div><div><dt>Length</dt><dd className="fs-mono">{formatClock(T.clipEnd(selectedClip) - selectedClip.start)}</dd></div></dl>
-            <div className="fs-label">Speed</div>
-            <div className="fs-chips" role="group" aria-label="Clip speed">
-              {SPEEDS.map((sp) => <button key={sp} type="button" className={`fs-chip${selectedClip.speed === sp ? " is-active" : ""}`} aria-pressed={selectedClip.speed === sp} onClick={() => ed.edit((d) => T.setClipSpeed(d, selectedClip.id, sp))}>{sp}×</button>)}
-            </div>
-          </>
-        ) : (
-          <>
-            <h2>Clip</h2>
-            <p className="fs-muted">{empty ? "Import a video to start editing." : "Tap a clip on the timeline to change its speed, split, duplicate or delete it."}</p>
-          </>
-        )}
+        {selectedClip ? <ClipInspector doc={doc} clip={selectedClip} edit={ed.edit} />
+          : selectedText ? <TextInspector layer={selectedText} edit={ed.edit} duration={duration} />
+          : (
+            <>
+              <h2>Properties</h2>
+              <p className="fs-muted">{empty && !(doc.texts ?? []).length ? "Import a video to start editing." : "Tap a clip or text on the timeline to change its speed, volume, look, framing or style."}</p>
+            </>
+          )}
       </aside>
 
       <div className="fs-tl-tools" role="toolbar" aria-label="Editing tools">
@@ -229,9 +291,12 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
         </div>
         <div className="fs-toolgroup">
           <ToolBtn icon="split" label="Split" onClick={split} disabled={empty} />
-          <ToolBtn icon="trash" label="Delete" onClick={() => remove(false)} disabled={!selectedClip} />
+          <ToolBtn icon="trash" label="Delete" onClick={() => remove(false)} disabled={!selectedClip && !selectedText} />
           <ToolBtn icon="ripple" label="Ripple delete" short="Ripple" onClick={() => remove(true)} disabled={!selectedClip} title="Delete and close the gap" />
           <ToolBtn icon="copy" label="Duplicate" onClick={duplicate} disabled={!selectedClip} />
+        </div>
+        <div className="fs-toolgroup">
+          <ToolBtn icon="type" label="Add text" onClick={() => addTextLayer()} />
         </div>
         <div className="fs-toolgroup fs-zoomgroup">
           <button type="button" className="fs-iconbtn" aria-label="Zoom out" onClick={() => setPxPerSec((z) => Math.max(10, Math.round(z / 1.4)))}><Icon name="zoomOut" /></button>
@@ -283,6 +348,36 @@ function MediaPanel({ ed, onImport }: { ed: Ed; onImport: () => void }) {
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+const TEXT_STYLES: Array<{ name: string; hint: string; patch: Partial<Omit<T.TextLayer, "id">> }> = [
+  { name: "Title", hint: "Big, centred", patch: { text: "Title", size: 0.14, y: 0.5, bold: true, box: false } },
+  { name: "Subtitle", hint: "Lower third", patch: { text: "Subtitle", size: 0.07, y: 0.82, bold: false, box: true } },
+  { name: "Callout", hint: "Yellow, top", patch: { text: "Look here", size: 0.08, y: 0.14, bold: true, color: "#ffd400" } },
+];
+
+function TextPanel({ ed, onAdd }: { ed: Ed; onAdd: (patch?: Partial<Omit<T.TextLayer, "id">>) => void }) {
+  const texts = ed.doc.texts ?? [];
+  return (
+    <div>
+      <button type="button" className="fs-btn fs-btn-primary" onClick={() => onAdd()}><Icon name="plus" size={18} /> Add text at playhead</button>
+      <h3>Quick styles</h3>
+      <div className="fs-styles">
+        {TEXT_STYLES.map((st) => <button key={st.name} type="button" className="fs-style" onClick={() => onAdd(st.patch)}><strong>{st.name}</strong><span>{st.hint}</span></button>)}
+      </div>
+      <h3>Text on this video</h3>
+      <ul className="fs-bin">
+        {texts.length === 0 && <li className="fs-muted">No text yet.</li>}
+        {texts.map((t) => (
+          <li key={t.id}>
+            <button type="button" className="fs-linkbtn" onClick={() => { ed.setSelected(t.id); ed.setPlayhead(t.start); }} aria-label={`Select text ${t.text.slice(0, 30)}`}><strong>{t.text.split("\n")[0].slice(0, 40)}</strong><div className="fs-muted">{formatClock(t.start)} · {t.duration.toFixed(1)} s</div></button>
+            <button type="button" className="fs-btn" aria-label={`Delete text ${t.text.slice(0, 30)}`} onClick={() => ed.edit((d) => T.deleteText(d, t.id))}>Delete</button>
+          </li>
+        ))}
+      </ul>
+      <p className="fs-muted">Text is drawn on the final video with the DejaVu Sans font. Pick a layer to restyle it; drag its block on the timeline to retime it.</p>
     </div>
   );
 }
@@ -349,11 +444,10 @@ function SmartPanel({ ed, clip }: { ed: Ed; clip: T.TimelineClip | null }) {
   );
 }
 
-function ExportPanel({ ed, projectId, settings, signedIn, notify }: { ed: Ed; projectId: string; settings: Record<string, string | number | boolean>; signedIn: boolean; notify: Props["notify"] }) {
+function ExportPanel({ ed, projectId, aspect, signedIn, notify }: { ed: Ed; projectId: string; aspect: string; signedIn: boolean; notify: Props["notify"] }) {
   const [caps, setCaps] = useState<WorkerCapabilities | null>(null);
   const [capsError, setCapsError] = useState<string | null>(null);
   const [preset, setPreset] = useState<ExportPresetId>("720p");
-  const [aspect, setAspect] = useState(String(settings.aspectRatio ?? "16:9"));
   const [stage, setStage] = useState<ExportStage | null>(null);
   const [detail, setDetail] = useState("");
   const [progress, setProgress] = useState(0);
@@ -365,7 +459,7 @@ function ExportPanel({ ed, projectId, settings, signedIn, notify }: { ed: Ed; pr
   useEffect(() => {
     if (!signedIn) return;
     let alive = true;
-    ports.getCapabilities().then((c) => { if (!alive) return; setCaps(c); if (!c.presets.includes(preset)) setPreset(c.presets[c.presets.length - 1] ?? "720p"); if (!c.aspectRatios.includes(aspect)) setAspect(c.aspectRatios[0] ?? "16:9"); })
+    ports.getCapabilities().then((c) => { if (!alive) return; setCaps(c); if (!c.presets.includes(preset)) setPreset(c.presets[c.presets.length - 1] ?? "720p"); })
       .catch((e: unknown) => { if (alive) setCapsError(e instanceof Error ? e.message : "The render service is not reachable."); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -396,7 +490,8 @@ function ExportPanel({ ed, projectId, settings, signedIn, notify }: { ed: Ed; pr
       {caps && (
         <>
           <label className="fs-field"><span>Quality</span><select value={preset} disabled={running} onChange={(e) => setPreset(e.target.value as ExportPresetId)}>{opts.presets.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
-          <label className="fs-field"><span>Aspect ratio</span><select value={aspect} disabled={running} onChange={(e) => setAspect(e.target.value)}>{opts.aspectRatios.map((a) => <option key={a} value={a}>{a}</option>)}</select></label>
+          <p className="fs-muted">Shape: <b>{aspect}</b>{opts.aspectRatios.includes(aspect) ? "" : " (not available on this worker)"}. Change it with the ratio menu under the preview.</p>
+          {(ed.doc.texts ?? []).length > 0 && !caps.text && <p className="fs-warn" role="alert">This render worker cannot export text yet.</p>}
           <p className="fs-muted">Up to {caps.maxSeconds} seconds per export. 1440p and 4K are not offered because they are not verified yet.</p>
         </>
       )}

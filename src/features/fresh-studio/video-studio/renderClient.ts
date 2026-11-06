@@ -2,7 +2,7 @@
  * Browser ports for export: the same-origin authenticated proxy to the render worker, and a private
  * Supabase Storage bucket for source files (signed, short-lived URLs). Secrets stay server-side.
  */
-import type { ExportPorts, RenderRequestBody, WorkerCapabilities, WorkerStatus } from "./exportJob.ts";
+import { parseCapabilities, type ExportPorts, type RenderRequestBody, type WorkerCapabilities, type WorkerStatus } from "./exportJob.ts";
 
 export const SOURCE_BUCKET = "studio-media";
 const SIGNED_URL_SECONDS = 60 * 60;
@@ -28,7 +28,7 @@ async function worker(path: string, init: RequestInit = {}): Promise<Response> {
 
 export function createBrowserExportPorts(projectId: string): ExportPorts {
   return {
-    async getCapabilities() { return (await (await worker("/capabilities")).json()) as WorkerCapabilities; },
+    async getCapabilities(): Promise<WorkerCapabilities> { return parseCapabilities(await (await worker("/capabilities")).json()); },
     async uploadSource(assetId, blob) {
       const { supabase, userId } = await session();
       const path = `${userId}/${projectId}/${assetId}`;

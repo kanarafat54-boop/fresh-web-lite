@@ -93,6 +93,25 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   assert.deepEqual(fs.readdirSync(root).filter((n) => n.endsWith("-render")), [], "temporary input files are removed");
 }
 
+// --- 1b) Text, volume, fades, colour and framing travel through the worker and come out in the file
+if (limits.text) {
+  const root = roots(), jobs = new Map();
+  let doc = T.setClipFit(T.setClipLook(T.setClipAudio(makeDoc(4), "c1", { volume: 0.5, fadeIn: 0.5 }), "c1", { brightness: 0, contrast: 1, saturation: 0 }), "c1", "fill");
+  doc = T.updateText(T.addText(doc, { start: 0.5, duration: 2, id: "t1", text: "It's 100%: \"quoted\"" }), "t1", { size: 0.15 });
+  const req = parseRenderRequest({ timeline: doc, preset: "360p", aspectRatio: "16:9", sources: { a: "https://media.test/short.mp4" } }, limits);
+  assert.ok(req.ok, req.error);
+  const job = newJob(req.value); jobs.set(job.id, job);
+  await runRenderJob(job, ctx(jobs, root));
+  const done = jobs.get(job.id);
+  assert.equal(done.status, "succeeded", done.error);
+  assert.ok(done.outputBytes > 1000);
+  assert.deepEqual(fs.readdirSync(root).filter((n) => n.endsWith("-render")), [], "text files are cleaned up too");
+  const stats = spawnSync("ffmpeg", ["-hide_banner", "-ss", "1", "-i", done.outputPath, "-frames:v", "1", "-vf", "signalstats,metadata=print:file=-", "-f", "null", "-"], { encoding: "utf8" });
+  assert.ok(Number((stats.stdout + stats.stderr).match(/SATAVG=([\d.]+)/)[1]) < 3, "Mono look was applied by the worker");
+  const noFonts = parseRenderRequest({ timeline: doc, preset: "360p", aspectRatio: "16:9", sources: { a: "https://media.test/short.mp4" } }, { ...limits, text: false });
+  assert.equal(noFonts.ok, false); assert.match(noFonts.error, /no fonts/);
+}
+
 // --- 2) A failed download fails the job cleanly and leaves nothing behind
 {
   const root = roots(), jobs = new Map();

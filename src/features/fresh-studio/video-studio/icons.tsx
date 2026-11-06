@@ -26,6 +26,11 @@ const PATHS: Record<string, ReactNode> = {
   import: <><path d="M12 3v12M7 10l5 5 5-5" /><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" /></>,
   fit: <><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></>,
   music: <><path d="M9 18V5l11-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="17" cy="16" r="3" /></>,
+  type: <><path d="M5 6V4h14v2M12 4v16M9 20h6" /></>,
+  safe: <><rect x="3" y="5" width="18" height="14" rx="1" /><rect x="6.5" y="8" width="11" height="8" rx="1" strokeDasharray="2 2" /></>,
+  stepBack: <><path d="M6 5v14M18 5l-9 7 9 7z" /></>,
+  stepForward: <><path d="M18 5v14M6 5l9 7-9 7z" /></>,
+  fullscreen: <><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></>,
   video: <><rect x="3" y="6" width="13" height="12" rx="2" /><path d="M16 10l5-3v10l-5-3z" /></>,
 };
 

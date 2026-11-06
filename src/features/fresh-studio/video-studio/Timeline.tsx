@@ -19,6 +19,7 @@ type Drag = { id: string; mode: "move" | "trimStart" | "trimEnd"; startX: number
 
 const SNAP_PX = 8;
 export const TRACK_HEIGHT: Record<string, number> = { video: 68, music: 48 };
+export const TEXT_ROW_HEIGHT = 36;
 const trackHeight = (kind: string) => TRACK_HEIGHT[kind] ?? 48;
 
 export function formatClock(seconds: number): string {
@@ -91,6 +92,32 @@ export default function Timeline({ doc, selected, playhead, pxPerSec, thumbs, pe
   const tracks = doc.tracks.filter((t) => T.SUPPORTED_TRACK_KINDS.includes(t.kind));
   const scroller = useRef<HTMLDivElement>(null);
 
+  // ---- text row: its own light drag (move / trim) because text layers are not tied to media
+  type TDrag = { id: string; mode: "move" | "start" | "end"; startX: number; origStart: number; origEnd: number; start: number; end: number };
+  const [tdrag, setTdrag] = useState<TDrag | null>(null);
+  const tdragRef = useRef<TDrag | null>(null);
+  const textBegin = (e: RPointerEvent, t: T.TextLayer, mode: TDrag["mode"]) => {
+    e.stopPropagation(); onSelect(t.id);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const d: TDrag = { id: t.id, mode, startX: e.clientX, origStart: t.start, origEnd: t.start + t.duration, start: t.start, end: t.start + t.duration };
+    tdragRef.current = d; setTdrag(d);
+  };
+  const textMove = (e: RPointerEvent) => {
+    const d = tdragRef.current; if (!d) return;
+    const dt = (e.clientX - d.startX) / ppsRef.current;
+    const n = { ...d };
+    if (d.mode === "move") { n.start = T.round3(Math.max(0, d.origStart + dt)); n.end = T.round3(n.start + (d.origEnd - d.origStart)); }
+    else if (d.mode === "start") n.start = T.round3(Math.min(d.origEnd - T.MIN_TEXT_SECONDS, Math.max(0, d.origStart + dt)));
+    else n.end = T.round3(Math.max(d.origStart + T.MIN_TEXT_SECONDS, d.origEnd + dt));
+    tdragRef.current = n; setTdrag(n);
+  };
+  const textEnd = () => {
+    const d = tdragRef.current; tdragRef.current = null; setTdrag(null);
+    if (!d || (Math.abs(d.start - d.origStart) < 0.005 && Math.abs(d.end - d.origEnd) < 0.005)) return;
+    edit((doc0) => T.updateText(doc0, d.id, { start: d.start, duration: T.round3(d.end - d.start) }));
+  };
+  const texts = doc.texts ?? [];
+
   // Keep the playhead in view while playing or stepping.
   useEffect(() => {
     const el = scroller.current; if (!el) return;
@@ -160,6 +187,7 @@ export default function Timeline({ doc, selected, playhead, pxPerSec, thumbs, pe
             <button type="button" className="fs-iconbtn" aria-pressed={t.locked} aria-label={`${t.locked ? "Unlock" : "Lock"} ${t.name}`} onClick={() => edit((d) => T.setTrackFlags(d, t.id, { locked: !t.locked }))}><Icon name={t.locked ? "lock" : "unlock"} size={16} /></button>
           </div>
         ))}
+        <div className="fs-tl-label fs-tl-label-text" style={{ height: TEXT_ROW_HEIGHT }} title="Text layers"><Icon name="type" size={16} /></div>
       </div>
       <div className="fs-tl-scroll" ref={scroller}>
         <div className="fs-tl-canvas" style={{ width }}>
@@ -177,6 +205,22 @@ export default function Timeline({ doc, selected, playhead, pxPerSec, thumbs, pe
               })}
             </div>
           ))}
+          <div className="fs-tl-track kind-title" style={{ height: TEXT_ROW_HEIGHT }} onPointerDown={(e) => { onSelect(null); seekFrom(e); }}>
+            {texts.map((t) => {
+              const live = tdrag && tdrag.id === t.id ? tdrag : null;
+              const start = live ? live.start : t.start, end = live ? live.end : t.start + t.duration;
+              return (
+                <div key={t.id} className={`fs-textblock${selected === t.id ? " is-selected" : ""}`} style={{ left: start * pxPerSec, width: Math.max(14, (end - start) * pxPerSec) }}
+                  role="button" tabIndex={0} aria-pressed={selected === t.id} aria-label={`Text “${t.text.slice(0, 30)}”, ${formatClock(start)} to ${formatClock(end)}`}
+                  onPointerDown={(e) => textBegin(e, t, "move")} onPointerMove={textMove} onPointerUp={textEnd} onPointerCancel={textEnd}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(t.id); } }}>
+                  <span className="fs-clip-handle is-start" onPointerDown={(e) => textBegin(e, t, "start")} onPointerMove={textMove} onPointerUp={textEnd} onPointerCancel={textEnd} aria-hidden="true" />
+                  <span className="fs-textblock-label">{t.text.split("\n")[0]}</span>
+                  <span className="fs-clip-handle is-end" onPointerDown={(e) => textBegin(e, t, "end")} onPointerMove={textMove} onPointerUp={textEnd} onPointerCancel={textEnd} aria-hidden="true" />
+                </div>
+              );
+            })}
+          </div>
           {empty && <button type="button" className="fs-tl-empty" onClick={onImport}><Icon name="plus" size={18} /> Add your first clip</button>}
           <div className="fs-tl-playhead" style={{ left: playhead * pxPerSec }} aria-hidden="true"><span className="fs-tl-playhead-cap" /></div>
         </div>

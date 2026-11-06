@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { EXPORT_PRESETS, planRender } from "./vendor/renderPlan.mjs";
@@ -6,6 +7,13 @@ import { EXPORT_PRESETS, planRender } from "./vendor/renderPlan.mjs";
 const clamp = (n, lo, hi) => Math.min(Math.max(n, lo), hi);
 const ASSET_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const procs = new Map();
+
+/** Fonts installed in the worker image (fonts-dejavu-core). Text export is only offered when they exist. */
+export const WORKER_FONTS = {
+  regular: process.env.FRESH_FONT_REGULAR || "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+  bold: process.env.FRESH_FONT_BOLD || "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+};
+export const textSupported = () => existsSync(WORKER_FONTS.regular) && existsSync(WORKER_FONTS.bold);
 
 /** What this worker will actually render. The UI reads this, so it never offers an option that would fail. */
 export function getRenderLimits(env = process.env) {
@@ -18,6 +26,7 @@ export function getRenderLimits(env = process.env) {
     maxSeconds: clamp(Number(env.FRESH_RENDER_MAX_SECONDS) || 120, 5, 300),
     maxSources: 8,
     maxCaptionBytes: 200 * 1024,
+    text: textSupported(),
     maxActivePerUser: 1,
     maxActiveTotal: clamp(Number(env.FRESH_RENDER_MAX_ACTIVE) || 1, 1, 4),
     timeoutMs: clamp(Number(env.FRESH_RENDER_TIMEOUT_MS) || 10 * 60 * 1000, 10_000, 30 * 60 * 1000),
@@ -42,7 +51,10 @@ export function parseRenderRequest(input, limits) {
   if (captionsSrt !== undefined && (typeof captionsSrt !== "string" || Buffer.byteLength(captionsSrt) > limits.maxCaptionBytes)) return fail("Captions are too large.");
   // Dry-run the planner with placeholder paths: catches bad timelines and over-long renders before any download.
   const placeholders = Object.fromEntries(ids.map((id) => [id, "placeholder"]));
-  const dry = planRender({ doc: timeline, preset, aspectRatio, sources: placeholders, outputPath: "out.mp4", fps, captionsFile: captionsSrt ? "captions.srt" : undefined });
+  const textLayers = Array.isArray(timeline?.texts) ? timeline.texts : [];
+  if (textLayers.length > 0 && !limits.text) return fail("This render worker has no fonts installed, so text cannot be exported.");
+  const textPlaceholders = Object.fromEntries(textLayers.map((t) => [t?.id, "text.txt"]));
+  const dry = planRender({ doc: timeline, preset, aspectRatio, sources: placeholders, outputPath: "out.mp4", fps, captionsFile: captionsSrt ? "captions.srt" : undefined, textFiles: textPlaceholders, fonts: WORKER_FONTS });
   if (!dry.ok) return fail(dry.errors[0]);
   if (dry.duration > limits.maxSeconds) return fail(`This worker renders up to ${limits.maxSeconds} seconds at a time. Your video is ${Math.ceil(dry.duration)} seconds.`);
   const used = new Set(timeline.clips.map((c) => c.assetId));
@@ -83,7 +95,12 @@ export async function runRenderJob(job, ctx) {
       captionsFile = join(dir, "captions.srt");
       await writeFile(captionsFile, request.captionsSrt, "utf8");
     }
-    const plan = planRender({ doc: request.timeline, preset: request.preset, aspectRatio: request.aspectRatio, sources: local, outputPath: output, fps: request.fps, captionsFile });
+    const textFiles = {};
+    for (const [k, t] of (request.timeline.texts ?? []).entries()) {
+      textFiles[t.id] = join(dir, `text-${k}.txt`);
+      await writeFile(textFiles[t.id], t.text, "utf8");
+    }
+    const plan = planRender({ doc: request.timeline, preset: request.preset, aspectRatio: request.aspectRatio, sources: local, outputPath: output, fps: request.fps, captionsFile, textFiles, fonts: WORKER_FONTS });
     if (!plan.ok) throw new Error(plan.errors[0]);
 
     // Ask ffmpeg for machine-readable progress on stdout.

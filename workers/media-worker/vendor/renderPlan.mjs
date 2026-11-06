@@ -8,6 +8,9 @@
 import { escapeFilterPath } from "./captions.mjs";
 import { clipDuration, round3, timelineDuration, trackClips, validateTimeline,                                     } from "./timeline.mjs";
 
+/** Fonts available to the renderer. The worker image ships DejaVu Sans only, so that is the one offered. */
+                                                            
+
 export const EXPORT_PRESETS = [
   { id: "360p", shortSide: 360 },
   { id: "480p", shortSide: 480 },
@@ -36,6 +39,9 @@ const ASPECTS                                   = { "9:16": [9, 16], "16:9": [16
                
                                                                                                      
                         
+                                                                                                                             
+                                     
+                      
   
 
                         
@@ -69,8 +75,27 @@ function audioOfClip(label        , input        , clip              , hasAudio 
   const d = clipDuration(clip);
   if (!hasAudio || silent) return `anullsrc=r=${AUDIO_RATE}:cl=stereo,atrim=duration=${num(d)},asetpts=PTS-STARTPTS[${label}]`;
   const chain = [`atrim=start=${num(clip.sourceIn)}:end=${num(clip.sourceOut)}`, "asetpts=PTS-STARTPTS", ...atempoChain(clip.speed), `aresample=${AUDIO_RATE}`, "aformat=sample_fmts=fltp:channel_layouts=stereo"];
+  if (clip.volume !== undefined && Math.abs(clip.volume - 1) > 1e-6) chain.push(`volume=${num(clip.volume)}`);
+  if (clip.fadeIn) chain.push(`afade=t=in:st=0:d=${num(clip.fadeIn)}`);
+  if (clip.fadeOut) chain.push(`afade=t=out:st=${num(Math.max(0, d - clip.fadeOut))}:d=${num(clip.fadeOut)}`);
   return `[${input}:a]${chain.join(",")}[${label}]`;
 }
+
+/** Colour, framing and fades for one clip's picture. */
+function pictureChain(clip              , W        , H        , fps        )         {
+  const frame = clip.fit === "fill"
+    ? `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H}`
+    : `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:black`;
+  const parts = [frame, "setsar=1", `fps=${fps}`];
+  const l = clip.look;
+  if (l && (Math.abs(l.brightness) > 1e-6 || Math.abs(l.contrast - 1) > 1e-6 || Math.abs(l.saturation - 1) > 1e-6)) parts.push(`eq=brightness=${num(l.brightness)}:contrast=${num(l.contrast)}:saturation=${num(l.saturation)}`);
+  const d = clipDuration(clip);
+  if (clip.fadeIn) parts.push(`fade=t=in:st=0:d=${num(clip.fadeIn)}`);
+  if (clip.fadeOut) parts.push(`fade=t=out:st=${num(Math.max(0, d - clip.fadeOut))}:d=${num(clip.fadeOut)}`);
+  return parts.join(",");
+}
+
+const FFMPEG_COLOR = /^#[0-9a-fA-F]{6}$/;
 
 export function planRender(input                 )             {
   const { doc, preset, aspectRatio, sources, outputPath } = input;
@@ -129,7 +154,7 @@ export function planRender(input                 )             {
     const speed = clip.speed === 1 ? "" : `,setpts=(PTS-STARTPTS)/${num(clip.speed)}`;
     filters.push(
       `[${i}:v]trim=start=${num(clip.sourceIn)}:end=${num(clip.sourceOut)},setpts=PTS-STARTPTS${speed},` +
-      `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps=${fps}[c${seg}v]`,
+      `${pictureChain(clip, W, H, fps)}[c${seg}v]`,
     );
     filters.push(audioOfClip(`c${seg}a`, i, clip, asset.hasAudio, vTrack.muted));
     vLabels.push(`c${seg}v`); aLabels.push(`c${seg}a`);
@@ -139,7 +164,26 @@ export function planRender(input                 )             {
 
   const n = vLabels.length;
   const burn = Boolean(input.captionsFile);
-  filters.push(`${vLabels.map((l) => `[${l}]`).join("")}concat=n=${n}:v=1:a=0[${burn ? "vcat" : "vout"}]`);
+  const texts = doc.texts ?? [];
+  filters.push(`${vLabels.map((l) => `[${l}]`).join("")}concat=n=${n}:v=1:a=0[${texts.length ? "vraw" : burn ? "vcat" : "vout"}]`);
+  if (texts.length) {
+    const drawn           = [];
+    for (const t of [...texts].sort((a, b) => a.start - b.start)) {
+      const file = input.textFiles?.[t.id];
+      if (!file || !input.fonts) { errors.push(`Text "${t.text.slice(0, 20)}" cannot be rendered because its file or font is missing.`); continue; }
+      if (!FFMPEG_COLOR.test(t.color)) { errors.push("A text colour is invalid."); continue; }
+      const fontSize = Math.max(8, Math.round(H * t.size));
+      const opts = [
+        `fontfile=${escapeFilterPath(t.bold ? input.fonts.bold : input.fonts.regular)}`, `textfile=${escapeFilterPath(file)}`, `expansion=none`, `fontsize=${fontSize}`, `fontcolor=${t.color}`,
+        `x=w*${num(t.x)}-text_w/2`, `y=h*${num(t.y)}-text_h/2`,
+        t.box ? `box=1:boxcolor=black@0.55:boxborderw=${Math.round(fontSize * 0.25)}` : "shadowx=2:shadowy=2:shadowcolor=black@0.6",
+        `enable=between(t\\,${num(t.start)}\\,${num(t.start + t.duration)})`,
+      ];
+      drawn.push(`drawtext=${opts.join(":")}`);
+    }
+    if (errors.length) return { ok: false, errors };
+    filters.push(`[vraw]${drawn.join(",")}[${burn ? "vcat" : "vout"}]`);
+  }
   if (burn) {
     const size = Math.max(14, Math.round(H * 0.045));
     filters.push(`[vcat]subtitles=filename=${escapeFilterPath(input.captionsFile )}:force_style='FontSize=${size},Outline=2,Shadow=0,MarginV=${Math.round(H * 0.08)}'[vout]`);
@@ -159,6 +203,11 @@ export function planRender(input                 )             {
     });
     filters.push(`[abase]${mLabels.join("")}amix=inputs=${1 + mLabels.length}:duration=first:normalize=0:dropout_transition=0[amix]`);
     audioOut = "amix";
+  }
+
+  if ([...vClips, ...music].some((c) => (c.volume ?? 1) > 1)) {
+    filters.push(`[${audioOut}]alimiter=limit=0.97[alim]`);
+    audioOut = "alim";
   }
 
   const filterGraph = filters.join(";\n");
