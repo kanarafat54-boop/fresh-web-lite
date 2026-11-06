@@ -246,7 +246,8 @@ export async function POST(req: Request): Promise<Response> {
     if (!goal) return json({ error: "A goal is required" }, 400);
     if (goal.length > 4000) return json({ error: "Keep the request under 4,000 characters" }, 400);
 
-    const nativeArtifact = generateFreshNativeDimensionalArtifact(goal);
+    const shortsContextCheck = b.mode === "shorts-context-check";
+    const nativeArtifact = shortsContextCheck ? null : generateFreshNativeDimensionalArtifact(goal);
     if (nativeArtifact) {
       return json({
         requestId,
@@ -272,7 +273,7 @@ export async function POST(req: Request): Promise<Response> {
     const nativeInferenceState: { value: FreshUnifiedInferenceResult | null } = { value: null };
     const gw = createFreshAIIntelligenceGateway({
       skills: createCoreFreshSkillRegistry(),
-      memory: memory(uid),
+      memory: memory(shortsContextCheck ? null : uid),
       retrieve: async (x, i) => { const [web, kb] = await Promise.all([i.needsEvidence || i.intent === "research" ? research(x) : Promise.resolve([] as Awaited<ReturnType<typeof research>>), i.intent !== "chat" && isExplicitFreshPlatformQuestion(x) ? platformKnowledge(x) : Promise.resolve([] as Awaited<ReturnType<typeof research>>)]); return [...web, ...kb]; },
       nativeAnswer: async (input, interpretation, evidence, _reasoning, _memories, turns) => {
         const history = turns.slice(-6).map(turn => turn.role + ": " + turn.content.slice(0, 1200)).join("\n");
@@ -294,16 +295,17 @@ export async function POST(req: Request): Promise<Response> {
     const r: FreshAIResponse = await gw.handle({
       requestId,
       input: goal,
+      intent: shortsContextCheck ? "research" : undefined,
       route,
       userId: uid,
       conversation,
       context: { workspace: workspaceContext, model, voiceModel: b.voiceModel ?? null },
       approve: Boolean(b.approve),
-      execute: true,
+      execute: !shortsContextCheck,
     });
 
     let generatedImage: { dataUrl?: string; b64?: string; model: string; size: string; engine: "fresh-native" | "configured-image-engine" } | null = null;
-    if (requestsImage(goal, r.interpretation, b.mode)) {
+    if (!shortsContextCheck && requestsImage(goal, r.interpretation, b.mode)) {
       if (isFreshAIImageEngineConfigured() && !uid) {
         return json({ requestId, error: "Sign in to use the configured Fresh AI image-generation service.", status: "authentication-required", intent: r.interpretation.intent }, 401);
       }
@@ -320,7 +322,7 @@ export async function POST(req: Request): Promise<Response> {
     if (FRESH_EXTERNAL_FACT_QUESTION.test(goal.trim()) && evidence.length === 0) {
       r.result.answer = "I couldn't verify this answer from usable web sources right now. Please try again shortly, or ask me to research it again. I won't substitute Fresh Web Lite's internal documentation for external facts.";
     }
-    const conversationId = await conversationLedger(uid, b.conversationId, route, workspaceContext, model, goal, requestId, evidence, r.result.answer || "");
+    const conversationId = shortsContextCheck ? null : await conversationLedger(uid, b.conversationId, route, workspaceContext, model, goal, requestId, evidence, r.result.answer || "");
     let image: { dataUrl?: string; url?: string; assetId?: string; model: string; size: string; engine: "fresh-native" | "configured-image-engine" } | null = null;
     if (generatedImage) {
       if (uid && generatedImage.b64 && conversationId) {
