@@ -27,13 +27,13 @@ assert.ok(safeGoal.includes(JSON.stringify(injectionCaption)), "caption content 
 // The shared Fresh AI route must keep this surface research-only: no action execution,
 // image-generation side path, native-artifact side path, user-memory lookup or conversation ledger.
 const askRoute = await readFile(new URL("../api/ai/ask.ts", import.meta.url), "utf8");
-assert.match(askRoute, /const shortsContextCheck = b\\.mode === "shorts-context-check"/);
-assert.match(askRoute, /const nativeArtifact = shortsContextCheck \\? null/);
-assert.match(askRoute, /memory\\(shortsContextCheck \\? null : uid\\)/);
-assert.match(askRoute, /intent: shortsContextCheck \\? "research" : undefined/);
+assert.match(askRoute, /const shortsContextCheck = b\.mode === "shorts-context-check"/);
+assert.match(askRoute, /const nativeArtifact = shortsContextCheck \? null/);
+assert.match(askRoute, /memory\(shortsContextCheck \? null : uid\)/);
+assert.match(askRoute, /intent: shortsContextCheck \? "research" : undefined/);
 assert.match(askRoute, /execute: !shortsContextCheck/);
 assert.match(askRoute, /if \\(!shortsContextCheck && requestsImage/);
-assert.match(askRoute, /const conversationId = shortsContextCheck \\? null : await conversationLedger/);
+assert.match(askRoute, /const conversationId = shortsContextCheck \? null : await conversationLedger/);
 
 // honest outcomes
 const ev = (n) => Array.from({ length: n }, (_, i) => ({ title: `https://site${i}.example/page`, snippet: `claim ${i}` }));
