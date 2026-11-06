@@ -43,7 +43,7 @@ export type CaptionParseResult = { cues: CaptionCue[]; error: string | null };
 export function parseCaptionFile(source: string): CaptionParseResult {
   if (typeof source !== "string" || !source.trim()) return { cues: [], error: "The caption file is empty." };
   if (source.length > MAX_CAPTION_FILE_BYTES) return { cues: [], error: "The caption file is too large (limit 512 KB)." };
-  const text = source.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
+  const text = source.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
   const looksLikeCaptions = /^WEBVTT/.test(text.trimStart()) || /-->/.test(text);
   if (!looksLikeCaptions) return { cues: [], error: "This does not look like a WebVTT or SRT caption file." };
 
