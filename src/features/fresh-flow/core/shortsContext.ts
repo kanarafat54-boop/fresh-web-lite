@@ -76,7 +76,6 @@ function isNonPublicHost(hostname: string): boolean {
   if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".home.arpa")) return true;
   const octets = host.split(".").map(Number);
   if (octets.length === 4 && octets.every((part) => Number.isInteger(part) && part >= 0 && part <= 255)) {
-    const [a, b] = octets;
     const [a, b, c] = octets;
     return a === 0 || a === 10 || a === 127 || a >= 224 || (a === 169 && b === 254) ||
       (a === 100 && b >= 64 && b <= 127) ||
