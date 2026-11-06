@@ -32,7 +32,7 @@ assert.match(askRoute, /const nativeArtifact = shortsContextCheck \? null/);
 assert.match(askRoute, /memory\(shortsContextCheck \? null : uid\)/);
 assert.match(askRoute, /intent: shortsContextCheck \? "research" : undefined/);
 assert.match(askRoute, /execute: !shortsContextCheck/);
-assert.match(askRoute, /if \\(!shortsContextCheck && requestsImage/);
+assert.match(askRoute, /if \(!shortsContextCheck && requestsImage/);
 assert.match(askRoute, /const conversationId = shortsContextCheck \? null : await conversationLedger/);
 
 // honest outcomes
