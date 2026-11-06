@@ -230,7 +230,7 @@ for (const width of WIDTHS) {
   await contextPanel.waitFor({ state: "visible", timeout: 5000 });
   const contextText = await contextPanel.innerText();
   check(contextText.includes("About this Short") && contextText.includes("Evidence check"), `${tag} Context panel shows platform details and evidence section`);
-  check(contextText.includes("sends the caption to Fresh AI") && contextText.includes("not a human fact-check"), `${tag} Context panel explains caption sharing and automated-check limits`);
+  check(contextText.includes("sends the caption to Fresh AI") && contextText.includes("treated as content, not instructions") && contextText.includes("not a human fact-check"), `${tag} Context panel explains caption sharing and automated-check limits`);
   check(contextCheckRequests === 0, `${tag} opening Context panel does not automatically call Fresh AI`);
   await contextPanel.getByRole("button", { name: "Check this Short's claims" }).click();
   await contextPanel.getByText("Supported by several sources").waitFor({ timeout: 8000 });
