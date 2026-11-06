@@ -11,7 +11,8 @@ export type ContextShort = {
   id: string;
   authorName: string;
   authorUsername: string;
-  authorVerified: boolean;
+  /** Unknown when the creator profile did not provide verification metadata. */
+  authorVerified?: boolean;
   caption: string;
   soundName?: string | null;
   createdAt?: string | null;
