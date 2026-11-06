@@ -46,6 +46,7 @@ assert.equal(interpretAskResponse(true, { answer: "A", evidence: ev(2) }).state,
 const supported = interpretAskResponse(true, { answer: "A", evidence: ev(3), verification: { uniqueDomains: 3, contradictionsDetected: false } });
 assert.equal(supported.state, "supported");
 assert.ok(supported.explanation.includes("not a human fact-check"));
+assert.ok(supported.explanation.includes("Source count alone does not establish truth"));
 assert.equal(interpretAskResponse(true, { answer: "A", evidence: sameSiteEvidence(4), verification: { uniqueDomains: 1 } }).state, "limited", "many results from one site is not strong support");
 assert.equal(interpretAskResponse(true, { answer: "A", evidence: ev(5), verification: { contradictionsDetected: true } }).state, "disputed", "contradictions always win");
 assert.equal(interpretAskResponse(true, { answer: "A", evidence: ev(12) }).sources.length, 8, "sources are capped");
