@@ -1,0 +1,24 @@
+.shorts-context-backdrop { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; background: rgba(5, 5, 12, 0.6); }
+.shorts-context-panel { width: min(100%, 520px); max-height: 86vh; overflow-y: auto; padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); border-radius: 20px 20px 0 0; background: #12111a; color: #f4f3ff; border: 1px solid rgba(255, 255, 255, 0.08); }
+.shorts-context-panel header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.shorts-context-panel h2 { margin: 0; font-size: 1.1rem; }
+.shorts-context-panel h3 { margin: 16px 0 6px; font-size: 0.82rem; letter-spacing: 0.04em; text-transform: uppercase; color: #a5a1ff; }
+.shorts-context-panel header button { width: 44px; height: 44px; border: 0; border-radius: 12px; background: transparent; color: inherit; font-size: 1.6rem; cursor: pointer; }
+.shorts-context-facts { margin: 0; display: grid; gap: 8px; }
+.shorts-context-facts div { display: grid; grid-template-columns: 90px 1fr; gap: 8px; }
+.shorts-context-facts dt { color: #9d9ab8; font-size: 0.85rem; }
+.shorts-context-facts dd { margin: 0; font-size: 0.92rem; overflow-wrap: anywhere; }
+.shorts-context-note, .shorts-context-status { margin: 0 0 10px; font-size: 0.84rem; color: #b7b4d1; }
+.shorts-context-primary, .shorts-context-secondary { display: block; width: 100%; min-height: 44px; margin-top: 8px; border-radius: 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer; }
+.shorts-context-primary { border: 0; background: #635bff; color: #fff; }
+.shorts-context-secondary { border: 1px solid rgba(255, 255, 255, 0.18); background: transparent; color: inherit; margin-top: 14px; }
+.shorts-context-result { margin-top: 12px; padding: 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); border-left: 4px solid #9d9ab8; }
+.shorts-context-result.supported { border-left-color: #35c98b; }
+.shorts-context-result.limited { border-left-color: #f2c14e; }
+.shorts-context-result.disputed { border-left-color: #ff6b6b; }
+.shorts-context-result.error, .shorts-context-result.unverified { border-left-color: #9d9ab8; }
+.shorts-context-result p { margin: 6px 0 0; font-size: 0.88rem; }
+.shorts-context-answer { white-space: pre-wrap; color: #e7e5ff; }
+.shorts-context-sources { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.shorts-context-sources a { color: #b9b5ff; font-weight: 600; }
+.shorts-context-sources small { display: block; color: #9d9ab8; margin-top: 2px; }
