@@ -13,7 +13,7 @@ const required = [
     [/current\.some\(\(item\) => item\.id === message\.id\)/, "send and realtime delivery are deduplicated"],
     [/clearInterval\(fallbackTimer\)/, "fallback polling is cleaned up when leaving a thread"],
   ]],
-  ["supabase/migrations/20261019101500_direct_message_realtime_publication.sql", [
+  ["supabase/migrations/20261019102313_direct_message_realtime_publication.sql", [
     [/alter publication supabase_realtime add table public\.direct_messages/i, "the migration enables direct-message event transport"],
     [/pg_publication_tables/i, "the publication migration is idempotent"],
     [/row-level security remains the authorization boundary/i, "the migration documents the RLS boundary"],
