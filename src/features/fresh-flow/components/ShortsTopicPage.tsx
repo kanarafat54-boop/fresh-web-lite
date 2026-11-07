@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { loadTopicShorts, type TopicKind, type TopicShort } from "../core/shortsTopics";
+import { loadSoundOverview, loadTopicShorts, type SoundOverview, type TopicKind, type TopicShort } from "../core/shortsTopics";
+import { creatorsLabel, sortTopicShorts, type TopicSort } from "../core/shortsSound";
 import { formatCount, requestOpenShort } from "../core/shortsExplore";
 import "./ShortsCreatorProfile.css";
 
@@ -9,11 +10,15 @@ type Props = { kind: TopicKind; value: string; onClose: () => void; onOpenShort:
 export default function ShortsTopicPage({ kind, value, onClose, onOpenShort }: Props) {
   const [shorts, setShorts] = useState<TopicShort[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [overview, setOverview] = useState<SoundOverview | null>(null);
+  const [sort, setSort] = useState<TopicSort>("popular");
 
   useEffect(() => {
     let cancelled = false;
     setShorts(null); setError(null);
     loadTopicShorts(kind, value).then((rows) => { if (!cancelled) setShorts(rows); }).catch((cause) => { if (!cancelled) setError(cause instanceof Error ? cause.message : "Could not load this page."); });
+    setOverview(null);
+    if (kind === "sound") loadSoundOverview(value).then((result) => { if (!cancelled) setOverview(result); }).catch(() => { /* the list still works; counts fall back to what is loaded */ });
     return () => { cancelled = true; };
   }, [kind, value]);
 
@@ -32,18 +37,26 @@ export default function ShortsTopicPage({ kind, value, onClose, onOpenShort }: P
       {shorts && (
         <div className="shorts-profile-body">
           <dl className="shorts-profile-stats">
-            <div><dd>{shorts.length}</dd><dt>Shorts</dt></div>
-            <div><dd>{formatCount(views)}</dd><dt>Views</dt></div>
+            <div><dd>{formatCount(overview ? overview.total : shorts.length)}</dd><dt>Shorts</dt></div>
+            <div><dd>{formatCount(views)}</dd><dt>{kind === "sound" && overview && overview.total > shorts.length ? `Views (top ${shorts.length})` : "Views"}</dt></div>
+            {kind === "sound" && overview ? <div><dd>{creatorsLabel(overview)}</dd><dt>Creators</dt></div> : null}
           </dl>
           {kind === "sound" && (
             <div className="shorts-profile-actions">
-              <button type="button" disabled title="Attaching a sound to a new recording needs the video worker connection">Use this sound</button>
-              <p className="shorts-profile-note">Using a sound in a new Short needs the video worker connection.</p>
+              {overview?.firstUse ? <p className="shorts-profile-note">First used {new Date(overview.firstUse.at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}{overview.firstUseCreator ? ` by ${overview.firstUseCreator}` : ""}.</p> : null}
+              <button type="button" disabled title="Reusing a sound in a new Short is not available yet">Use this sound</button>
+              <p className="shorts-profile-note">Reusing a sound in a new Short is not available yet. It needs creators' permission settings for their audio first.</p>
             </div>
           )}
+          {shorts.length > 1 ? (
+            <div className="shorts-profile-actions" role="group" aria-label="Sort Shorts">
+              <button type="button" aria-pressed={sort === "popular"} onClick={() => setSort("popular")}>Popular</button>
+              <button type="button" aria-pressed={sort === "recent"} onClick={() => setSort("recent")}>Recent</button>
+            </div>
+          ) : null}
           {shorts.length === 0 ? <p className="shorts-profile-note">No Shorts found.</p> : (
             <ul className="shorts-profile-grid">
-              {shorts.map((short) => (
+              {sortTopicShorts(shorts, sort).map((short) => (
                 <li key={short.id}>
                   <button type="button" onClick={() => { requestOpenShort(short.id); onOpenShort(short.id); }} aria-label={`Open Short: ${short.caption || "Fresh Short"}`}>
                     <video src={`${short.videoUrl}#t=0.5`} muted playsInline preload="metadata" />
