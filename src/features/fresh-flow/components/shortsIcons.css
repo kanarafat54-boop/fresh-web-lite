@@ -14,3 +14,7 @@
   .fresh-flow-actions button > span:first-child svg { transition: transform 120ms ease; }
   .fresh-flow-actions button:active > span:first-child svg { transform: scale(0.9); }
 }
+
+.fresh-flow-live-captions { position: absolute; left: 12px; right: 84px; bottom: calc(150px + env(safe-area-inset-bottom)); z-index: 3; text-align: center; pointer-events: none; }
+.fresh-flow-live-captions { color: #fff; font-size: 1rem; font-weight: 600; line-height: 1.3; white-space: pre-line; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9); }
+.fresh-flow-live-captions::first-line { background: transparent; }

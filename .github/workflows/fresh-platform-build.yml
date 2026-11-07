@@ -61,6 +61,18 @@ jobs:
         run: npm run test:fresh-blender-render-worker
       - name: Media publishing bridge contract
         run: npm run test:fresh-media-publishing
+      - name: Install ffmpeg for Fresh Studio media tests
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - name: Fresh Studio contracts (foundation, timeline, render, smart edit, worker)
+        env:
+          FRESH_REQUIRE_FFMPEG: "1"
+        run: |
+          npm run test:fresh-studio-foundation
+          npm run test:fresh-studio-video
+          npm run test:fresh-studio-render
+          npm run test:fresh-studio-smart-edit
+          npm run test:fresh-studio-worker
+          npm run test:fresh-studio-export
       - name: Phases 15-22 certification
         run: npm run test:fresh-phases-15-22
       - name: Phases 15-24 certification

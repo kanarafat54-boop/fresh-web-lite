@@ -40,3 +40,11 @@
 
 .short-comment-pinned{display:inline-flex;align-items:center;gap:5px;margin:4px 0 6px;padding:4px 8px;border-radius:99px;background:rgba(99,91,255,.14);color:#b7adff;font-size:.74rem;font-weight:700}
 .fresh-comments .comment-root:has(.short-comment-pinned){border-left:2px solid #8b5cf6;padding-left:8px}
+
+.fresh-comments .comment-react{flex:0 0 40px;min-height:44px;display:flex;align-items:center;justify-content:center;border:0;background:transparent;color:inherit;font-size:1.05rem;cursor:pointer;opacity:.85}
+.fresh-comments .comment-react:disabled{opacity:.4;cursor:default}
+.fresh-comments .comment-reaction-chips{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 6px 48px}
+.fresh-comments .comment-reaction-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:999px;background:rgba(99,91,255,.16);font-size:.74rem}
+.fresh-comments .comment-reaction-picker{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 8px 48px;padding:6px;border-radius:14px;background:rgba(255,255,255,.06)}
+.fresh-comments .comment-reaction-picker button{width:40px;height:40px;border:0;border-radius:12px;background:transparent;font-size:1.25rem;cursor:pointer}
+.fresh-comments .comment-reaction-picker button.selected{background:rgba(99,91,255,.35)}

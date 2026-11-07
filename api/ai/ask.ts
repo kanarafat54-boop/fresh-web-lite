@@ -36,8 +36,9 @@ async function handleMediaWorkerProxy(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const suffix = url.searchParams.get("__fresh_media_worker_path") ?? "";
     const path = "/" + suffix.replace(/^\/+/, "");
-    if (!(path === "/jobs" || /^\/jobs\/[0-9a-f-]{36}$/i.test(path) || /^\/jobs\/[0-9a-f-]{36}\/output$/i.test(path))) return jsonProxy({ error: "Media worker route not found." }, 404);
-    if (!((req.method === "POST" && path === "/jobs") || (req.method === "GET" && path.startsWith("/jobs/")))) return jsonProxy({ error: "Method not allowed." }, 405);
+    const isJobPath = /^\/jobs\/[0-9a-f-]{36}$/i.test(path);
+    if (!(path === "/jobs" || path === "/renders" || path === "/capabilities" || isJobPath || /^\/jobs\/[0-9a-f-]{36}\/output$/i.test(path))) return jsonProxy({ error: "Media worker route not found." }, 404);
+    if (!((req.method === "POST" && (path === "/jobs" || path === "/renders")) || (req.method === "GET" && (path === "/capabilities" || path.startsWith("/jobs/"))) || (req.method === "DELETE" && isJobPath))) return jsonProxy({ error: "Method not allowed." }, 405);
     const authorization = req.headers.get("authorization") ?? "";
     const bearer = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
     const supabaseUrl = process.env.VITE_SUPABASE_URL, anonKey = process.env.VITE_SUPABASE_ANON_KEY;
@@ -54,17 +55,19 @@ async function handleMediaWorkerProxy(req: Request): Promise<Response> {
     if (req.method === "POST") {
       if (!(req.headers.get("content-type") ?? "").toLowerCase().includes("application/json")) return jsonProxy({ error: "A JSON media job is required." }, 415);
       body = await req.text();
-      if (body.length > 64 * 1024) return jsonProxy({ error: "Media job request is too large." }, 413);
+      if (body.length > (path === "/renders" ? 256 * 1024 : 64 * 1024)) return jsonProxy({ error: "Media job request is too large." }, 413);
       let parsed: unknown;
       try { parsed = JSON.parse(body); } catch { return jsonProxy({ error: "Invalid JSON media job." }, 400); }
-      if (!parsed || typeof parsed !== "object" || typeof (parsed as { inputUrl?: unknown }).inputUrl !== "string") return jsonProxy({ error: "inputUrl is required." }, 400);
+      if (path === "/renders") {
+        if (!parsed || typeof parsed !== "object" || typeof (parsed as { timeline?: unknown }).timeline !== "object") return jsonProxy({ error: "A timeline is required." }, 400);
+      } else if (!parsed || typeof parsed !== "object" || typeof (parsed as { inputUrl?: unknown }).inputUrl !== "string") return jsonProxy({ error: "inputUrl is required." }, 400);
       headers.set("content-type", "application/json");
     }
     const upstream = await fetch(workerUrl + path, { method: req.method, headers, ...(body === undefined ? {} : { body }), cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(45_000) });
     const contentType = upstream.headers.get("content-type") ?? "";
     if (contentType.includes("application/json")) {
       const payload = await upstream.json().catch(() => ({})) as Record<string, unknown>;
-      if (typeof payload.statusUrl === "string" && path === "/jobs" && payload.statusUrl.startsWith("/")) payload.statusUrl = "/api/media-worker" + payload.statusUrl;
+      if (typeof payload.statusUrl === "string" && (path === "/jobs" || path === "/renders") && payload.statusUrl.startsWith("/")) payload.statusUrl = "/api/media-worker" + payload.statusUrl;
       if (typeof payload.outputUrl === "string" && payload.outputUrl.startsWith("/jobs/")) payload.outputUrl = "/api/media-worker" + payload.outputUrl;
       return jsonProxy(payload, upstream.status);
     }
@@ -223,6 +226,11 @@ export async function GET(req: Request): Promise<Response> {
   return json({ error: "Method not allowed." }, 405);
 }
 
+export async function DELETE(req: Request): Promise<Response> {
+  if (new URL(req.url).searchParams.has("__fresh_media_worker_path")) return handleMediaWorkerProxy(req);
+  return json({ error: "Method not allowed." }, 405);
+}
+
 export async function POST(req: Request): Promise<Response> {
   const postUrl = new URL(req.url);
   if (postUrl.searchParams.has("__fresh_media_worker_path")) return handleMediaWorkerProxy(req);
@@ -238,7 +246,8 @@ export async function POST(req: Request): Promise<Response> {
     if (!goal) return json({ error: "A goal is required" }, 400);
     if (goal.length > 4000) return json({ error: "Keep the request under 4,000 characters" }, 400);
 
-    const nativeArtifact = generateFreshNativeDimensionalArtifact(goal);
+    const shortsContextCheck = b.mode === "shorts-context-check";
+    const nativeArtifact = shortsContextCheck ? null : generateFreshNativeDimensionalArtifact(goal);
     if (nativeArtifact) {
       return json({
         requestId,
@@ -264,7 +273,7 @@ export async function POST(req: Request): Promise<Response> {
     const nativeInferenceState: { value: FreshUnifiedInferenceResult | null } = { value: null };
     const gw = createFreshAIIntelligenceGateway({
       skills: createCoreFreshSkillRegistry(),
-      memory: memory(uid),
+      memory: memory(shortsContextCheck ? null : uid),
       retrieve: async (x, i) => { const [web, kb] = await Promise.all([i.needsEvidence || i.intent === "research" ? research(x) : Promise.resolve([] as Awaited<ReturnType<typeof research>>), i.intent !== "chat" && isExplicitFreshPlatformQuestion(x) ? platformKnowledge(x) : Promise.resolve([] as Awaited<ReturnType<typeof research>>)]); return [...web, ...kb]; },
       nativeAnswer: async (input, interpretation, evidence, _reasoning, _memories, turns) => {
         const history = turns.slice(-6).map(turn => turn.role + ": " + turn.content.slice(0, 1200)).join("\n");
@@ -286,16 +295,17 @@ export async function POST(req: Request): Promise<Response> {
     const r: FreshAIResponse = await gw.handle({
       requestId,
       input: goal,
+      intent: shortsContextCheck ? "research" : undefined,
       route,
       userId: uid,
       conversation,
       context: { workspace: workspaceContext, model, voiceModel: b.voiceModel ?? null },
       approve: Boolean(b.approve),
-      execute: true,
+      execute: !shortsContextCheck,
     });
 
     let generatedImage: { dataUrl?: string; b64?: string; model: string; size: string; engine: "fresh-native" | "configured-image-engine" } | null = null;
-    if (requestsImage(goal, r.interpretation, b.mode)) {
+    if (!shortsContextCheck && requestsImage(goal, r.interpretation, b.mode)) {
       if (isFreshAIImageEngineConfigured() && !uid) {
         return json({ requestId, error: "Sign in to use the configured Fresh AI image-generation service.", status: "authentication-required", intent: r.interpretation.intent }, 401);
       }
@@ -312,7 +322,7 @@ export async function POST(req: Request): Promise<Response> {
     if (FRESH_EXTERNAL_FACT_QUESTION.test(goal.trim()) && evidence.length === 0) {
       r.result.answer = "I couldn't verify this answer from usable web sources right now. Please try again shortly, or ask me to research it again. I won't substitute Fresh Web Lite's internal documentation for external facts.";
     }
-    const conversationId = await conversationLedger(uid, b.conversationId, route, workspaceContext, model, goal, requestId, evidence, r.result.answer || "");
+    const conversationId = shortsContextCheck ? null : await conversationLedger(uid, b.conversationId, route, workspaceContext, model, goal, requestId, evidence, r.result.answer || "");
     let image: { dataUrl?: string; url?: string; assetId?: string; model: string; size: string; engine: "fresh-native" | "configured-image-engine" } | null = null;
     if (generatedImage) {
       if (uid && generatedImage.b64 && conversationId) {

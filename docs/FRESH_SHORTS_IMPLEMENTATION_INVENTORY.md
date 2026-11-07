@@ -82,3 +82,36 @@ Still open, and why:
 | Data Saver, Android device pass | Needs a defined data-saving policy and a real device run. |
 
 Migrations from #209 (`20261102120000`, `20261102140000`) are in the repo but not applied to the live database.
+
+
+## Progress update (2026-11-06 — repository re-audit)
+
+Current audited `main`: `c9f96f34d50f65c899adc937a1210f6fe73c26d2` (2026-11-06 06:54 UTC).
+The original P0 inventory above is historical; the following records the changes and current CI evidence observed on 2026-11-06.
+
+Merged into `main` since the original inventory:
+- **#209** — creator playlists and pinned comments, with additive migrations `20261102120000_fresh_short_collections_and_comment_pin.sql` and `20261102140000_harden_fresh_short_comment_pinning.sql`. The PR is merged. Its database changes are not assumed to be applied to production.
+- **#219** — SVG icon family and Following label.
+- **#220** — `/flow/shorts` and `/flow/shorts/watch/:shortId` routes, backward-compatible links, and designed loading/offline/error/empty/unavailable states.
+- **#221** — date/original-or-remix/order/creator filters and playback-speed entry.
+- **#222** — progress inventory documentation.
+
+Open Fresh Shorts pull requests observed:
+| PR | Scope | Observed CI / preview | Remaining gate |
+|---|---|---|---|
+| #224 | Richer comment reactions | Shorts gate and PostgreSQL integration passed; preview ready; one duplicate build job was cancelled | Additive migration `20261105100000_widen_short_comment_reactions.sql` is not in `main`; review and owner application required |
+| #226 | Creator-uploaded VTT/SRT captions and player control | Shorts gate, build, navigation and related checks passed; Netlify and Vercel previews ready | Manual browser/phone review; automatic speech-to-text is not implemented |
+| #227 | Context and sources panel | Shorts gate, backend contract, real PostgreSQL persistence, research-to-truth, Fresh AI integrity/training, Long Video analytics, build and smoke checks passed on `2e15a04`; Vercel and Netlify previews reported ready. A panel-specific Chromium browser interaction test was added on `d76f441`; its new CI run is pending. | Supabase Preview is skipped for this PR; main's migration-history drift remains. Panel-specific browser test, live signed-in API validation and physical Android validation remain before merge. |
+| #228 | Duration/language filters and working remix/duet filter | Shorts gate, typecheck/build, migration replay, navigation and backend checks passed; previews ready | Additive migration `20261106100000_fresh_shorts_duration_language.sql` is not in `main`; review and owner application required. Language records the creator device language, not detected speech language |
+
+Current-main validation evidence:
+- On the audited main commit, deployment status contexts and core build, Fresh Shorts and PostgreSQL checks reported success. The Supabase Preview check failed as described below.
+- The Supabase Preview check is **failing** with: `Remote migration versions not found in local migrations directory.` This is migration-history drift and must be reconciled before relying on Supabase branch previews.
+- Successful PR previews are not production releases. No production database migration is considered applied based only on repository presence or CI replay.
+- No physical Android device test is evidenced by this audit. The browser tests at narrow viewport widths are useful regression evidence, not a substitute for an actual Android device pass.
+
+Re-audit conclusion:
+- The strongest existing implementation remains the integrated Shorts pager and shared comment system, including text/audio/video/image attachments and parent-child replies. Treat these as **Partial** until the complete UI-to-persistence flows and failure handling are verified on a live signed-in session.
+- Do not rebuild the pager, comment engine, playlists, pinned comments, routes, or filters already merged or in review.
+- PR #227's optional `authorVerified` boundary was fixed in `21a802c`; its same-host test fixture was corrected in `2e15a04`. A panel-specific Chromium interaction test was added in `d76f441` and awaits fresh CI. Do not merge until that test and required checks pass; live signed-in API and Android-device validation remain manual gates. Review #224, #226 and #228 against current `main` and their migrations. Keep Supabase migration-history drift as a separate release gate.
+- Fresh Studio remains outside this specification and is not included in this work.

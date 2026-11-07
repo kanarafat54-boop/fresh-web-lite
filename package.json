@@ -39,6 +39,12 @@
     "test:fresh-phases-15-24": "node scripts/verify-fresh-phases-15-24.mjs",
     "test:fresh-experience-24": "node scripts/verify-fresh-experience-24.mjs",
     "test:shorts": "node scripts/verify-fresh-shorts-contract.mjs",
+    "test:fresh-studio-foundation": "node scripts/verify-fresh-studio-foundation.mjs",
+    "test:fresh-studio-video": "node scripts/verify-fresh-studio-video.mjs",
+    "test:fresh-studio-render": "node scripts/verify-fresh-studio-render.mjs",
+    "test:fresh-studio-smart-edit": "node scripts/verify-fresh-studio-smart-edit.mjs",
+    "test:fresh-studio-worker": "node --no-warnings scripts/verify-fresh-studio-worker.mjs",
+    "sync:studio-worker": "node --no-warnings scripts/sync-studio-worker.mjs",
     "test:fresh-unified-training": "node scripts/verify-fresh-unified-training.mjs",
     "test:fresh-unified-curriculum": "node scripts/verify-fresh-unified-training-curriculum.mjs",
     "test:fresh-training-job": "node scripts/verify-fresh-training-job.mjs",
@@ -90,6 +96,8 @@
     "test:fresh-edit-segments": "node --experimental-strip-types --no-warnings scripts/test-fresh-edit-segments.mjs",
     "test:fresh-studio-projects": "node --experimental-strip-types --no-warnings scripts/test-fresh-studio-projects.mjs",
     "test:fresh-shorts-safety": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-safety.mjs",
+    "test:fresh-shorts-comment-reactions": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-comment-reactions.mjs",
+    "test:fresh-shorts-captions": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-captions.mjs",
     "test:fresh-shorts-data-saver": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-data-saver.mjs",
     "test:fresh-shorts-duration": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-duration.mjs",
     "test:fresh-shorts-filters": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-filters.mjs",
@@ -102,7 +110,9 @@
     "verify:vercel-function-limit": "node scripts/verify-vercel-function-limit.mjs",
     "test:fresh-long-video-analytics": "node scripts/verify-fresh-long-video-analytics.mjs",
     "test:fresh-blender-render-worker": "node scripts/verify-fresh-blender-render-worker.mjs && node --test workers/blender-render-worker/scene-spec.test.mjs",
-    "test:fresh-shorts-playlists": "node scripts/test-fresh-shorts-playlists.mjs"
+    "test:fresh-studio-export": "node --no-warnings scripts/verify-fresh-studio-export.mjs",
+    "test:fresh-shorts-playlists": "node scripts/test-fresh-shorts-playlists.mjs",
+    "test:fresh-shorts-context": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-context.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",

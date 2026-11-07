@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FlagIcon } from "../../../components/Icons";
 import * as ShortsIcons from "./shortsIcons";
+import ShortsContextPanel from "./ShortsContextPanel";
+import { activeCue, parseCaptionFile, pickTrack, readCaptionsOn, writeCaptionsOn, type CaptionTrack } from "../core/shortsCaptions";
+import { loadCaptionTracks, saveCreatorCaptions } from "../core/shortCaptionsService";
 import { dataSaverLabel, isDataSaverActive, nextDataSaverMode, prefetchRadiusFor, preloadFor, readConnectionHint, readDataSaverMode, writeDataSaverMode, type DataSaverMode } from "../core/shortsDataSaver";
 import { ShortsStateScreen } from "./ShortsStateScreen";
 import { ShortsFilterSheet } from "./ShortsFilterSheet";
@@ -140,6 +143,12 @@ export default function FreshFlowShortsStream({
   const telemetryRef = useRef(new FreshFlowTelemetryBuffer());
   const sessionIdRef = useRef<string>(crypto.randomUUID());
   const { replaceQueue, appendQueue, setActive: setRuntimeActive } = useFreshFlowRuntime();
+  const [contextShortId, setContextShortId] = useState<string | null>(null);
+  const [captionsOn, setCaptionsOn] = useState<boolean>(() => readCaptionsOn());
+  const [captionTracks, setCaptionTracks] = useState<Record<string, CaptionTrack | null>>({});
+  const [captionText, setCaptionText] = useState<string | null>(null);
+  const [captionNotice, setCaptionNotice] = useState<string | null>(null);
+  const captionFileRef = useRef<HTMLInputElement | null>(null);
   const [dataSaverMode, setDataSaverMode] = useState<DataSaverMode>(() => readDataSaverMode());
   const dataSaverActive = isDataSaverActive(dataSaverMode, readConnectionHint());
   const prefetchRadius = prefetchRadiusFor(dataSaverActive, FRESH_SHORTS_PREFETCH_RADIUS);
@@ -476,6 +485,46 @@ export default function FreshFlowShortsStream({
 
   // Watch behavior for the active Short: quartiles, loop completions and skips.
   const activeShortId = shorts[currentIndex]?.id;
+  const activeCaptionTrack = activeShortId ? captionTracks[activeShortId] ?? null : null;
+
+  // Look up real stored captions for the Short on screen (once per Short).
+  useEffect(() => {
+    if (!activeShortId || activeShortId in captionTracks) return;
+    let cancelled = false;
+    loadCaptionTracks(activeShortId)
+      .then((tracks) => { if (!cancelled) setCaptionTracks((all) => ({ ...all, [activeShortId]: pickTrack(tracks, navigator.language) })); })
+      .catch(() => { if (!cancelled) setCaptionTracks((all) => ({ ...all, [activeShortId]: null })); });
+    return () => { cancelled = true; };
+  }, [activeShortId, captionTracks]);
+
+  // Follow the playing video and show the cue that covers the current time.
+  useEffect(() => {
+    setCaptionText(null);
+    if (!captionsOn || !activeCaptionTrack || !activeShortId) return;
+    const video = containerRef.current?.querySelector<HTMLVideoElement>(`video[data-short-id="${activeShortId}"]`);
+    if (!video) return;
+    const cues = activeCaptionTrack.cues;
+    const update = () => setCaptionText((previous) => { const next = activeCue(cues, video.currentTime)?.text ?? null; return next === previous ? previous : next; });
+    update();
+    video.addEventListener("timeupdate", update);
+    video.addEventListener("seeked", update);
+    return () => { video.removeEventListener("timeupdate", update); video.removeEventListener("seeked", update); };
+  }, [captionsOn, activeCaptionTrack, activeShortId]);
+
+  async function importCaptionFile(file: File, short: Short) {
+    if (!user) return;
+    try {
+      const parsed = parseCaptionFile(await file.text());
+      if (parsed.error) { setCaptionNotice(parsed.error); return; }
+      const language = (navigator.language || "en").toLowerCase().split("-")[0];
+      await saveCreatorCaptions({ shortId: short.id, userId: user.id, language, cues: parsed.cues });
+      setCaptionTracks((all) => ({ ...all, [short.id]: { language, cues: parsed.cues } }));
+      setCaptionsOn(true); writeCaptionsOn(true);
+      setCaptionNotice(`Captions saved (${parsed.cues.length} lines).`);
+    } catch (cause) {
+      setCaptionNotice(cause instanceof Error && cause.message ? `Captions could not be saved: ${cause.message}` : "Captions could not be saved.");
+    }
+  }
   useEffect(() => {
     if (!activeShortId) return;
     const item = containerRef.current?.querySelector<HTMLElement>(`.fresh-flow-item[data-index="${currentIndex}"]`);
@@ -876,6 +925,11 @@ export default function FreshFlowShortsStream({
         </button>
       </header>
       {!online && shorts.length > 0 ? <div className="fresh-shorts-offline-banner" role="status">You are offline. Showing Shorts already loaded.</div> : null}
+      {contextShortId && shorts.find((item) => item.id === contextShortId) ? (
+        <ShortsContextPanel short={shorts.find((item) => item.id === contextShortId)!} onClose={() => setContextShortId(null)} onOpenInFreshAI={(prompt) => { setContextShortId(null); openFreshAI(prompt); }} />
+      ) : null}
+      <input ref={captionFileRef} type="file" accept=".vtt,.srt,text/vtt,application/x-subrip,text/plain" hidden onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; const target = shorts[currentIndex]; if (file && target) void importCaptionFile(file, target); }} />
+      {captionNotice ? <div className="fresh-shorts-offline-banner" role="status">{captionNotice} <button type="button" onClick={() => setCaptionNotice(null)} aria-label="Dismiss">Dismiss</button></div> : null}
       {unavailableNotice ? (
         <div className="fresh-shorts-offline-banner" role="status">
           This Short is no longer available.{" "}
@@ -929,6 +983,7 @@ export default function FreshFlowShortsStream({
               {index === currentIndex && soundBlocked && (
                 <button type="button" className="fresh-flow-sound-pill" onClick={() => enableSound(index)} aria-label="Turn sound on">🔇 Tap for sound</button>
               )}
+              {index === currentIndex && captionsOn && captionText && <div className="fresh-flow-live-captions" role="status" aria-live="off">{captionText}</div>}
               <div className="fresh-flow-progress" role="slider" aria-label="Seek" aria-valuemin={0} aria-valuemax={100} aria-valuenow={0} onPointerDown={(event) => seekFromPointer(event, index)}><i className="fresh-flow-progress-fill" /></div>
               <div className="fresh-flow-overlay">
                 <div className="fresh-flow-meta">
@@ -1004,8 +1059,25 @@ export default function FreshFlowShortsStream({
                     <button type="button" onClick={() => { setAdvancedOpen(false); setPlaybackFor({ index, rate: activeVideo(index)?.playbackRate ?? 1 }); }}>
                       <span className="fresh-flow-menu-icon"><ShortsIcons.SpeedIcon size={18} /></span> Playback speed
                     </button>
+                    {activeCaptionTrack ? (
+                      <button type="button" onClick={() => { const next = !captionsOn; setCaptionsOn(next); writeCaptionsOn(next); }} aria-pressed={captionsOn}>
+                        <span className="fresh-flow-menu-icon"><ShortsIcons.CaptionsIcon size={18} /></span> {captionsOn ? "Captions: On" : "Captions: Off"}
+                      </button>
+                    ) : (
+                      <button type="button" disabled title="The creator has not added captions to this Short.">
+                        <span className="fresh-flow-menu-icon"><ShortsIcons.CaptionsIcon size={18} /></span> Captions: not available
+                      </button>
+                    )}
+                    {user && short.authorId === user.id && (
+                      <button type="button" onClick={() => captionFileRef.current?.click()} title="Upload a WebVTT (.vtt) or SRT (.srt) caption file for this Short.">
+                        <span className="fresh-flow-menu-icon"><ShortsIcons.CaptionsIcon size={18} /></span> Upload captions (.vtt / .srt)
+                      </button>
+                    )}
                     <button type="button" onClick={() => { const next = nextDataSaverMode(dataSaverMode); setDataSaverMode(next); writeDataSaverMode(next); }} title="Stops downloading upcoming Shorts ahead of time. Does not change video quality.">
                       <span className="fresh-flow-menu-icon"><ShortsIcons.DataSaverIcon size={18} /></span> {dataSaverLabel(dataSaverMode, dataSaverActive)}
+                    </button>
+                    <button type="button" onClick={() => { setAdvancedOpen(false); setContextShortId(short.id); }} title="Details about this Short and an on-demand evidence check">
+                      <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Context and sources
                     </button>
                     {ADVANCED_ACTIONS.map((a) => (
                       <button key={a.id} type="button" onClick={() => openAdvanced(a.id, short)} title={a.description}>
