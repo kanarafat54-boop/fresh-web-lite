@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FlagIcon } from "../../../components/Icons";
 import * as ShortsIcons from "./shortsIcons";
+import ShortsContextPanel from "./ShortsContextPanel";
 import { activeCue, parseCaptionFile, pickTrack, readCaptionsOn, writeCaptionsOn, type CaptionTrack } from "../core/shortsCaptions";
 import { loadCaptionTracks, saveCreatorCaptions } from "../core/shortCaptionsService";
 import { dataSaverLabel, isDataSaverActive, nextDataSaverMode, prefetchRadiusFor, preloadFor, readConnectionHint, readDataSaverMode, writeDataSaverMode, type DataSaverMode } from "../core/shortsDataSaver";
@@ -142,6 +143,7 @@ export default function FreshFlowShortsStream({
   const telemetryRef = useRef(new FreshFlowTelemetryBuffer());
   const sessionIdRef = useRef<string>(crypto.randomUUID());
   const { replaceQueue, appendQueue, setActive: setRuntimeActive } = useFreshFlowRuntime();
+  const [contextShortId, setContextShortId] = useState<string | null>(null);
   const [captionsOn, setCaptionsOn] = useState<boolean>(() => readCaptionsOn());
   const [captionTracks, setCaptionTracks] = useState<Record<string, CaptionTrack | null>>({});
   const [captionText, setCaptionText] = useState<string | null>(null);
@@ -923,6 +925,9 @@ export default function FreshFlowShortsStream({
         </button>
       </header>
       {!online && shorts.length > 0 ? <div className="fresh-shorts-offline-banner" role="status">You are offline. Showing Shorts already loaded.</div> : null}
+      {contextShortId && shorts.find((item) => item.id === contextShortId) ? (
+        <ShortsContextPanel short={shorts.find((item) => item.id === contextShortId)!} onClose={() => setContextShortId(null)} onOpenInFreshAI={(prompt) => { setContextShortId(null); openFreshAI(prompt); }} />
+      ) : null}
       <input ref={captionFileRef} type="file" accept=".vtt,.srt,text/vtt,application/x-subrip,text/plain" hidden onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; const target = shorts[currentIndex]; if (file && target) void importCaptionFile(file, target); }} />
       {captionNotice ? <div className="fresh-shorts-offline-banner" role="status">{captionNotice} <button type="button" onClick={() => setCaptionNotice(null)} aria-label="Dismiss">Dismiss</button></div> : null}
       {unavailableNotice ? (
@@ -1069,6 +1074,9 @@ export default function FreshFlowShortsStream({
                     )}
                     <button type="button" onClick={() => { const next = nextDataSaverMode(dataSaverMode); setDataSaverMode(next); writeDataSaverMode(next); }} title="Stops downloading upcoming Shorts ahead of time. Does not change video quality.">
                       <span className="fresh-flow-menu-icon"><ShortsIcons.DataSaverIcon size={18} /></span> {dataSaverLabel(dataSaverMode, dataSaverActive)}
+                    </button>
+                    <button type="button" onClick={() => { setAdvancedOpen(false); setContextShortId(short.id); }} title="Details about this Short and an on-demand evidence check">
+                      <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Context and sources
                     </button>
                     {ADVANCED_ACTIONS.map((a) => (
                       <button key={a.id} type="button" onClick={() => openAdvanced(a.id, short)} title={a.description}>
