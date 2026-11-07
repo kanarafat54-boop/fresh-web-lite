@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./fresh-studio.css";
-import { MOBILE_PRIMARY_SECTIONS, STUDIO_SECTIONS, type StudioSectionId } from "./shared/studioNav.ts";
+import { COMING_SOON_SECTIONS, MOBILE_PRIMARY_SECTIONS, READY_SECTIONS, STUDIO_SECTIONS, type StudioSectionId } from "./shared/studioNav.ts";
 import type { StudioProject } from "./shared/types.ts";
-import type { StudioScreenProps } from "./shared/context.ts";
+import type { OpenOptions, StudioScreenProps } from "./shared/context.ts";
 import { useStudioProjects } from "./projects/useStudioProjects.ts";
 import { useProjectActions, type Notify } from "./projects/useProjectActions.ts";
 import { useCardActions } from "./projects/useCardActions.tsx";
@@ -22,7 +22,7 @@ type Props = {
 };
 
 type Notice = { id: number; kind: "info" | "error"; text: string };
-type View = { section: StudioSectionId; projectId: string | null };
+type View = { section: StudioSectionId; projectId: string | null; open?: OpenOptions };
 
 export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEditor }: Props) {
   const state = useStudioProjects();
@@ -32,6 +32,7 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
   const [notices, setNotices] = useState<Notice[]>([]);
   const [history, setHistory] = useState<Notice[]>([]);
   const [bellOpen, setBellOpen] = useState(false);
+  const [soonOpen, setSoonOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const nextId = useRef(1);
 
@@ -43,7 +44,7 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
   }, []);
 
   const goto = useCallback((section: StudioSectionId) => { setView({ section, projectId: null }); setDrawerOpen(false); }, []);
-  const openProject = useCallback((project: StudioProject) => { setView({ section: "projects", projectId: project.id }); setDrawerOpen(false); }, []);
+  const openProject = useCallback((project: StudioProject, opts?: OpenOptions) => { setView({ section: "projects", projectId: project.id, open: opts }); setDrawerOpen(false); }, []);
 
   const actions = useProjectActions(state, notify);
   const { handle: onCardAction, dialogs } = useCardActions(actions, notify, openProject);
@@ -59,7 +60,7 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
   let content;
   switch (view.section) {
     case "home": content = <StudioHome {...screen} />; break;
-    case "projects": content = view.projectId ? <ProjectDetails key={view.projectId} projectId={view.projectId} {...screen} /> : <ProjectsView {...screen} />; break;
+    case "projects": content = view.projectId ? <ProjectDetails key={view.projectId} projectId={view.projectId} startOpen={view.open} {...screen} /> : <ProjectsView {...screen} />; break;
     case "create": content = <CreateProject {...screen} />; break;
     case "ai":
       content = <InfoSection title="AI Creation" summary="Generate and transform media with Fresh AI." capabilityIds={["ai-creation"]} actions={[{ label: "Open Fresh AI", onClick: () => onNavigateRoute("ai") }]} />; break;
@@ -90,9 +91,9 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
         <button type="button" className="fs-icon-btn fs-only-mobile" aria-label="Open Studio menu" aria-expanded={drawerOpen} onClick={() => setDrawerOpen((v) => !v)}>☰</button>
         <button type="button" className="fs-wordmark" onClick={() => goto("home")} aria-label="Fresh Studio home">Fresh <b>Studio</b></button>
         <div className="fs-topbar-spacer" />
-        <button type="button" className="fs-icon-btn" aria-label="Search projects" onClick={() => goto("projects")}>⌕</button>
+        <button type="button" className="fs-icon-btn" aria-label="Search projects" title="Search projects" onClick={() => goto("projects")}>⌕</button>
         <div className="fs-menu-wrap">
-          <button type="button" className="fs-icon-btn" aria-label="Notifications" aria-expanded={bellOpen} onClick={() => { setBellOpen((v) => !v); setHelpOpen(false); }}>🔔{history.some((h) => h.kind === "error") && <span className="fs-dot" aria-hidden="true" />}</button>
+          <button type="button" className="fs-icon-btn" aria-label="Notifications" title="Notifications" aria-expanded={bellOpen} onClick={() => { setBellOpen((v) => !v); setHelpOpen(false); }}>🔔{history.some((h) => h.kind === "error") && <span className="fs-dot" aria-hidden="true" />}</button>
           {bellOpen && (
             <div className="fs-popover" role="region" aria-label="Recent notifications">
               {history.length === 0 ? <p className="fs-muted">No notifications yet.</p> : <ul>{history.map((h) => <li key={h.id} className={h.kind === "error" ? "is-error" : ""}>{h.text}</li>)}</ul>}
@@ -100,26 +101,35 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
           )}
         </div>
         <div className="fs-menu-wrap">
-          <button type="button" className="fs-icon-btn" aria-label="Help" aria-expanded={helpOpen} onClick={() => { setHelpOpen((v) => !v); setBellOpen(false); }}>?</button>
+          <button type="button" className="fs-icon-btn" aria-label="Help" title="Help" aria-expanded={helpOpen} onClick={() => { setHelpOpen((v) => !v); setBellOpen(false); }}>?</button>
           {helpOpen && (
             <div className="fs-popover" role="region" aria-label="Help">
               <p><strong>Getting started</strong></p>
-              <p className="fs-muted">Create a project, set its options, then open it. Projects autosave and keep a version history you can restore from. The “What works today” list in Settings shows which tools are real.</p>
+              <ol className="fs-help-steps"><li>Tap <b>Create</b> and choose a video shape.</li><li>Add your clips, then cut, add text and adjust them.</li><li>Tap <b>Export</b> to make your video.</li></ol><p className="fs-muted">Projects save automatically. Settings → “What works today” lists which tools are real.</p>
             </div>
           )}
         </div>
-        <button type="button" className="fs-icon-btn" aria-label="Your profile" onClick={() => onNavigateRoute("profile")}>☺</button>
+        <button type="button" className="fs-icon-btn" aria-label="Your profile" title="Your profile" onClick={() => onNavigateRoute("profile")}>☺</button>
         <button type="button" className="fs-btn fs-btn-primary fs-hide-mobile" onClick={() => goto("create")}>＋ Create</button>
         <button type="button" className="fs-btn fs-hide-mobile" onClick={onBack}>Exit Studio</button>
       </header>
 
       {state.source === "device" && !state.loading && (
-        <p className="fs-banner fs-banner-top" role="note">Projects are stored on this device only. {state.fallbackReason ?? ""}</p>
+        <p className="fs-banner fs-banner-top" role="note">Your projects are saved on this device only. Sign in to keep them in your account.</p>
       )}
 
       <div className="fs-body">
         <nav className={`fs-nav${drawerOpen ? " is-open" : ""}`} aria-label="Studio sections">
-          {STUDIO_SECTIONS.map((s) => navItem(s.id, s.label, s.icon))}
+          {READY_SECTIONS.filter((s) => s.id !== "settings").map((s) => navItem(s.id, s.label, s.icon))}
+          {navItem("settings", "Settings", "⚙")}
+          <div className="fs-nav-soon">
+            <button type="button" className="fs-nav-item fs-nav-soon-toggle" aria-expanded={soonOpen || COMING_SOON_SECTIONS.some((s) => s.id === view.section)} aria-controls="fs-nav-soon-list" onClick={() => setSoonOpen((v) => !v)}>
+              <span aria-hidden="true">{soonOpen ? "▾" : "▸"}</span><span>Coming soon</span><span className="fs-count">{COMING_SOON_SECTIONS.length}</span>
+            </button>
+            <div id="fs-nav-soon-list" hidden={!(soonOpen || COMING_SOON_SECTIONS.some((s) => s.id === view.section))}>
+              {COMING_SOON_SECTIONS.map((s) => navItem(s.id, s.label, s.icon))}
+            </div>
+          </div>
           <button type="button" className="fs-nav-item fs-only-mobile" onClick={onBack}><span aria-hidden="true">←</span><span>Exit Studio</span></button>
         </nav>
         {drawerOpen && <div className="fs-scrim" aria-hidden="true" onClick={() => setDrawerOpen(false)} />}

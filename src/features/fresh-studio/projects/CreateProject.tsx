@@ -3,6 +3,8 @@ import { MEDIA_KIND_LABELS, STARTING_POINTS, STUDIO_MEDIA_KINDS, type StudioMedi
 import { defaultSettingsFor, settingFieldsFor, validateSettings } from "../shared/projectSettings.ts";
 import { KIND_GLYPH } from "../shared/format.ts";
 import { describeError } from "./useProjectActions.ts";
+import QuickStart from "./QuickStart.tsx";
+import { hasStudioEditor } from "../shared/studioNav.ts";
 import type { StudioScreenProps } from "../shared/context.ts";
 
 const KIND_HINTS: Record<StudioMediaKind, string> = {
@@ -59,7 +61,7 @@ export default function CreateProject({ state, notify, openProject, navigateRout
       notify("info", `“${project.name}” created.`);
       if (start === "ai") navigateRoute("ai");
       else if (start === "import") openDeviceEditor();
-      else openProject(project);
+      else openProject(project, { editor: hasStudioEditor(project.meta.kind) });
     } catch (error) {
       setErrors([describeError(error)]);
     } finally {
@@ -70,25 +72,38 @@ export default function CreateProject({ state, notify, openProject, navigateRout
   return (
     <div className="fs-create">
       <header className="fs-section-head">
-        <div><h1>Create</h1><p className="fs-muted" aria-live="polite">Step {step} of 3</p></div>
+        <div><h1>Create</h1>{step > 1 && <p className="fs-muted" aria-live="polite">Step {step - 1} of 2</p>}</div>
         <button type="button" className="fs-link" onClick={() => goto("projects")}>Cancel</button>
       </header>
-      <ol className="fs-steps" aria-label="Progress">
+      <ol className="fs-steps" aria-label="Progress" hidden={step === 1}>
         {["Choose what to create", "Project settings", "Starting point"].map((label, i) => (
           <li key={label} className={step === i + 1 ? "is-active" : step > i + 1 ? "is-done" : ""} aria-current={step === i + 1 ? "step" : undefined}>{label}</li>
         ))}
       </ol>
 
       {step === 1 && (
-        <div className="fs-kind-grid">
-          {STUDIO_MEDIA_KINDS.map((k) => (
-            <button key={k} type="button" className="fs-kind" onClick={() => pickKind(k)}>
-              <span className="fs-kind-glyph" aria-hidden="true">{KIND_GLYPH[k]}</span>
-              <strong>{MEDIA_KIND_LABELS[k]}</strong>
-              <small>{KIND_HINTS[k]}</small>
-            </button>
-          ))}
-        </div>
+        <>
+          <section aria-label="Make a video" className="fs-create-video">
+            <h2>Make a video</h2>
+            <p className="fs-muted">One tap — the editor opens ready for your clips.</p>
+            <QuickStart state={state} notify={notify} openProject={openProject} />
+            <button type="button" className="fs-link" onClick={() => pickKind("video")}>Custom video settings…</button>
+          </section>
+          <section aria-label="Other project types">
+            <h2>Other project types</h2>
+            <p className="fs-muted">These create a project record for planning. Their editors are not built yet.</p>
+            <div className="fs-kind-grid">
+              {STUDIO_MEDIA_KINDS.filter((k) => !hasStudioEditor(k)).map((k) => (
+                <button key={k} type="button" className="fs-kind" onClick={() => pickKind(k)}>
+                  <span className="fs-kind-glyph" aria-hidden="true">{KIND_GLYPH[k]}</span>
+                  <strong>{MEDIA_KIND_LABELS[k]}</strong>
+                  <small>{KIND_HINTS[k]}</small>
+                  <span className="fs-tag">Planning only</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </>
       )}
 
       {step === 2 && kind && (
@@ -132,7 +147,7 @@ export default function CreateProject({ state, notify, openProject, navigateRout
               );
             })}
           </fieldset>
-          {state.source === "device" && <p className="fs-banner" role="note">This project will be stored on this device only. {state.fallbackReason ?? ""}</p>}
+          {state.source === "device" && <p className="fs-banner" role="note">This project will be saved on this device only.</p>}
           {errors.length > 0 && <ul className="fs-errors" role="alert">{errors.map((e) => <li key={e}>{e}</li>)}</ul>}
           <div className="fs-form-actions">
             <button type="button" className="fs-btn" onClick={() => setStep(2)} disabled={busy}>Back</button>

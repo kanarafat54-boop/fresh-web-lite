@@ -4,15 +4,15 @@ import { settingFieldsFor } from "../shared/projectSettings.ts";
 import { formatRelativeTime } from "../shared/format.ts";
 import { StudioConflictError, isTrashed } from "./projectService.ts";
 import { describeError } from "./useProjectActions.ts";
-import type { StudioScreenProps } from "../shared/context.ts";
+import type { OpenOptions, StudioScreenProps } from "../shared/context.ts";
 import VideoEditor from "../video-studio/VideoEditor.tsx";
 
 type SaveState = "saved" | "saving" | "conflict" | "error";
 const AUTOSAVE_MS = 800;
 
-type Props = StudioScreenProps & { projectId: string };
+type Props = StudioScreenProps & { projectId: string; startOpen?: OpenOptions };
 
-export default function ProjectDetails({ projectId, state, notify, goto, openDeviceEditor, navigateRoute }: Props) {
+export default function ProjectDetails({ projectId, startOpen, state, notify, goto, openDeviceEditor, navigateRoute }: Props) {
   const stored = state.projects.find((p) => p.id === projectId) ?? null;
   const service = state.service;
 
@@ -22,7 +22,7 @@ export default function ProjectDetails({ projectId, state, notify, goto, openDev
   const [status, setStatus] = useState<StudioStatus>(stored?.meta.status ?? "planning");
   const [settings, setSettings] = useState<Record<string, string | number | boolean>>(stored?.meta.settings ?? {});
   const [saveState, setSaveState] = useState<SaveState>("saved");
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(Boolean(startOpen?.editor));
   const [versions, setVersions] = useState<StudioProjectVersion[]>([]);
   const [checkpointLabel, setCheckpointLabel] = useState("");
   const timer = useRef<number | null>(null);
@@ -140,7 +140,7 @@ export default function ProjectDetails({ projectId, state, notify, goto, openDev
   if (editing && !trashed && base.meta.kind === "video") {
     // Flush any pending detail edits first so the editor starts from the newest saved version.
     return <VideoEditor key={base.id} project={baseRef.current ?? base} service={service} signedIn={state.source === "account"} notify={notify}
-      onSaved={(p) => { baseRef.current = p; setBase(p); state.applyUpdate(p); }} onClose={() => setEditing(false)} />;
+      onSaved={(p) => { baseRef.current = p; setBase(p); state.applyUpdate(p); }} onClose={() => setEditing(false)} initialPanel={startOpen?.panel} />;
   }
   const fields = settingFieldsFor(base.meta.kind);
   const saveLabel = saveState === "saved" ? "All changes saved" : saveState === "saving" ? "Saving…" : saveState === "conflict" ? "Changed elsewhere" : "Not saved";

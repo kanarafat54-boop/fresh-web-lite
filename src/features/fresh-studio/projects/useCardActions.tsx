@@ -4,6 +4,8 @@ import type { CardAction } from "../components/ProjectCard.tsx";
 import ConfirmDialog from "../components/ConfirmDialog.tsx";
 import TextPromptDialog from "../components/TextPromptDialog.tsx";
 import type { ProjectActions, Notify } from "./useProjectActions.ts";
+import type { OpenOptions } from "../shared/context.ts";
+import { hasStudioEditor } from "../shared/studioNav.ts";
 
 type Pending =
   | { kind: "rename"; project: StudioProject }
@@ -16,13 +18,13 @@ type Pending =
  * Turns project-card menu choices into real operations plus the dialogs they need.
  * Share and Export are honest about not being available yet (spec §26.7).
  */
-export function useCardActions(actions: ProjectActions, notify: Notify, onOpen: (project: StudioProject) => void): { handle: (action: CardAction, project: StudioProject) => void; dialogs: ReactNode } {
+export function useCardActions(actions: ProjectActions, notify: Notify, onOpen: (project: StudioProject, opts?: OpenOptions) => void): { handle: (action: CardAction, project: StudioProject) => void; dialogs: ReactNode } {
   const [pending, setPending] = useState<Pending>(null);
   const close = useCallback(() => setPending(null), []);
 
   const handle = useCallback((action: CardAction, project: StudioProject) => {
     switch (action) {
-      case "open": onOpen(project); break;
+      case "open": onOpen(project, { editor: hasStudioEditor(project.meta.kind) }); break;
       case "rename": setPending({ kind: "rename", project }); break;
       case "folder": setPending({ kind: "folder", project }); break;
       case "trash": setPending({ kind: "trash", project }); break;
@@ -31,7 +33,10 @@ export function useCardActions(actions: ProjectActions, notify: Notify, onOpen: 
       case "archive": void actions.archive(project); break;
       case "restore": void actions.restore(project); break;
       case "share": notify("info", "Sharing needs Team workspaces, which are not available yet. Nothing was shared."); break;
-      case "export": notify("info", "Exporting needs the Studio render pipeline, which is not connected yet."); break;
+      case "export":
+        if (hasStudioEditor(project.meta.kind)) onOpen(project, { editor: true, panel: "export" });
+        else notify("info", "Only video projects can be exported from Studio so far.");
+        break;
     }
   }, [actions, notify, onOpen]);
 
