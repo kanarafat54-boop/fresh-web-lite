@@ -85,6 +85,25 @@ for (const width of WIDTHS) {
     if (url.host === "example.invalid") return route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
     return route.abort();
   });
+  // This is a browser-test fixture only; production continues to call the real /api/ai/ask route.
+  let contextCheckRequests = 0;
+  await page.route("**/api/ai/ask", (route) => {
+    contextCheckRequests += 1;
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        answer: "The returned research includes several relevant sources. Review them before sharing.",
+        evidence: [
+          { title: "https://alpha.example/claim-one", snippet: "First source excerpt." },
+          { title: "https://alpha.example/claim-two", snippet: "Second source excerpt." },
+          { title: "https://beta.example/claim-three", snippet: "Third source excerpt." },
+        ],
+        verification: { uniqueDomains: 3, contradictionsDetected: false },
+        status: "completed",
+      }),
+    });
+  });
   // Fresh Flow requires an authenticated or guest Fresh ID session.
   await page.goto(`${origin}/auth/sign-in`);
   await page.waitForSelector(".fresh-id-gateway", { timeout: 15000 });
@@ -199,13 +218,29 @@ for (const width of WIDTHS) {
   const fill = await page.locator(".fresh-flow-item").first().locator(".fresh-flow-progress-fill").evaluate((el) => parseFloat(el.style.width || "0"));
   check(fill > 0, `${tag} progress bar advances (${fill.toFixed(1)}%)`);
 
-  // More panel.
+  // More panel and Context and Sources interaction.
   await page.locator(".fresh-flow-item").first().locator('[aria-label="More"]').click();
   const more = page.locator(".fresh-flow-advanced").first();
   check(await more.isVisible(), `${tag} More panel opens`);
   const moreText = await more.innerText();
-  for (const label of ["Send gift", "Ask Fresh AI", "Show more like this", "Show less like this", "Manage recommendations", "Not interested", "Mute", "Report", "Remix"]) check(moreText.includes(label), `${tag} More panel has ${label}`);
-  await page.locator(".fresh-flow-item").first().locator('[aria-label="More"]').click();
+  for (const label of ["Send gift", "Ask Fresh AI", "Show more like this", "Show less like this", "Manage recommendations", "Not interested", "Mute", "Report", "Remix", "Context and sources"]) check(moreText.includes(label), `${tag} More panel has ${label}`);
+  check(contextCheckRequests === 0, `${tag} opening More does not automatically run an evidence check`);
+  await more.getByRole("button", { name: "Context and sources" }).click();
+  const contextPanel = page.getByRole("dialog", { name: "Context and sources" });
+  await contextPanel.waitFor({ state: "visible", timeout: 5000 });
+  const contextText = await contextPanel.innerText();
+  check(/about this short/i.test(contextText) && /evidence check/i.test(contextText), `${tag} Context panel shows platform details and evidence section`);
+  check(contextText.includes("sends the caption to Fresh AI") && contextText.includes("treated as content, not instructions") && contextText.includes("not a human fact-check"), `${tag} Context panel explains caption sharing and automated-check limits`);
+  check(contextCheckRequests === 0, `${tag} opening Context panel does not automatically call Fresh AI`);
+  await contextPanel.getByRole("button", { name: "Check this Short's claims" }).click();
+  await contextPanel.getByText("Supported by several sources").waitFor({ timeout: 8000 });
+  check(contextCheckRequests === 1, `${tag} viewer action sends exactly one evidence request`);
+  const contextLinks = contextPanel.locator(".shorts-context-sources a");
+  check((await contextLinks.count()) === 3, `${tag} Context panel renders the three returned HTTP(S) sources`);
+  const firstSource = contextLinks.first();
+  check((await firstSource.getAttribute("href"))?.startsWith("https://") && (await firstSource.getAttribute("rel"))?.includes("noopener"), `${tag} source links are HTTPS and use safe new-tab rel attributes`);
+  await contextPanel.getByRole("button", { name: "Close" }).click();
+  check(!(await contextPanel.isVisible().catch(() => false)), `${tag} Context panel closes without replacing the Shorts stream`);
 
   // Paging by scroll: the next Short becomes the only one playing.
   await page.evaluate(() => document.querySelector(".fresh-flow-viewport").scrollTo({ top: document.querySelector(".fresh-flow-viewport").clientHeight, behavior: "instant" }));

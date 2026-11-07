@@ -35,7 +35,16 @@ jobs:
       - name: Shorts filters and links
         run: |
           npm run test:fresh-shorts-filters
+          npm run test:fresh-shorts-why
+          npm run test:fresh-shorts-saved
+          npm run test:fresh-recent-searches
+          npm run test:fresh-shorts-sound
+          npm run test:fresh-shorts-history
+          npm run test:fresh-shorts-duration
+          npm run test:fresh-shorts-comment-reactions
           npm run test:fresh-shorts-data-saver
+          npm run test:fresh-shorts-context
+          npm run test:fresh-shorts-captions
           npm run test:fresh-shorts-safety
 
       - name: Fresh Flow performance contract

@@ -73,3 +73,4 @@ export const NavMessagesIcon = (p: ShortsIconProps) => svg(p, <><path d="M20 12a
 export const NavMailIcon = (p: ShortsIconProps) => svg(p, <><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="m4 7.5 8 6 8-6" /></>);
 export const NavCreateIcon = (p: ShortsIconProps) => svg(p, <path d="M12 5v14M5 12h14" strokeWidth={2.25} />);
 export const DataSaverIcon = (p: ShortsIconProps) => svg(p, <><path d="M12 3c4 4.5 6.5 7.6 6.5 10.5A6.5 6.5 0 0 1 5.5 13.5C5.5 10.6 8 7.5 12 3Z" /><path d="m9.5 14 2 2 3-3.5" /></>);
+export const InfoIcon = (p: ShortsIconProps) => svg(p, <><circle cx="12" cy="12" r="9" /><path d="M12 11v5.5" /><circle cx="12" cy="7.8" r="0.6" fill="currentColor" /></>);

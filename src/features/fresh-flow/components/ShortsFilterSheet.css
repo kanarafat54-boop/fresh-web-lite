@@ -17,3 +17,5 @@
 .fresh-shorts-filter-sheet button:focus-visible, .fresh-shorts-filter-creator input:focus-visible { outline: 2px solid #a5a1ff; outline-offset: 2px; }
 .fresh-flow-filter-toggle { position: relative; }
 .fresh-flow-filter-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; border-radius: 8px; background: #635bff; color: #fff; font-size: 0.65rem; line-height: 16px; text-align: center; }
+
+.fresh-shorts-filter-note { margin: 4px 0 10px; font-size: 0.78rem; color: #9d9ab8; }

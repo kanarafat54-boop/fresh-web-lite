@@ -1,4 +1,5 @@
 import { supabase } from "../../../lib/supabase";
+import { SAMPLE_LIMIT, summarizeSound, type SoundSummary } from "./shortsSound";
 export { splitCaption, type CaptionSegment } from "./shortsCaption.js";
 
 export type TopicKind = "hashtag" | "sound";
@@ -18,4 +19,21 @@ export async function loadTopicShorts(kind: TopicKind, value: string, limit = 60
   return ((data ?? []) as any[])
     .filter((row) => kind === "sound" || tagBoundary.test(row.caption ?? ""))
     .map((row) => ({ id: row.id, caption: row.caption ?? "", videoUrl: row.video_url, viewCount: Number(row.view_count) || 0, createdAt: row.created_at }));
+}
+
+export type SoundOverview = SoundSummary & { firstUseCreator: string | null };
+
+/** Exact usage count plus creators and first use for a sound. Throws on a read error. */
+export async function loadSoundOverview(soundName: string): Promise<SoundOverview> {
+  const counted = await supabase.from("shorts").select("id", { count: "exact", head: true }).eq("sound_name", soundName);
+  if (counted.error) throw new Error(counted.error.message);
+  const sample = await supabase.from("shorts").select("id, author_id, created_at").eq("sound_name", soundName).order("created_at", { ascending: true }).limit(SAMPLE_LIMIT);
+  if (sample.error) throw new Error(sample.error.message);
+  const summary = summarizeSound((sample.data ?? []) as Array<{ id: string; author_id: string; created_at: string }>, counted.count ?? 0);
+  let firstUseCreator: string | null = null;
+  if (summary.firstUse) {
+    const { data } = await supabase.from("user_public_profiles").select("username, full_name").eq("id", summary.firstUse.authorId).maybeSingle();
+    if (data) firstUseCreator = data.username ? `@${data.username}` : data.full_name || null;
+  }
+  return { ...summary, firstUseCreator };
 }

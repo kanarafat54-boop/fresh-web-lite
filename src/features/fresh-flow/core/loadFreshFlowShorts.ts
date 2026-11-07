@@ -1,3 +1,4 @@
+import { isMissingColumnError, normalizeDuration, normalizeLanguage } from "./shortsDuration";
 import { supabase } from "../../../lib/supabase";
 import type { Short } from "../../shorts/types/short";
 
@@ -17,6 +18,9 @@ export type FreshFlowLoadOptions = {
   shortIds?: string[];
 };
 
+const BASE_SHORT_COLUMNS = "id, author_id, caption, sound_name, chapters, video_url, like_count, comment_count, view_count, repost_count, created_at";
+const EXTRA_SHORT_COLUMNS = "remix_of_short_id, duet_of_short_id, duration_seconds, language";
+
 export async function loadFreshFlowShorts(
   userId: string | null,
   isGuest: boolean,
@@ -28,23 +32,27 @@ export async function loadFreshFlowShorts(
   const requestedLimit = options.limit ?? FRESH_FLOW_SHORTS_PAGE_SIZE;
   const limit = Math.max(FRESH_FLOW_SHORTS_PAGE_SIZE, requestedLimit);
   const offset = options.offset ?? 0;
-  let query = supabase
-    .from("shorts")
-    .select("id, author_id, caption, sound_name, chapters, video_url, like_count, comment_count, view_count, repost_count, created_at")
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
+  if (options.shortIds && options.shortIds.length === 0) return { shorts: [], savedIds: new Set() };
+  if (options.authorIds && options.authorIds.length === 0) return { shorts: [], savedIds: new Set() };
+  const buildQuery = (columns: string) => {
+    let query = supabase
+      .from("shorts")
+      .select(columns)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+    if (options.shortIds) query = query.in("id", options.shortIds);
+    if (options.category) query = query.eq("category", options.category);
+    if (options.authorIds) query = query.in("author_id", options.authorIds);
+    return query;
+  };
 
-  if (options.shortIds) {
-    if (options.shortIds.length === 0) return { shorts: [], savedIds: new Set() };
-    query = query.in("id", options.shortIds);
-  }
-  if (options.category) query = query.eq("category", options.category);
-  if (options.authorIds) {
-    if (options.authorIds.length === 0) return { shorts: [], savedIds: new Set() };
-    query = query.in("author_id", options.authorIds);
-  }
-
-  const { data: shortsData, error: shortsError } = await query;
+  // The newer columns (remix links, duration, language) may not exist in an environment whose migrations are
+  // not applied yet. Fall back to the original columns so the feed never breaks because of them.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let result: { data: any[] | null; error: { code?: string; message: string } | null } = await buildQuery(`${BASE_SHORT_COLUMNS}, ${EXTRA_SHORT_COLUMNS}`) as never;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (result.error && isMissingColumnError(result.error)) result = await buildQuery(BASE_SHORT_COLUMNS) as never;
+  const { data: shortsData, error: shortsError } = result;
   if (shortsError) throw new Error(`Couldn't load Fresh Flow: ${shortsError.message}`);
   const rows: any[] = shortsData ?? [];
 
@@ -109,6 +117,10 @@ export async function loadFreshFlowShorts(
       isHot: hotIds.has(row.id),
       chapters: row.chapters ?? [],
       createdAt: row.created_at,
+      remixOfShortId: row.remix_of_short_id ?? null,
+      duetOfShortId: row.duet_of_short_id ?? null,
+      durationSeconds: normalizeDuration(row.duration_seconds),
+      language: normalizeLanguage(row.language),
     };
   });
 
