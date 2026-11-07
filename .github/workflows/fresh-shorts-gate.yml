@@ -36,6 +36,7 @@ jobs:
         run: |
           npm run test:fresh-shorts-filters
           npm run test:fresh-shorts-why
+          npm run test:fresh-recent-searches
           npm run test:fresh-shorts-sound
           npm run test:fresh-shorts-history
           npm run test:fresh-shorts-duration
