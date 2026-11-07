@@ -13,7 +13,7 @@ import Timeline, { formatClock } from "./Timeline.tsx";
 import * as T from "./timeline.ts";
 import { useVideoEditor } from "./useVideoEditor.ts";
 
-type Props = { project: StudioProject; service: StudioProjectService | null; onSaved: (p: StudioProject) => void; notify: (kind: "info" | "error", text: string) => void; onClose: () => void; signedIn: boolean };
+type Props = { project: StudioProject; service: StudioProjectService | null; onSaved: (p: StudioProject) => void; notify: (kind: "info" | "error", text: string) => void; onClose: () => void; signedIn: boolean; initialPanel?: Tab };
 type Tab = "media" | "text" | "captions" | "smart" | "export";
 
 function download(blob: Blob, name: string) {
@@ -61,10 +61,10 @@ const PANELS: Array<{ id: Tab; label: string; icon: IconName }> = [
   { id: "export", label: "Export", icon: "export" },
 ];
 
-export default function VideoEditor({ project, service, onSaved, notify, onClose, signedIn }: Props) {
+export default function VideoEditor({ project, service, onSaved, notify, onClose, signedIn, initialPanel }: Props) {
   const ed = useVideoEditor(project, service, onSaved, notify);
   const { doc, selected, playhead, duration, media } = ed;
-  const [panel, setPanel] = useState<Tab | null>(() => (typeof window !== "undefined" && window.matchMedia?.("(min-width: 900px)").matches ? "media" : null));
+  const [panel, setPanel] = useState<Tab | null>(() => initialPanel ?? (typeof window !== "undefined" && window.matchMedia?.("(min-width: 900px)").matches ? "media" : null));
   const [playing, setPlaying] = useState(false);
   const [pxPerSec, setPxPerSec] = useState(70);
   const [dropping, setDropping] = useState(false);

@@ -362,3 +362,22 @@
   .fs-inspector .fs-chips { flex-wrap: wrap; }
   .fs-inspector h2 { display: none; }
 }
+
+/* UX clarity: one-tap quick start, grouped nav */
+.fs-quick { display: grid; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 8px 0; }
+.fs-quick-tile { display: grid; gap: 4px; justify-items: center; text-align: center; padding: 16px 8px; min-height: 120px; border-radius: var(--fs-radius); border: 1px solid var(--fs-line); background: var(--fs-panel); color: var(--fs-text); font: inherit; cursor: pointer; }
+.fs-quick-tile:hover:not(:disabled) { border-color: var(--fs-primary); }
+.fs-quick-tile:disabled { opacity: .6; cursor: default; }
+.fs-quick-tile small { color: var(--fs-muted); font-size: .75rem; }
+.fs-quick-shape { display: grid; place-items: center; height: 36px; }
+.fs-quick-shape i { display: block; border: 2px solid #a5a1ff; border-radius: 4px; }
+.fs-tag { font-size: .7rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--fs-line); color: var(--fs-muted); }
+.fs-soon { color: var(--fs-muted); margin-top: 16px; }
+.fs-soon summary { cursor: pointer; }
+.fs-soon ul { margin: 8px 0 0; padding-left: 20px; }
+.fs-nav-soon [hidden] { display: none; }
+.fs-nav-soon-toggle .fs-count { margin-left: auto; }
+.fs-nav-soon #fs-nav-soon-list .fs-nav-item { opacity: .75; }
+.fs-help-steps { margin: 0 0 8px; padding-left: 20px; }
+.fs-create-video { display: grid; gap: 4px; margin-bottom: 20px; }
+@media (max-width: 420px) { .fs-quick { gap: 6px; } .fs-quick-tile { padding: 12px 4px; } }

@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import ProjectCard from "../components/ProjectCard.tsx";
 import { isActive } from "../projects/projectService.ts";
+import QuickStart from "../projects/QuickStart.tsx";
+import { hasStudioEditor } from "../shared/studioNav.ts";
 import type { StudioScreenProps } from "../shared/context.ts";
 
 function Section({ title, hint, action, children }: { title: string; hint?: string; action?: ReactNode; children: ReactNode }) {
@@ -15,27 +17,23 @@ function Section({ title, hint, action, children }: { title: string; hint?: stri
   );
 }
 
-const Empty = ({ text }: { text: string }) => <p className="fs-empty">{text}</p>;
-
 export default function StudioHome(props: StudioScreenProps) {
   const { state, goto, openProject, onCardAction, navigateRoute, openDeviceEditor } = props;
   const active = state.projects.filter(isActive);
   const latest = active[0] ?? null;
   const recent = active.slice(0, 6);
-  const drafts = active.filter((p) => p.meta.status === "planning" || p.meta.status === "editing").slice(0, 6);
   const rendering = active.filter((p) => p.meta.status === "rendering" || p.meta.status === "failed");
 
   return (
     <div className="fs-home">
       <header className="fs-welcome">
-        <h1>Your creativity, without boundaries.</h1>
-        <p>Create videos, images, music, animations and experiences in one workspace.</p>
-        <div className="fs-actions" role="group" aria-label="Start creating">
-          <button type="button" className="fs-btn fs-btn-primary" onClick={() => goto("create")}>＋ Create a project</button>
-          <button type="button" className="fs-btn" disabled={!latest} onClick={() => latest && openProject(latest)} title={latest ? `Open ${latest.name}` : "No projects yet"}>Continue editing</button>
-          <button type="button" className="fs-btn" onClick={() => navigateRoute("ai")}>✦ Generate with Fresh AI</button>
-          <button type="button" className="fs-btn" onClick={openDeviceEditor}>Import media</button>
-          <button type="button" className="fs-btn" disabled title="Live production is not available yet">Start live production</button>
+        <h1>What do you want to make?</h1>
+        <p>Pick a video shape. Your editor opens right away.</p>
+        <QuickStart state={state} notify={props.notify} openProject={openProject} />
+        <div className="fs-actions" role="group" aria-label="Other ways to start">
+          <button type="button" className="fs-link" onClick={() => navigateRoute("ai")}>✦ Generate with Fresh AI</button>
+          <button type="button" className="fs-link" onClick={openDeviceEditor}>Quick edit a file on this device</button>
+          <button type="button" className="fs-link" onClick={() => goto("create")}>Other project types</button>
         </div>
       </header>
 
@@ -47,42 +45,30 @@ export default function StudioHome(props: StudioScreenProps) {
         </div>
       )}
 
-      {!state.loading && !state.error && active.length === 0 && (
-        <div className="fs-empty-hero">
-          <h2>Start your first project</h2>
-          <p>Pick what you want to make. You can change compatible settings later without losing work.</p>
-          <button type="button" className="fs-btn fs-btn-primary" onClick={() => goto("create")}>Create a project</button>
-        </div>
-      )}
-
       {latest && (
-        <Section title="Continue working" hint="Pick up where you left off.">
+        <Section title="Continue editing">
           <div className="fs-grid fs-grid-one"><ProjectCard project={latest} onAction={onCardAction} /></div>
         </Section>
       )}
 
-      {recent.length > 0 && (
+      {recent.length > 1 && (
         <Section title="Recent projects" action={<button type="button" className="fs-link" onClick={() => goto("projects")}>See all</button>}>
-          <div className="fs-grid">{recent.map((p) => <ProjectCard key={p.id} project={p} onAction={onCardAction} />)}</div>
+          <div className="fs-grid">{recent.slice(1).map((p) => <ProjectCard key={p.id} project={p} onAction={onCardAction} />)}</div>
         </Section>
       )}
 
-      <Section title="Your drafts">
-        {drafts.length ? <div className="fs-grid">{drafts.map((p) => <ProjectCard key={p.id} project={p} onAction={onCardAction} />)}</div> : <Empty text="Projects in planning or editing appear here." />}
-      </Section>
-
-      <div className="fs-two-col">
-        <Section title="Templates"><Empty text="No templates yet. Templates arrive with the design workspace." /></Section>
-        <Section title="AI-generated creations"><Empty text="Nothing generated inside Studio yet. Open Fresh AI to create." /></Section>
-        <Section title="Shared projects"><Empty text="Shared projects need Team workspaces, which are not available yet." /></Section>
-        <Section title="Scheduled publications"><Empty text="Nothing is scheduled. Publishing is not connected yet." /></Section>
-        <Section title="Recent exports"><Empty text="No exports from Studio projects yet." /></Section>
-        <Section title="Render activity">
-          {rendering.length
-            ? <ul className="fs-list">{rendering.map((p) => <li key={p.id}><button type="button" className="fs-link" onClick={() => openProject(p)}>{p.name}</button> — {p.meta.status === "failed" ? "failed" : "rendering"}</li>)}</ul>
-            : <Empty text="No render jobs yet." />}
+      {rendering.length > 0 && (
+        <Section title="Needs attention">
+          <ul className="fs-list">{rendering.map((p) => <li key={p.id}><button type="button" className="fs-link" onClick={() => openProject(p, { editor: hasStudioEditor(p.meta.kind) })}>{p.name}</button> — {p.meta.status === "failed" ? "failed" : "rendering"}</li>)}</ul>
         </Section>
-      </div>
+      )}
+
+      <details className="fs-soon">
+        <summary>Not available yet</summary>
+        <ul>
+          <li>Templates</li><li>AI-generated creations inside Studio</li><li>Shared projects and Team</li><li>Scheduled publishing</li>
+        </ul>
+      </details>
     </div>
   );
 }
