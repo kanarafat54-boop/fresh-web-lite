@@ -52,7 +52,7 @@ required.push(["Privacy preferences are account-syncable and remain locally usab
 required.push(["Settings do not misrepresent saved privacy preferences as enforced controls", settingsWorkspace.includes("not yet universal enforcement switches") && settingsWorkspace.includes("does not yet enforce visibility across every profile or search service")]);
 required.push(["Guest preference changes are clearly separated from registered-account persistence", settingsWorkspace.includes("if (!user || isGuest)") && settingsWorkspace.includes("saved on this device only")]);
 
-const accountMigration = fs.readFileSync(path.join(root, "supabase/migrations/20261019120000_fresh_id_accounts_and_memberships.sql"), "utf8");
+const accountMigration = fs.readFileSync(path.join(root, "supabase/migrations/20261019101116_fresh_id_accounts_and_memberships.sql"), "utf8");
 required.push(["Multi-account workspace tables have RLS enabled", accountMigration.includes("alter table public.fresh_id_accounts enable row level security") && accountMigration.includes("alter table public.fresh_id_account_memberships enable row level security")]);
 required.push(["Browser clients cannot directly mutate account or membership rows", accountMigration.includes("revoke all privileges on table public.fresh_id_accounts from public, anon, authenticated") && accountMigration.includes("revoke all privileges on table public.fresh_id_account_memberships from public, anon, authenticated")]);
 required.push(["Account creation RPC requires an authenticated owner and creates owner membership atomically", accountMigration.includes("v_user_id uuid := auth.uid()") && accountMigration.includes("Fresh ID sign-in is required") && accountMigration.includes("values (v_account_id, v_user_id, 'owner', 'active')")]);
