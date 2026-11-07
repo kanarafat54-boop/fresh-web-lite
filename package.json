@@ -103,6 +103,7 @@
     "test:fresh-shorts-history": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-history.mjs",
     "test:fresh-shorts-sound": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-sound.mjs",
     "test:fresh-recent-searches": "node --experimental-strip-types --no-warnings scripts/test-fresh-recent-searches.mjs",
+    "test:fresh-shorts-saved": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-saved.mjs",
     "test:fresh-shorts-why": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-why.mjs",
     "test:fresh-shorts-filters": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-filters.mjs",
     "test:fresh-shorts-browser": "node scripts/browser-test-fresh-shorts.mjs dist",
