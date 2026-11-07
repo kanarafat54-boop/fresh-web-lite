@@ -27,7 +27,7 @@ Verified on the live database:
 | `is_fresh_id_account_member(uuid)` | Used inside the RLS policies on accounts and memberships. |
 | `is_fresh_id_account_owner(uuid)` | Used inside the RLS policies on accounts and memberships. |
 
-Verified on the live database: all three have `search_path` pinned to empty, and `anon` cannot execute any of them. The migration `20261019120000_fresh_id_accounts_and_memberships.sql` grants execute to `authenticated` on purpose, and `scripts/verify-fresh-security-contract.mjs` asserts the policy structure.
+Verified on the live database: all three have `search_path` pinned to empty, and `anon` cannot execute any of them. The migration `20261019101116_fresh_id_accounts_and_memberships.sql` grants execute to `authenticated` on purpose, and `scripts/verify-fresh-security-contract.mjs` asserts the policy structure.
 
 **Decision:** revoking execute would break signup and the account security rules. Leave as is.
 

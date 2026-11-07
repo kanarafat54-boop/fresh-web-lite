@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 
 const required = [
-  ["supabase/migrations/20261014194500_harden_phase0_messaging_access.sql", [
+  ["supabase/migrations/20261019102101_harden_phase0_messaging_access.sql", [
     [/drop policy if exists "fresh thread owner select"/i, "thread policies can safely replay"],
     [/drop policy if exists "fresh message thread owner select"/i, "message policies can safely replay"],
     [/alter table public\.direct_messages enable row level security/i, "RLS is explicitly enabled for direct messages"],
@@ -13,7 +13,7 @@ const required = [
     [/create policy "fresh message owner insert"[\s\S]*?with check[\s\S]*?t\.owner_id = \(select auth\.uid\(\)\)/i, "messages can only be inserted into the owner's thread"],
     [/drop policy if exists "fresh message sender"/i, "old broad message policy is removed"],
   ]],
-  ["supabase/migrations/20261014200500_harden_ecosystem_profile_grants.sql", [
+  ["supabase/migrations/20261019102127_harden_ecosystem_profile_grants.sql", [
     [/alter table public\.ecosystem_profiles enable row level security/i, "RLS is explicitly enabled for ecosystem profiles"],
     [/revoke all privileges on table public\.ecosystem_profiles from public, anon, authenticated/i, "ecosystem profile browser grants are reset"],
     [/grant select on table public\.ecosystem_profiles to anon/i, "public enabled-profile reads remain available"],
@@ -25,7 +25,7 @@ const required = [
     [/\.update\(\{ status: "pending" \}\)[\s\S]*?\.in\("status", \["declined", "cancelled"\]\)/i, "re-sending a declined/cancelled request updates only its status"],
     [/error\?\.code === "23505"[\s\S]*?concurrentLookupError/i, "concurrent duplicate request creation recovers by reading the winning row"],
   ]],
-  ["supabase/migrations/20261014194000_harden_connection_request_transitions.sql", [
+  ["supabase/migrations/20261019102040_harden_connection_request_transitions.sql", [
     [/drop policy if exists "connection requests requester state transition"/i, "connection-request migration can safely replay after its state policies already exist"],
     [/drop policy if exists "connection requests recipient response"/i, "recipient-response policy is replaced safely on replay"],
     [/alter table public\.connection_requests enable row level security/i, "RLS is explicitly enabled for connection requests"],

@@ -45,9 +45,9 @@ MIGRATIONS=(
   supabase/migrations/202608240001_connections_foundation.sql
   supabase/migrations/20261012173445_drop_tautological_direct_message_policy.sql
   supabase/migrations/20261014193000_fresh_communication_tables_foundation.sql
-  supabase/migrations/20261014194000_harden_connection_request_transitions.sql
-  supabase/migrations/20261014194500_harden_phase0_messaging_access.sql
-  supabase/migrations/20261019101500_direct_message_realtime_publication.sql
+  supabase/migrations/20261019102040_harden_connection_request_transitions.sql
+  supabase/migrations/20261019102101_harden_phase0_messaging_access.sql
+  supabase/migrations/20261019102313_direct_message_realtime_publication.sql
   supabase/migrations/20261027100000_direct_messages_replayable_read_policies.sql
 )
 for file in "${MIGRATIONS[@]}"; do

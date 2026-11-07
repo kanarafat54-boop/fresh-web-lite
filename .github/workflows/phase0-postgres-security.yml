@@ -58,9 +58,9 @@ jobs:
 
       - name: Apply Phase 0 migrations in dependency order
         run: |
-          psql --set ON_ERROR_STOP=1 --file supabase/migrations/20261014194000_harden_connection_request_transitions.sql
-          psql --set ON_ERROR_STOP=1 --file supabase/migrations/20261014194500_harden_phase0_messaging_access.sql
-          psql --set ON_ERROR_STOP=1 --file supabase/migrations/20261014200500_harden_ecosystem_profile_grants.sql
+          psql --set ON_ERROR_STOP=1 --file supabase/migrations/20261019102040_harden_connection_request_transitions.sql
+          psql --set ON_ERROR_STOP=1 --file supabase/migrations/20261019102101_harden_phase0_messaging_access.sql
+          psql --set ON_ERROR_STOP=1 --file supabase/migrations/20261019102127_harden_ecosystem_profile_grants.sql
 
       - name: Run pgTAP catalog assertions
         run: |

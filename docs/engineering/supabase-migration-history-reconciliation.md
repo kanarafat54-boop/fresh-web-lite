@@ -56,7 +56,7 @@ The live `supabase_migrations.schema_migrations` table retains SQL statements fo
   - Treasury RLS overlap requiring a version-by-version comparison: `20260926120000_treasury_entries_select_own_rls.sql` (the branch also has `20260926084937_treasury_entries_select_own_rls_v2.sql`).
   - Historical security-hardening file to reconcile against the later timestamped security migrations: `20260929_security_hardening.sql`.
   - Fresh AI knowledge seed/search content: `20261014140100` through `20261014140400`.
-  - Phase 0 access hardening (three files used by the limited fixture workflow, not proof of full replay): `20261014194000`, `20261014194500`, `20261014200500`.
+  - Phase 0 access hardening (three files used by the limited fixture workflow, not proof of full replay): `20261019102040`, `20261019102101`, `20261019102127`.
   - Feed-mode constraint, Fresh Mail core, and Fresh AI correction loop: `20261014210000`, `20261015060000`, `20261016090000`.
   These are substantive migration candidates, not a set that can safely be labeled test-only. Determine whether each should be applied, superseded, or excluded only after checking history and full replay.
 - [ ] Pass a clean, full migration replay in an isolated, no-cost environment and resolve ordering/dependency errors. Two deterministic clean-replay failures have now been identified and addressed in tracked historical migrations; the latest replay is pending. The existing Phase 0 workflow only uses a fixture and three selected migrations, not the full migration chain; `supabase/config.toml` is absent.
