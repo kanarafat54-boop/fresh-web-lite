@@ -1,3 +1,5 @@
+import { evaluateAskPayload } from "./fresh-ai-smoke-assertions.mjs";
+
 const endpoint = process.env.FRESH_AI_SMOKE_URL || "https://fresh-web-lite.vercel.app/api/ai/ask";
 const goal = "Explain Fresh Flow and list the media formats available in it.";
 
@@ -20,20 +22,10 @@ try {
   throw new Error(`Fresh AI returned non-JSON (HTTP ${response.status}): ${raw.slice(0, 400)}`);
 }
 
-if (!response.ok) {
-  throw new Error(`Fresh AI request failed (HTTP ${response.status}): ${payload.error || raw.slice(0, 400)}`);
-}
-
-if (payload.status !== "completed") {
-  throw new Error(`Fresh AI did not complete the request: ${payload.status || "missing status"}; ${payload.error || "no error detail"}`);
-}
-
-const answer = typeof payload.answer === "string" ? payload.answer.trim() : "";
-const normalized = answer.toLowerCase();
-if (!answer || !normalized.includes("shorts") || !(normalized.includes("podcasts") || normalized.includes("music"))) {
-  throw new Error(`Fresh AI did not return grounded Fresh Flow knowledge. Answer was: ${answer || "(empty)"}`);
-}
+const verdict = evaluateAskPayload(payload, response.status);
+if (!verdict.ok) throw new Error(`Fresh AI production smoke failed: ${verdict.problems.join("; ")}. Answer was: ${String(payload.answer ?? "").slice(0, 300) || "(empty)"}`);
+const answer = payload.answer.trim();
 
 console.log("Fresh AI production smoke test: PASS");
-console.log(`HTTP ${response.status}; status=${payload.status}; endpoint returned Fresh Flow knowledge.`);
+console.log(`HTTP ${response.status}; status=${payload.status}; mode=${verdict.mode}; evidence items=${payload.evidence.length}.`);
 console.log(`Answer preview: ${answer.slice(0, 280)}`);

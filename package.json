@@ -119,7 +119,8 @@
     "test:fresh-studio-look": "node --no-warnings scripts/verify-fresh-studio-look.mjs",
     "test:fresh-shorts-playlists": "node scripts/test-fresh-shorts-playlists.mjs",
     "test:fresh-shorts-context": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-context.mjs",
-    "test:fresh-ai-engine-fabric": "node --experimental-strip-types scripts/test-fresh-ai-engine-fabric.mjs"
+    "test:fresh-ai-engine-fabric": "node --experimental-strip-types scripts/test-fresh-ai-engine-fabric.mjs",
+    "test:fresh-ai-smoke-assertions": "node scripts/test-fresh-ai-smoke-assertions.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
