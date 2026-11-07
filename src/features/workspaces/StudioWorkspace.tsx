@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { getComputeCapabilities, planCompute } from "../../core/platform/freshComputeFabric";
 import {
   addEdit,
@@ -39,7 +39,10 @@ import FreshStudioProductionDesk from "./FreshStudioProductionDesk";
 import "./WorkspacePage.css";
 import "./StudioWorkspace.css";
 
-type StudioMode = "start" | "camera" | "photo" | "edit" | "pipeline" | "discover" | "business" | "system" | "production";
+// Loaded on demand so the Studio dashboard code is not part of the main bundle.
+const FreshStudioApp = lazy(() => import("../fresh-studio/FreshStudioApp"));
+
+type StudioMode = "start" | "camera" | "photo" | "edit" | "pipeline" | "discover" | "business" | "system" | "production" | "studio";
 
 const MODE_TABS: { id: StudioMode; label: string }[] = [
   { id: "edit", label: "Edit" },
@@ -626,6 +629,18 @@ export default function StudioWorkspace() {
     setMode("edit");
   };
 
+  if (mode === "studio") {
+    return (
+      <Suspense fallback={<p className="studio-message" role="status">Loading Studio…</p>}>
+        <FreshStudioApp
+          onBack={() => setMode("start")}
+          onNavigateRoute={(route: string) => setActiveRoute(route)}
+          onOpenDeviceEditor={() => setMode("start")}
+        />
+      </Suspense>
+    );
+  }
+
   return (
     <section className={`workspace-page studio-workspace${mode === "start" ? " studio-workspace-start" : ""}`} aria-label="Fresh Studio">
       <header className="workspace-hero studio-hero-compact">
@@ -678,6 +693,12 @@ export default function StudioWorkspace() {
             <p>Pick one starting point. You can explore advanced controls later.</p>
           </div>
           <div className="studio-start-grid">
+            <button type="button" className="studio-start-card studio-start-card-primary" onClick={() => setMode("studio")}>
+              <span className="studio-start-icon" aria-hidden="true">▤</span>
+              <strong>Studio dashboard</strong>
+              <small>Projects, autosave and version history for every kind of creation.</small>
+              <span className="studio-start-link">Open Studio →</span>
+            </button>
             <button type="button" className="studio-start-card studio-start-card-primary" onClick={() => photoFileRef.current?.click()}>
               <span className="studio-start-icon" aria-hidden="true">▧</span>
               <strong>Edit a photo</strong>

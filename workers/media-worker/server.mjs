@@ -7,10 +7,11 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { isIP } from "node:net";
 import { join } from "node:path";
 import { assertSafeMediaUrl } from "./media-url-security.mjs";
+import { cancelRender, getRenderLimits, parseRenderRequest, runRenderJob } from "./render-job.mjs";
 
 const execFileAsync = promisify(execFile);
 const PORT = Number(process.env.PORT || 8080);
-const ROOT = "/tmp/fresh-media-worker";
+const ROOT = process.env.FRESH_MEDIA_WORKER_ROOT || "/tmp/fresh-media-worker";
 const jobs = new Map();
 const MAX_INPUT_BYTES = 50 * 1024 * 1024;
 const MAX_OUTPUT_BYTES = 100 * 1024 * 1024;
@@ -40,12 +41,12 @@ function authorized(req) {
     timingSafeEqual(expectedBytes, suppliedBytes) ? "ok" : "denied";
 }
 
-async function body(req) {
+async function body(req, maxBytes = 64 * 1024) {
   const chunks = [];
   let size = 0;
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > 64 * 1024) throw new Error("Request body too large.");
+    if (size > maxBytes) throw new Error("Request body too large.");
     chunks.push(chunk);
   }
   return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
@@ -98,6 +99,22 @@ async function download(url, target) {
   }
   await writeFile(target, Buffer.concat(chunks, total), { flag: "wx" });
 }
+
+async function pruneJobs() {
+  if (jobs.size < MAX_RETAINED_JOBS) return;
+  const finished = [...jobs.values()].filter((job) => ["succeeded", "failed", "cancelled"].includes(job.status));
+  for (const old of finished.slice(0, Math.max(1, jobs.size - MAX_RETAINED_JOBS + 1))) {
+    if (old.outputPath) await rm(old.outputPath, { force: true }).catch(() => {});
+    jobs.delete(old.id);
+  }
+}
+
+/** Render jobs belong to the signed-in user the proxy forwards; the worker token alone is not enough to read them. */
+function requestUser(req) {
+  const value = String(req.headers["x-fresh-user-id"] || "");
+  return /^[0-9a-f-]{36}$/i.test(value) ? value.toLowerCase() : null;
+}
+const visibleTo = (job, userId) => job.kind !== "render" || (userId !== null && job.ownerId === userId);
 
 async function runJob(job) {
   const input = join(ROOT, job.id + "-input");
@@ -153,13 +170,7 @@ const server = http.createServer(async (req, res) => {
       if ([...jobs.values()].filter((job) => job.status === "queued" || job.status === "running").length >= MAX_ACTIVE_JOBS) {
         return json(res, 429, { error: "Media worker is busy. Try again shortly." });
       }
-      if (jobs.size >= MAX_RETAINED_JOBS) {
-        const finished = [...jobs.values()].filter((job) => ["succeeded", "failed"].includes(job.status));
-        for (const old of finished.slice(0, Math.max(1, jobs.size - MAX_RETAINED_JOBS + 1))) {
-          if (old.outputPath) await rm(old.outputPath, { force: true }).catch(() => {});
-          jobs.delete(old.id);
-        }
-      }
+      await pruneJobs();
       const outputFormat = input.outputFormat === "mp4" ? "mp4" : "webm";
       const job = {
         id: randomUUID(),
@@ -173,20 +184,46 @@ const server = http.createServer(async (req, res) => {
       void runJob(job);
       return json(res, 202, { jobId: job.id, status: "queued", statusUrl: "/jobs/" + job.id });
     }
+    if (req.method === "GET" && url.pathname === "/capabilities") {
+      return json(res, 200, { ok: true, ffmpeg: true, render: getRenderLimits() });
+    }
+    if (req.method === "POST" && url.pathname === "/renders") {
+      const userId = requestUser(req);
+      if (!userId) return json(res, 400, { error: "x-fresh-user-id is required." });
+      const limits = getRenderLimits();
+      const parsed = parseRenderRequest(await body(req, 256 * 1024), limits);
+      if (!parsed.ok) return json(res, 400, { error: parsed.error });
+      const active = [...jobs.values()].filter((job) => job.kind === "render" && (job.status === "queued" || job.status === "running"));
+      if (active.filter((job) => job.ownerId === userId).length >= limits.maxActivePerUser) return json(res, 429, { error: "You already have a render in progress." });
+      if (active.length >= limits.maxActiveTotal) return json(res, 429, { error: "The render worker is busy. Try again shortly." });
+      await pruneJobs();
+      const job = { id: randomUUID(), kind: "render", ownerId: userId, request: parsed.value, status: "queued", progress: 0, createdAt: new Date().toISOString() };
+      jobs.set(job.id, job);
+      void runRenderJob(job, { root: ROOT, jobs, download, limits });
+      return json(res, 202, { jobId: job.id, status: "queued", statusUrl: "/jobs/" + job.id });
+    }
     const match = url.pathname.match(/^\/jobs\/([0-9a-f-]{36})$/i);
     if (req.method === "GET" && match) {
       const job = jobs.get(match[1]);
-      if (!job) return json(res, 404, { error: "Job not found." });
-      const { outputPath, ...safe } = job;
+      if (!job || !visibleTo(job, requestUser(req))) return json(res, 404, { error: "Job not found." });
+      const { outputPath, request, ownerId, cancelRequested, ...safe } = job;
       return json(res, 200, { ...safe, outputUrl: job.status === "succeeded" ? "/jobs/" + job.id + "/output" : null });
+    }
+    if (req.method === "DELETE" && match) {
+      const job = jobs.get(match[1]);
+      if (!job || job.kind !== "render" || !visibleTo(job, requestUser(req))) return json(res, 404, { error: "Job not found." });
+      if (job.status !== "queued" && job.status !== "running") return json(res, 200, { jobId: job.id, status: job.status });
+      jobs.set(job.id, { ...job, cancelRequested: true });
+      cancelRender(job.id);
+      return json(res, 202, { jobId: job.id, status: "cancelling" });
     }
     const outputMatch = url.pathname.match(/^\/jobs\/([0-9a-f-]{36})\/output$/i);
     if (req.method === "GET" && outputMatch) {
       const job = jobs.get(outputMatch[1]);
-      if (!job || job.status !== "succeeded" || !job.outputPath) return json(res, 404, { error: "Output not ready." });
+      if (!job || !visibleTo(job, requestUser(req)) || job.status !== "succeeded" || !job.outputPath) return json(res, 404, { error: "Output not ready." });
       const data = await readFile(job.outputPath);
       res.writeHead(200, {
-        "content-type": job.outputFormat === "mp4" ? "video/mp4" : "video/webm",
+        "content-type": job.kind === "render" || job.outputFormat === "mp4" ? "video/mp4" : "video/webm",
         "content-length": data.byteLength,
         "cache-control": "no-store",
         "x-content-type-options": "nosniff",

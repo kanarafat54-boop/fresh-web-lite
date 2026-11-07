@@ -1,0 +1,122 @@
+/**
+ * Export orchestration: check → upload sources → render on the worker → download.
+ * Pure over injected ports so every failure path can be tested without a network.
+ * The UI only offers what the worker reports in its capabilities (spec §6.10).
+ */
+import { serializeSrt, type Cue } from "./captions.ts";
+import { planRender, type ExportPresetId } from "./renderPlan.ts";
+import type { TimelineDoc } from "./timeline.ts";
+
+export type WorkerCapabilities = {
+  presets: ExportPresetId[];
+  aspectRatios: string[];
+  frameRates: number[];
+  maxSeconds: number;
+  maxSources: number;
+  maxInputBytes: number;
+};
+
+export type WorkerStatus = { status: "queued" | "running" | "succeeded" | "failed" | "cancelled"; progress?: number; error?: string };
+export type RenderRequestBody = { timeline: TimelineDoc; preset: ExportPresetId; aspectRatio: string; fps?: number; sources: Record<string, string>; captionsSrt?: string };
+
+export type ExportPorts = {
+  getCapabilities(): Promise<WorkerCapabilities>;
+  /** Uploads one source and returns an https URL the worker can fetch. */
+  uploadSource(assetId: string, blob: Blob): Promise<string>;
+  submit(body: RenderRequestBody): Promise<{ jobId: string }>;
+  status(jobId: string): Promise<WorkerStatus>;
+  cancel(jobId: string): Promise<void>;
+  download(jobId: string): Promise<Blob>;
+  sleep(ms: number): Promise<void>;
+};
+
+export type ExportStage = "checking" | "uploading" | "rendering" | "downloading";
+export type ExportInput = { doc: TimelineDoc; preset: ExportPresetId; aspectRatio: string; fps?: number; captions: Cue[]; blobs: Map<string, Blob>; names: Map<string, string> };
+export type ExportHooks = { onStage?: (stage: ExportStage, detail?: string) => void; onProgress?: (fraction: number) => void; signal?: AbortSignal };
+
+export class ExportError extends Error {
+  constructor(message: string) { super(message); this.name = "ExportError"; }
+}
+export class ExportCancelled extends Error {
+  constructor() { super("Export cancelled."); this.name = "ExportCancelled"; }
+}
+
+export const POLL_INTERVAL_MS = 1500;
+export const MAX_POLL_SECONDS = 20 * 60;
+
+const mb = (n: number) => `${(n / 1048576).toFixed(n < 10 * 1048576 ? 1 : 0)} MB`;
+
+/** Which of the editor's options this worker can really do. */
+export function availableExportOptions(caps: WorkerCapabilities | null) {
+  return caps
+    ? { presets: caps.presets, aspectRatios: caps.aspectRatios, frameRates: caps.frameRates }
+    : { presets: [] as ExportPresetId[], aspectRatios: [] as string[], frameRates: [] as number[] };
+}
+
+/** Local, instant checks so mistakes are reported before anything is uploaded. */
+export function checkExport(input: ExportInput, caps: WorkerCapabilities): string | null {
+  if (!caps.presets.includes(input.preset)) return `${input.preset} is not available on this render worker. Choose ${caps.presets.join(", ")}.`;
+  if (!caps.aspectRatios.includes(input.aspectRatio)) return "That aspect ratio is not available.";
+  if (input.fps !== undefined && !caps.frameRates.includes(input.fps)) return "That frame rate is not available.";
+  const used = [...new Set(input.doc.clips.map((c) => c.assetId))];
+  if (used.length > caps.maxSources) return `A render can use at most ${caps.maxSources} different files. This timeline uses ${used.length}.`;
+  for (const id of used) {
+    const blob = input.blobs.get(id);
+    const name = input.names.get(id) ?? id;
+    if (!blob) return `“${name}” is not stored on this device, so it cannot be exported from here.`;
+    if (blob.size > caps.maxInputBytes) return `“${name}” is ${mb(blob.size)}. The render worker accepts files up to ${mb(caps.maxInputBytes)}. Trim or compress it first.`;
+  }
+  const dry = planRender({ doc: input.doc, preset: input.preset, aspectRatio: input.aspectRatio, fps: input.fps, sources: Object.fromEntries(used.map((id) => [id, "x"])), outputPath: "out.mp4", captionsFile: input.captions.length ? "c.srt" : undefined });
+  if (!dry.ok) return dry.errors[0];
+  if (dry.duration > caps.maxSeconds) return `This worker renders up to ${caps.maxSeconds} seconds at a time. Your video is ${Math.ceil(dry.duration)} seconds.`;
+  return null;
+}
+
+export async function runExport(ports: ExportPorts, input: ExportInput, hooks: ExportHooks = {}): Promise<Blob> {
+  const { onStage, onProgress, signal } = hooks;
+  const ensureLive = () => { if (signal?.aborted) throw new ExportCancelled(); };
+
+  onStage?.("checking");
+  const caps = await ports.getCapabilities();
+  const problem = checkExport(input, caps);
+  if (problem) throw new ExportError(problem);
+  ensureLive();
+
+  const used = [...new Set(input.doc.clips.map((c) => c.assetId))];
+  const sources: Record<string, string> = {};
+  for (let i = 0; i < used.length; i += 1) {
+    ensureLive();
+    onStage?.("uploading", `${i + 1} of ${used.length}`);
+    onProgress?.(i / used.length);
+    sources[used[i]] = await ports.uploadSource(used[i], input.blobs.get(used[i])!);
+  }
+  ensureLive();
+
+  onStage?.("rendering");
+  onProgress?.(0);
+  const { jobId } = await ports.submit({
+    timeline: input.doc, preset: input.preset, aspectRatio: input.aspectRatio, ...(input.fps !== undefined ? { fps: input.fps } : {}), sources,
+    ...(input.captions.length ? { captionsSrt: serializeSrt(input.captions) } : {}),
+  });
+
+  const deadline = MAX_POLL_SECONDS * 1000;
+  let waited = 0;
+  for (;;) {
+    if (signal?.aborted) { await ports.cancel(jobId).catch(() => {}); throw new ExportCancelled(); }
+    const st = await ports.status(jobId);
+    if (typeof st.progress === "number") onProgress?.(Math.min(1, Math.max(0, st.progress)));
+    if (st.status === "succeeded") break;
+    if (st.status === "failed") throw new ExportError(st.error || "The render failed.");
+    if (st.status === "cancelled") throw new ExportCancelled();
+    if (waited >= deadline) { await ports.cancel(jobId).catch(() => {}); throw new ExportError("The render took too long and was stopped."); }
+    await ports.sleep(POLL_INTERVAL_MS);
+    waited += POLL_INTERVAL_MS;
+  }
+
+  ensureLive();
+  onStage?.("downloading");
+  const blob = await ports.download(jobId);
+  if (blob.size < 1000) throw new ExportError("The finished video was empty. Try again.");
+  onProgress?.(1);
+  return blob;
+}
