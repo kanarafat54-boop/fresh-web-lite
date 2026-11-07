@@ -101,6 +101,7 @@
     "test:fresh-shorts-data-saver": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-data-saver.mjs",
     "test:fresh-shorts-duration": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-duration.mjs",
     "test:fresh-shorts-history": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-history.mjs",
+    "test:fresh-shorts-sound": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-sound.mjs",
     "test:fresh-shorts-why": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-why.mjs",
     "test:fresh-shorts-filters": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-filters.mjs",
     "test:fresh-shorts-browser": "node scripts/browser-test-fresh-shorts.mjs dist",
