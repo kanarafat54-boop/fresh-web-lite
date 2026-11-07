@@ -7,6 +7,7 @@ import {
 import type { IntelligenceResponse } from "../../ai/intelligence";
 import ShortsExplore from "./ShortsExplore";
 import { requestOpenShort } from "../core/shortsExplore";
+import { addRecent, cleanQuery, readRecent, removeRecent, writeRecent } from "../core/recentSearches";
 import "./FreshFlowSearchSurface.css";
 
 type SearchTab = "videos" | "posts" | "news" | "web" | "people" | "topics";
@@ -43,9 +44,11 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
   const [people, setPeople] = useState<PersonResult[]>([]);
   const [topics, setTopics] = useState<TopicResult[]>([]);
   const [searched, setSearched] = useState(false);
+  const [recent, setRecent] = useState<string[]>(() => readRecent(scope));
 
   const run = async (activeTab: SearchTab, q: string) => {
     if (!q.trim()) return;
+    if (cleanQuery(q)) setRecent((current) => writeRecent(scope, addRecent(current, q)));
     setLoading(true);
     setError(null);
     setSearched(true);
@@ -153,6 +156,23 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
               {topics.map((t, i) => <li key={`${t.sourceKind}-${t.sourceId}-${i}`}><strong>#{t.tag}</strong><p>{t.sampleCaption}</p></li>)}
             </ul>
           )
+        )}
+        {!searched && recent.length > 0 && (
+          <section className="fresh-flow-recent-searches" aria-label="Recent searches">
+            <div className="fresh-flow-recent-head">
+              <strong>Recent searches</strong>
+              <button type="button" onClick={() => setRecent(writeRecent(scope, []))}>Clear recent searches</button>
+            </div>
+            <ul>
+              {recent.map((item) => (
+                <li key={item}>
+                  <button type="button" className="fresh-flow-recent-use" onClick={() => { setQuery(item); void run(tab, item); }}>{item}</button>
+                  <button type="button" className="fresh-flow-recent-remove" aria-label={`Remove recent search ${item}`} onClick={() => setRecent(writeRecent(scope, removeRecent(recent, item)))}>×</button>
+                </li>
+              ))}
+            </ul>
+            <p className="fresh-flow-recent-note">Saved on this device only.</p>
+          </section>
         )}
         {!searched && scope === "shorts" && (
           <ShortsExplore
