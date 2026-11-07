@@ -58,6 +58,8 @@ jobs:
         run: python3 -m unittest training/test_serve_fresh_unified_http.py
       - name: Exercise expanded authorized corpus through tokenizer and training dry-run
         run: npm run test:fresh-expanded-corpus
+      - name: Fresh AI smoke assertions (offline)
+        run: npm run test:fresh-ai-smoke-assertions
       - run: npm run test:fresh-unified-training
       - run: npm run test:fresh-unified-curriculum
       - run: npm run test:fresh-training-job
