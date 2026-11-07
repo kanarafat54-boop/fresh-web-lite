@@ -2,6 +2,9 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FlagIcon } from "../../../components/Icons";
 import * as ShortsIcons from "./shortsIcons";
 import ShortsContextPanel from "./ShortsContextPanel";
+import ShortsWhySheet from "./ShortsWhySheet";
+import ShortsHistorySheet from "./ShortsHistorySheet";
+import type { WhyInput } from "../core/shortsWhy";
 import { activeCue, parseCaptionFile, pickTrack, readCaptionsOn, writeCaptionsOn, type CaptionTrack } from "../core/shortsCaptions";
 import { loadCaptionTracks, saveCreatorCaptions } from "../core/shortCaptionsService";
 import { dataSaverLabel, isDataSaverActive, nextDataSaverMode, prefetchRadiusFor, preloadFor, readConnectionHint, readDataSaverMode, writeDataSaverMode, type DataSaverMode } from "../core/shortsDataSaver";
@@ -144,6 +147,8 @@ export default function FreshFlowShortsStream({
   const sessionIdRef = useRef<string>(crypto.randomUUID());
   const { replaceQueue, appendQueue, setActive: setRuntimeActive } = useFreshFlowRuntime();
   const [contextShortId, setContextShortId] = useState<string | null>(null);
+  const [whyShortId, setWhyShortId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [captionsOn, setCaptionsOn] = useState<boolean>(() => readCaptionsOn());
   const [captionTracks, setCaptionTracks] = useState<Record<string, CaptionTrack | null>>({});
   const [captionText, setCaptionText] = useState<string | null>(null);
@@ -925,6 +930,25 @@ export default function FreshFlowShortsStream({
         </button>
       </header>
       {!online && shorts.length > 0 ? <div className="fresh-shorts-offline-banner" role="status">You are offline. Showing Shorts already loaded.</div> : null}
+      {historyOpen && user && !isGuest ? <ShortsHistorySheet userId={user.id} onClose={() => setHistoryOpen(false)} /> : null}
+      {whyShortId && shorts.find((item) => item.id === whyShortId) ? (() => {
+        const target = shorts.find((item) => item.id === whyShortId)!;
+        const taste = tasteRef.current;
+        const tags = hashtagsOf(target.caption || "");
+        const input: WhyInput = {
+          tab: subTab,
+          signedIn: Boolean(user && !isGuest),
+          isFollowingAuthor: target.isFollowingAuthor,
+          isHot: target.isHot,
+          hashtags: tags,
+          interests: prefsRef.current.interests,
+          showLessTopics: prefsRef.current.showLessTopics,
+          authorWeight: taste ? taste.author.get(target.authorId) ?? null : null,
+          topicWeights: Object.fromEntries(tags.map((tag) => [tag, taste?.topic.get(tag) ?? 0])),
+          authorName: target.authorUsername ? `@${target.authorUsername}` : target.authorName || "this creator",
+        };
+        return <ShortsWhySheet input={input} onClose={() => setWhyShortId(null)} onOpenControls={() => { setWhyShortId(null); setRecoOpen(true); }} />;
+      })() : null}
       {contextShortId && shorts.find((item) => item.id === contextShortId) ? (
         <ShortsContextPanel short={shorts.find((item) => item.id === contextShortId)!} onClose={() => setContextShortId(null)} onOpenInFreshAI={(prompt) => { setContextShortId(null); openFreshAI(prompt); }} />
       ) : null}
@@ -1079,6 +1103,14 @@ export default function FreshFlowShortsStream({
                     <button type="button" onClick={() => { setAdvancedOpen(false); setContextShortId(short.id); }} title="Details about this Short and an on-demand evidence check">
                       <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Context and sources
                     </button>
+                    <button type="button" onClick={() => { setAdvancedOpen(false); setWhyShortId(short.id); }} title="The signals behind this Short showing up in your feed">
+                      <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Why am I seeing this?
+                    </button>
+                    {user && !isGuest ? (
+                      <button type="button" onClick={() => { setAdvancedOpen(false); setHistoryOpen(true); }} title="Shorts you watched, with remove and clear controls">
+                        <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Watch history
+                      </button>
+                    ) : null}
                     {ADVANCED_ACTIONS.map((a) => (
                       <button key={a.id} type="button" onClick={() => openAdvanced(a.id, short)} title={a.description}>
                         <span className="fresh-flow-menu-icon">{a.icon}</span> {a.label}
