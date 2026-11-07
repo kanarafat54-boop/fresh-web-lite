@@ -940,6 +940,7 @@ export default function FreshFlowShortsStream({
       {filterOpen && (
         <ShortsFilterSheet
           filters={shortFilters}
+          shorts={shorts}
           mode={filterMode}
           onApply={setShortFilters}
           onModeChange={setFilterMode}

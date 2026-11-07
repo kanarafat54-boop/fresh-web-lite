@@ -35,6 +35,7 @@ jobs:
       - name: Shorts filters and links
         run: |
           npm run test:fresh-shorts-filters
+          npm run test:fresh-shorts-duration
           npm run test:fresh-shorts-comment-reactions
           npm run test:fresh-shorts-data-saver
           npm run test:fresh-shorts-context
