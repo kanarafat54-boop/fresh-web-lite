@@ -116,6 +116,7 @@
     "test:fresh-long-video-analytics": "node scripts/verify-fresh-long-video-analytics.mjs",
     "test:fresh-blender-render-worker": "node scripts/verify-fresh-blender-render-worker.mjs && node --test workers/blender-render-worker/scene-spec.test.mjs",
     "test:fresh-studio-export": "node --no-warnings scripts/verify-fresh-studio-export.mjs",
+    "test:fresh-studio-look": "node --no-warnings scripts/verify-fresh-studio-look.mjs",
     "test:fresh-shorts-playlists": "node scripts/test-fresh-shorts-playlists.mjs",
     "test:fresh-shorts-context": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-context.mjs"
   },

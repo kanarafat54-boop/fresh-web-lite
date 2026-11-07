@@ -4,7 +4,7 @@ const E = await import("../src/features/fresh-studio/video-studio/exportJob.ts")
 
 const asset = { id: "a", name: "a.mp4", kind: "video", duration: 10, width: 640, height: 360, hasAudio: true };
 const doc = T.addClip(T.addAsset(T.createTimeline(30), asset), { trackId: "v1", assetId: "a", id: "c1" });
-const caps = { presets: ["360p", "720p"], aspectRatios: ["16:9", "9:16"], frameRates: [30], maxSeconds: 60, maxSources: 4, maxInputBytes: 1000 * 1000 };
+const caps = { text: true, presets: ["360p", "720p"], aspectRatios: ["16:9", "9:16"], frameRates: [30], maxSeconds: 60, maxSources: 4, maxInputBytes: 1000 * 1000 };
 const big = new Blob([new Uint8Array(2000)]);
 const input = (o = {}) => ({ doc, preset: "720p", aspectRatio: "16:9", captions: [], blobs: new Map([["a", new Blob([new Uint8Array(500)])]]), names: new Map([["a", "a.mp4"]]), ...o });
 
@@ -48,4 +48,18 @@ const fakePorts = (over = {}) => {
 { const ctl = new AbortController(); ctl.abort(); const { ports, calls } = fakePorts(); await assert.rejects(E.runExport(ports, input(), { signal: ctl.signal }), E.ExportCancelled); assert.ok(!calls.includes("submit")); }
 // timeout stops the job
 { const { ports, calls } = fakePorts({ status: async () => ({ status: "running" }) }); await assert.rejects(E.runExport(ports, input()), /too long/); assert.ok(calls.includes("cancel")); }
+// the worker nests its limits under `render`; the parser must unwrap them and reject anything else
+{
+  const wire = { ok: true, ffmpeg: true, render: { presets: ["360p", "720p"], aspectRatios: ["16:9"], frameRates: [30], maxSeconds: 120, maxSources: 8, maxInputBytes: 1000, text: true, maxCaptionBytes: 5 } };
+  const c = E.parseCapabilities(wire);
+  assert.deepEqual(c.presets, ["360p", "720p"]); assert.equal(c.text, true); assert.equal(c.maxSeconds, 120);
+  assert.equal(E.parseCapabilities({ render: { ...wire.render, text: undefined } }).text, false);
+  for (const bad of [null, {}, { ok: true }, { render: { presets: "720p" } }, { render: { ...wire.render, maxSeconds: "x" } }, wire.render]) assert.throws(() => E.parseCapabilities(bad), /not with what this version/);
+}
+// text needs a worker that has fonts
+{
+  const withText = T.addText(doc, { start: 0, id: "t1", text: "Hi" });
+  assert.equal(E.checkExport(input({ doc: withText }), caps), null);
+  assert.match(E.checkExport(input({ doc: withText }), { ...caps, text: false }), /cannot export text/);
+}
 console.log("fresh-studio export orchestration: ok");

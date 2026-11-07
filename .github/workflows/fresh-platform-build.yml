@@ -73,6 +73,7 @@ jobs:
           npm run test:fresh-studio-smart-edit
           npm run test:fresh-studio-worker
           npm run test:fresh-studio-export
+          npm run test:fresh-studio-look
       - name: Phases 15-22 certification
         run: npm run test:fresh-phases-15-22
       - name: Phases 15-24 certification
