@@ -115,3 +115,27 @@ Re-audit conclusion:
 - Do not rebuild the pager, comment engine, playlists, pinned comments, routes, or filters already merged or in review.
 - PR #227's optional `authorVerified` boundary was fixed in `21a802c`; its same-host test fixture was corrected in `2e15a04`. A panel-specific Chromium interaction test was added in `d76f441` and awaits fresh CI. Do not merge until that test and required checks pass; live signed-in API and Android-device validation remain manual gates. Review #224, #226 and #228 against current `main` and their migrations. Keep Supabase migration-history drift as a separate release gate.
 - Fresh Studio remains outside this specification and is not included in this work.
+
+## Progress update (2026-11-07 — slices merged)
+
+Merged into `main` since the 2026-11-06 re-audit, each with CI green at merge time:
+- **#223** — data saver (Auto / On / Off): fewer prefetched Shorts and lighter preloading when active. Auto follows the browser's data-saver and slow-network signals.
+- **#224** — richer comment reactions (15 types, one per person per comment, counts and breakdown).
+- **#226** — creator-uploaded VTT/SRT captions and the viewer caption control. Only existing captions are shown; nothing is generated.
+- **#227** — Context and sources panel. Runs only when the viewer asks, sends the caption to Fresh AI, shows only http(s) links, and states that it is an automated check, not a human fact-check. A browser test bug (headings are uppercased by CSS) was fixed before merge.
+- **#228** — duration and language recorded at publish; Length and Language filters shown only when loaded Shorts carry the data; the Remixes filter now matches (the loader previously never read the remix and duet links).
+
+Migrations in the repository that the owner has **not** applied to the live database (repository presence is not evidence of application):
+| Migration | Effect if not applied |
+|---|---|
+| `20261105100000_widen_short_comment_reactions.sql` | The 8 newer reaction types cannot be saved; the original reactions still work |
+| `20261106100000_fresh_shorts_duration_language.sql` | Nothing breaks; Length and Language filters stay hidden and publishing skips the new fields |
+| `20261102120000`, `20261102140000` (#209) | Playlists and pinned comments are not available live |
+
+Known limits, stated plainly:
+- Shorts published before #228 have no duration or language and never match those filters. There is no backfill.
+- Language is the creator's device language, not detected from speech.
+- Automatic captions need a speech-to-text service and an owner decision on sending audio to it. Not built.
+- TrueMode origin and provenance tracing needs a provenance service. Not built; the Context panel does not claim it.
+- "Use this sound" is not built. It needs an owner decision on whether creators allow others to reuse their audio, storage for attribution and permission, and mixing tested on real devices.
+- No physical Android device pass is evidenced. Supabase migration-history drift remains a separate release gate.
