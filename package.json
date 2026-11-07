@@ -96,6 +96,7 @@
     "test:fresh-edit-segments": "node --experimental-strip-types --no-warnings scripts/test-fresh-edit-segments.mjs",
     "test:fresh-studio-projects": "node --experimental-strip-types --no-warnings scripts/test-fresh-studio-projects.mjs",
     "test:fresh-shorts-safety": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-safety.mjs",
+    "test:fresh-shorts-captions": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-captions.mjs",
     "test:fresh-shorts-data-saver": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-data-saver.mjs",
     "test:fresh-shorts-filters": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-filters.mjs",
     "test:fresh-shorts-browser": "node scripts/browser-test-fresh-shorts.mjs dist",
