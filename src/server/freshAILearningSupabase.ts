@@ -3,7 +3,7 @@ import {
   validateFreshLearningEvent,
   type FreshLearningEvent,
   type FreshLearningEventRepository,
-} from "../core/fresh-ai/FreshAutonomousLearningCore.js";
+} from "../core/fresh-ai/FreshAutonomousLearningCore.ts";
 
 type LearningEventRow = {
   id: string;
