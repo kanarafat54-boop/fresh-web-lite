@@ -51,3 +51,14 @@ The schema defaults `training_eligible=false`. Client inserts cannot set it true
 - No training on ordinary private chats by default.
 - No autonomous production checkpoint promotion.
 - No claim that this migration alone makes Fresh AI continuously learn or improves its neural weights.
+
+
+## Worker scheduling foundation (Milestone 2)
+
+The worker lease migration adds atomic `FOR UPDATE SKIP LOCKED` claims, a per-claim lease token, lease expiry, and bounded retries. The service-role-only RPCs are:
+
+- `fresh_ai_claim_learning_objectives` — claims due or abandoned objectives in a bounded batch.
+- `fresh_ai_complete_learning_objective` — completes only when the caller presents the active lease token.
+- `fresh_ai_fail_learning_objective` — records a safe reason code and applies bounded exponential backoff.
+
+The server-side `freshAILearningWorker.ts` adapter and runner require an injected processor. They do not invent practice output, call a model, or claim model training. The processor integration and independently measured practice/evaluation are Milestone 3. Do not schedule production execution until that processor is installed and validated. The migration has not been applied to live Supabase by this code change.
