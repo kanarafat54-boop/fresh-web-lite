@@ -163,11 +163,13 @@ async function learningEvents(req: Request): Promise<Response> {
 
 // /api/ai/corrections is rewritten to this function (vercel.json) so the repo stays within its serverless function limit.
 export async function GET(req: Request): Promise<Response> {
-  if (!isCorrectionReview(req)) return json({ error: "Not found" }, 404);
-  return listCorrections(req);
+  if (isLearningEvents(req)) return learningEvents(req);
+  if (isCorrectionReview(req)) return listCorrections(req);
+  return json({ error: "Not found" }, 404);
 }
 
 export async function POST(req: Request): Promise<Response> {
+  if (isLearningEvents(req)) return learningEvents(req);
   return isCorrectionReview(req) ? reviewCorrection(req) : submitFeedback(req);
 }
 
