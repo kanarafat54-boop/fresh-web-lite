@@ -15,6 +15,8 @@ const core = fs.readFileSync("src/core/fresh-ai/FreshAutonomousLearningCore.ts",
 const migration = fs.readFileSync("supabase/migrations/20261108230000_fresh_ai_autonomous_learning_core.sql", "utf8");
 const docs = fs.readFileSync("docs/FRESH_AI_AUTONOMOUS_LEARNING_CORE.md", "utf8");
 const adapter = fs.readFileSync("src/server/freshAILearningSupabase.ts", "utf8");
+const api = fs.readFileSync("src/server/freshAILearningEventsApi.ts", "utf8");
+const routes = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
 
 for (const token of [
   "FRESH_LEARNING_CONSENT_VERSION",
