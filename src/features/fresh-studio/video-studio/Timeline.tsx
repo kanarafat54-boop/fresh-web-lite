@@ -94,13 +94,13 @@ export default function Timeline({ doc, selected, playhead, pxPerSec, thumbs, pe
   const scroller = useRef<HTMLDivElement>(null);
 
   // ---- text row: its own light drag (move / trim) because text layers are not tied to media
-  type TDrag = { id: string; mode: "move" | "start" | "end"; startX: number; origStart: number; origEnd: number; start: number; end: number };
+  type TDrag = { id: string; overlay?: boolean; mode: "move" | "start" | "end"; startX: number; origStart: number; origEnd: number; start: number; end: number };
   const [tdrag, setTdrag] = useState<TDrag | null>(null);
   const tdragRef = useRef<TDrag | null>(null);
-  const textBegin = (e: RPointerEvent, t: T.TextLayer, mode: TDrag["mode"]) => {
+  const textBegin = (e: RPointerEvent, t: { id: string; start: number; duration: number }, mode: TDrag["mode"], overlay = false) => {
     e.stopPropagation(); onSelect(t.id);
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    const d: TDrag = { id: t.id, mode, startX: e.clientX, origStart: t.start, origEnd: t.start + t.duration, start: t.start, end: t.start + t.duration };
+    const d: TDrag = { id: t.id, overlay, mode, startX: e.clientX, origStart: t.start, origEnd: t.start + t.duration, start: t.start, end: t.start + t.duration };
     tdragRef.current = d; setTdrag(d);
   };
   const textMove = (e: RPointerEvent) => {
@@ -115,9 +115,19 @@ export default function Timeline({ doc, selected, playhead, pxPerSec, thumbs, pe
   const textEnd = () => {
     const d = tdragRef.current; tdragRef.current = null; setTdrag(null);
     if (!d || (Math.abs(d.start - d.origStart) < 0.005 && Math.abs(d.end - d.origEnd) < 0.005)) return;
-    edit((doc0) => T.updateText(doc0, d.id, { start: d.start, duration: T.round3(d.end - d.start) }));
+    edit((doc0) => (d.overlay ? T.updateOverlay : T.updateText)(doc0, d.id, { start: d.start, duration: T.round3(d.end - d.start) }));
   };
   const texts = doc.texts ?? [];
+  const overlays = doc.overlays ?? [];
+  // Overlays that overlap in time are stacked in lanes so none hides another.
+  const laneOf = new Map<string, number>();
+  const laneEnds: number[] = [];
+  for (const o of [...overlays].sort((a, b) => a.start - b.start)) {
+    let lane = laneEnds.findIndex((end) => end <= o.start + 1e-6);
+    if (lane < 0) { lane = laneEnds.length; laneEnds.push(0); }
+    laneEnds[lane] = o.start + o.duration; laneOf.set(o.id, lane);
+  }
+  const overlayRowHeight = TEXT_ROW_HEIGHT * Math.max(1, laneEnds.length);
 
   // Keep the playhead in view while playing or stepping.
   useEffect(() => {
@@ -189,6 +199,7 @@ export default function Timeline({ doc, selected, playhead, pxPerSec, thumbs, pe
           </div>
         ))}
         <div className="fs-tl-label fs-tl-label-text" style={{ height: TEXT_ROW_HEIGHT }} title="Text layers"><Icon name="type" size={16} /></div>
+        <div className="fs-tl-label fs-tl-label-text" style={{ height: overlayRowHeight }} title="Pictures and shapes"><Icon name="image" size={16} /></div>
       </div>
       <div className="fs-tl-scroll" ref={scroller}>
         <div className="fs-tl-canvas" style={{ width }}>
@@ -218,6 +229,23 @@ export default function Timeline({ doc, selected, playhead, pxPerSec, thumbs, pe
                   <span className="fs-clip-handle is-start" onPointerDown={(e) => textBegin(e, t, "start")} onPointerMove={textMove} onPointerUp={textEnd} onPointerCancel={textEnd} aria-hidden="true" />
                   <span className="fs-textblock-label">{t.text.split("\n")[0]}</span>
                   <span className="fs-clip-handle is-end" onPointerDown={(e) => textBegin(e, t, "end")} onPointerMove={textMove} onPointerUp={textEnd} onPointerCancel={textEnd} aria-hidden="true" />
+                </div>
+              );
+            })}
+          </div>
+          <div className="fs-tl-track kind-title" style={{ height: overlayRowHeight }} onPointerDown={(e) => { onSelect(null); seekFrom(e); }}>
+            {overlays.map((o) => {
+              const live = tdrag && tdrag.id === o.id ? tdrag : null;
+              const start = live ? live.start : o.start, end = live ? live.end : o.start + o.duration;
+              const label = o.kind === "rect" ? "Rectangle" : doc.assets.find((a) => a.id === o.assetId)?.name ?? "Picture";
+              return (
+                <div key={o.id} className={`fs-textblock fs-overlayblock${selected === o.id ? " is-selected" : ""}`} style={{ left: start * pxPerSec, width: Math.max(14, (end - start) * pxPerSec), top: (laneOf.get(o.id) ?? 0) * TEXT_ROW_HEIGHT + 4, bottom: "auto", height: TEXT_ROW_HEIGHT - 8 }}
+                  role="button" tabIndex={0} aria-pressed={selected === o.id} aria-label={`${o.kind === "rect" ? "Rectangle" : "Picture"} “${label.slice(0, 30)}”, ${formatClock(start)} to ${formatClock(end)}`}
+                  onPointerDown={(e) => textBegin(e, o, "move", true)} onPointerMove={textMove} onPointerUp={textEnd} onPointerCancel={textEnd}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(o.id); } }}>
+                  <span className="fs-clip-handle is-start" onPointerDown={(e) => textBegin(e, o, "start", true)} onPointerMove={textMove} onPointerUp={textEnd} onPointerCancel={textEnd} aria-hidden="true" />
+                  <span className="fs-textblock-label">{label}</span>
+                  <span className="fs-clip-handle is-end" onPointerDown={(e) => textBegin(e, o, "end", true)} onPointerMove={textMove} onPointerUp={textEnd} onPointerCancel={textEnd} aria-hidden="true" />
                 </div>
               );
             })}

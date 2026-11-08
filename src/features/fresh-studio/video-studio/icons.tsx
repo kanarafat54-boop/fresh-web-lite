@@ -31,6 +31,7 @@ const PATHS: Record<string, ReactNode> = {
   stepBack: <><path d="M6 5v14M18 5l-9 7 9 7z" /></>,
   stepForward: <><path d="M18 5v14M6 5l9 7-9 7z" /></>,
   fullscreen: <><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></>,
+  image: <><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="2" /><path d="M21 16l-5-5-8 9" /></>,
   video: <><rect x="3" y="6" width="13" height="12" rx="2" /><path d="M16 10l5-3v10l-5-3z" /></>,
 };
 

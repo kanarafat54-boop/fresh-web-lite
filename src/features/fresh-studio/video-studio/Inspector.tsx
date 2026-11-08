@@ -129,6 +129,34 @@ function TransitionPicker({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T.Tim
   );
 }
 
+export function OverlayInspector({ layer, assetName, edit, duration }: { layer: T.OverlayLayer; assetName: string | null; edit: EditFn; duration: number }) {
+  const up = (patch: Partial<Omit<T.OverlayLayer, "id" | "kind" | "assetId">>) => edit((d) => T.updateOverlay(d, layer.id, patch));
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+  return (
+    <>
+      <h2>{layer.kind === "rect" ? "Rectangle" : "Picture"}</h2>
+      <div className="fs-inspector-body">
+        {layer.kind === "image" && <p className="fs-muted">{assetName ?? "Picture"}</p>}
+        <Slider label="Left ↔ right" value={layer.x} min={0} max={1} step={0.01} format={pct} onCommit={(v) => up({ x: v })} />
+        <Slider label="Top ↔ bottom" value={layer.y} min={0} max={1} step={0.01} format={pct} onCommit={(v) => up({ y: v })} />
+        <Slider label={layer.kind === "rect" ? "Width" : "Size"} value={layer.width} min={0.02} max={1} step={0.01} format={pct} onCommit={(v) => up({ width: v })} />
+        {layer.kind === "rect" && <Slider label="Height" value={layer.height} min={0.02} max={1} step={0.01} format={pct} onCommit={(v) => up({ height: v })} />}
+        <Slider label="Opacity" value={layer.opacity} min={0.05} max={1} step={0.05} format={pct} onCommit={(v) => up({ opacity: v })} />
+        <Slider label="Shows for" value={layer.duration} min={T.MIN_OVERLAY_SECONDS} max={Math.max(10, Math.ceil(duration))} step={0.1} format={(v) => `${v.toFixed(1)} s`} onCommit={(v) => up({ duration: v })} />
+        {layer.kind === "rect" && (
+          <>
+            <div className="fs-label">Colour</div>
+            <div className="fs-swatches" role="group" aria-label="Rectangle colour">
+              {SWATCHES.map((c) => <button key={c} type="button" className={`fs-swatch${layer.color.toLowerCase() === c ? " is-active" : ""}`} style={{ background: c }} aria-label={`Colour ${c}`} aria-pressed={layer.color.toLowerCase() === c} onClick={() => up({ color: c })} />)}
+            </div>
+          </>
+        )}
+        <p className="fs-muted">Drag its block on the timeline to retime it. Overlays sit above the video and below text.</p>
+      </div>
+    </>
+  );
+}
+
 type TextSection = "text" | "style" | "place";
 export function TextInspector({ layer, edit, duration }: { layer: T.TextLayer; edit: EditFn; duration: number }) {
   const [section, setSection] = useState<TextSection>("text");
