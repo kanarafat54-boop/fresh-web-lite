@@ -20,7 +20,7 @@ function Slider({ label, value, min, max, step, format, onChange, onCommit }: { 
   );
 }
 
-type Section = "speed" | "audio" | "look" | "frame" | "transition";
+type Section = "speed" | "audio" | "look" | "frame" | "motion" | "transition";
 export function ClipInspector({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T.TimelineClip; edit: EditFn }) {
   const [section, setSection] = useState<Section>("speed");
   const asset = doc.assets.find((a) => a.id === clip.assetId);
@@ -28,7 +28,7 @@ export function ClipInspector({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T
   const isVideo = track?.kind === "video";
   const look = clip.look ?? T.NEUTRAL_LOOK;
   const dur = T.clipDuration(clip);
-  const sections: Array<[Section, string]> = isVideo ? [["speed", "Speed"], ["audio", "Audio"], ["look", "Look"], ["frame", "Frame"], ["transition", "Transition"]] : [["speed", "Speed"], ["audio", "Audio"]];
+  const sections: Array<[Section, string]> = isVideo ? [["speed", "Speed"], ["audio", "Audio"], ["look", "Look"], ["frame", "Frame"], ["motion", "Motion"], ["transition", "Transition"]] : [["speed", "Speed"], ["audio", "Audio"]];
   const active = sections.some(([id]) => id === section) ? section : "speed";
   const setLook = (l: T.ClipLook | null) => edit((d) => T.setClipLook(d, clip.id, l ?? null));
   return (
@@ -67,6 +67,7 @@ export function ClipInspector({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T
             <p className="fs-muted">The preview is an approximation. The exported video uses exact values.</p>
           </>
         )}
+        {active === "motion" && <MotionPanel clip={clip} edit={edit} />}
         {active === "transition" && <TransitionPicker doc={doc} clip={clip} edit={edit} />}
         {active === "frame" && (
           <>
@@ -77,6 +78,33 @@ export function ClipInspector({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T
           </>
         )}
       </div>
+    </>
+  );
+}
+
+function MotionPanel({ clip, edit }: { clip: T.TimelineClip; edit: EditFn }) {
+  const m = clip.motion;
+  const same = (a: T.ClipMotion | null, b: T.ClipMotion | null) => (a === null || b === null ? a === b : (Object.keys(a) as Array<keyof T.ClipMotion>).every((k) => Math.abs(a[k] - b[k]) < 1e-6));
+  const set = (patch: Partial<T.ClipMotion>) => edit((d) => T.setClipMotion(d, clip.id, { ...(m ?? T.MOTION_PRESETS[1].motion!), ...patch }));
+  const pct = (v: number) => `${v > 0 ? "+" : ""}${Math.round(v * 100)}%`;
+  const noZoom = m && m.fromZoom === 1 && m.toZoom === 1;
+  return (
+    <>
+      <div className="fs-chips" role="group" aria-label="Motion presets">
+        {T.MOTION_PRESETS.map((p) => <button key={p.id} type="button" className={`fs-chip${same(m ?? null, p.motion) ? " is-active" : ""}`} aria-pressed={same(m ?? null, p.motion)} onClick={() => edit((d) => T.setClipMotion(d, clip.id, p.motion))}>{p.name}</button>)}
+      </div>
+      {m && (
+        <>
+          <Slider label="Zoom at start" value={m.fromZoom} min={T.MIN_ZOOM} max={T.MAX_ZOOM} step={0.05} format={(v) => `${v.toFixed(2)}×`} onCommit={(v) => set({ fromZoom: v })} />
+          <Slider label="Zoom at end" value={m.toZoom} min={T.MIN_ZOOM} max={T.MAX_ZOOM} step={0.05} format={(v) => `${v.toFixed(2)}×`} onCommit={(v) => set({ toZoom: v })} />
+          <Slider label="Left–right at start" value={m.fromX} min={-1} max={1} step={0.05} format={pct} onCommit={(v) => set({ fromX: v })} />
+          <Slider label="Left–right at end" value={m.toX} min={-1} max={1} step={0.05} format={pct} onCommit={(v) => set({ toX: v })} />
+          <Slider label="Up–down at start" value={m.fromY} min={-1} max={1} step={0.05} format={pct} onCommit={(v) => set({ fromY: v })} />
+          <Slider label="Up–down at end" value={m.toY} min={-1} max={1} step={0.05} format={pct} onCommit={(v) => set({ toY: v })} />
+          {noZoom && <p className="fs-muted" role="status">Moving needs some zoom. At 1× the whole picture is already showing, so there is nothing to move across.</p>}
+        </>
+      )}
+      <p className="fs-muted">Two keyframes: the picture eases from the start settings to the end settings over the clip. Splitting a clip keeps the movement smooth across the cut.</p>
     </>
   );
 }

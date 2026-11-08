@@ -75,6 +75,7 @@ jobs:
           npm run test:fresh-studio-export
           npm run test:fresh-studio-look
           npm run test:fresh-studio-transitions
+          npm run test:fresh-studio-motion
       - name: Phases 15-22 certification
         run: npm run test:fresh-phases-15-22
       - name: Phases 15-24 certification
