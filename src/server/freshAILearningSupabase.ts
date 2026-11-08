@@ -145,6 +145,9 @@ export function createSupabaseFreshLearningEventRepository(
       if (existing.error || !existing.data?.id) {
         throw new Error("Learning event idempotency conflict could not be verified.");
       }
+      if (existing.data.content_sha256 !== row.content_sha256 || existing.data.payload_reference !== row.payload_reference || existing.data.summary !== row.summary) {
+        throw new Error("Idempotency key was reused for different learning-event content.");
+      }
       return "duplicate";
     },
 
