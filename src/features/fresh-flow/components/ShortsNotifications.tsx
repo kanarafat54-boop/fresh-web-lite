@@ -3,7 +3,7 @@ import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { useLayout } from "../../../app/contexts/useLayout";
 import { ACTIVITY_TABS, loadShortsActivity, matchesTab, timeAgo, type ActivityItem, type ActivityKind, type ActivityTab } from "../core/shortsActivity";
 import { requestOpenShort } from "../core/shortsExplore";
-import { NOTIFICATION_CATEGORIES, applyState, clearAll, markAllRead, markRead, setCategoryEnabled, unreadCount, EMPTY_STATE, type NotificationCategory, type NotificationState } from "../core/notificationState";
+import { NOTIFICATION_CATEGORIES, applyState, clearAll, markAllRead, markRead, setCategoryEnabled, unreadCount, EMPTY_STATE, type NotificationState } from "../core/notificationState";
 import { loadNotificationState, saveNotificationState, type StateSource } from "../core/notificationStateStore";
 import "./ShortsNotifications.css";
 
