@@ -68,6 +68,7 @@ export type FreshLearningEvent = {
 export type FreshLearningEligibility = {
   retainInMemory: boolean;
   mayEnterTrainingReview: boolean;
+  mayEnterTrainingDataset: boolean;
   reasons: string[];
 };
 
@@ -157,12 +158,16 @@ export function evaluateFreshLearningEligibility(
     event.consent.trainingOptIn &&
     consentActive &&
     versionValid &&
+    event.reviewStatus === "pending";
+
+  const mayEnterTrainingDataset =
+    mayEnterTrainingReview &&
     review.provenanceVerified &&
     review.safetyChecked &&
     review.privacyScreened &&
     review.humanApproved;
 
-  return { retainInMemory, mayEnterTrainingReview, reasons };
+  return { retainInMemory, mayEnterTrainingReview, mayEnterTrainingDataset, reasons };
 }
 
 export type FreshLearningObjective = {
