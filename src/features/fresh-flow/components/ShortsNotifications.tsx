@@ -44,7 +44,7 @@ export default function ShortsNotifications({ onClose, onOpenCreator }: Props) {
       <div className="shorts-notify-list">
         {error && <p className="shorts-notify-note" role="alert">{error}</p>}
         {items === null && <p className="shorts-notify-note">Loading…</p>}
-        {items !== null && (isGuest || !user) && <p className="shorts-notify-note">Sign in to see likes, comments, shares and follows on your Shorts. <button type="button" className="shorts-notify-link" onClick={() => { onClose(); setActiveRoute("auth-signin"); }}>Sign in</button></p>}
+        {items !== null && (isGuest || !user) && <p className="shorts-notify-note">Sign in to see likes, comments and follows on your Shorts. <button type="button" className="shorts-notify-link" onClick={() => { onClose(); setActiveRoute("auth-signin"); }}>Sign in</button></p>}
         {items !== null && !isGuest && user && visible.length === 0 && !error && <p className="shorts-notify-note">{tab === "all" ? "No activity on your Shorts yet." : "Nothing here yet."}</p>}
         <ul>
           {visible.map((item) => {
