@@ -153,19 +153,22 @@ export function evaluateFreshLearningEligibility(
   if (!review.privacyScreened) reasons.push("privacy-screening-pending");
   if (!review.humanApproved) reasons.push("human-review-pending");
 
-  const mayEnterTrainingReview =
+  const hasTrainingConsent =
     event.consent.captureAllowed &&
     event.consent.trainingOptIn &&
     consentActive &&
-    versionValid &&
-    event.reviewStatus === "pending";
-
+    versionValid;
+  const mayEnterTrainingReview = hasTrainingConsent && event.reviewStatus === "pending";
   const mayEnterTrainingDataset =
-    mayEnterTrainingReview &&
+    hasTrainingConsent &&
+    event.reviewStatus === "approved" &&
     review.provenanceVerified &&
     review.safetyChecked &&
     review.privacyScreened &&
     review.humanApproved;
+
+  if (event.reviewStatus === "rejected") reasons.push("training-review-rejected");
+  if (event.reviewStatus !== "approved") reasons.push("training-review-not-approved");
 
   return { retainInMemory, mayEnterTrainingReview, mayEnterTrainingDataset, reasons };
 }
