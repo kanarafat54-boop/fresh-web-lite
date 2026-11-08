@@ -43,11 +43,14 @@ function setPreviewGain(el: HTMLMediaElement, value: number) {
   g.gain.gain.value = value;
 }
 /** 0–1 factor for a clip's fade in/out at timeline time `t`. */
-function fadeFactor(c: T.TimelineClip, t: number): number {
+function fadeFactor(doc: T.TimelineDoc, c: T.TimelineClip, t: number, medium: "audio" | "video"): number {
   const end = T.clipEnd(c);
+  const { fadeIn, fadeOut } = T.effectiveFades(doc, c, medium);
   let f = 1;
-  if (c.fadeIn) f = Math.min(f, (t - c.start) / c.fadeIn);
-  if (c.fadeOut) f = Math.min(f, (end - t) / c.fadeOut);
+  if (fadeIn) f = Math.min(f, (t - c.start) / fadeIn);
+  if (fadeOut) f = Math.min(f, (end - t) / fadeOut);
+  // Blend-style transitions are previewed as a fade-in of the new clip (the export shows the exact effect).
+  if (medium === "video" && c.transitionIn && c.transitionIn.type !== "dip") f = Math.min(f, (t - c.start) / c.transitionIn.duration);
   return Math.min(1, Math.max(0, f));
 }
 const lookFilter = (l: T.ClipLook | undefined) => (l ? `brightness(${1 + l.brightness}) contrast(${l.contrast}) saturate(${l.saturation})` : "none");
@@ -83,7 +86,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
   const aspect = doc.aspect ?? String(project.meta.settings.aspectRatio ?? "16:9");
   const aspectValid = (T.ASPECT_RATIOS as readonly string[]).includes(aspect) ? aspect : "16:9";
   const visibleTexts = T.textsAt(doc, playhead);
-  const videoFade = activeVideo ? fadeFactor(activeVideo, playhead) : 1;
+  const videoFade = activeVideo ? fadeFactor(doc, activeVideo, playhead, "video") : 1;
 
   // --- thumbnails and waveforms, computed once per file
   const [thumbs, setThumbs] = useState<Record<string, Filmstrip>>({});
@@ -107,10 +110,10 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
     if (!clip || !entry?.url) { if (!el.paused) el.pause(); return; }
     if (el.dataset.src !== entry.url) { el.dataset.src = entry.url; el.src = entry.url; }
     el.muted = false; el.playbackRate = clip.speed;
-    setPreviewGain(el, muted ? 0 : (clip.volume ?? 1) * fadeFactor(clip, at));
+    setPreviewGain(el, muted ? 0 : (clip.volume ?? 1) * fadeFactor(doc, clip, at, "audio"));
     const target = clip.sourceIn + (at - clip.start) * clip.speed;
     if (Math.abs(el.currentTime - target) > (playing ? 0.35 : 0.04)) { try { el.currentTime = target; } catch { /* not seekable yet */ } }
-  }, [media, playing]);
+  }, [media, playing, doc]);
 
   useEffect(() => {
     sync(videoEl.current, activeVideo, !!videoTrack?.muted, playhead);

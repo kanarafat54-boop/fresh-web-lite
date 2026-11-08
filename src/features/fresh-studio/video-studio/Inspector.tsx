@@ -20,7 +20,7 @@ function Slider({ label, value, min, max, step, format, onChange, onCommit }: { 
   );
 }
 
-type Section = "speed" | "audio" | "look" | "frame";
+type Section = "speed" | "audio" | "look" | "frame" | "transition";
 export function ClipInspector({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T.TimelineClip; edit: EditFn }) {
   const [section, setSection] = useState<Section>("speed");
   const asset = doc.assets.find((a) => a.id === clip.assetId);
@@ -28,7 +28,7 @@ export function ClipInspector({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T
   const isVideo = track?.kind === "video";
   const look = clip.look ?? T.NEUTRAL_LOOK;
   const dur = T.clipDuration(clip);
-  const sections: Array<[Section, string]> = isVideo ? [["speed", "Speed"], ["audio", "Audio"], ["look", "Look"], ["frame", "Frame"]] : [["speed", "Speed"], ["audio", "Audio"]];
+  const sections: Array<[Section, string]> = isVideo ? [["speed", "Speed"], ["audio", "Audio"], ["look", "Look"], ["frame", "Frame"], ["transition", "Transition"]] : [["speed", "Speed"], ["audio", "Audio"]];
   const active = sections.some(([id]) => id === section) ? section : "speed";
   const setLook = (l: T.ClipLook | null) => edit((d) => T.setClipLook(d, clip.id, l ?? null));
   return (
@@ -67,6 +67,7 @@ export function ClipInspector({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T
             <p className="fs-muted">The preview is an approximation. The exported video uses exact values.</p>
           </>
         )}
+        {active === "transition" && <TransitionPicker doc={doc} clip={clip} edit={edit} />}
         {active === "frame" && (
           <>
             <div className="fs-chips" role="group" aria-label="Framing">
@@ -76,6 +77,26 @@ export function ClipInspector({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T
           </>
         )}
       </div>
+    </>
+  );
+}
+
+function TransitionPicker({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T.TimelineClip; edit: EditFn }) {
+  const max = T.maxTransition(doc, clip);
+  const cur = clip.transitionIn;
+  if (max === null) return <p className="fs-muted">Transitions go between two clips. Place this clip right after another one on the same track, with no gap, to add one.</p>;
+  if (max < T.MIN_TRANSITION_SECONDS) return <p className="fs-muted">These clips are too short for a transition.</p>;
+  const set = (type: T.TransitionType, duration = cur?.duration ?? Math.min(1, max)) => edit((d) => T.setTransition(d, clip.id, { type, duration }));
+  return (
+    <>
+      <div className="fs-transition-grid" role="group" aria-label="Transition type">
+        <button type="button" className={`fs-transition-opt${!cur ? " is-active" : ""}`} aria-pressed={!cur} onClick={() => edit((d) => T.setTransition(d, clip.id, null))}><strong>None</strong><small>Hard cut</small></button>
+        {T.TRANSITION_TYPES.map((t) => (
+          <button key={t.id} type="button" className={`fs-transition-opt${cur?.type === t.id ? " is-active" : ""}`} aria-pressed={cur?.type === t.id} onClick={() => set(t.id)}><strong>{t.label}</strong><small>{t.hint}</small></button>
+        ))}
+      </div>
+      {cur && <Slider label="Length" value={cur.duration} min={T.MIN_TRANSITION_SECONDS} max={max} step={0.1} format={(v) => `${v.toFixed(1)} s`} onCommit={(v) => set(cur.type, v)} />}
+      <p className="fs-muted">The video keeps its total length. Dissolve, wipe and slide reveal this clip over the last frame of the one before; sound softens either side of the cut. The preview shows a simple fade; the export is exact.</p>
     </>
   );
 }

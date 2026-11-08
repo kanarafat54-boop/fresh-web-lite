@@ -5,7 +5,9 @@
  * with a clear message instead of being silently ignored (spec §6.10, §26.7).
  */
 import { escapeFilterPath } from "./captions.ts";
-import { clipDuration, round3, timelineDuration, trackClips, validateTimeline, type TimelineClip, type TimelineDoc } from "./timeline.ts";
+import { clipDuration, effectiveFades, previousAdjacent, nextAdjacent, round3, timelineDuration, trackClips, validateTimeline, type TimelineClip, type TimelineDoc } from "./timeline.ts";
+
+const XFADE = { dissolve: "fade", wipe: "wipeleft", slide: "slideleft" } as const;
 
 /** Fonts available to the renderer. The worker image ships DejaVu Sans only, so that is the one offered. */
 export type RenderFonts = { regular: string; bold: string };
@@ -70,18 +72,18 @@ export function atempoChain(speed: number): string[] {
 
 const num = (n: number) => String(round3(n));
 
-function audioOfClip(label: string, input: number, clip: TimelineClip, hasAudio: boolean, silent: boolean): string {
+function audioOfClip(label: string, input: number, clip: TimelineClip, hasAudio: boolean, silent: boolean, fades: { fadeIn: number; fadeOut: number } = { fadeIn: clip.fadeIn ?? 0, fadeOut: clip.fadeOut ?? 0 }): string {
   const d = clipDuration(clip);
   if (!hasAudio || silent) return `anullsrc=r=${AUDIO_RATE}:cl=stereo,atrim=duration=${num(d)},asetpts=PTS-STARTPTS[${label}]`;
   const chain = [`atrim=start=${num(clip.sourceIn)}:end=${num(clip.sourceOut)}`, "asetpts=PTS-STARTPTS", ...atempoChain(clip.speed), `aresample=${AUDIO_RATE}`, "aformat=sample_fmts=fltp:channel_layouts=stereo"];
   if (clip.volume !== undefined && Math.abs(clip.volume - 1) > 1e-6) chain.push(`volume=${num(clip.volume)}`);
-  if (clip.fadeIn) chain.push(`afade=t=in:st=0:d=${num(clip.fadeIn)}`);
-  if (clip.fadeOut) chain.push(`afade=t=out:st=${num(Math.max(0, d - clip.fadeOut))}:d=${num(clip.fadeOut)}`);
+  if (fades.fadeIn) chain.push(`afade=t=in:st=0:d=${num(fades.fadeIn)}`);
+  if (fades.fadeOut) chain.push(`afade=t=out:st=${num(Math.max(0, d - fades.fadeOut))}:d=${num(fades.fadeOut)}`);
   return `[${input}:a]${chain.join(",")}[${label}]`;
 }
 
 /** Colour, framing and fades for one clip's picture. */
-function pictureChain(clip: TimelineClip, W: number, H: number, fps: number): string {
+function pictureChain(clip: TimelineClip, W: number, H: number, fps: number, fades: { fadeIn: number; fadeOut: number }): string {
   const frame = clip.fit === "fill"
     ? `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H}`
     : `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:black`;
@@ -89,8 +91,8 @@ function pictureChain(clip: TimelineClip, W: number, H: number, fps: number): st
   const l = clip.look;
   if (l && (Math.abs(l.brightness) > 1e-6 || Math.abs(l.contrast - 1) > 1e-6 || Math.abs(l.saturation - 1) > 1e-6)) parts.push(`eq=brightness=${num(l.brightness)}:contrast=${num(l.contrast)}:saturation=${num(l.saturation)}`);
   const d = clipDuration(clip);
-  if (clip.fadeIn) parts.push(`fade=t=in:st=0:d=${num(clip.fadeIn)}`);
-  if (clip.fadeOut) parts.push(`fade=t=out:st=${num(Math.max(0, d - clip.fadeOut))}:d=${num(clip.fadeOut)}`);
+  if (fades.fadeIn) parts.push(`fade=t=in:st=0:d=${num(fades.fadeIn)}`);
+  if (fades.fadeOut) parts.push(`fade=t=out:st=${num(Math.max(0, d - fades.fadeOut))}:d=${num(fades.fadeOut)}`);
   return parts.join(",");
 }
 
@@ -140,6 +142,8 @@ export function planRender(input: RenderPlanInput): RenderPlan {
   const aLabels: string[] = [];
   let cursor = 0;
   let seg = 0;
+  const lastFrameLabel = new Map<string, string>();
+  const lastLen = new Map<string, number>();
   const gap = (len: number) => {
     filters.push(`color=c=black:s=${W}x${H}:r=${fps}:d=${num(len)},setsar=1[g${seg}v]`);
     filters.push(`anullsrc=r=${AUDIO_RATE}:cl=stereo,atrim=duration=${num(len)},asetpts=PTS-STARTPTS[g${seg}a]`);
@@ -151,12 +155,45 @@ export function planRender(input: RenderPlanInput): RenderPlan {
     const asset = doc.assets.find((a) => a.id === clip.assetId)!;
     const i = index.get(clip.assetId)!;
     const speed = clip.speed === 1 ? "" : `,setpts=(PTS-STARTPTS)/${num(clip.speed)}`;
-    filters.push(
-      `[${i}:v]trim=start=${num(clip.sourceIn)}:end=${num(clip.sourceOut)},setpts=PTS-STARTPTS${speed},` +
-      `${pictureChain(clip, W, H, fps)}[c${seg}v]`,
-    );
-    filters.push(audioOfClip(`c${seg}a`, i, clip, asset.hasAudio, vTrack.muted));
-    vLabels.push(`c${seg}v`); aLabels.push(`c${seg}a`);
+    const own = clip.transitionIn;
+    const blendOf = own && own.type !== "dip" ? previousAdjacent(doc, clip) : null;
+    const holdFor = nextAdjacent(doc, clip)?.transitionIn;
+    const holdNext = holdFor && holdFor.type !== "dip";
+    const picture = `[${i}:v]trim=start=${num(clip.sourceIn)}:end=${num(clip.sourceOut)},setpts=PTS-STARTPTS${speed},${pictureChain(clip, W, H, fps, effectiveFades(doc, clip, "video"))}`;
+    const out = `c${seg}v`;
+    // Picture chains that take part in a blend end in a common format and clock so xfade accepts them.
+    const blendFormat = ",format=yuv420p,settb=AVTB";
+    if (blendOf && own) {
+      const d = own.duration;
+      const aLast = lastFrameLabel.get(blendOf.id)!;
+      filters.push(`${picture}${blendFormat}[${out}raw]`);
+      filters.push(`[${out}raw]split=2[${out}h][${out}t]`);
+      filters.push(`[${out}h]trim=end=${num(d)},setpts=PTS-STARTPTS[${out}head]`);
+      filters.push(`[${out}t]trim=start=${num(d)},setpts=PTS-STARTPTS[${out}body]`);
+      filters.push(`[${aLast}]tpad=stop_mode=clone:stop_duration=${num(d)},trim=duration=${num(d)},setpts=PTS-STARTPTS[${out}hold]`);
+      filters.push(`[${out}hold][${out}head]xfade=transition=${XFADE[own.type as keyof typeof XFADE]}:duration=${num(d)}:offset=0[${out}x]`);
+      vLabels.push(`${out}x`);
+      if (!holdNext) vLabels.push(`${out}body`);
+      else { filters.push(`[${out}body]split=2[${out}b1][${out}b2]`); vLabels.push(`${out}b1`); }
+      if (holdNext) { lastFrameLabel.set(clip.id, `${out}b2`); lastLen.set(clip.id, round3(clipDuration(clip) - d)); }
+    } else if (holdNext) {
+      filters.push(`${picture}${blendFormat}[${out}raw]`);
+      filters.push(`[${out}raw]split=2[${out}][${out}l]`);
+      vLabels.push(out);
+      lastFrameLabel.set(clip.id, `${out}l`);
+      lastLen.set(clip.id, clipDuration(clip));
+    } else {
+      filters.push(`${picture}[${out}]`);
+      vLabels.push(out);
+    }
+    if (lastFrameLabel.has(clip.id)) {
+      // Keep only the final frame of this clip; it is held while the next clip is revealed over it.
+      const src = lastFrameLabel.get(clip.id)!;
+      filters.push(`[${src}]trim=start=${num(Math.max(0, lastLen.get(clip.id)! - 1.5 / fps))},setpts=PTS-STARTPTS[${out}last]`);
+      lastFrameLabel.set(clip.id, `${out}last`);
+    }
+    filters.push(audioOfClip(`c${seg}a`, i, clip, asset.hasAudio, vTrack.muted, effectiveFades(doc, clip, "audio")));
+    aLabels.push(`c${seg}a`);
     cursor = round3(clip.start + clipDuration(clip));
     seg += 1;
   }
@@ -187,7 +224,7 @@ export function planRender(input: RenderPlanInput): RenderPlan {
     const size = Math.max(14, Math.round(H * 0.045));
     filters.push(`[vcat]subtitles=filename=${escapeFilterPath(input.captionsFile!)}:force_style='FontSize=${size},Outline=2,Shadow=0,MarginV=${Math.round(H * 0.08)}'[vout]`);
   }
-  filters.push(`${aLabels.map((l) => `[${l}]`).join("")}concat=n=${n}:v=0:a=1[abase]`);
+  filters.push(`${aLabels.map((l) => `[${l}]`).join("")}concat=n=${aLabels.length}:v=0:a=1[abase]`);
 
   let audioOut = "abase";
   if (music.length) {

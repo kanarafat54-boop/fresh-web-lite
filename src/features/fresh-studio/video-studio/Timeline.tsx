@@ -75,6 +75,7 @@ const Clip = memo(function Clip({ clip, kind, name, selected, locked, pxPerSec, 
       {tiles.length > 0 && <div className="fs-film" aria-hidden="true">{tiles.map((idx, i) => <span key={i} style={{ width: tileW, backgroundImage: `url(${film!.urls[idx]})` }} />)}</div>}
       {peaks && peaks.length > 0 && <Waveform peaks={peaks} from={srcFrom} to={srcTo} width={width} height={kind === "video" ? 16 : h - 16} color={kind === "video" ? "rgba(255,255,255,.75)" : "rgba(134,239,172,.9)"} />}
       <span className="fs-clip-label"><Icon name={kind === "video" ? "video" : "music"} size={12} />{name}{clip.speed !== 1 ? ` · ${clip.speed}×` : ""}</span>
+      {clip.transitionIn && <span className="fs-clip-transition" style={{ width: Math.max(14, clip.transitionIn.duration * pxPerSec) }} title={`${clip.transitionIn.type} · ${clip.transitionIn.duration.toFixed(1)} s`} aria-label={`Transition: ${clip.transitionIn.type}, ${clip.transitionIn.duration.toFixed(1)} seconds`} />}
       <span className="fs-clip-handle is-start" onPointerDown={(e) => onDown(e, clip, "trimStart")} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} aria-hidden="true" />
       <span className="fs-clip-handle is-end" onPointerDown={(e) => onDown(e, clip, "trimEnd")} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} aria-hidden="true" />
     </div>
