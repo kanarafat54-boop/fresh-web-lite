@@ -28,6 +28,18 @@ begin
     raise exception 'invalid_worker_bounds' using errcode = '22023';
   end if;
 
+  -- A worker that crashed on its final permitted attempt must not leave a task
+  -- permanently running after its lease expires.
+  update public.fresh_ai_learning_objectives
+  set status = 'failed',
+      last_error_code = 'lease_expired_max_attempts',
+      lease_token = null,
+      lease_expires_at = null,
+      updated_at = p_now
+  where status = 'running'
+    and lease_expires_at <= p_now
+    and attempts >= 5;
+
   return query
   with due as (
     select o.id
