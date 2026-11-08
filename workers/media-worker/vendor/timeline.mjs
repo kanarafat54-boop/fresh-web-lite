@@ -112,6 +112,27 @@ export const MIN_TEXT_SECONDS = 0.2;
                
   
 
+export const MAX_OVERLAYS = 30;
+export const MIN_OVERLAY_SECONDS = 0.2;
+/** An image (from the project's imported pictures) or a plain rectangle drawn over the video. */
+                            
+             
+                         
+                                                 
+                   
+                
+                   
+                                                              
+            
+            
+                                                                                                               
+                
+                 
+                  
+                                  
+                
+  
+
                            
              
               
@@ -120,6 +141,8 @@ export const MIN_TEXT_SECONDS = 0.2;
                         
                                                                              
                       
+                                                       
+                            
                                                                      
                   
   
@@ -518,6 +541,54 @@ export function deleteText(doc             , id        )              {
 }
 export const textsAt = (doc             , time        ) => (doc.texts ?? []).filter((t) => time >= t.start - 1e-6 && time < t.start + t.duration - 1e-6);
 
+// ---- overlays (images and rectangles)
+
+export function validateOverlay(o              , doc              )                {
+  if (!o || typeof o !== "object") return "Overlay is malformed.";
+  if (o.kind !== "image" && o.kind !== "rect") return "Unknown overlay type.";
+  if (![o.start, o.duration, o.x, o.y, o.width, o.height, o.opacity].every((n) => typeof n === "number" && Number.isFinite(n))) return "Overlay has invalid numbers.";
+  if (o.start < 0) return "Overlay cannot start before 0.";
+  if (o.duration < MIN_OVERLAY_SECONDS - 1e-6) return `Overlay must last at least ${MIN_OVERLAY_SECONDS} seconds.`;
+  if (o.x < 0 || o.x > 1 || o.y < 0 || o.y > 1) return "Overlay must stay inside the frame.";
+  if (o.width < 0.02 || o.width > 1 || o.height < 0.02 || o.height > 1) return "Overlay size is out of range.";
+  if (o.opacity < 0.05 || o.opacity > 1) return "Overlay opacity must be between 5% and 100%.";
+  if (o.kind === "rect" && !HEX.test(o.color)) return "Overlay colour is invalid.";
+  if (o.kind === "image") {
+    if (typeof o.assetId !== "string") return "Overlay picture is missing.";
+    if (doc && doc.assets.find((a) => a.id === o.assetId)?.kind !== "image") return "Overlay picture is not in this project.";
+  }
+  return null;
+}
+const findOverlay = (doc             , id        ) => {
+  const o = doc.overlays?.find((x) => x.id === id);
+  if (!o) throw new TimelineError("That overlay no longer exists.");
+  return o;
+};
+export function addOverlay(doc             , input                                                                                                                                                             )              {
+  if ((doc.overlays?.length ?? 0) >= MAX_OVERLAYS) throw new TimelineError(`A timeline can have at most ${MAX_OVERLAYS} overlays.`);
+  const layer               = {
+    id: input.id ?? newId("overlay"), kind: input.kind, ...(input.kind === "image" ? { assetId: input.assetId } : {}),
+    start: round3(Math.max(0, input.start)), duration: round3(input.duration ?? 3), x: 0.5, y: 0.5, width: input.kind === "image" ? 0.4 : 0.5, height: input.kind === "image" ? 0.4 : 0.15, opacity: 1, color: "#000000", ...input.patch,
+  };
+  const problem = validateOverlay(layer, doc);
+  if (problem) throw new TimelineError(problem);
+  return { ...doc, overlays: [...(doc.overlays ?? []), layer] };
+}
+export function updateOverlay(doc             , id        , patch                                                        )              {
+  const next               = { ...findOverlay(doc, id), ...patch };
+  next.start = round3(next.start); next.duration = round3(next.duration);
+  const problem = validateOverlay(next, doc);
+  if (problem) throw new TimelineError(problem);
+  return { ...doc, overlays: (doc.overlays ?? []).map((o) => (o.id === id ? next : o)) };
+}
+export function deleteOverlay(doc             , id        )              {
+  findOverlay(doc, id);
+  return { ...doc, overlays: (doc.overlays ?? []).filter((o) => o.id !== id) };
+}
+export const overlaysAt = (doc             , time        ) => (doc.overlays ?? []).filter((o) => time >= o.start - 1e-6 && time < o.start + o.duration - 1e-6);
+/** Pictures used by overlays (the renderer needs them as sources too). */
+export const overlayAssetIds = (doc             )           => [...new Set((doc.overlays ?? []).flatMap((o) => (o.kind === "image" && o.assetId ? [o.assetId] : [])))];
+
 /** Full integrity check for a document loaded from storage or about to be rendered. */
 export function validateTimeline(doc         )           {
   const errors           = [];
@@ -558,6 +629,18 @@ export function validateTimeline(doc         )           {
         const problem = validateTextLayer(t);
         if (problem) errors.push(`Text "${String(t?.text).slice(0, 20)}": ${problem}`);
         if (seen.has(t?.id)) errors.push("Duplicate text id."); else seen.add(t?.id);
+      }
+    }
+  }
+  if (d.overlays !== undefined) {
+    if (!Array.isArray(d.overlays)) errors.push("Overlays are malformed.");
+    else {
+      if (d.overlays.length > MAX_OVERLAYS) errors.push("Too many overlays.");
+      const seen = new Set        ();
+      for (const o of d.overlays) {
+        const problem = validateOverlay(o, d);
+        if (problem) errors.push(`Overlay: ${problem}`);
+        if (seen.has(o?.id)) errors.push("Duplicate overlay id."); else seen.add(o?.id);
       }
     }
   }

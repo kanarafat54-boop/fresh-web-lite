@@ -145,6 +145,17 @@ export function planRender(input: RenderPlanInput): RenderPlan {
     index.set(id, index.size);
     args.push("-i", src);
   }
+  // Overlay pictures get their own input each, so one picture can appear several times.
+  const overlays = doc.overlays ?? [];
+  const overlayInput = new Map<string, number>();
+  let inputCount = index.size;
+  for (const o of overlays) {
+    if (o.kind !== "image") continue;
+    const src = sources[o.assetId!];
+    if (!src) { errors.push(`The picture "${doc.assets.find((a) => a.id === o.assetId)?.name ?? o.assetId}" is not available.`); continue; }
+    overlayInput.set(o.id, inputCount++);
+    args.push("-i", src);
+  }
   if (errors.length) return { ok: false, errors };
 
   const { width: W, height: H } = size;
@@ -212,7 +223,27 @@ export function planRender(input: RenderPlanInput): RenderPlan {
   const n = vLabels.length;
   const burn = Boolean(input.captionsFile);
   const texts = doc.texts ?? [];
-  filters.push(`${vLabels.map((l) => `[${l}]`).join("")}concat=n=${n}:v=1:a=0[${texts.length ? "vraw" : burn ? "vcat" : "vout"}]`);
+  const afterOverlays = texts.length ? "vraw" : burn ? "vcat" : "vout";
+  filters.push(`${vLabels.map((l) => `[${l}]`).join("")}concat=n=${n}:v=1:a=0[${overlays.length ? "vbase" : afterOverlays}]`);
+  if (overlays.length) {
+    let cur = "vbase";
+    [...overlays].sort((a, b) => a.start - b.start).forEach((o, k) => {
+      const next = k === overlays.length - 1 ? afterOverlays : `vo${k}`;
+      const when = `enable=between(t\\,${num(o.start)}\\,${num(o.start + o.duration)})`;
+      if (o.kind === "rect") {
+        const w = even(W * o.width), h = even(H * o.height);
+        // drawbox ignores transparency on this pixel format, so the rectangle is its own tinted layer instead.
+        filters.push(`color=c=0x${o.color.slice(1)}@${num(o.opacity)}:s=${w}x${h}:r=${fps},format=rgba[ov${k}]`);
+        filters.push(`[${cur}][ov${k}]overlay=x=${num(o.x)}*${W}-w/2:y=${num(o.y)}*${H}-h/2:${when}[${next}]`);
+      } else {
+        const wpx = even(W * o.width);
+        // A single decoded picture is repeated for as long as the video runs; the overlay is only visible inside its time window.
+        filters.push(`[${overlayInput.get(o.id)}:v]loop=loop=-1:size=1,setpts=N/${fps}/TB,scale=${wpx}:-2,format=rgba,colorchannelmixer=aa=${num(o.opacity)}[ov${k}]`);
+        filters.push(`[${cur}][ov${k}]overlay=x=${num(o.x)}*${W}-w/2:y=${num(o.y)}*${H}-h/2:${when}[${next}]`);
+      }
+      cur = next;
+    });
+  }
   if (texts.length) {
     const drawn: string[] = [];
     for (const t of [...texts].sort((a, b) => a.start - b.start)) {
