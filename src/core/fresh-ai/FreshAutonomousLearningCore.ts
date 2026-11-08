@@ -91,6 +91,31 @@ function isValidDate(value: string): boolean {
 export function validateFreshLearningEvent(
   value: FreshLearningEvent,
 ): { valid: true } | { valid: false; reason: string } {
+  if (!value || typeof value !== "object") return { valid: false, reason: "A learning event object is required." };
+  if (!value.provenance || typeof value.provenance !== "object" || !value.consent || typeof value.consent !== "object") {
+    return { valid: false, reason: "Learning provenance and consent records are required." };
+  }
+  if (typeof value.id !== "string" || typeof value.idempotencyKey !== "string" || typeof value.ownerId !== "string") {
+    return { valid: false, reason: "Learning event identifiers and owner must be strings." };
+  }
+  if (typeof value.payloadReference !== "string" || typeof value.summary !== "string" || typeof value.createdAt !== "string") {
+    return { valid: false, reason: "Learning payload reference, summary, and timestamp must be strings." };
+  }
+  if (typeof value.provenance.contentSha256 !== "string" || typeof value.provenance.capturedAt !== "string" || typeof value.provenance.source !== "string") {
+    return { valid: false, reason: "Learning provenance fields are incomplete." };
+  }
+  if (typeof value.consent.captureAllowed !== "boolean" || typeof value.consent.memoryOptIn !== "boolean" || typeof value.consent.trainingOptIn !== "boolean" || typeof value.consent.consentVersion !== "string" || typeof value.consent.grantedAt !== "string") {
+    return { valid: false, reason: "Learning consent fields are incomplete." };
+  }
+  if (!["text", "speech", "image", "video", "document", "demonstration", "evaluation", "synthetic-practice"].includes(value.modality)) {
+    return { valid: false, reason: "Unsupported learning modality." };
+  }
+  if (!["authorized-conversation", "authorized-speech", "authorized-upload", "user-correction", "approved-research", "self-practice", "evaluation-result"].includes(value.provenance.source)) {
+    return { valid: false, reason: "Unsupported learning provenance source." };
+  }
+  if (!["not-eligible", "pending", "approved", "rejected"].includes(value.reviewStatus)) {
+    return { valid: false, reason: "Unsupported learning review status." };
+  }
   if (!UUID.test(value.id) || !UUID.test(value.idempotencyKey)) {
     return { valid: false, reason: "Learning event identifiers must be UUIDs." };
   }
