@@ -1,6 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  evaluateFreshLearningEligibility,
   validateFreshLearningEvent,
   type FreshLearningEvent,
   type FreshLearningEventRepository,
@@ -44,21 +43,18 @@ export function toFreshLearningEventRow(event: FreshLearningEvent): LearningEven
   if (!validation.valid) throw new Error(validation.reason);
   assertPrivatePayloadOwnership(event);
 
-  const eligibility = evaluateFreshLearningEligibility(event, {
-    humanApproved: false,
-    provenanceVerified: false,
-    safetyChecked: false,
-    privacyScreened: false,
-  });
-  if (!event.consent.captureAllowed || !eligibility.retainInMemory && !event.consent.trainingOptIn) {
-    // Capture may be permitted without memory retention, but consent must still be active.
-    const granted = Date.parse(event.consent.grantedAt);
-    const expires = event.consent.expiresAt ? Date.parse(event.consent.expiresAt) : Number.POSITIVE_INFINITY;
-    const revoked = event.consent.revokedAt ? Date.parse(event.consent.revokedAt) : Number.POSITIVE_INFINITY;
-    const now = Date.now();
-    if (!Number.isFinite(granted) || granted > now || now >= expires || now >= revoked) {
-      throw new Error("Learning event consent is expired, revoked, or not yet active.");
-    }
+  const granted = Date.parse(event.consent.grantedAt);
+  const expires = event.consent.expiresAt ? Date.parse(event.consent.expiresAt) : Number.POSITIVE_INFINITY;
+  const revoked = event.consent.revokedAt ? Date.parse(event.consent.revokedAt) : Number.POSITIVE_INFINITY;
+  const now = Date.now();
+  if (
+    event.consent.consentVersion !== "fresh-autonomous-learning-v1" ||
+    !Number.isFinite(granted) ||
+    granted > now ||
+    now >= expires ||
+    now >= revoked
+  ) {
+    throw new Error("Learning event consent is expired, revoked, or not versioned and active.");
   }
 
   if (event.consent.trainingOptIn && event.reviewStatus !== "pending") {
