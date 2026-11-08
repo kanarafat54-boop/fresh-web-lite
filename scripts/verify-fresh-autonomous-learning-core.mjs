@@ -62,7 +62,7 @@ assert.ok(api.includes("Never trust an owner id supplied by the client"));
 assert.ok(api.includes("repository.append(event)"));
 const feedbackRoute = fs.readFileSync("api/ai/feedback.ts", "utf8");
 assert.match(feedbackRoute, /if \(isLearningEvents\(req\)\) return learningEvents\(req\);/g);
-assert.ok(workerMigration.includes("FOR UPDATE SKIP LOCKED"));
+assert.ok(workerMigration.toLowerCase().includes("for update skip locked"));
 assert.ok(workerMigration.includes("service_role_required"));
 assert.ok(workerMigration.includes("lease_token"));
 assert.ok(workerMigration.includes("attempts >= 5"));
