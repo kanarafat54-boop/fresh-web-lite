@@ -33,7 +33,13 @@ create table if not exists public.fresh_ai_learning_events (
   ),
   constraint fresh_ai_learning_event_training_gate_check check (
     training_eligible = false
-    and (training_opt_in = false or review_status in ('pending','approved','rejected'))
+    or (
+      training_opt_in = true
+      and consent_version = 'fresh-autonomous-learning-v1'
+      and consent_granted_at is not null
+      and consent_revoked_at is null
+      and review_status = 'approved'
+    )
   )
 );
 
