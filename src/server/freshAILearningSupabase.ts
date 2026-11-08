@@ -138,7 +138,7 @@ export function createSupabaseFreshLearningEventRepository(
         throw new Error(`Unable to persist Fresh AI learning event (${inserted.error?.code ?? "unknown"}).`);
       }
       const existing = await client.from("fresh_ai_learning_events")
-        .select("id")
+        .select("id,content_sha256,payload_reference,summary")
         .eq("user_id", event.ownerId)
         .eq("idempotency_key", event.idempotencyKey)
         .maybeSingle();
