@@ -335,8 +335,8 @@
 @media (prefers-reduced-motion: no-preference) { .fs-chip, .fs-play, .fs-tool, .fs-rail button { transition: background .12s, transform .12s; } }
 
 /* ---------- inspector sections, text ---------- */
-.fs-seg { display: flex; gap: 2px; padding: 3px; margin: 0 0 12px; border-radius: 10px; background: rgba(255,255,255,.05); }
-.fs-seg button { flex: 1; min-height: 34px; border: 0; border-radius: 8px; background: transparent; color: var(--fs-muted); cursor: pointer; font-size: 13px; }
+.fs-seg { display: flex; flex-wrap: wrap; gap: 2px; padding: 3px; margin: 0 0 12px; border-radius: 10px; background: rgba(255,255,255,.05); }
+.fs-seg button { flex: 1 1 auto; padding: 0 8px; min-height: 34px; border: 0; border-radius: 8px; background: transparent; color: var(--fs-muted); cursor: pointer; font-size: 13px; }
 .fs-seg button.is-active { background: var(--fs-panel-2); color: var(--fs-text); box-shadow: 0 1px 3px rgba(0,0,0,.4); }
 .fs-inspector-body { display: grid; gap: 4px; }
 .fs-slider { display: grid; gap: 2px; margin: 6px 0; font-size: 13px; }
@@ -381,3 +381,10 @@
 .fs-help-steps { margin: 0 0 8px; padding-left: 20px; }
 .fs-create-video { display: grid; gap: 4px; margin-bottom: 20px; }
 @media (max-width: 420px) { .fs-quick { gap: 6px; } .fs-quick-tile { padding: 12px 4px; } }
+
+/* transitions */
+.fs-clip-transition { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, rgba(255,255,255,.55), rgba(255,255,255,0)); border-left: 3px solid #ffd400; pointer-events: none; }
+.fs-transition-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.fs-transition-opt { display: grid; gap: 2px; text-align: left; padding: 10px; border-radius: 10px; border: 1px solid var(--fs-line); background: var(--fs-panel); color: var(--fs-text); font: inherit; cursor: pointer; min-height: 64px; }
+.fs-transition-opt small { color: var(--fs-muted); font-size: .72rem; }
+.fs-transition-opt.is-active { border-color: var(--fs-primary); box-shadow: 0 0 0 1px var(--fs-primary); }

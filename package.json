@@ -44,6 +44,7 @@
     "test:fresh-studio-render": "node scripts/verify-fresh-studio-render.mjs",
     "test:fresh-studio-smart-edit": "node scripts/verify-fresh-studio-smart-edit.mjs",
     "test:fresh-studio-worker": "node --no-warnings scripts/verify-fresh-studio-worker.mjs",
+    "test:fresh-studio-transitions": "node --no-warnings scripts/verify-fresh-studio-transitions.mjs",
     "sync:studio-worker": "node --no-warnings scripts/sync-studio-worker.mjs",
     "test:fresh-unified-training": "node scripts/verify-fresh-unified-training.mjs",
     "test:fresh-unified-curriculum": "node scripts/verify-fresh-unified-training-curriculum.mjs",

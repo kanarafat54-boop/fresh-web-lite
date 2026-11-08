@@ -61,7 +61,21 @@ export const MAX_VOLUME = 2;
                   
                                                             
                 
+                                                                                                           
+                                
   
+
+export const TRANSITION_TYPES = [
+  { id: "dissolve", label: "Dissolve", hint: "Cross-fades over the last frame of the previous clip" },
+  { id: "dip", label: "Dip to black", hint: "Fades out, then fades in" },
+  { id: "wipe", label: "Wipe", hint: "A hard edge sweeps across" },
+  { id: "slide", label: "Slide", hint: "The new clip pushes in from the right" },
+]         ;
+                                                                     
+                                                                        
+export const MIN_TRANSITION_SECONDS = 0.2;
+export const MAX_TRANSITION_SECONDS = 2;
+const ADJACENT = 1e-3;
 
 export const MAX_TEXTS = 50;
 export const MAX_TEXT_CHARS = 200;
@@ -190,7 +204,8 @@ export function splitClip(doc             , clipId        , at        , rightId 
   if (t <= clip.start + MIN_CLIP_SECONDS || t >= clipEnd(clip) - MIN_CLIP_SECONDS) throw new TimelineError("Move the playhead inside the clip to split it.");
   const sourceAt = round3(clip.sourceIn + (t - clip.start) * clip.speed);
   const left               = withFittedFades({ ...clip, sourceOut: sourceAt, ...(clip.fadeOut ? { fadeOut: 0 } : {}) });
-  const right               = withFittedFades({ ...clip, id: rightId ?? newId("clip"), start: t, sourceIn: sourceAt, ...(clip.fadeIn ? { fadeIn: 0 } : {}) });
+  const { transitionIn: _t, ...clipNoTransition } = clip; void _t;
+  const right               = withFittedFades({ ...clipNoTransition, id: rightId ?? newId("clip"), start: t, sourceIn: sourceAt, ...(clip.fadeIn ? { fadeIn: 0 } : {}) });
   if (doc.clips.length >= MAX_CLIPS) throw new TimelineError(`A timeline can have at most ${MAX_CLIPS} clips.`);
   return { ...doc, clips: [...doc.clips.filter((c) => c.id !== clip.id), left, right] };
 }
@@ -251,7 +266,8 @@ export function duplicateClip(doc             , clipId        , copyId         )
   unlocked(doc, clip.trackId);
   if (doc.clips.length >= MAX_CLIPS) throw new TimelineError(`A timeline can have at most ${MAX_CLIPS} clips.`);
   const d = clipDuration(clip);
-  const copy               = { ...clip, id: copyId ?? newId("clip"), start: clipEnd(clip) };
+  const { transitionIn: _t, ...base } = clip; void _t;
+  const copy               = { ...base, id: copyId ?? newId("clip"), start: clipEnd(clip) };
   const clips = doc.clips.map((c) => (c.trackId === clip.trackId && c.start >= copy.start - 1e-6 ? { ...c, start: round3(c.start + d) } : c));
   return { ...doc, clips: [...clips, copy] };
 }
@@ -328,6 +344,74 @@ export function setClipLook(doc             , clipId        , look              
   const ok = (n        , lo        , hi        ) => Number.isFinite(n) && n >= lo && n <= hi;
   if (!ok(look.brightness, -1, 1) || !ok(look.contrast, 0, 2) || !ok(look.saturation, 0, 3)) throw new TimelineError("That colour setting is out of range.");
   return replace(doc, { ...clip, look: { brightness: round3(look.brightness), contrast: round3(look.contrast), saturation: round3(look.saturation) } });
+}
+
+/** The clip that ends exactly where `clip` starts on the same track, if any. */
+export function previousAdjacent(doc             , clip              )                      {
+  const prev = trackClips(doc, clip.trackId).filter((c) => c.id !== clip.id && c.start < clip.start).pop();
+  return prev && Math.abs(clipEnd(prev) - clip.start) <= ADJACENT ? prev : null;
+}
+/** Longest transition this clip can take (null when it has no neighbour before it). */
+export function maxTransition(doc             , clip              )                {
+  const prev = previousAdjacent(doc, clip);
+  if (!prev) return null;
+  return round3(Math.min(MAX_TRANSITION_SECONDS, clipDuration(clip) / 2, clipDuration(prev) * 2));
+}
+function transitionProblem(doc             , clip              )                {
+  const t = clip.transitionIn;
+  if (!t) return null;
+  if (!TRANSITION_TYPES.some((x) => x.id === t.type)) return "unknown transition";
+  if (!Number.isFinite(t.duration) || t.duration < MIN_TRANSITION_SECONDS - 1e-6) return "transition is too short";
+  const max = maxTransition(doc, clip);
+  if (max === null) return "transition needs a clip right before it";
+  if (t.duration > max + 1e-6) return "transition is longer than the clips allow";
+  return null;
+}
+/** Adds, changes or (with null) removes the transition into a clip. */
+export function setTransition(doc             , clipId        , transition                       )              {
+  const clip = find(doc, clipId);
+  unlocked(doc, clip.trackId);
+  if (transition === null) {
+    if (!clip.transitionIn) return doc;
+    const { transitionIn: _drop, ...rest } = clip; void _drop;
+    return { ...doc, clips: doc.clips.map((c) => (c.id === clip.id ? rest : c)) };
+  }
+  const max = maxTransition(doc, clip);
+  if (max === null) throw new TimelineError("Place this clip directly after another clip to add a transition.");
+  if (max < MIN_TRANSITION_SECONDS) throw new TimelineError("These clips are too short for a transition.");
+  if (!TRANSITION_TYPES.some((x) => x.id === transition.type)) throw new TimelineError("Unknown transition.");
+  const duration = round3(Math.min(Math.max(transition.duration, MIN_TRANSITION_SECONDS), max));
+  return { ...doc, clips: doc.clips.map((c) => (c.id === clip.id ? { ...c, transitionIn: { type: transition.type, duration } } : c)) };
+}
+/** Drops or shortens transitions whose neighbours moved or shrank, so edits never leave a broken one behind. */
+export function normalizeTransitions(doc             )              {
+  if (!doc.clips.some((c) => c.transitionIn)) return doc;
+  let changed = false;
+  const clips = doc.clips.map((c) => {
+    if (!c.transitionIn) return c;
+    const max = maxTransition(doc, c);
+    if (max === null || max < MIN_TRANSITION_SECONDS) { changed = true; const { transitionIn: _d, ...rest } = c; void _d; return rest; }
+    if (c.transitionIn.duration > max + 1e-6) { changed = true; return { ...c, transitionIn: { ...c.transitionIn, duration: max } }; }
+    return c;
+  });
+  return changed ? { ...doc, clips } : doc;
+}
+/**
+ * Fade lengths a clip really has. A transition adds half its length as a fade on each side of the cut for sound
+ * (all types), and for the picture only for "dip to black"; the other types blend pictures instead.
+ */
+export function effectiveFades(doc             , clip              , medium                   )                                      {
+  const counts = (t                ) => medium === "audio" || t.type === "dip";
+  let fadeIn = clip.fadeIn ?? 0, fadeOut = clip.fadeOut ?? 0;
+  const own = clip.transitionIn;
+  if (own && counts(own)) fadeIn = Math.max(fadeIn, own.duration / 2);
+  const next = nextAdjacent(doc, clip);
+  if (next?.transitionIn && counts(next.transitionIn)) fadeOut = Math.max(fadeOut, next.transitionIn.duration / 2);
+  return { fadeIn: round3(fadeIn), fadeOut: round3(fadeOut) };
+}
+/** The clip that starts exactly where `clip` ends on the same track, if any. */
+export function nextAdjacent(doc             , clip              )                      {
+  return trackClips(doc, clip.trackId).find((c) => c.id !== clip.id && c.start >= clip.start && Math.abs(clipEnd(clip) - c.start) <= ADJACENT) ?? null;
 }
 
 export function setClipFit(doc             , clipId        , fit         )              {
@@ -428,6 +512,7 @@ export function validateTimeline(doc         )           {
       }
     }
   }
+  for (const c of d.clips) { const why = transitionProblem(d, c); if (why) errors.push(`Clip ${c.id}: ${why}.`); }
   if (d.aspect !== undefined && !(ASPECT_RATIOS                     ).includes(d.aspect)) errors.push("The aspect ratio is not supported.");
   for (const t of d.tracks) {
     const list = trackClips(d, t.id);
@@ -440,7 +525,8 @@ export function validateTimeline(doc         )           {
                                                                                            
 export const HISTORY_LIMIT = 100;
 export const createHistory = (present             )          => ({ past: [], present, future: [] });
-export function commit(h         , next             )          {
+export function commit(h         , raw             )          {
+  const next = normalizeTransitions(raw);
   if (next === h.present) return h;
   return { past: [...h.past, h.present].slice(-HISTORY_LIMIT), present: next, future: [] };
 }
