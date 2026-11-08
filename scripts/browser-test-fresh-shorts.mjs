@@ -320,7 +320,7 @@ for (const width of WIDTHS) {
   const notify = page.getByRole("dialog", { name: "Notifications" });
   check(await notify.isVisible(), `${tag} Notifications opens from the Shorts header`);
   const nTabs = (await notify.locator(".shorts-notify-tabs button").allInnerTexts()).map((t) => t.trim());
-  check(JSON.stringify(nTabs) === JSON.stringify(["All", "Likes", "Comments", "Follows", "Gifts"]), `${tag} notification tabs are All · Likes · Comments · Follows · Gifts`);
+  check(JSON.stringify(nTabs) === JSON.stringify(["All", "Likes", "Comments", "Shares", "Follows", "Gifts"]), `${tag} notification tabs are All · Likes · Comments · Shares · Follows · Gifts`);
   check((await notify.innerText()).includes("Sign in to see likes, comments and follows"), `${tag} signed-out visitor gets a sign-in prompt, not fake activity`);
   await notify.getByRole("button", { name: "Back to Shorts" }).click();
   check(!(await notify.isVisible().catch(() => false)), `${tag} Notifications closes`);

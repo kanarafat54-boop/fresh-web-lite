@@ -1,27 +1,19 @@
 import { useEffect, useState } from "react";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { useLayout } from "../../../app/contexts/useLayout";
-import { loadShortsActivity, timeAgo, type ActivityItem, type ActivityKind } from "../core/shortsActivity";
+import { ACTIVITY_TABS, loadShortsActivity, matchesTab, timeAgo, type ActivityItem, type ActivityKind, type ActivityTab } from "../core/shortsActivity";
 import { requestOpenShort } from "../core/shortsExplore";
 import "./ShortsNotifications.css";
 
-type Tab = "all" | "like" | "comment" | "follow" | "gift";
-const TABS: Array<{ id: Tab; label: string }> = [
-  { id: "all", label: "All" },
-  { id: "like", label: "Likes" },
-  { id: "comment", label: "Comments" },
-  { id: "follow", label: "Follows" },
-  { id: "gift", label: "Gifts" },
-];
-const ICON: Record<ActivityKind, string> = { like: "❤", comment: "💬", follow: "＋", gift: "🎁", system: "🔔" };
+const ICON: Record<ActivityKind, string> = { like: "❤", comment: "💬", reply: "↩", reaction: "✦", repost: "🔁", remix: "✂", follow: "＋", gift: "🎁", system: "🔔" };
 
 type Props = { onClose: () => void; onOpenCreator: (authorId: string) => void };
 
-/** Notifications for Fresh Shorts, built from real activity on your Shorts (likes, comments, follows, gifts) and your account notifications. */
+/** Notifications for Fresh Shorts, built from real activity on your Shorts (likes, comments, replies, reposts, remixes, follows, gifts) and your account notifications. */
 export default function ShortsNotifications({ onClose, onOpenCreator }: Props) {
   const { user, isGuest } = useFreshId();
   const { setActiveRoute, openNotifications } = useLayout();
-  const [tab, setTab] = useState<Tab>("all");
+  const [tab, setTab] = useState<ActivityTab>("all");
   const [items, setItems] = useState<ActivityItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +24,7 @@ export default function ShortsNotifications({ onClose, onOpenCreator }: Props) {
     return () => { cancelled = true; };
   }, [user?.id, isGuest]);
 
-  const visible = (items ?? []).filter((item) => tab === "all" || item.kind === tab);
+  const visible = (items ?? []).filter((item) => matchesTab(item.kind, tab));
 
   const open = (item: ActivityItem) => {
     if (item.shortId) { requestOpenShort(item.shortId); onClose(); return; }
@@ -47,7 +39,7 @@ export default function ShortsNotifications({ onClose, onOpenCreator }: Props) {
         <button type="button" className="shorts-notify-all" onClick={() => { onClose(); openNotifications(); }} aria-label="Open all Fresh notifications">All apps</button>
       </header>
       <nav className="shorts-notify-tabs" aria-label="Notification types">
-        {TABS.map((item) => <button key={item.id} type="button" className={tab === item.id ? "active" : ""} aria-pressed={tab === item.id} onClick={() => setTab(item.id)}>{item.label}</button>)}
+        {ACTIVITY_TABS.map((item) => <button key={item.id} type="button" className={tab === item.id ? "active" : ""} aria-pressed={tab === item.id} onClick={() => setTab(item.id)}>{item.label}</button>)}
       </nav>
       <div className="shorts-notify-list">
         {error && <p className="shorts-notify-note" role="alert">{error}</p>}
