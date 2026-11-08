@@ -6,7 +6,7 @@
 const EVENT_TYPES = new Set(["conversation_observation","speech_observation","perception_observation","research_observation","user_correction","evaluation_failure","practice_result"]);
 const SOURCE_TYPES = new Set(["authorized_conversation","authorized_speech","authorized_media","approved_research","evaluation","autonomous_practice"]);
 const CONSENT_VERSION = "fresh-ai-feedback-consent-v1";
-const RAW_CONTENT_KEYS = new Set(["content","transcript","message","prompt","answer","correction","audio","image","video","rawText"]);
+const METADATA_KEYS = new Set(["language","modality","durationSeconds","category","domain","taskType","sourceLabel","confidenceBand","referenceId","tagCount"]);
 
 function requiredText(value, field, max = 160) {
   if (typeof value !== "string" || !value.trim() || value.trim().length > max) {
@@ -17,9 +17,10 @@ function requiredText(value, field, max = 160) {
 function assertMetadataOnly(value, path = "metadata") {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError(path + " must be an object");
   for (const [key, child] of Object.entries(value)) {
-    if (RAW_CONTENT_KEYS.has(key)) throw new TypeError(path + " must not contain raw content field: " + key);
-    if (typeof child === "string" && child.length > 1000) throw new TypeError(path + " string values must not exceed 1000 characters");
-    if (child && typeof child === "object") assertMetadataOnly(child, path + "." + key);
+    if (!METADATA_KEYS.has(key)) throw new TypeError(path + " contains an unsupported metadata field: " + key);
+    if (child !== null && !["string","number","boolean"].includes(typeof child)) throw new TypeError(path + " values must be scalar metadata");
+    if (typeof child === "string" && child.length > 160) throw new TypeError(path + " string values must not exceed 160 characters");
+    if (typeof child === "number" && !Number.isFinite(child)) throw new TypeError(path + " numeric values must be finite");
   }
   if (JSON.stringify(value).length > 8192) throw new RangeError(path + " exceeds 8 KiB");
 }
