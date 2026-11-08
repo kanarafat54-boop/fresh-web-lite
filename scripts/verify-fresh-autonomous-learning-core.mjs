@@ -1,5 +1,11 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import {
+  evaluateFreshLearningEligibility,
+  orderFreshLearningObjectives,
+  validateFreshLearningEvent,
+  FRESH_LEARNING_CONSENT_VERSION,
+} from "../src/core/fresh-ai/FreshAutonomousLearningCore.ts";
 
 const core = fs.readFileSync("src/core/fresh-ai/FreshAutonomousLearningCore.ts", "utf8");
 const migration = fs.readFileSync("supabase/migrations/20261108230000_fresh_ai_autonomous_learning_core.sql", "utf8");
@@ -16,6 +22,7 @@ for (const token of [
   "trainingOptIn",
   "humanApproved",
   "privacyScreened",
+  "mayEnterTrainingDataset",
 ]) assert.ok(core.includes(token), `FALC core contract missing ${token}`);
 
 for (const token of [
@@ -32,8 +39,78 @@ for (const token of [
 ]) assert.ok(migration.includes(token), `FALC migration missing ${token}`);
 
 assert.match(migration, /training_eligible\s+boolean\s+not null\s+default\s+false/i);
+assert.match(migration, /training_eligible = false\s+or\s+\(/i);
 assert.match(migration, /grant select, insert, delete/i);
 assert.match(docs, /raw conversation|raw transcript/i);
 assert.match(docs, /human review/i);
 assert.match(docs, /does not train model weights/i);
-console.log("Fresh Autonomous Learning Core v1 contract: PASS");
+
+const now = new Date("2026-11-08T12:00:00.000Z");
+const event = {
+  id: "123e4567-e89b-42d3-a456-426614174000",
+  idempotencyKey: "123e4567-e89b-42d3-a456-426614174001",
+  ownerId: "user-1",
+  modality: "text",
+  provenance: {
+    source: "authorized-conversation",
+    capturedAt: "2026-11-08T11:00:00.000Z",
+    contentSha256: "a".repeat(64),
+  },
+  consent: {
+    captureAllowed: true,
+    memoryOptIn: true,
+    trainingOptIn: true,
+    consentVersion: FRESH_LEARNING_CONSENT_VERSION,
+    grantedAt: "2026-11-08T10:00:00.000Z",
+  },
+  payloadReference: "private/fresh-ai/user-1/learning/123",
+  summary: "Luganda vocabulary practice",
+  createdAt: "2026-11-08T11:00:00.000Z",
+  reviewStatus: "pending",
+};
+
+assert.deepEqual(validateFreshLearningEvent(event), { valid: true });
+const pending = evaluateFreshLearningEligibility(event, {
+  humanApproved: false,
+  provenanceVerified: true,
+  safetyChecked: true,
+  privacyScreened: true,
+}, now);
+assert.equal(pending.retainInMemory, true);
+assert.equal(pending.mayEnterTrainingReview, true);
+assert.equal(pending.mayEnterTrainingDataset, false);
+
+const approved = evaluateFreshLearningEligibility(event, {
+  humanApproved: true,
+  provenanceVerified: true,
+  safetyChecked: true,
+  privacyScreened: true,
+}, now);
+assert.equal(approved.mayEnterTrainingDataset, true);
+
+const revoked = evaluateFreshLearningEligibility({
+  ...event,
+  consent: { ...event.consent, revokedAt: "2026-11-08T11:30:00.000Z" },
+}, {
+  humanApproved: true,
+  provenanceVerified: true,
+  safetyChecked: true,
+  privacyScreened: true,
+}, now);
+assert.equal(revoked.retainInMemory, false);
+assert.equal(revoked.mayEnterTrainingReview, false);
+assert.equal(revoked.mayEnterTrainingDataset, false);
+
+assert.equal(validateFreshLearningEvent({
+  ...event,
+  payloadReference: "https://example.com/private-payload",
+}).valid, false);
+
+const ordered = orderFreshLearningObjectives([
+  { id: "later", ownerId: "u", title: "Later", skill: "math", sourceEventIds: [], dueAt: "2026-11-10T00:00:00Z", status: "queued", attempts: 0 },
+  { id: "earlier", ownerId: "u", title: "Earlier", skill: "language", sourceEventIds: [], dueAt: "2026-11-09T00:00:00Z", status: "queued", attempts: 0 },
+  { id: "running", ownerId: "u", title: "Running", skill: "coding", sourceEventIds: [], dueAt: "2026-11-08T00:00:00Z", status: "running", attempts: 1 },
+]);
+assert.deepEqual(ordered.map((item) => item.id), ["earlier", "later"]);
+
+console.log("Fresh Autonomous Learning Core v1 contract and behavior: PASS");
