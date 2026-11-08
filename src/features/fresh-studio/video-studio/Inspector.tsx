@@ -151,7 +151,7 @@ export function OverlayInspector({ layer, assetName, edit, duration }: { layer: 
             </div>
           </>
         )}
-        <p className="fs-muted">Drag its block on the timeline to retime it. Overlays sit above the video and below text.</p>
+        <p className="fs-muted">Drag it in the preview to move it, or the white dot to resize. Drag its block on the timeline to retime it. Overlays sit above the video and below text.</p>
       </div>
     </>
   );
