@@ -89,6 +89,17 @@ function pictureChain(clip              , W        , H        , fps        , fad
     ? `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H}`
     : `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:black`;
   const parts = [frame, "setsar=1", `fps=${fps}`];
+  const m = clip.motion;
+  if (m && (m.fromZoom !== 1 || m.toZoom !== 1)) {
+    // zoompan keeps a fixed output size (a per-frame scale + crop does not: crop reads its size once). The picture is
+    // enlarged 2x first so the slow movement stays smooth instead of stepping a pixel at a time.
+    const frames = Math.max(1, Math.round(clipDuration(clip) * fps) - 1);
+    const p = `min(1,on/${frames})`;
+    const mix = (a        , b        ) => `(${num(a)}+(${num(b)}-${num(a)})*${p})`;
+    parts.push(`scale=${W * 2}:${H * 2}`);
+    parts.push(`zoompan=z='${mix(m.fromZoom, m.toZoom)}':x='(iw-iw/zoom)*(1+${mix(m.fromX, m.toX)})/2':y='(ih-ih/zoom)*(1+${mix(m.fromY, m.toY)})/2':d=1:s=${W}x${H}:fps=${fps}`);
+    parts.push("setsar=1");
+  }
   const l = clip.look;
   if (l && (Math.abs(l.brightness) > 1e-6 || Math.abs(l.contrast - 1) > 1e-6 || Math.abs(l.saturation - 1) > 1e-6)) parts.push(`eq=brightness=${num(l.brightness)}:contrast=${num(l.contrast)}:saturation=${num(l.saturation)}`);
   const d = clipDuration(clip);

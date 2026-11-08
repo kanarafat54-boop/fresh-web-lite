@@ -62,7 +62,22 @@ export type TimelineClip = {
   fit?: ClipFit;
   /** How this clip is revealed after the clip before it (which must end exactly where this one starts). */
   transitionIn?: ClipTransition;
+  /** Animated zoom and position from the first frame of the clip to the last. */
+  motion?: ClipMotion;
 };
+
+/** Start and end keyframes for the picture. Zoom 1 = whole frame; position −1…1 pans across the extra area a zoom reveals. */
+export type ClipMotion = { fromZoom: number; toZoom: number; fromX: number; toX: number; fromY: number; toY: number };
+export const MIN_ZOOM = 1;
+export const MAX_ZOOM = 3;
+export const MOTION_PRESETS: ReadonlyArray<{ id: string; name: string; motion: ClipMotion | null }> = [
+  { id: "none", name: "None", motion: null },
+  { id: "zoom-in", name: "Zoom in", motion: { fromZoom: 1, toZoom: 1.3, fromX: 0, toX: 0, fromY: 0, toY: 0 } },
+  { id: "zoom-out", name: "Zoom out", motion: { fromZoom: 1.3, toZoom: 1, fromX: 0, toX: 0, fromY: 0, toY: 0 } },
+  { id: "pan-left", name: "Pan left", motion: { fromZoom: 1.25, toZoom: 1.25, fromX: 1, toX: -1, fromY: 0, toY: 0 } },
+  { id: "pan-right", name: "Pan right", motion: { fromZoom: 1.25, toZoom: 1.25, fromX: -1, toX: 1, fromY: 0, toY: 0 } },
+  { id: "drift-up", name: "Rise", motion: { fromZoom: 1.2, toZoom: 1.2, fromX: 0, toX: 0, fromY: 1, toY: -1 } },
+];
 
 export const TRANSITION_TYPES = [
   { id: "dissolve", label: "Dissolve", hint: "Cross-fades over the last frame of the previous clip" },
@@ -202,9 +217,14 @@ export function splitClip(doc: TimelineDoc, clipId: string, at: number, rightId?
   const t = round3(at);
   if (t <= clip.start + MIN_CLIP_SECONDS || t >= clipEnd(clip) - MIN_CLIP_SECONDS) throw new TimelineError("Move the playhead inside the clip to split it.");
   const sourceAt = round3(clip.sourceIn + (t - clip.start) * clip.speed);
-  const left: TimelineClip = withFittedFades({ ...clip, sourceOut: sourceAt, ...(clip.fadeOut ? { fadeOut: 0 } : {}) });
+  const p = (t - clip.start) / clipDuration(clip);
+  const mid = clip.motion ? motionAt(clip.motion, p) : null;
+  const m = clip.motion;
+  const leftMotion = m && mid ? { motion: { ...m, toZoom: round3(mid.zoom), toX: round3(mid.x), toY: round3(mid.y) } } : {};
+  const rightMotion = m && mid ? { motion: { ...m, fromZoom: round3(mid.zoom), fromX: round3(mid.x), fromY: round3(mid.y) } } : {};
+  const left: TimelineClip = withFittedFades({ ...clip, ...leftMotion, sourceOut: sourceAt, ...(clip.fadeOut ? { fadeOut: 0 } : {}) });
   const { transitionIn: _t, ...clipNoTransition } = clip; void _t;
-  const right: TimelineClip = withFittedFades({ ...clipNoTransition, id: rightId ?? newId("clip"), start: t, sourceIn: sourceAt, ...(clip.fadeIn ? { fadeIn: 0 } : {}) });
+  const right: TimelineClip = withFittedFades({ ...clipNoTransition, ...rightMotion, id: rightId ?? newId("clip"), start: t, sourceIn: sourceAt, ...(clip.fadeIn ? { fadeIn: 0 } : {}) });
   if (doc.clips.length >= MAX_CLIPS) throw new TimelineError(`A timeline can have at most ${MAX_CLIPS} clips.`);
   return { ...doc, clips: [...doc.clips.filter((c) => c.id !== clip.id), left, right] };
 }
@@ -413,6 +433,35 @@ export function nextAdjacent(doc: TimelineDoc, clip: TimelineClip): TimelineClip
   return trackClips(doc, clip.trackId).find((c) => c.id !== clip.id && c.start >= clip.start && Math.abs(clipEnd(clip) - c.start) <= ADJACENT) ?? null;
 }
 
+const within = (n: unknown, lo: number, hi: number) => typeof n === "number" && Number.isFinite(n) && n >= lo - 1e-9 && n <= hi + 1e-9;
+export function motionProblem(m: ClipMotion): string | null {
+  if (!m || typeof m !== "object") return "Motion settings are missing.";
+  if (!within(m.fromZoom, MIN_ZOOM, MAX_ZOOM) || !within(m.toZoom, MIN_ZOOM, MAX_ZOOM)) return `Zoom must be between ${MIN_ZOOM}× and ${MAX_ZOOM}×.`;
+  if (![m.fromX, m.toX, m.fromY, m.toY].every((v) => within(v, -1, 1))) return "Position must stay inside the frame (−100% to 100%).";
+  return null;
+}
+/** Sets (or with null removes) the start→end motion of a clip. */
+export function setClipMotion(doc: TimelineDoc, clipId: string, motion: ClipMotion | null): TimelineDoc {
+  const clip = find(doc, clipId);
+  unlocked(doc, clip.trackId);
+  if (motion === null) {
+    if (!clip.motion) return doc;
+    const { motion: _m, ...rest } = clip; void _m;
+    return { ...doc, clips: doc.clips.map((c) => (c.id === clip.id ? rest : c)) };
+  }
+  const why = motionProblem(motion);
+  if (why) throw new TimelineError(why);
+  const r = (n: number) => Math.round(n * 1000) / 1000;
+  return { ...doc, clips: doc.clips.map((c) => (c.id === clip.id ? { ...c, motion: { fromZoom: r(motion.fromZoom), toZoom: r(motion.toZoom), fromX: r(motion.fromX), toX: r(motion.toX), fromY: r(motion.fromY), toY: r(motion.toY) } } : c)) };
+}
+/** Zoom and position at progress p (0–1) through the clip. */
+export function motionAt(m: ClipMotion | undefined, p: number): { zoom: number; x: number; y: number } {
+  if (!m) return { zoom: 1, x: 0, y: 0 };
+  const k = Math.min(1, Math.max(0, p));
+  const mix = (a: number, b: number) => a + (b - a) * k;
+  return { zoom: mix(m.fromZoom, m.toZoom), x: mix(m.fromX, m.toX), y: mix(m.fromY, m.toY) };
+}
+
 export function setClipFit(doc: TimelineDoc, clipId: string, fit: ClipFit): TimelineDoc {
   const clip = find(doc, clipId);
   unlocked(doc, clip.trackId);
@@ -512,6 +561,7 @@ export function validateTimeline(doc: unknown): string[] {
     }
   }
   for (const c of d.clips) { const why = transitionProblem(d, c); if (why) errors.push(`Clip ${c.id}: ${why}.`); }
+  for (const c of d.clips) if (c.motion !== undefined) { const why = motionProblem(c.motion); if (why) errors.push(`Clip ${c.id}: ${why}`); }
   if (d.aspect !== undefined && !(ASPECT_RATIOS as readonly string[]).includes(d.aspect)) errors.push("The aspect ratio is not supported.");
   for (const t of d.tracks) {
     const list = trackClips(d, t.id);

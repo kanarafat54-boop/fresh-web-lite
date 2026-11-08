@@ -53,6 +53,12 @@ function fadeFactor(doc: T.TimelineDoc, c: T.TimelineClip, t: number, medium: "a
   if (medium === "video" && c.transitionIn && c.transitionIn.type !== "dip") f = Math.min(f, (t - c.start) / c.transitionIn.duration);
   return Math.min(1, Math.max(0, f));
 }
+/** Preview of a clip's zoom/position at the playhead; matches the exported movement. */
+function motionTransform(c: T.TimelineClip | null, t: number): string | undefined {
+  if (!c?.motion) return undefined;
+  const m = T.motionAt(c.motion, (t - c.start) / Math.max(0.001, T.clipDuration(c)));
+  return `translate(${(-m.x * (m.zoom - 1) * 50).toFixed(3)}%, ${(-m.y * (m.zoom - 1) * 50).toFixed(3)}%) scale(${m.zoom.toFixed(4)})`;
+}
 const lookFilter = (l: T.ClipLook | undefined) => (l ? `brightness(${1 + l.brightness}) contrast(${l.contrast}) saturate(${l.saturation})` : "none");
 const ratioOf = (a: string) => { const [w, h] = a.split(":").map(Number); return w / h; };
 
@@ -244,7 +250,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
         <div className="fs-monitor" ref={monitorRef} data-empty={!activeVideo}>
           <div className="fs-frame" style={{ aspectRatio: aspectValid.replace(":", " / "), ["--ar" as string]: ratioOf(aspectValid) }} data-aspect={aspectValid}>
             <video ref={videoEl} playsInline preload="auto" aria-label="Video preview"
-              style={{ visibility: activeVideo ? "visible" : "hidden", objectFit: activeVideo?.fit === "fill" ? "cover" : "contain", filter: lookFilter(activeVideo?.look), opacity: videoFade }} />
+              style={{ visibility: activeVideo ? "visible" : "hidden", objectFit: activeVideo?.fit === "fill" ? "cover" : "contain", filter: lookFilter(activeVideo?.look), opacity: videoFade, transform: motionTransform(activeVideo, playhead) }} />
             {!activeVideo && (empty
               ? <button type="button" className="fs-empty-cta" onClick={openImport} disabled={!!ed.busy}><Icon name="import" size={30} /><strong>Import video or audio</strong><span>or drop files here</span></button>
               : <p className="fs-muted fs-gap">No video at this point. Gaps render as black.</p>)}
