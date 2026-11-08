@@ -10,7 +10,7 @@ create table if not exists public.fresh_ai_learning_events (
   confidence numeric(4,3) not null check (confidence between 0 and 1),
   metadata jsonb not null default '{}'::jsonb
     check (octet_length(metadata::text) <= 8192)
-    check (not (metadata ?| array['content','transcript','message','prompt','answer','correction','audio','image','video','rawText'])),
+    check (metadata - array['language','modality','durationSeconds','category','domain','taskType','sourceLabel','confidenceBand','referenceId','tagCount'] = '{}'::jsonb),
   provenance jsonb not null default '{}'::jsonb,
   capture_authorized boolean not null default false check (capture_authorized = true),
   training_opt_in boolean not null default false,
