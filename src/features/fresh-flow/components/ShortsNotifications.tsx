@@ -5,7 +5,7 @@ import { ACTIVITY_TABS, loadShortsActivity, matchesTab, timeAgo, type ActivityIt
 import { requestOpenShort } from "../core/shortsExplore";
 import "./ShortsNotifications.css";
 
-const ICON: Record<ActivityKind, string> = { like: "❤", comment: "💬", reply: "↩", reaction: "✦", repost: "🔁", remix: "✂", follow: "＋", gift: "🎁", system: "🔔" };
+const ICON: Record<ActivityKind, string> = { like: "❤", comment: "💬", reply: "↩", reaction: "✦", mention: "@", moderation: "⚑", "creator-update": "▶", repost: "🔁", remix: "✂", follow: "＋", gift: "🎁", system: "🔔" };
 
 type Props = { onClose: () => void; onOpenCreator: (authorId: string) => void };
 

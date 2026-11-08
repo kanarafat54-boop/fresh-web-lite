@@ -3,7 +3,7 @@
  * decides what the viewer is told lives here so it can be tested. Only real rows become items, and the viewer's
  * own actions never notify them.
  */
-export type ActivityKind = "like" | "comment" | "reply" | "reaction" | "repost" | "remix" | "follow" | "gift" | "system";
+export type ActivityKind = "like" | "comment" | "reply" | "reaction" | "mention" | "moderation" | "creator-update" | "repost" | "remix" | "follow" | "gift" | "system";
 
 export type ActivityItem = {
   id: string;
@@ -17,24 +17,27 @@ export type ActivityItem = {
   unread: boolean;
 };
 
-export type ActivityTab = "all" | "like" | "comment" | "share" | "follow" | "gift";
+/** Categories from the specification (9.1): All, Reactions, Comments, Replies, Mentions, New followers, Creator updates. */
+export type ActivityTab = "all" | "reactions" | "comments" | "replies" | "mentions" | "followers" | "creator";
 
 export const ACTIVITY_TABS: Array<{ id: ActivityTab; label: string }> = [
   { id: "all", label: "All" },
-  { id: "like", label: "Likes" },
-  { id: "comment", label: "Comments" },
-  { id: "share", label: "Shares" },
-  { id: "follow", label: "Follows" },
-  { id: "gift", label: "Gifts" },
+  { id: "reactions", label: "Reactions" },
+  { id: "comments", label: "Comments" },
+  { id: "replies", label: "Replies" },
+  { id: "mentions", label: "Mentions" },
+  { id: "followers", label: "New followers" },
+  { id: "creator", label: "Creator updates" },
 ];
 
 const TAB_KINDS: Record<ActivityTab, ActivityKind[] | null> = {
   all: null,
-  like: ["like", "reaction"],
-  comment: ["comment", "reply"],
-  share: ["repost", "remix"],
-  follow: ["follow"],
-  gift: ["gift"],
+  reactions: ["like", "reaction"],
+  comments: ["comment", "moderation"],
+  replies: ["reply"],
+  mentions: ["mention"],
+  followers: ["follow"],
+  creator: ["creator-update", "repost", "remix", "gift", "system"],
 };
 
 export function matchesTab(kind: ActivityKind, tab: ActivityTab): boolean {
@@ -60,7 +63,15 @@ export type RawActivity = {
   /** Viewer's Shorts: id -> caption. */
   captions: Map<string, string>;
   /** Viewer's own comments (anywhere): id -> { short_id, content }. */
-  myComments: Map<string, { short_id: string; content: string | null }>;
+  myComments: Map<string, { short_id: string; content: string | null; moderation_state?: string | null; moderation_reason?: string | null; moderated_at?: string | null }>;
+  /** Viewer's username without "@", used to find mentions. */
+  myUsername: string | null;
+  /** Author of each Short that appears in replies, to tell creator replies apart. */
+  shortAuthors: Map<string, string>;
+  /** Comments anywhere whose text contains the viewer's @username. */
+  mentions: Array<{ id: string; short_id: string; author_id: string; content: string | null; created_at: string; moderation_state?: string | null }>;
+  /** Recent Shorts from creators the viewer follows. */
+  followedShorts: Array<{ id: string; author_id: string; created_at: string; caption: string | null }>;
   names: Map<string, string>;
   likes: Array<{ short_id: string; user_id: string; created_at: string; reaction_type: string | null }>;
   comments: Array<{ id: string; short_id: string; author_id: string; content: string | null; created_at: string; parent_id: string | null; moderation_state?: string | null }>;
@@ -92,12 +103,27 @@ export function buildActivityItems(raw: RawActivity, limit = 80): ActivityItem[]
     if (r.author_id === raw.viewerId || !valid(r.created_at) || !shown(r.moderation_state)) continue;
     if (!r.parent_id || !raw.myComments.has(r.parent_id)) continue;
     replyIds.add(r.id);
-    items.push({ id: `reply-${r.id}`, kind: "reply", at: r.created_at, actorId: r.author_id, actorName: who(r.author_id), text: `${who(r.author_id)} replied to your comment`, detail: r.content ?? undefined, shortId: r.short_id, unread: false });
+    const byCreator = raw.shortAuthors.get(r.short_id) === r.author_id;
+    items.push({ id: `reply-${r.id}`, kind: "reply", at: r.created_at, actorId: r.author_id, actorName: who(r.author_id), text: `${who(r.author_id)} ${byCreator ? "(the creator) " : ""}replied to your comment`, detail: r.content ?? undefined, shortId: r.short_id, unread: false });
+  }
+  const mentionIds = new Set<string>();
+  const handle = raw.myUsername ? raw.myUsername.replace(/^@/, "") : "";
+  const mentionPattern = handle ? new RegExp(`(^|[^\\w])@${handle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w])`, "i") : null;
+  for (const r of raw.mentions) {
+    if (!mentionPattern || r.author_id === raw.viewerId || !valid(r.created_at) || !shown(r.moderation_state) || replyIds.has(r.id) || !mentionPattern.test(r.content ?? "")) continue;
+    mentionIds.add(r.id);
+    items.push({ id: `mention-${r.id}`, kind: "mention", at: r.created_at, actorId: r.author_id, actorName: who(r.author_id), text: `${who(r.author_id)} mentioned you in a comment`, detail: r.content ?? undefined, shortId: r.short_id, unread: false });
   }
   for (const r of raw.comments) {
     // A reply to the viewer's comment is reported once, as a reply, not again as a comment on their Short.
-    if (r.author_id === raw.viewerId || !valid(r.created_at) || !shown(r.moderation_state) || replyIds.has(r.id)) continue;
+    if (r.author_id === raw.viewerId || !valid(r.created_at) || !shown(r.moderation_state) || replyIds.has(r.id) || mentionIds.has(r.id)) continue;
     items.push({ id: `comment-${r.id}`, kind: "comment", at: r.created_at, actorId: r.author_id, actorName: who(r.author_id), text: `${who(r.author_id)} commented on ${snippet(r.short_id)}`, detail: r.content ?? undefined, shortId: r.short_id, unread: false });
+  }
+
+  for (const [id, mine] of raw.myComments) {
+    const state = mine.moderation_state;
+    if (!state || state === "visible" || !mine.moderated_at || !valid(mine.moderated_at)) continue;
+    items.push({ id: `moderation-${id}`, kind: "moderation", at: mine.moderated_at, actorId: null, actorName: "Fresh", text: state === "removed" ? "Your comment was removed" : "Your comment was hidden", detail: mine.moderation_reason ?? mine.content ?? undefined, shortId: mine.short_id, unread: false });
   }
 
   for (const r of raw.commentReactions) {
@@ -119,6 +145,10 @@ export function buildActivityItems(raw: RawActivity, limit = 80): ActivityItem[]
     items.push({ id: `remix-${r.id}`, kind: "remix", at: r.created_at, actorId: r.author_id, actorName: who(r.author_id), text: `${who(r.author_id)} ${verb} ${snippet(sourceId)}`, shortId: r.id, unread: false });
   }
 
+  for (const r of raw.followedShorts) {
+    if (r.author_id === raw.viewerId || !valid(r.created_at)) continue;
+    items.push({ id: `creator-update-${r.id}`, kind: "creator-update", at: r.created_at, actorId: r.author_id, actorName: who(r.author_id), text: `${who(r.author_id)} published a new Short`, detail: r.caption ?? undefined, shortId: r.id, unread: false });
+  }
   for (const r of raw.gifts) {
     if (!valid(r.created_at)) continue;
     items.push({ id: `gift-${r.id}`, kind: "gift", at: r.created_at, actorId: r.sender_id, actorName: who(r.sender_id), text: `${who(r.sender_id)} sent a gift on ${snippet(r.short_id)}`, shortId: r.short_id, unread: false });

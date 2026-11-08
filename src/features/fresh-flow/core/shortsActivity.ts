@@ -5,6 +5,7 @@ export { timeAgo, ACTIVITY_TABS, matchesTab } from "./shortsActivityModel";
 export type { ActivityItem, ActivityKind, ActivityTab } from "./shortsActivityModel";
 
 const LIMIT = 40;
+const FOLLOWED_WINDOW_DAYS = 14;
 const rowsOf = <T,>(result: unknown): T[] => ((result as { data?: T[] | null } | null)?.data ?? []) as T[];
 
 /**
@@ -14,17 +15,22 @@ const rowsOf = <T,>(result: unknown): T[] => ((result as { data?: T[] | null } |
  * readable by everyone except `notifications`, which is limited to its owner.
  */
 export async function loadShortsActivity(userId: string): Promise<ActivityItem[]> {
-  const [mineShorts, myCommentRows] = await Promise.all([
+  const [mineShorts, myCommentRows, meRow, followingRows] = await Promise.all([
     supabase.from("shorts").select("id, caption").eq("author_id", userId).limit(200),
-    supabase.from("short_comments").select("id, short_id, content").eq("author_id", userId).order("created_at", { ascending: false }).limit(200),
+    supabase.from("short_comments").select("id, short_id, content, moderation_state, moderation_reason, moderated_at").eq("author_id", userId).order("created_at", { ascending: false }).limit(200),
+    supabase.from("user_public_profiles").select("username").eq("id", userId).maybeSingle(),
+    supabase.from("follows").select("followed_id").eq("follower_id", userId).limit(200),
   ]);
+  const myUsername = ((meRow as { data?: { username?: string | null } | null }).data?.username ?? "").trim() || null;
+  const followedIds = rowsOf<{ followed_id: string }>(followingRows).map((row) => row.followed_id);
+  const since = new Date(Date.now() - FOLLOWED_WINDOW_DAYS * 86_400_000).toISOString();
   const myShorts = rowsOf<{ id: string; caption: string | null }>(mineShorts);
-  const myComments = rowsOf<{ id: string; short_id: string; content: string | null }>(myCommentRows);
+  const myComments = rowsOf<{ id: string; short_id: string; content: string | null; moderation_state: string | null; moderation_reason: string | null; moderated_at: string | null }>(myCommentRows);
   const shortIds = myShorts.map((short) => short.id);
   const commentIds = myComments.map((comment) => comment.id);
   const none = Promise.resolve({ data: [] });
 
-  const [likes, comments, replies, reactions, reposts, remixes, gifts, follows, system] = await Promise.all([
+  const [likes, comments, replies, reactions, reposts, remixes, gifts, follows, system, mentions, followedShorts] = await Promise.all([
     shortIds.length ? supabase.from("short_likes").select("short_id, user_id, created_at, reaction_type").in("short_id", shortIds).neq("user_id", userId).order("created_at", { ascending: false }).limit(LIMIT) : none,
     shortIds.length ? supabase.from("short_comments").select("id, short_id, author_id, content, created_at, parent_id, moderation_state").in("short_id", shortIds).neq("author_id", userId).order("created_at", { ascending: false }).limit(LIMIT) : none,
     commentIds.length ? supabase.from("short_comments").select("id, short_id, author_id, content, created_at, parent_id, moderation_state").in("parent_id", commentIds).neq("author_id", userId).order("created_at", { ascending: false }).limit(LIMIT) : none,
@@ -35,13 +41,20 @@ export async function loadShortsActivity(userId: string): Promise<ActivityItem[]
     supabase.from("short_gifts").select("id, short_id, sender_id, created_at").eq("recipient_id", userId).order("created_at", { ascending: false }).limit(LIMIT),
     supabase.from("follows").select("follower_id, created_at").eq("followed_id", userId).order("created_at", { ascending: false }).limit(LIMIT),
     supabase.from("notifications").select("id, title, body, read_at, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(LIMIT),
+    // Mentions are comments whose text contains @username; the model re-checks each one precisely.
+    myUsername ? supabase.from("short_comments").select("id, short_id, author_id, content, created_at, moderation_state").ilike("content", `%@${myUsername.replace(/[%_\\]/g, "\\$&")}%`).neq("author_id", userId).order("created_at", { ascending: false }).limit(LIMIT) : none,
+    followedIds.length ? supabase.from("shorts").select("id, author_id, created_at, caption").in("author_id", followedIds).gte("created_at", since).order("created_at", { ascending: false }).limit(LIMIT) : none,
   ]);
 
   const raw: RawActivity = {
     viewerId: userId,
     captions: new Map(myShorts.map((short) => [short.id, short.caption ?? ""])),
-    myComments: new Map(myComments.map((comment) => [comment.id, { short_id: comment.short_id, content: comment.content }])),
+    myComments: new Map(myComments.map((comment) => [comment.id, { short_id: comment.short_id, content: comment.content, moderation_state: comment.moderation_state, moderation_reason: comment.moderation_reason, moderated_at: comment.moderated_at }])),
     names: new Map(),
+    myUsername,
+    shortAuthors: new Map(),
+    mentions: rowsOf(mentions),
+    followedShorts: rowsOf(followedShorts),
     likes: rowsOf(likes),
     comments: rowsOf(comments),
     replies: rowsOf(replies),
@@ -53,10 +66,16 @@ export async function loadShortsActivity(userId: string): Promise<ActivityItem[]
     system: rowsOf(system),
   };
 
+  const replyShortIds = [...new Set(raw.replies.map((r) => r.short_id))];
+  if (replyShortIds.length) {
+    const { data } = await supabase.from("shorts").select("id, author_id").in("id", replyShortIds);
+    for (const row of (data ?? []) as Array<{ id: string; author_id: string }>) raw.shortAuthors.set(row.id, row.author_id);
+  }
   const actorIds = [...new Set([
     ...raw.likes.map((r) => r.user_id), ...raw.comments.map((r) => r.author_id), ...raw.replies.map((r) => r.author_id),
     ...raw.commentReactions.map((r) => r.user_id), ...raw.reposts.map((r) => r.user_id), ...raw.remixes.map((r) => r.author_id),
     ...raw.gifts.map((r) => r.sender_id), ...raw.follows.map((r) => r.follower_id),
+    ...raw.mentions.map((r) => r.author_id), ...raw.followedShorts.map((r) => r.author_id),
   ].filter(Boolean))];
   if (actorIds.length) {
     const { data } = await supabase.from("user_public_profiles").select("id, username, full_name").in("id", actorIds);
