@@ -43,7 +43,7 @@ assert.match(migration, /training_eligible = false\s+or\s+\(/i);
 assert.match(migration, /grant select, insert, delete/i);
 assert.match(docs, /raw conversation|raw transcript/i);
 assert.match(docs, /human review/i);
-assert.match(docs, /does not train model weights/i);
+assert.match(docs, /does not (?:train|modify) model weights/i);
 
 const now = new Date("2026-11-08T12:00:00.000Z");
 const event = {
