@@ -207,6 +207,8 @@ export type FreshLearningObjective = {
   dueAt: string;
   status: "queued" | "running" | "evaluating" | "completed" | "blocked" | "failed";
   attempts: number;
+  /** Opaque server-issued lease; required for every state transition. */
+  leaseToken?: string;
 };
 
 export interface FreshLearningEventRepository {
@@ -218,8 +220,8 @@ export interface FreshLearningEventRepository {
 export interface FreshLearningObjectiveRepository {
   /** Worker-only adapter: never expose autonomous task creation to anonymous clients. */
   claimDue(now: string, limit: number): Promise<FreshLearningObjective[]>;
-  complete(objectiveId: string, resultReference: string): Promise<void>;
-  fail(objectiveId: string, reasonCode: string): Promise<void>;
+  complete(objectiveId: string, leaseToken: string, resultReference: string): Promise<void>;
+  fail(objectiveId: string, leaseToken: string, reasonCode: string): Promise<void>;
 }
 
 /** Pure deterministic scheduler ordering; execution remains in a bounded worker. */
