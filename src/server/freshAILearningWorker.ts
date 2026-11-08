@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   FreshLearningObjective,
   FreshLearningObjectiveRepository,
-} from "../core/fresh-ai/FreshAutonomousLearningCore.js";
+} from "../core/fresh-ai/FreshAutonomousLearningCore.ts";
 
 type ObjectiveRow = {
   id: string;
