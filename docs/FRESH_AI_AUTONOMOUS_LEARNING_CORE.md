@@ -25,6 +25,9 @@ FALC v1 establishes the shared learning-event contract, privacy boundary, durabl
 
 ## Persistence and scheduling contracts
 
+- `src/server/freshAILearningSupabase.ts` implements the persistent event adapter against the existing Supabase service client. It maps the typed event contract to `fresh_ai_learning_events`, scopes reads and deletes by owner, validates private object-reference ownership, enforces active versioned consent, and checks duplicate idempotency keys against the original digest/reference/summary.
+- `POST /api/ai/learning-events` and `GET /api/ai/learning-events?id=<uuid>` are routed through the existing feedback function to avoid adding another serverless function. The API authenticates the bearer token and overwrites any submitted owner id with the verified account id.
+- Client submissions cannot set `training_eligible`; all rows persist with that flag false. Training-opted-in events enter only the pending human-review state.
 - `FreshLearningEventRepository` requires owner-scoped reads and idempotent append on (ownerId, idempotencyKey).
 - `FreshLearningObjectiveRepository` is a trusted worker interface. The SQL migration intentionally gives authenticated users read-only access to their own objectives and no write privileges.
 - `orderFreshLearningObjectives` provides deterministic due-time ordering; it is not a scheduler or worker by itself.
@@ -35,7 +38,7 @@ The schema defaults `training_eligible=false`. Client inserts cannot set it true
 
 ## Deployment requirements
 
-1. Apply the migration in each Fresh Web Lite Supabase environment.
+1. Apply the migration in each Fresh Web Lite Supabase environment only after PR validation and explicit deployment approval.
 2. Implement authenticated server adapters for event append/read and private payload lifecycle.
 3. Implement a worker using service-role credentials stored only server-side; add bounded claims, retries, leases, dead-letter handling, and audit logs.
 4. Add tests for RLS with two users, revocation, expiry, duplicate events, payload deletion, and worker-only objective transitions.
