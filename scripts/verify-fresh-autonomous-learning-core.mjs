@@ -55,6 +55,10 @@ for (const token of ["createSupabaseFreshLearningEventRepository", "idempotency_
   assert.ok(adapter.includes(token), `Supabase learning adapter missing ${token}`);
 }
 
+assert.ok(api.includes("Never trust an owner id supplied by the client"));
+assert.ok(api.includes("repository.append(event)"));
+assert.ok(routes.routes.some((route) => route.src === "/api/ai/learning-events" && route.dest.includes("__fresh_learning_events=1")));
+
 const now = new Date("2026-11-08T12:00:00.000Z");
 const event = {
   id: "123e4567-e89b-42d3-a456-426614174000",
