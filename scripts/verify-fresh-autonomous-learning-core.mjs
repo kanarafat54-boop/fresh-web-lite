@@ -6,10 +6,15 @@ import {
   validateFreshLearningEvent,
   FRESH_LEARNING_CONSENT_VERSION,
 } from "../src/core/fresh-ai/FreshAutonomousLearningCore.ts";
+import {
+  fromFreshLearningEventRow,
+  toFreshLearningEventRow,
+} from "../src/server/freshAILearningSupabase.ts";
 
 const core = fs.readFileSync("src/core/fresh-ai/FreshAutonomousLearningCore.ts", "utf8");
 const migration = fs.readFileSync("supabase/migrations/20261108230000_fresh_ai_autonomous_learning_core.sql", "utf8");
 const docs = fs.readFileSync("docs/FRESH_AI_AUTONOMOUS_LEARNING_CORE.md", "utf8");
+const adapter = fs.readFileSync("src/server/freshAILearningSupabase.ts", "utf8");
 
 for (const token of [
   "FRESH_LEARNING_CONSENT_VERSION",
@@ -44,6 +49,9 @@ assert.match(migration, /grant select, insert, delete/i);
 assert.match(docs, /raw conversation|raw transcript/i);
 assert.match(docs, /human review/i);
 assert.match(docs, /does not (?:train|modify) model weights/i);
+for (const token of ["createSupabaseFreshLearningEventRepository", "idempotency_key", "deleteById", "private/fresh-ai/", ".eq(\"user_id\", ownerId)"]) {
+  assert.ok(adapter.includes(token), `Supabase learning adapter missing ${token}`);
+}
 
 const now = new Date("2026-11-08T12:00:00.000Z");
 const event = {
@@ -70,6 +78,13 @@ const event = {
 };
 
 assert.deepEqual(validateFreshLearningEvent(event), { valid: true });
+const persistedRow = toFreshLearningEventRow(event);
+assert.equal(persistedRow.user_id, event.ownerId);
+assert.equal(persistedRow.training_eligible, false);
+assert.equal(persistedRow.review_status, "pending");
+assert.deepEqual(fromFreshLearningEventRow(persistedRow), event);
+assert.throws(() => toFreshLearningEventRow({ ...event, payloadReference: "private/fresh-ai/another-user/learning/123" }), /authenticated owner/);
+assert.throws(() => toFreshLearningEventRow({ ...event, consent: { ...event.consent, revokedAt: "2026-11-08T11:30:00.000Z" } }), /expired, revoked/);
 const pending = evaluateFreshLearningEligibility(event, {
   humanApproved: false,
   provenanceVerified: true,
@@ -114,4 +129,4 @@ const ordered = orderFreshLearningObjectives([
 ]);
 assert.deepEqual(ordered.map((item) => item.id), ["earlier", "later"]);
 
-console.log("Fresh Autonomous Learning Core v1 contract and behavior: PASS");
+console.log("Fresh Autonomous Learning Core v1 contract, consent and persistence mapping: PASS");
