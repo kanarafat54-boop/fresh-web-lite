@@ -10,11 +10,14 @@ import {
   fromFreshLearningEventRow,
   toFreshLearningEventRow,
 } from "../src/server/freshAILearningSupabase.ts";
+import { runFreshLearningWorker } from "../src/server/freshAILearningWorker.ts";
 
 const core = fs.readFileSync("src/core/fresh-ai/FreshAutonomousLearningCore.ts", "utf8");
 const migration = fs.readFileSync("supabase/migrations/20261108230000_fresh_ai_autonomous_learning_core.sql", "utf8");
 const docs = fs.readFileSync("docs/FRESH_AI_AUTONOMOUS_LEARNING_CORE.md", "utf8");
 const adapter = fs.readFileSync("src/server/freshAILearningSupabase.ts", "utf8");
+const workerMigration = fs.readFileSync("supabase/migrations/20261108234500_fresh_ai_learning_worker_leases.sql", "utf8");
+const workerSource = fs.readFileSync("src/server/freshAILearningWorker.ts", "utf8");
 const api = fs.readFileSync("src/server/freshAILearningEventsApi.ts", "utf8");
 const routes = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
 
@@ -57,6 +60,13 @@ for (const token of ["createSupabaseFreshLearningEventRepository", "idempotency_
 
 assert.ok(api.includes("Never trust an owner id supplied by the client"));
 assert.ok(api.includes("repository.append(event)"));
+assert.ok(workerMigration.includes("FOR UPDATE SKIP LOCKED"));
+assert.ok(workerMigration.includes("service_role_required"));
+assert.ok(workerMigration.includes("lease_token"));
+assert.ok(workerMigration.includes("attempts >= 5"));
+assert.ok(workerSource.includes("fresh_ai_claim_learning_objectives"));
+assert.ok(workerSource.includes("fresh_ai_complete_learning_objective"));
+assert.ok(workerSource.includes("fresh_ai_fail_learning_objective"));
 assert.ok(routes.routes.some((route) => route.src === "/api/ai/learning-events" && route.dest.includes("__fresh_learning_events=1")));
 
 const now = new Date("2026-11-08T12:00:00.000Z");
@@ -134,5 +144,43 @@ const ordered = orderFreshLearningObjectives([
   { id: "running", ownerId: "u", title: "Running", skill: "coding", sourceEventIds: [], dueAt: "2026-11-08T00:00:00Z", status: "running", attempts: 1 },
 ]);
 assert.deepEqual(ordered.map((item) => item.id), ["earlier", "later"]);
+
+const claimedObjective = {
+  id: "objective-1",
+  ownerId: "user-1",
+  title: "Practise vocabulary",
+  skill: "language",
+  sourceEventIds: [],
+  dueAt: now.toISOString(),
+  status: "running",
+  attempts: 1,
+  leaseToken: "lease-1",
+};
+const workerCalls = [];
+const workerResult = await runFreshLearningWorker({
+  repository: {
+    async claimDue() { return [claimedObjective]; },
+    async complete(id, lease, reference) { workerCalls.push(["complete", id, lease, reference]); },
+    async fail(id, lease, reason) { workerCalls.push(["fail", id, lease, reason]); },
+  },
+  processor: async () => ({ resultReference: "private/fresh-ai/user-1/practice/result-1" }),
+  now,
+  limit: 1,
+});
+assert.deepEqual(workerResult, { claimed: 1, completed: 1, failed: 0 });
+assert.deepEqual(workerCalls, [["complete", "objective-1", "lease-1", "private/fresh-ai/user-1/practice/result-1"]]);
+
+const failedWorkerResult = await runFreshLearningWorker({
+  repository: {
+    async claimDue() { return [claimedObjective]; },
+    async complete() { throw new Error("should not complete"); },
+    async fail(id, lease, reason) { workerCalls.push(["fail", id, lease, reason]); },
+  },
+  processor: async () => { throw new Error("engine unavailable"); },
+  now,
+  limit: 1,
+});
+assert.deepEqual(failedWorkerResult, { claimed: 1, completed: 0, failed: 1 });
+assert.deepEqual(workerCalls.at(-1), ["fail", "objective-1", "lease-1", "processor_failed"]);
 
 console.log("Fresh Autonomous Learning Core v1 contract, consent and persistence mapping: PASS");
