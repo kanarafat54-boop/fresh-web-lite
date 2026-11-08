@@ -80,7 +80,7 @@ assert.equal(pending.retainInMemory, true);
 assert.equal(pending.mayEnterTrainingReview, true);
 assert.equal(pending.mayEnterTrainingDataset, false);
 
-const approved = evaluateFreshLearningEligibility(event, {
+const approved = evaluateFreshLearningEligibility({ ...event, reviewStatus: "approved" }, {
   humanApproved: true,
   provenanceVerified: true,
   safetyChecked: true,
@@ -90,6 +90,7 @@ assert.equal(approved.mayEnterTrainingDataset, true);
 
 const revoked = evaluateFreshLearningEligibility({
   ...event,
+  reviewStatus: "approved",
   consent: { ...event.consent, revokedAt: "2026-11-08T11:30:00.000Z" },
 }, {
   humanApproved: true,
