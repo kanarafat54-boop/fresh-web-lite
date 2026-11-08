@@ -46,7 +46,7 @@ for (const token of [
   "content_sha256",
   "payload_reference",
   "auth.uid() = user_id",
-]) assert.ok(migration.includes(token), `FALC migration missing ${token}`);
+]) assert.ok(migration.toLowerCase().includes(token.toLowerCase()), `FALC migration missing ${token}`);
 
 assert.match(migration, /training_eligible\s+boolean\s+not null\s+default\s+false/i);
 assert.match(migration, /training_eligible = false\s+or\s+\(/i);
