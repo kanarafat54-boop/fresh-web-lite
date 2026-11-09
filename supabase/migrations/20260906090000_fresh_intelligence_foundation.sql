@@ -167,9 +167,28 @@ drop policy if exists "fresh intelligence claim evidence is readable" on public.
 create policy "fresh intelligence claim evidence is readable" on public.fresh_intelligence_claim_evidence
   for select to anon, authenticated using (true);
 
-revoke all on table public.fresh_intelligence_evidence from public, anon, authenticated;
-revoke all on table public.fresh_intelligence_claim_evidence from public, anon, authenticated;
+grant select on table
+  public.fresh_intelligence_sources,
+  public.fresh_intelligence_entities,
+  public.fresh_intelligence_claims,
+  public.fresh_intelligence_claim_relations,
+  public.fresh_intelligence_arbitrations,
+  public.fresh_intelligence_claim_revisions,
+  public.fresh_intelligence_evidence,
+  public.fresh_intelligence_claim_evidence
+to anon, authenticated;
+
+grant all on table
+  public.fresh_intelligence_sources,
+  public.fresh_intelligence_entities,
+  public.fresh_intelligence_claims,
+  public.fresh_intelligence_claim_relations,
+  public.fresh_intelligence_arbitrations,
+  public.fresh_intelligence_claim_revisions,
+  public.fresh_intelligence_evidence,
+  public.fresh_intelligence_claim_evidence,
+  public.fresh_intelligence_evidence_lineage
+to service_role;
+
+-- Lineage is internal-only and deliberately has no anon/authenticated policy.
 revoke all on table public.fresh_intelligence_evidence_lineage from public, anon, authenticated;
-grant all on table public.fresh_intelligence_evidence to service_role;
-grant all on table public.fresh_intelligence_claim_evidence to service_role;
-grant all on table public.fresh_intelligence_evidence_lineage to service_role;
