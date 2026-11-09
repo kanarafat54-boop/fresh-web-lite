@@ -138,9 +138,12 @@ export const MIN_OVERLAY_SECONDS = 0.2;
                 
                  
                   
+                                                                                           
+                    
                                   
                 
   
+export const MAX_ROTATION = 180;
 
                            
              
@@ -603,6 +606,7 @@ export function validateOverlay(o              , doc              )             
   if (o.x < 0 || o.x > 1 || o.y < 0 || o.y > 1) return "Overlay must stay inside the frame.";
   if (o.width < 0.02 || o.width > 1 || o.height < 0.02 || o.height > 1) return "Overlay size is out of range.";
   if (o.opacity < 0.05 || o.opacity > 1) return "Overlay opacity must be between 5% and 100%.";
+  if (o.rotation !== undefined && (typeof o.rotation !== "number" || !Number.isFinite(o.rotation) || Math.abs(o.rotation) > MAX_ROTATION)) return "Overlay rotation must be between −180° and 180°.";
   if (o.kind === "rect" && !HEX.test(o.color)) return "Overlay colour is invalid.";
   if (o.kind === "image") {
     if (typeof o.assetId !== "string") return "Overlay picture is missing.";
