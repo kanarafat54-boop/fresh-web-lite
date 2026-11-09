@@ -138,9 +138,35 @@ create index if not exists idx_fi_evidence_source
 create index if not exists fresh_intelligence_claim_evidence_evidence_id_idx
   on public.fresh_intelligence_claim_evidence(evidence_id);
 
+alter table public.fresh_intelligence_sources enable row level security;
+alter table public.fresh_intelligence_entities enable row level security;
+alter table public.fresh_intelligence_claims enable row level security;
+alter table public.fresh_intelligence_claim_relations enable row level security;
 alter table public.fresh_intelligence_evidence enable row level security;
 alter table public.fresh_intelligence_claim_evidence enable row level security;
 alter table public.fresh_intelligence_evidence_lineage enable row level security;
+
+-- Match the production public-read policies. RLS permits reads only; writes remain
+-- unavailable to client roles unless a separate, explicit policy is added.
+drop policy if exists "fresh intelligence sources are readable" on public.fresh_intelligence_sources;
+create policy "fresh intelligence sources are readable" on public.fresh_intelligence_sources
+  for select to anon, authenticated using (true);
+drop policy if exists "fresh intelligence entities are readable" on public.fresh_intelligence_entities;
+create policy "fresh intelligence entities are readable" on public.fresh_intelligence_entities
+  for select to anon, authenticated using (true);
+drop policy if exists "fresh intelligence claims are readable" on public.fresh_intelligence_claims;
+create policy "fresh intelligence claims are readable" on public.fresh_intelligence_claims
+  for select to anon, authenticated using (true);
+drop policy if exists "fresh intelligence claim relations are readable" on public.fresh_intelligence_claim_relations;
+create policy "fresh intelligence claim relations are readable" on public.fresh_intelligence_claim_relations
+  for select to anon, authenticated using (true);
+drop policy if exists "fresh intelligence evidence is readable" on public.fresh_intelligence_evidence;
+create policy "fresh intelligence evidence is readable" on public.fresh_intelligence_evidence
+  for select to anon, authenticated using (true);
+drop policy if exists "fresh intelligence claim evidence is readable" on public.fresh_intelligence_claim_evidence;
+create policy "fresh intelligence claim evidence is readable" on public.fresh_intelligence_claim_evidence
+  for select to anon, authenticated using (true);
+
 revoke all on table public.fresh_intelligence_evidence from public, anon, authenticated;
 revoke all on table public.fresh_intelligence_claim_evidence from public, anon, authenticated;
 revoke all on table public.fresh_intelligence_evidence_lineage from public, anon, authenticated;
