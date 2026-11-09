@@ -43,8 +43,8 @@ create table public.fresh_intelligence_claims (
 
 create table public.fresh_intelligence_arbitrations (
   id uuid primary key default gen_random_uuid(),
-  left_claim_id text not null references public.fresh_intelligence_claims(id) on delete cascade,
-  right_claim_id text not null references public.fresh_intelligence_claims(id) on delete cascade,
+  left_claim_id text not null,
+  right_claim_id text not null,
   decision text not null,
   confidence numeric(5,4) not null default 0,
   rationale text not null,
@@ -56,7 +56,7 @@ create table public.fresh_intelligence_arbitrations (
 
 create table public.fresh_intelligence_claim_revisions (
   id uuid primary key default gen_random_uuid(),
-  claim_id text not null references public.fresh_intelligence_claims(id) on delete cascade,
+  claim_id text not null,
   previous_status text,
   next_status text not null,
   previous_confidence numeric(5,4),
@@ -64,3 +64,12 @@ create table public.fresh_intelligence_claim_revisions (
   reason text not null,
   created_at timestamptz not null default now()
 );
+
+-- Reproduce the earlier migration's RLS state while leaving the claim FKs absent,
+-- so the foundation migration must restore those missing constraints.
+alter table public.fresh_intelligence_arbitrations enable row level security;
+create policy "fresh intelligence arbitrations are readable" on public.fresh_intelligence_arbitrations
+  for select to anon, authenticated using (true);
+alter table public.fresh_intelligence_claim_revisions enable row level security;
+create policy "fresh intelligence claim revisions are readable" on public.fresh_intelligence_claim_revisions
+  for select to anon, authenticated using (true);
