@@ -39,7 +39,7 @@ create table if not exists public.fresh_intelligence_claims (
 
 -- These tables are restored before claims. Add their claim foreign keys only
 -- after the canonical claims table exists; the earlier reconstruction skipped them.
-do $
+do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'fresh_intelligence_arbitrations_left_claim_id_fkey' and conrelid = 'public.fresh_intelligence_arbitrations'::regclass) then
     alter table public.fresh_intelligence_arbitrations
@@ -57,7 +57,7 @@ begin
       foreign key (claim_id) references public.fresh_intelligence_claims(id) on delete cascade;
   end if;
 end
-$;
+$$;
 
 -- Restore claim-to-claim relation storage before the later observed_at
 -- compatibility migration. The production catalog confirms these columns,
