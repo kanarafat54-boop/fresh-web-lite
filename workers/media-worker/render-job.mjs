@@ -57,7 +57,7 @@ export function parseRenderRequest(input, limits) {
   const dry = planRender({ doc: timeline, preset, aspectRatio, sources: placeholders, outputPath: "out.mp4", fps, captionsFile: captionsSrt ? "captions.srt" : undefined, textFiles: textPlaceholders, fonts: WORKER_FONTS });
   if (!dry.ok) return fail(dry.errors[0]);
   if (dry.duration > limits.maxSeconds) return fail(`This worker renders up to ${limits.maxSeconds} seconds at a time. Your video is ${Math.ceil(dry.duration)} seconds.`);
-  const used = new Set(timeline.clips.map((c) => c.assetId));
+  const used = new Set([...timeline.clips.map((c) => c.assetId), ...(timeline.overlays ?? []).filter((o) => o?.kind === "image").map((o) => o.assetId)]);
   for (const id of used) if (!sources[id]) return fail("A source file is missing.");
   return { ok: true, value: { timeline, preset, aspectRatio, sources, fps, captionsSrt, duration: dry.duration, width: dry.width, height: dry.height } };
 }
@@ -84,7 +84,7 @@ export async function runRenderJob(job, ctx) {
     await mkdir(dir, { recursive: true });
     const local = {};
     let i = 0;
-    for (const id of new Set(request.timeline.clips.map((c) => c.assetId))) {
+    for (const id of new Set([...request.timeline.clips.map((c) => c.assetId), ...(request.timeline.overlays ?? []).filter((o) => o?.kind === "image").map((o) => o.assetId)])) {
       if (jobs.get(job.id)?.cancelRequested) throw new Error("cancelled");
       const target = join(dir, `src-${i++}`);
       await download(request.sources[id], target);

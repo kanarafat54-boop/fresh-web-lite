@@ -48,7 +48,10 @@ import ShortsSharePanel from "./ShortsSharePanel";
 import { splitCaption, type TopicKind } from "../core/shortsTopics";
 import ShortsRecommendationControls from "./ShortsRecommendationControls";
 import { EMPTY_PREFS, addUnique, applyShortPrefs, hashtagsOf, loadShortPrefs, removeValue, saveShortPrefs, type ShortPrefs } from "../core/shortsPreferences";
-import { SHORT_REPORT_REASONS, reportShort, setCreatorMuted, shortDeepLink, type ShortReportReason } from "../core/shortsSafety";
+import { setCreatorMuted, shortDeepLink } from "../core/shortsSafety";
+import ShortsReportSheet from "./ShortsReportSheet";
+import ShortsBlockedSheet from "./ShortsBlockedSheet";
+import { loadBlockedIds } from "../core/userBlocksService";
 import "./FreshFlow.css";
 
 type SubTab = ShortDiscoveryId;
@@ -151,6 +154,7 @@ export default function FreshFlowShortsStream({
   const [whyShortId, setWhyShortId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [savedOpen, setSavedOpen] = useState(false);
+  const [blockSheet, setBlockSheet] = useState<{ target: { id: string; name: string } | null } | null>(null);
   const [captionsOn, setCaptionsOn] = useState<boolean>(() => readCaptionsOn());
   const [captionTracks, setCaptionTracks] = useState<Record<string, CaptionTrack | null>>({});
   const [captionText, setCaptionText] = useState<string | null>(null);
@@ -239,7 +243,9 @@ export default function FreshFlowShortsStream({
       const result = await loadFreshFlowShorts(user?.id ?? null, isGuest, options);
       if (user && !isGuest) {
         prefsRef.current = await loadShortPrefs(user.id);
-        mutedCreatorsRef.current = new Set(prefsRef.current.mutedCreators);
+        // Blocked accounts are hidden from the feed the same way muted creators are.
+        const blockedIds = await loadBlockedIds(user.id);
+        mutedCreatorsRef.current = new Set([...prefsRef.current.mutedCreators, ...blockedIds]);
       } else { prefsRef.current = EMPTY_PREFS; mutedCreatorsRef.current = new Set(); }
       let candidates = result.shorts.filter((s) => !mutedCreatorsRef.current.has(s.authorId));
       if (tab === "following") candidates = candidates.filter((s) => s.isFollowingAuthor);
@@ -812,17 +818,10 @@ export default function FreshFlowShortsStream({
     pushNotification({ title: "Hidden", message: "This Short is hidden for now." });
   }
 
-  async function handleReport(short: Short, reason: ShortReportReason) {
-    setReportTarget(null);
-    if (!user || isGuest) { pushNotification({ title: "Sign in to report", message: "Reports are tied to your account.", type: "error" }); return; }
-    try {
-      await reportShort(user.id, short.id, reason);
-      track("skip", short.id);
-      setShorts((prev) => prev.filter((item) => item.id !== short.id));
-      pushNotification({ title: "Report sent", message: "Thanks. The Short is hidden for you and queued for review.", type: "success" });
-    } catch {
-      pushNotification({ title: "Report not sent", message: "Fresh could not save your report. Try again.", type: "error" });
-    }
+  function handleReported(short: Short) {
+    track("skip", short.id);
+    setShorts((prev) => prev.filter((item) => item.id !== short.id));
+    pushNotification({ title: "Report sent", message: "Thanks. The Short is hidden for you and saved for review.", type: "success" });
   }
 
   async function handleMuteCreator(short: Short) {
@@ -932,6 +931,23 @@ export default function FreshFlowShortsStream({
         </button>
       </header>
       {!online && shorts.length > 0 ? <div className="fresh-shorts-offline-banner" role="status">You are offline. Showing Shorts already loaded.</div> : null}
+      {blockSheet && user && !isGuest ? (
+        <ShortsBlockedSheet
+          userId={user.id}
+          target={blockSheet.target}
+          onClose={() => setBlockSheet(null)}
+          onChanged={(accountId, blocked) => {
+            if (blocked) {
+              mutedCreatorsRef.current = new Set([...mutedCreatorsRef.current, accountId]);
+              setShorts((prev) => prev.filter((item) => item.authorId !== accountId));
+            } else {
+              const next = new Set(mutedCreatorsRef.current);
+              if (!prefsRef.current.mutedCreators.includes(accountId)) next.delete(accountId);
+              mutedCreatorsRef.current = next;
+            }
+          }}
+        />
+      ) : null}
       {savedOpen && user && !isGuest ? <ShortsSavedSheet userId={user.id} onClose={() => setSavedOpen(false)} onUnsaved={(id) => setSavedIds((current) => { const next = new Set(current); next.delete(id); return next; })} /> : null}
       {historyOpen && user && !isGuest ? <ShortsHistorySheet userId={user.id} onClose={() => setHistoryOpen(false)} /> : null}
       {whyShortId && shorts.find((item) => item.id === whyShortId) ? (() => {
@@ -1145,6 +1161,16 @@ export default function FreshFlowShortsStream({
                     <button type="button" onClick={() => void handleMuteCreator(short)}>
                       <span className="fresh-flow-menu-icon"><ShortsIcons.MuteCreatorIcon size={18} /></span> Mute @{short.authorUsername}
                     </button>
+                    {user && !isGuest && short.authorId !== user.id ? (
+                      <button type="button" onClick={() => { setAdvancedOpen(false); setBlockSheet({ target: { id: short.authorId, name: `@${short.authorUsername}` } }); }}>
+                        <span className="fresh-flow-menu-icon"><ShortsIcons.MuteCreatorIcon size={18} /></span> Block @{short.authorUsername}
+                      </button>
+                    ) : null}
+                    {user && !isGuest ? (
+                      <button type="button" onClick={() => { setAdvancedOpen(false); setBlockSheet({ target: null }); }}>
+                        <span className="fresh-flow-menu-icon"><ShortsIcons.MuteCreatorIcon size={18} /></span> Blocked accounts
+                      </button>
+                    ) : null}
                     <button type="button" onClick={() => { setAdvancedOpen(false); setReportTarget(short); }}>
                       <span className="fresh-flow-menu-icon"><FlagIcon size={18} /></span> Report
                     </button>
@@ -1201,14 +1227,7 @@ export default function FreshFlowShortsStream({
       )}
 
       {reportTarget && (
-        <div className="shorts-sheet-backdrop" onClick={() => setReportTarget(null)}>
-          <div className="shorts-sheet" role="dialog" aria-modal="true" aria-label="Report this Short" onClick={(event) => event.stopPropagation()}>
-            <div className="shorts-sheet-header"><h3>Report this Short</h3><button type="button" className="shorts-sheet-close" onClick={() => setReportTarget(null)} aria-label="Close">✕</button></div>
-            {SHORT_REPORT_REASONS.map((reason) => (
-              <button key={reason.id} type="button" className="shorts-sheet-item" onClick={() => void handleReport(reportTarget, reason.id)}>{reason.label}</button>
-            ))}
-          </div>
-        </div>
+        <ShortsReportSheet targetType="short" targetId={reportTarget.id} userId={user && !isGuest ? user.id : null} onClose={() => setReportTarget(null)} onSent={() => handleReported(reportTarget)} />
       )}
 
       {openCommentsFor && (

@@ -12,6 +12,9 @@ import type { UniversalCommentAttachment, InteractionMediaKind } from "../../../
 import { rankRootsBySignal } from "../../../core/platform/commentSignalRanking";
 import { sortCommentRoots, mentionQueryAt, insertMention, splitMentions, type CommentSortMode } from "../core/commentTools";
 import { loadMutedCreators, setCreatorMuted } from "../../fresh-flow/core/shortsSafety";
+import { loadBlockedIds } from "../../fresh-flow/core/userBlocksService";
+import { withoutBlockedAuthors } from "../../fresh-flow/core/userBlocks";
+import ShortsReportSheet from "../../fresh-flow/components/ShortsReportSheet";
 import "./CommentPanel.css";
 
 interface CommentPanelProps {
@@ -96,6 +99,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [reportCommentId, setReportCommentId] = useState<string | null>(null);
   const [mentionHits, setMentionHits] = useState<Array<{ username: string; name: string }>>([]);
   const [draft, setDraft] = useState("");
   const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string } | null>(null);
@@ -142,11 +146,14 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     return () => { cancelled = true; };
   }, [draft]);
 
-  async function reportComment(commentId: string) {
+  function reportComment(commentId: string) {
     setMenuFor(null);
     if (!user || isGuest) { setNotice("Sign in to report a comment."); return; }
-    const { error: reportError } = await supabase.from("reports").insert({ target_type: `${targetType}_comment`, target_id: commentId, reporter_id: user.id, reason: "user_reported" });
-    setNotice(reportError ? "Fresh could not send your report. Try again." : "Report sent. Thanks.");
+    // Short comments use the full reporting sheet (category and explanation); other surfaces keep the simple report.
+    if (targetType === "short") { setReportCommentId(commentId); return; }
+    void supabase.from("reports").insert({ target_type: `${targetType}_comment`, target_id: commentId, reporter_id: user.id, reason: "user_reported" }).then(({ error: reportError }) => {
+      setNotice(reportError ? "Fresh could not send your report. Try again." : "Report sent. Thanks.");
+    });
   }
 
   async function deleteComment(commentId: string) {
@@ -198,6 +205,11 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
       setError(queryError.message);
       setLoading(false);
       return;
+    }
+    // Comments by accounts the viewer blocked are hidden from them.
+    if (user && !isGuest) {
+      const blocked = await loadBlockedIds(user.id);
+      data = withoutBlockedAuthors((data ?? []) as any[], blocked, (row: any) => row.author_id);
     }
     const ids = [...new Set((data ?? []).map((row: any) => row.author_id).filter(Boolean))];
     let profiles: any[] = [];
@@ -510,6 +522,11 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
           {files.length > 0 && <div aria-label="Selected attachments">{files.map((file, index) => <span key={`${file.name}-${index}`} className="quick-reaction-chip">{file.name}<button onClick={() => setFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Remove ${file.name}`}>×</button></span>)}</div>}
         </> : <p className="empty-state">Register to comment.</p>}
       </div>
+      {reportCommentId && user && !isGuest ? (
+        <div onClick={(event) => event.stopPropagation()}>
+          <ShortsReportSheet targetType="short_comment" targetId={reportCommentId} userId={user.id} onClose={() => setReportCommentId(null)} onSent={() => setNotice("Report sent. Thanks.")} />
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -13,7 +13,11 @@ export const MAX_DECODE_BYTES = 200 * 1024 * 1024;
 
 export type MediaEntry = { asset: TimelineAsset; blob: Blob | null; url: string | null; samples: Float32Array | null; missing: boolean };
 
-export function classifyFile(file: { type: string; name: string }): "video" | "audio" | null {
+export const MAX_PICTURE_BYTES = 25 * 1024 * 1024;
+
+export function classifyFile(file: { type: string; name: string }): "video" | "audio" | "image" | null {
+  if (file.type === "image/png" || file.type === "image/jpeg" || file.type === "image/webp") return "image";
+  if (!file.type && /\.(png|jpe?g|webp)$/i.test(file.name)) return "image";
   if (file.type.startsWith("video/")) return "video";
   if (file.type.startsWith("audio/")) return "audio";
   if (!file.type && /\.(mp4|mov|m4v|webm|mkv)$/i.test(file.name)) return "video";
@@ -55,12 +59,33 @@ export async function decodeForAnalysis(blob: Blob): Promise<Float32Array | null
   }
 }
 
+function readPicture(url: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const timer = window.setTimeout(() => reject(new Error("Reading this picture took too long.")), 20000);
+    img.onload = () => {
+      window.clearTimeout(timer);
+      if (img.naturalWidth > 0) resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      else reject(new Error("This picture has no size."));
+    };
+    img.onerror = () => { window.clearTimeout(timer); reject(new Error("This browser cannot read that picture. Use PNG, JPEG or WebP.")); };
+    img.src = url;
+  });
+}
+
 export async function importMediaFile(file: File, projectId: string): Promise<MediaEntry> {
   const kind = classifyFile(file);
-  if (!kind) throw new Error(`“${file.name}” is not a video or audio file.`);
+  if (!kind) throw new Error(`“${file.name}” is not a video, audio or picture (PNG, JPEG, WebP) file.`);
+  if (kind === "image" && file.size > MAX_PICTURE_BYTES) throw new Error(`“${file.name}” is larger than ${Math.round(MAX_PICTURE_BYTES / 1048576)} MB.`);
   if (file.size > MAX_IMPORT_BYTES) throw new Error(`“${file.name}” is larger than ${Math.round(MAX_IMPORT_BYTES / 1048576)} MB.`);
   const url = URL.createObjectURL(file);
   try {
+    if (kind === "image") {
+      const pic = await readPicture(url);
+      const asset: TimelineAsset = { id: newAssetId(), name: file.name.slice(0, 120), kind: "image", duration: null, width: pic.width, height: pic.height, hasAudio: false };
+      await saveMediaAsset(storageKey(projectId, asset.id), file);
+      return { asset, blob: file, url, samples: null, missing: false };
+    }
     const meta = await readMetadata(url, kind);
     const samples = await decodeForAnalysis(file);
     const asset: TimelineAsset = { id: newAssetId(), name: file.name.slice(0, 120), kind, duration: meta.duration, width: meta.width, height: meta.height, hasAudio: samples !== null };

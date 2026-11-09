@@ -5,7 +5,10 @@
  */
 import { serializeSrt, type Cue } from "./captions.ts";
 import { planRender, type ExportPresetId } from "./renderPlan.ts";
-import type { TimelineDoc } from "./timeline.ts";
+import { overlayAssetIds, type TimelineDoc } from "./timeline.ts";
+
+/** Every file the render needs: clip media and overlay pictures. */
+export const usedAssetIds = (doc: TimelineDoc): string[] => [...new Set([...doc.clips.map((c) => c.assetId), ...overlayAssetIds(doc)])];
 
 export type WorkerCapabilities = {
   presets: ExportPresetId[];
@@ -71,7 +74,7 @@ export function checkExport(input: ExportInput, caps: WorkerCapabilities): strin
   if (!caps.presets.includes(input.preset)) return `${input.preset} is not available on this render worker. Choose ${caps.presets.join(", ")}.`;
   if (!caps.aspectRatios.includes(input.aspectRatio)) return "That aspect ratio is not available.";
   if (input.fps !== undefined && !caps.frameRates.includes(input.fps)) return "That frame rate is not available.";
-  const used = [...new Set(input.doc.clips.map((c) => c.assetId))];
+  const used = usedAssetIds(input.doc);
   if (used.length > caps.maxSources) return `A render can use at most ${caps.maxSources} different files. This timeline uses ${used.length}.`;
   for (const id of used) {
     const blob = input.blobs.get(id);
@@ -97,7 +100,7 @@ export async function runExport(ports: ExportPorts, input: ExportInput, hooks: E
   if (problem) throw new ExportError(problem);
   ensureLive();
 
-  const used = [...new Set(input.doc.clips.map((c) => c.assetId))];
+  const used = usedAssetIds(input.doc);
   const sources: Record<string, string> = {};
   for (let i = 0; i < used.length; i += 1) {
     ensureLive();

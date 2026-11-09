@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { useLayout } from "../../../app/contexts/useLayout";
 import { ACTIVITY_TABS, loadShortsActivity, matchesTab, timeAgo, type ActivityItem, type ActivityKind, type ActivityTab } from "../core/shortsActivity";
+import { loadBlockedIds } from "../core/userBlocksService";
+import { withoutBlockedAuthors } from "../core/userBlocks";
 import { requestOpenShort } from "../core/shortsExplore";
 import { NOTIFICATION_CATEGORIES, applyState, clearAll, markAllRead, markRead, setCategoryEnabled, unreadCount, EMPTY_STATE, type NotificationState } from "../core/notificationState";
 import { loadNotificationState, saveNotificationState, type StateSource } from "../core/notificationStateStore";
@@ -27,7 +29,7 @@ export default function ShortsNotifications({ onClose, onOpenCreator }: Props) {
     if (!user || isGuest) { setItems([]); return; }
     let cancelled = false;
     loadNotificationState(user.id).then((loaded) => { if (!cancelled) { setState(loaded.state); setSource(loaded.source); setStateReady(true); } }).catch(() => { if (!cancelled) setStateReady(true); /* state falls back to empty; the feed still shows */ });
-    loadShortsActivity(user.id).then((result) => { if (!cancelled) setItems(result); }).catch((cause) => { if (!cancelled) { setError(cause instanceof Error ? cause.message : "Could not load notifications."); setItems([]); } });
+    Promise.all([loadShortsActivity(user.id), loadBlockedIds(user.id)]).then(([result, blocked]) => { if (!cancelled) setItems(withoutBlockedAuthors(result, blocked, (item) => item.actorId)); }).catch((cause) => { if (!cancelled) { setError(cause instanceof Error ? cause.message : "Could not load notifications."); setItems([]); } });
     return () => { cancelled = true; };
   }, [user?.id, isGuest]);
 

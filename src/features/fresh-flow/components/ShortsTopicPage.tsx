@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { loadSoundOverview, loadTopicShorts, type SoundOverview, type TopicKind, type TopicShort } from "../core/shortsTopics";
+import ShortsReportSheet from "./ShortsReportSheet";
+import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { creatorsLabel, sortTopicShorts, type TopicSort } from "../core/shortsSound";
 import { formatCount, requestOpenShort } from "../core/shortsExplore";
 import "./ShortsCreatorProfile.css";
@@ -12,6 +14,8 @@ export default function ShortsTopicPage({ kind, value, onClose, onOpenShort }: P
   const [error, setError] = useState<string | null>(null);
   const [overview, setOverview] = useState<SoundOverview | null>(null);
   const [sort, setSort] = useState<TopicSort>("popular");
+  const { user, isGuest } = useFreshId();
+  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,6 +49,7 @@ export default function ShortsTopicPage({ kind, value, onClose, onOpenShort }: P
             <div className="shorts-profile-actions">
               {overview?.firstUse ? <p className="shorts-profile-note">First used {new Date(overview.firstUse.at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}{overview.firstUseCreator ? ` by ${overview.firstUseCreator}` : ""}.</p> : null}
               <button type="button" disabled title="Reusing a sound in a new Short is not available yet">Use this sound</button>
+              {shorts.length > 0 ? <button type="button" onClick={() => setReporting(true)}>Report sound</button> : null}
               <p className="shorts-profile-note">Reusing a sound in a new Short is not available yet. It needs creators' permission settings for their audio first.</p>
             </div>
           )}
@@ -68,6 +73,7 @@ export default function ShortsTopicPage({ kind, value, onClose, onOpenShort }: P
           )}
         </div>
       )}
+      {reporting && kind === "sound" && shorts && shorts.length > 0 ? <ShortsReportSheet targetType="sound" targetId={shorts[0].id} soundName={value} userId={user && !isGuest ? user.id : null} onClose={() => setReporting(false)} /> : null}
     </div>
   );
 }

@@ -107,6 +107,7 @@ export function useVideoEditor(project: StudioProject, service: StudioProjectSer
         setMedia((m) => ({ ...m, [entry.asset.id]: entry }));
         const ok = edit((d) => {
           const withAsset = T.addAsset(d, entry.asset);
+          if (entry.asset.kind === "image") return withAsset; // pictures become overlays, never clips
           const track = entry.asset.kind === "audio" ? withAsset.tracks.find((t) => t.kind === "music") : withAsset.tracks.find((t) => t.kind === "video");
           if (!track) return withAsset;
           const end = T.trackClips(withAsset, track.id).reduce((m, c) => Math.max(m, T.clipEnd(c)), 0);
@@ -121,8 +122,8 @@ export function useVideoEditor(project: StudioProject, service: StudioProjectSer
   }, [edit, notify, project.id]);
 
   const removeAsset = useCallback(async (assetId: string) => {
-    const used = docRef.current.clips.some((c) => c.assetId === assetId);
-    if (used) { notify("error", "This file is used on the timeline. Delete its clips first."); return; }
+    const used = docRef.current.clips.some((c) => c.assetId === assetId) || T.overlayAssetIds(docRef.current).includes(assetId);
+    if (used) { notify("error", "This file is used on the timeline. Delete its clips or overlays first."); return; }
     edit((d) => ({ ...d, assets: d.assets.filter((a) => a.id !== assetId) }));
     const entry = mediaRef.current[assetId];
     if (entry?.url) URL.revokeObjectURL(entry.url);

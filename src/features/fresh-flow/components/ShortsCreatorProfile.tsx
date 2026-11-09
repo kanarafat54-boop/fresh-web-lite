@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import ShortsReportSheet from "./ShortsReportSheet";
+import ShortsBlockedSheet from "./ShortsBlockedSheet";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { setAuthorFollow } from "../core/social";
 import { formatCount, loadCreatorProfile, requestOpenShort, type CreatorProfileData } from "../core/shortsExplore";
@@ -30,6 +32,8 @@ export default function ShortsCreatorProfile({ authorId, onClose, onOpenShort, o
   const [playlistBusy, setPlaylistBusy] = useState(false);
   const [addToPlaylist, setAddToPlaylist] = useState<Record<string, string>>({});
   const [playlistNotice, setPlaylistNotice] = useState<string | null>(null);
+  const [reporting, setReporting] = useState(false);
+  const [blocking, setBlocking] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -127,6 +131,8 @@ export default function ShortsCreatorProfile({ authorId, onClose, onOpenShort, o
             <div className="shorts-profile-actions">
               <button type="button" className="primary" onClick={() => void toggleFollow()} disabled={busy} aria-pressed={data.isFollowing}>{data.isFollowing ? "Following" : "Follow"}</button>
               <button type="button" onClick={() => onMessage?.(authorId)}>Message</button>
+              {!isSelf ? <button type="button" onClick={() => { if (!user || isGuest) { onSignIn?.(); return; } setReporting(true); }}>Report</button> : null}
+              {!isSelf ? <button type="button" onClick={() => { if (!user || isGuest) { onSignIn?.(); return; } setBlocking(true); }}>Block</button> : null}
             </div>
           )}
           <nav className="shorts-profile-tabs" aria-label="Creator sections">
@@ -188,6 +194,8 @@ export default function ShortsCreatorProfile({ authorId, onClose, onOpenShort, o
           )}
         </div>
       )}
+      {blocking && user && !isGuest ? <ShortsBlockedSheet userId={user.id} target={{ id: authorId, name: data?.username ? `@${data.username}` : data?.fullName || "this account" }} onClose={() => setBlocking(false)} onChanged={(_, blocked) => { if (blocked) onClose(); }} /> : null}
+      {reporting && user && !isGuest ? <ShortsReportSheet targetType="profile" targetId={authorId} userId={user.id} onClose={() => setReporting(false)} /> : null}
     </div>
   );
 }
