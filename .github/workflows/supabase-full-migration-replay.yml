@@ -8,6 +8,7 @@ on:
     paths:
       - "supabase/migrations/**"
       - "supabase/config.toml"
+      - "supabase/tests/**"
       - "scripts/test-long-video-tus.mjs"
       - ".github/workflows/supabase-full-migration-replay.yml"
   workflow_dispatch:
@@ -46,3 +47,42 @@ jobs:
       - name: Stop isolated Supabase stack
         if: always()
         run: supabase stop --no-backup
+
+  fresh-intelligence-schema-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+      - name: Seed canonical production-shaped Fresh Intelligence schema
+        run: psql --set ON_ERROR_STOP=1 --file supabase/tests/fresh_intelligence_schema_drift_fixture.sql
+      - name: Replay foundation migration against existing canonical tables twice
+        run: |
+          psql --set ON_ERROR_STOP=1 --file supabase/migrations/20260906090000_fresh_intelligence_foundation.sql
+          psql --set ON_ERROR_STOP=1 --file supabase/migrations/20260906090000_fresh_intelligence_foundation.sql
+      - name: Verify canonical columns, indexes, uniqueness and foreign keys
+        run: psql --set ON_ERROR_STOP=1 --file supabase/tests/fresh_intelligence_schema_drift_assertions.sql
