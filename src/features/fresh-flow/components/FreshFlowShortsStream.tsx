@@ -48,7 +48,8 @@ import ShortsSharePanel from "./ShortsSharePanel";
 import { splitCaption, type TopicKind } from "../core/shortsTopics";
 import ShortsRecommendationControls from "./ShortsRecommendationControls";
 import { EMPTY_PREFS, addUnique, applyShortPrefs, hashtagsOf, loadShortPrefs, removeValue, saveShortPrefs, type ShortPrefs } from "../core/shortsPreferences";
-import { SHORT_REPORT_REASONS, reportShort, setCreatorMuted, shortDeepLink, type ShortReportReason } from "../core/shortsSafety";
+import { setCreatorMuted, shortDeepLink } from "../core/shortsSafety";
+import ShortsReportSheet from "./ShortsReportSheet";
 import "./FreshFlow.css";
 
 type SubTab = ShortDiscoveryId;
@@ -812,17 +813,10 @@ export default function FreshFlowShortsStream({
     pushNotification({ title: "Hidden", message: "This Short is hidden for now." });
   }
 
-  async function handleReport(short: Short, reason: ShortReportReason) {
-    setReportTarget(null);
-    if (!user || isGuest) { pushNotification({ title: "Sign in to report", message: "Reports are tied to your account.", type: "error" }); return; }
-    try {
-      await reportShort(user.id, short.id, reason);
-      track("skip", short.id);
-      setShorts((prev) => prev.filter((item) => item.id !== short.id));
-      pushNotification({ title: "Report sent", message: "Thanks. The Short is hidden for you and queued for review.", type: "success" });
-    } catch {
-      pushNotification({ title: "Report not sent", message: "Fresh could not save your report. Try again.", type: "error" });
-    }
+  function handleReported(short: Short) {
+    track("skip", short.id);
+    setShorts((prev) => prev.filter((item) => item.id !== short.id));
+    pushNotification({ title: "Report sent", message: "Thanks. The Short is hidden for you and saved for review.", type: "success" });
   }
 
   async function handleMuteCreator(short: Short) {
@@ -1201,14 +1195,7 @@ export default function FreshFlowShortsStream({
       )}
 
       {reportTarget && (
-        <div className="shorts-sheet-backdrop" onClick={() => setReportTarget(null)}>
-          <div className="shorts-sheet" role="dialog" aria-modal="true" aria-label="Report this Short" onClick={(event) => event.stopPropagation()}>
-            <div className="shorts-sheet-header"><h3>Report this Short</h3><button type="button" className="shorts-sheet-close" onClick={() => setReportTarget(null)} aria-label="Close">✕</button></div>
-            {SHORT_REPORT_REASONS.map((reason) => (
-              <button key={reason.id} type="button" className="shorts-sheet-item" onClick={() => void handleReport(reportTarget, reason.id)}>{reason.label}</button>
-            ))}
-          </div>
-        </div>
+        <ShortsReportSheet targetType="short" targetId={reportTarget.id} userId={user && !isGuest ? user.id : null} onClose={() => setReportTarget(null)} onSent={() => handleReported(reportTarget)} />
       )}
 
       {openCommentsFor && (
