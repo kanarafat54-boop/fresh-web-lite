@@ -47,6 +47,7 @@
     "test:fresh-studio-transitions": "node --no-warnings scripts/verify-fresh-studio-transitions.mjs",
     "test:fresh-studio-motion": "node --no-warnings scripts/verify-fresh-studio-motion.mjs",
     "test:fresh-studio-overlays": "node --no-warnings scripts/verify-fresh-studio-overlays.mjs",
+    "test:fresh-studio-multitrack": "node --no-warnings scripts/verify-fresh-studio-multitrack.mjs",
     "sync:studio-worker": "node --no-warnings scripts/sync-studio-worker.mjs",
     "test:fresh-unified-training": "node scripts/verify-fresh-unified-training.mjs",
     "test:fresh-unified-curriculum": "node scripts/verify-fresh-unified-training-curriculum.mjs",

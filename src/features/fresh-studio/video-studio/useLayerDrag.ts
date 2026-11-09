@@ -2,7 +2,7 @@ import { useCallback, useRef, useState, type PointerEvent as RPointerEvent, type
 import * as T from "./timeline.ts";
 
 export type LiveLayer = { id: string; x: number; y: number; width?: number; height?: number };
-type Kind = "text" | "overlay";
+type Kind = "text" | "overlay" | "clip";
 type Mode = "move" | "resize";
 type Gesture = { id: string; kind: Kind; mode: Mode; startX: number; startY: number; orig: LiveLayer; rect: DOMRect; moved: boolean };
 
@@ -21,7 +21,7 @@ export function useLayerDrag(frame: RefObject<HTMLElement | null>, doc: T.Timeli
 
   const begin = useCallback((e: RPointerEvent, id: string, kind: Kind, mode: Mode = "move") => {
     const el = frame.current;
-    const layer = kind === "text" ? doc.texts?.find((t) => t.id === id) : doc.overlays?.find((o) => o.id === id);
+    const layer = kind === "text" ? doc.texts?.find((t) => t.id === id) : kind === "clip" ? doc.clips.find((c) => c.id === id)?.layer : doc.overlays?.find((o) => o.id === id);
     if (!el || !layer) return;
     e.stopPropagation(); e.preventDefault();
     select(id);
@@ -42,7 +42,7 @@ export function useLayerDrag(frame: RefObject<HTMLElement | null>, doc: T.Timeli
       setGuides({ x: x === 0.5, y: y === 0.5 });
     } else {
       // The layer is centred, so dragging its corner by d changes the width by 2d.
-      next = { ...g.orig, width: clamp((g.orig.width ?? 0.2) + dx * 2, 0.02, 1), ...(g.orig.height !== undefined ? { height: clamp(g.orig.height + dy * 2, 0.02, 1) } : {}) };
+      next = { ...g.orig, width: clamp((g.orig.width ?? 0.2) + dx * 2, g.kind === "clip" ? T.MIN_LAYER_WIDTH : 0.02, 1), ...(g.orig.height !== undefined ? { height: clamp(g.orig.height + dy * 2, 0.02, 1) } : {}) };
     }
     setLive(next);
   }, []);
@@ -54,7 +54,7 @@ export function useLayerDrag(frame: RefObject<HTMLElement | null>, doc: T.Timeli
       if (g && g.moved && cur) {
         const r = (n: number) => Math.round(n * 1000) / 1000;
         const patch = { x: r(cur.x), y: r(cur.y), ...(cur.width !== undefined ? { width: r(cur.width) } : {}), ...(cur.height !== undefined ? { height: r(cur.height) } : {}) };
-        queueMicrotask(() => edit((d) => (g.kind === "text" ? T.updateText(d, g.id, { x: patch.x, y: patch.y }) : T.updateOverlay(d, g.id, patch))));
+        queueMicrotask(() => edit((d) => (g.kind === "text" ? T.updateText(d, g.id, { x: patch.x, y: patch.y }) : g.kind === "clip" ? T.setClipLayer(d, g.id, { x: patch.x, y: patch.y, ...(patch.width !== undefined ? { width: Math.max(T.MIN_LAYER_WIDTH, patch.width) } : {}) }) : T.updateOverlay(d, g.id, patch))));
       }
       return null;
     });

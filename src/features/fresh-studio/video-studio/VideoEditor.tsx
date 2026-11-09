@@ -84,15 +84,19 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
   const fileInput = useRef<HTMLInputElement>(null);
   const videoEl = useRef<HTMLVideoElement>(null);
   const audioEl = useRef<HTMLAudioElement>(null);
+  const pipEl = useRef<HTMLVideoElement>(null);
 
   const videoTrack = doc.tracks.find((t) => t.kind === "video");
   const musicTrack = doc.tracks.find((t) => t.kind === "music");
   const activeVideo = videoTrack ? T.clipAt(doc, videoTrack.id, playhead) : null;
+  const layerTrack = T.layerVideoTracks(doc)[0] ?? null;
+  const activeLayer = layerTrack ? T.clipAt(doc, layerTrack.id, playhead) : null;
   const activeAudio = musicTrack ? T.clipAt(doc, musicTrack.id, playhead) : null;
   const selectedClip = doc.clips.find((c) => c.id === selected) ?? null;
   const selectedText = (doc.texts ?? []).find((t) => t.id === selected) ?? null;
   const aspect = doc.aspect ?? String(project.meta.settings.aspectRatio ?? "16:9");
   const aspectValid = (T.ASPECT_RATIOS as readonly string[]).includes(aspect) ? aspect : "16:9";
+  const frameAr = ratioOf(aspectValid);
   const visibleTexts = T.textsAt(doc, playhead);
   const selectedOverlay = (doc.overlays ?? []).find((o) => o.id === selected) ?? null;
   const visibleOverlays = T.overlaysAt(doc, playhead);
@@ -131,11 +135,12 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
   useEffect(() => {
     sync(videoEl.current, activeVideo, !!videoTrack?.muted, playhead);
     sync(audioEl.current, activeAudio, !!musicTrack?.muted, playhead);
-    for (const [el, clip] of [[videoEl.current, activeVideo], [audioEl.current, activeAudio]] as const) {
+    sync(pipEl.current, activeLayer, !!layerTrack?.muted, playhead);
+    for (const [el, clip] of [[videoEl.current, activeVideo], [audioEl.current, activeAudio], [pipEl.current, activeLayer]] as const) {
       if (!el) continue;
       if (playing && clip && media[clip.assetId]?.url) void el.play().catch(() => {}); else if (!el.paused) el.pause();
     }
-  }, [playhead, playing, activeVideo?.id, activeAudio?.id, sync, activeVideo, activeAudio, videoTrack?.muted, musicTrack?.muted, media]);
+  }, [playhead, playing, activeVideo?.id, activeAudio?.id, activeLayer?.id, sync, activeVideo, activeAudio, activeLayer, videoTrack?.muted, musicTrack?.muted, layerTrack?.muted, media]);
 
   // --- playback clock
   const lastTick = useRef(0);
@@ -186,6 +191,15 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
   const addOverlayLayer = (kind: "image" | "rect", assetId?: string) => {
     const id = T.newId("overlay");
     if (ed.edit((d) => T.addOverlay(d, { kind, assetId, start: playhead, id }))) { ed.setSelected(id); setPanel("overlays"); }
+  };
+  const addAsLayer = (assetId: string) => {
+    const id = T.newId("clip");
+    if (ed.edit((d) => {
+      const withTrack = T.addVideoLayer(d);
+      const track = T.layerVideoTracks(withTrack)[0];
+      if (!track) throw new T.TimelineError("This project cannot have another video layer.");
+      return T.addClip(withTrack, { trackId: track.id, assetId, start: Math.min(playhead, Math.max(0, T.timelineDuration(withTrack) - 0.5)), id });
+    })) ed.setSelected(id);
   };
   const step = (dir: 1 | -1) => { setPlaying(false); ed.setPlayhead(Math.min(duration, Math.max(0, T.round3(playheadRef.current + dir / doc.fps)))); };
   const fullscreen = () => { const el = monitorRef.current; if (!el) return; if (document.fullscreenElement) void document.exitFullscreen(); else void el.requestFullscreen?.().catch(() => notify("error", "Fullscreen is not available here.")); };
@@ -248,7 +262,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
           <>
             <div className="fs-sidepanel-head"><h2>{PANELS.find((p) => p.id === panel)?.label}</h2><button type="button" className="fs-iconbtn" onClick={() => setPanel(null)} aria-label="Close panel"><Icon name="close" /></button></div>
             <div className="fs-tabpanel">
-              {panel === "media" && <MediaPanel ed={ed} onImport={openImport} onOverlay={(id) => addOverlayLayer("image", id)} />}
+              {panel === "media" && <MediaPanel ed={ed} onImport={openImport} onOverlay={(id) => addOverlayLayer("image", id)} onLayer={addAsLayer} />}
               {panel === "text" && <TextPanel ed={ed} onAdd={addTextLayer} />}
               {panel === "overlays" && <OverlaysPanel ed={ed} onAdd={addOverlayLayer} onImport={openImport} />}
               {panel === "captions" && <CaptionsPanel ed={ed} />}
@@ -267,6 +281,12 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
             {!activeVideo && (empty
               ? <button type="button" className="fs-empty-cta" onClick={openImport} disabled={!!ed.busy}><Icon name="import" size={30} /><strong>Import video or audio</strong><span>or drop files here</span></button>
               : <p className="fs-muted fs-gap">No video at this point. Gaps render as black.</p>)}
+            <div className={`fs-pip${activeLayer && selected === activeLayer.id ? " is-selected" : ""}`} data-testid="pip" hidden={!activeLayer}
+              style={activeLayer ? (() => { const L = at({ id: activeLayer.id, ...(activeLayer.layer ?? T.DEFAULT_LAYER) }) as T.ClipLayer & { id: string }; return { left: `${L.x * 100}%`, top: `${L.y * 100}%`, width: `${L.width * 100}%`, aspectRatio: `${frameAr}`, opacity: L.opacity * fadeFactor(doc, activeLayer, playhead, "video") }; })() : undefined}
+              onPointerDown={(e) => activeLayer && drag.begin(e, activeLayer.id, "clip")} onPointerMove={drag.move} onPointerUp={drag.end} onPointerCancel={drag.end}>
+              <div className="fs-pip-clip"><video ref={pipEl} playsInline preload="auto" aria-label="Layer preview" style={{ objectFit: activeLayer?.fit === "fill" ? "cover" : "contain", filter: lookFilter(activeLayer?.look), transform: motionTransform(activeLayer, playhead) }} /></div>
+              {activeLayer && selected === activeLayer.id && <span className="fs-resize-handle" role="presentation" data-testid="pip-handle" onPointerDown={(e) => drag.begin(e, activeLayer.id, "clip", "resize")} onPointerMove={drag.move} onPointerUp={drag.end} onPointerCancel={drag.end} />}
+            </div>
             {visibleTexts.map((t0) => { const t = at(t0); return (
               <div key={t.id} className={`fs-overlay-text${selected === t.id ? " is-selected" : ""}`} data-testid="overlay-text"
                 style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`, fontSize: `${t.size * 100}cqh`, color: t.color, fontWeight: t.bold ? 700 : 400, background: t.box ? "rgba(0,0,0,.55)" : "transparent", padding: t.box ? "0.25em" : 0, textShadow: t.box ? "none" : "0.05em 0.05em 0.05em rgba(0,0,0,.6)" }}
@@ -334,6 +354,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
         </div>
         <div className="fs-toolgroup">
           <ToolBtn icon="type" label="Add text" onClick={() => addTextLayer()} />
+          {!layerTrack && <ToolBtn icon="video" label="Add video layer" short="Layer" onClick={() => ed.edit((d) => T.addVideoLayer(d))} disabled={empty} title="A second video track for picture-in-picture" />}
           <ToolBtn icon="image" label="Add rectangle" short="Shape" onClick={() => addOverlayLayer("rect")} />
         </div>
         <div className="fs-toolgroup fs-zoomgroup">
@@ -359,7 +380,7 @@ function ToolBtn({ icon, label, short, onClick, disabled, title }: { icon: IconN
 
 type Ed = ReturnType<typeof useVideoEditor>;
 
-function MediaPanel({ ed, onImport, onOverlay }: { ed: Ed; onImport: () => void; onOverlay: (assetId: string) => void }) {
+function MediaPanel({ ed, onImport, onOverlay, onLayer }: { ed: Ed; onImport: () => void; onOverlay: (assetId: string) => void; onLayer: (assetId: string) => void }) {
   const place = (assetId: string) => {
     const asset = ed.doc.assets.find((a) => a.id === assetId);
     if (!asset) return;
@@ -382,7 +403,7 @@ function MediaPanel({ ed, onImport, onOverlay }: { ed: Ed; onImport: () => void;
             <li key={a.id}>
               <div><strong>{a.name}</strong><div className="fs-muted">{a.kind} · {formatClock(a.duration ?? 0)}{a.width ? ` · ${a.width}×${a.height}` : ""}{a.kind !== "image" ? (a.hasAudio ? " · audio" : " · no audio") : ""}</div>
                 {entry?.missing && <div className="fs-warn">Not stored on this device. Re-import it to edit or export.</div>}</div>
-              <div className="fs-row"><button type="button" className="fs-btn" onClick={() => place(a.id)} disabled={!!entry?.missing}>{a.kind === "image" ? "Add as overlay" : "Add"}</button><button type="button" className="fs-btn" onClick={() => void ed.removeAsset(a.id)} aria-label={`Remove ${a.name}`}>Remove</button></div>
+              <div className="fs-row"><button type="button" className="fs-btn" onClick={() => place(a.id)} disabled={!!entry?.missing}>{a.kind === "image" ? "Add as overlay" : "Add"}</button>{a.kind === "video" && <button type="button" className="fs-btn" onClick={() => onLayer(a.id)} disabled={!!entry?.missing} aria-label={`Add ${a.name} as a layer over the video`}>As layer</button>}<button type="button" className="fs-btn" onClick={() => void ed.removeAsset(a.id)} aria-label={`Remove ${a.name}`}>Remove</button></div>
             </li>
           );
         })}

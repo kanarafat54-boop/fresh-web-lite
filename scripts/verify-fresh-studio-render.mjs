@@ -127,7 +127,8 @@ assert.deepEqual(UNAVAILABLE_PRESETS.map((p) => p.id), ["1440p", "4K"], "unverif
   assert.match(ok(withClip, { fps: 17 }).errors.join(" "), /frame rate/i);
   assert.match(ok({ ...withClip, tracks: [...withClip.tracks, { id: "t1", kind: "title", name: "Titles", muted: false, locked: false }], clips: [...withClip.clips, { id: "t", trackId: "t1", assetId: "a", start: 0, sourceIn: 0, sourceOut: 1, speed: 1 }] }).errors.join(" "), /cannot be exported yet/i);
   const twoTracks = { ...withClip, tracks: [...withClip.tracks, { id: "v2", kind: "video", name: "Video 2", muted: false, locked: false }], clips: [...withClip.clips, { id: "z", trackId: "v2", assetId: "b", start: 0, sourceIn: 0, sourceOut: 1, speed: 1 }] };
-  assert.match(ok(twoTracks).errors.join(" "), /one video track/i);
+  assert.equal(ok(twoTracks).ok, true, "a second video track is a picture-in-picture layer");
+  assert.match(ok({ ...twoTracks, tracks: [...twoTracks.tracks, { id: "v3", kind: "video", name: "Video 3", muted: false, locked: false }] }).errors.join(" "), /video tracks/i);
   assert.match(ok({ ...withClip, clips: [{ ...withClip.clips[0], sourceOut: 99 }] }).errors.join(" "), /past its media/i);
   const long = addAsset(createTimeline(), asset("long", 400, "video", true));
   assert.match(ok(addClip(long, { trackId: "v1", assetId: "long" }), { sources: { long: "x" } }).errors[0], /limited to 300 seconds/i);

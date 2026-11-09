@@ -84,7 +84,7 @@ function audioOfClip(label        , input        , clip              , hasAudio 
 }
 
 /** Colour, framing and fades for one clip's picture. */
-function pictureChain(clip              , W        , H        , fps        , fades                                     )         {
+function pictureChain(clip              , W        , H        , fps        , fades                                     , alpha = false)         {
   const frame = clip.fit === "fill"
     ? `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H}`
     : `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:black`;
@@ -103,8 +103,11 @@ function pictureChain(clip              , W        , H        , fps        , fad
   const l = clip.look;
   if (l && (Math.abs(l.brightness) > 1e-6 || Math.abs(l.contrast - 1) > 1e-6 || Math.abs(l.saturation - 1) > 1e-6)) parts.push(`eq=brightness=${num(l.brightness)}:contrast=${num(l.contrast)}:saturation=${num(l.saturation)}`);
   const d = clipDuration(clip);
-  if (fades.fadeIn) parts.push(`fade=t=in:st=0:d=${num(fades.fadeIn)}`);
-  if (fades.fadeOut) parts.push(`fade=t=out:st=${num(Math.max(0, d - fades.fadeOut))}:d=${num(fades.fadeOut)}`);
+  // On an upper layer a fade makes the clip see-through instead of black, so what is below shows through.
+  const A = alpha ? ":alpha=1" : "";
+  if (alpha && (fades.fadeIn || fades.fadeOut)) parts.push("format=yuva420p");
+  if (fades.fadeIn) parts.push(`fade=t=in:st=0:d=${num(fades.fadeIn)}${A}`);
+  if (fades.fadeOut) parts.push(`fade=t=out:st=${num(Math.max(0, d - fades.fadeOut))}:d=${num(fades.fadeOut)}${A}`);
   return parts.join(",");
 }
 
@@ -122,22 +125,22 @@ export function planRender(input                 )             {
   if (![24, 25, 30, 60].includes(fps)) errors.push("Frame rate must be 24, 25, 30 or 60.");
 
   const videoTracks = doc.tracks.filter((t) => t.kind === "video");
-  const withClips = videoTracks.filter((t) => trackClips(doc, t.id).length > 0);
   const unsupported = doc.tracks.filter((t) => !["video", "music"].includes(t.kind) && trackClips(doc, t.id).length > 0);
   if (unsupported.length) errors.push(`${unsupported.map((t) => t.name).join(", ")} cannot be exported yet.`);
-  if (withClips.length > 1) errors.push("Export supports one video track with clips for now. Move all video clips onto one track.");
-  if (withClips.length === 0) errors.push("Add at least one video clip before exporting.");
+  // The first video track is the base picture; clips on the next video track are placed over it.
+  const vTrack = videoTracks[0];
+  const vClips = vTrack ? trackClips(doc, vTrack.id) : [];
+  const layerClips = videoTracks.slice(1).flatMap((t) => trackClips(doc, t.id).map((c) => ({ clip: c, track: t })));
+  if (vClips.length + layerClips.length === 0) errors.push("Add at least one video clip before exporting.");
   if (errors.length) return { ok: false, errors };
 
-  const vTrack = withClips[0];
-  const vClips = trackClips(doc, vTrack.id);
-  const duration = round3(Math.max(...vClips.map((c) => c.start + clipDuration(c))));
+  const duration = round3(Math.max(...[...vClips, ...layerClips.map((l) => l.clip)].map((c) => c.start + clipDuration(c))));
   if (duration > PLANNER_MAX_SECONDS) return { ok: false, errors: [`Exports are limited to ${PLANNER_MAX_SECONDS} seconds for now.`] };
 
   const music = doc.tracks.filter((t) => t.kind === "music" && !t.muted).flatMap((t) => trackClips(doc, t.id));
 
   // Inputs: one per distinct asset actually used.
-  const used = [...new Set([...vClips, ...music].map((c) => c.assetId))];
+  const used = [...new Set([...vClips, ...layerClips.map((l) => l.clip), ...music].map((c) => c.assetId))];
   const index = new Map                ();
   const args           = ["-y", "-hide_banner", "-nostats"];
   for (const id of used) {
@@ -221,11 +224,29 @@ export function planRender(input                 )             {
     seg += 1;
   }
 
+  // The base picture runs to the end of the video, even when an upper clip outlasts it.
+  if (duration - cursor > 0.0005) gap(round3(duration - cursor));
+
   const n = vLabels.length;
   const burn = Boolean(input.captionsFile);
   const texts = doc.texts ?? [];
   const afterOverlays = texts.length ? "vraw" : burn ? "vcat" : "vout";
-  filters.push(`${vLabels.map((l) => `[${l}]`).join("")}concat=n=${n}:v=1:a=0[${overlays.length ? "vbase" : afterOverlays}]`);
+  const afterLayers = overlays.length ? "vbase" : afterOverlays;
+  filters.push(`${vLabels.map((l) => `[${l}]`).join("")}concat=n=${n}:v=1:a=0[${layerClips.length ? "vlbase" : afterLayers}]`);
+  if (layerClips.length) {
+    let cur = "vlbase";
+    layerClips.forEach(({ clip }, k) => {
+      const next = k === layerClips.length - 1 ? afterLayers : `vl${k}`;
+      const L = clip.layer ?? { x: 0.75, y: 0.25, width: 0.4, opacity: 1 };
+      const bw = even(W * L.width), bh = even(H * L.width);
+      const speed = clip.speed === 1 ? "" : `,setpts=(PTS-STARTPTS)/${num(clip.speed)}`;
+      const end = round3(clip.start + clipDuration(clip));
+      // The window has the frame's shape; its pictures are timed to the clip's place on the timeline so the overlay lines up by timestamp.
+      filters.push(`[${index.get(clip.assetId)}:v]trim=start=${num(clip.sourceIn)}:end=${num(clip.sourceOut)},setpts=PTS-STARTPTS${speed},${pictureChain(clip, bw, bh, fps, effectiveFades(doc, clip, "video"), true)},format=rgba,colorchannelmixer=aa=${num(L.opacity)},setpts=PTS+${num(clip.start)}/TB[pip${k}]`);
+      filters.push(`[${cur}][pip${k}]overlay=x=${num(L.x)}*${W}-w/2:y=${num(L.y)}*${H}-h/2:eof_action=pass:enable=between(t\\,${num(clip.start)}\\,${num(end)})[${next}]`);
+      cur = next;
+    });
+  }
   if (overlays.length) {
     let cur = "vbase";
     [...overlays].sort((a, b) => a.start - b.start).forEach((o, k) => {
@@ -270,11 +291,12 @@ export function planRender(input                 )             {
   filters.push(`${aLabels.map((l) => `[${l}]`).join("")}concat=n=${aLabels.length}:v=0:a=1[abase]`);
 
   let audioOut = "abase";
-  if (music.length) {
+  const mixClips = [...music, ...layerClips.filter((l) => !l.track.muted).map((l) => l.clip)];
+  if (mixClips.length) {
     const mLabels           = [];
-    music.forEach((clip, k) => {
+    mixClips.forEach((clip, k) => {
       const asset = doc.assets.find((a) => a.id === clip.assetId) ;
-      const base = audioOfClip(`mraw${k}`, index.get(clip.assetId) , clip, asset.hasAudio, false);
+      const base = audioOfClip(`mraw${k}`, index.get(clip.assetId) , clip, asset.hasAudio, false, effectiveFades(doc, clip, "audio"));
       filters.push(base);
       const ms = Math.round(clip.start * 1000);
       filters.push(`[mraw${k}]adelay=${ms}|${ms}[m${k}]`);
@@ -284,7 +306,7 @@ export function planRender(input                 )             {
     audioOut = "amix";
   }
 
-  if ([...vClips, ...music].some((c) => (c.volume ?? 1) > 1)) {
+  if ([...vClips, ...mixClips].some((c) => (c.volume ?? 1) > 1)) {
     filters.push(`[${audioOut}]alimiter=limit=0.97[alim]`);
     audioOut = "alim";
   }

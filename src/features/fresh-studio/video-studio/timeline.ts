@@ -64,7 +64,16 @@ export type TimelineClip = {
   transitionIn?: ClipTransition;
   /** Animated zoom and position from the first frame of the clip to the last. */
   motion?: ClipMotion;
+  /** Where a clip on an upper video track sits over the picture below (picture-in-picture). Ignored on the base track. */
+  layer?: ClipLayer;
 };
+
+/** Centre (as a fraction of the frame), width (fraction of the frame; the window has the frame's shape) and opacity. */
+export type ClipLayer = { x: number; y: number; width: number; opacity: number };
+export const DEFAULT_LAYER: ClipLayer = { x: 0.75, y: 0.25, width: 0.4, opacity: 1 };
+export const MIN_LAYER_WIDTH = 0.1;
+export const MAX_VIDEO_TRACKS = 2;
+
 
 /** Start and end keyframes for the picture. Zoom 1 = whole frame; position −1…1 pans across the extra area a zoom reveals. */
 export type ClipMotion = { fromZoom: number; toZoom: number; fromX: number; toX: number; fromY: number; toY: number };
@@ -167,6 +176,21 @@ export function createTimeline(fps = 30): TimelineDoc {
   };
 }
 
+/** The first video track is the base picture; later video tracks are drawn on top of it. */
+export const baseVideoTrack = (doc: TimelineDoc) => doc.tracks.find((t) => t.kind === "video") ?? null;
+export const layerVideoTracks = (doc: TimelineDoc) => doc.tracks.filter((t) => t.kind === "video").slice(1);
+export const isLayerTrack = (doc: TimelineDoc, trackId: string) => layerVideoTracks(doc).some((t) => t.id === trackId);
+
+/** Adds the second video track (for picture-in-picture). Does nothing if it already exists. */
+export function addVideoLayer(doc: TimelineDoc): TimelineDoc {
+  if (doc.tracks.filter((t) => t.kind === "video").length >= MAX_VIDEO_TRACKS) return doc;
+  const ids = new Set(doc.tracks.map((t) => t.id));
+  const id = ["v2", "v3", "v4"].find((x) => !ids.has(x)) ?? newId("v");
+  const lastVideo = doc.tracks.map((t, i) => (t.kind === "video" ? i : -1)).reduce((a, b) => Math.max(a, b), -1);
+  const tracks = [...doc.tracks.slice(0, lastVideo + 1), { id, kind: "video" as const, name: "Video 2", muted: false, locked: false }, ...doc.tracks.slice(lastVideo + 1)];
+  return { ...doc, tracks };
+}
+
 export const trackClips = (doc: TimelineDoc, trackId: string) =>
   doc.clips.filter((c) => c.trackId === trackId).sort((a, b) => a.start - b.start);
 
@@ -229,6 +253,7 @@ export function addClip(doc: TimelineDoc, input: { trackId: string; assetId: str
     id: input.id ?? newId("clip"), trackId: t.id, assetId: asset.id,
     start: round3(Math.max(0, input.start ?? end)), sourceIn: 0, sourceOut: round3(asset.duration), speed: 1,
   };
+  if (isLayerTrack(doc, t.id)) clip.layer = { ...DEFAULT_LAYER };
   if (overlaps(doc, clip)) throw new TimelineError("There is already a clip there.");
   return { ...doc, clips: [...doc.clips, clip] };
 }
@@ -286,7 +311,12 @@ export function moveClip(doc: TimelineDoc, clipId: string, newStart: number, tra
   const target = unlocked(doc, trackId ?? clip.trackId);
   const asset = doc.assets.find((a) => a.id === clip.assetId);
   if (asset && (asset.kind === "audio" ? target.kind !== "music" : target.kind !== "video")) throw new TimelineError("That track cannot hold this kind of media.");
-  const next = { ...clip, trackId: target.id, start: round3(Math.max(0, newStart)) };
+  const next: TimelineClip = { ...clip, trackId: target.id, start: round3(Math.max(0, newStart)) };
+  if (asset?.kind !== "audio") {
+    // A clip moved up gets a picture-in-picture window; moved down to the base it fills the frame again.
+    if (isLayerTrack(doc, target.id)) next.layer = clip.layer ?? { ...DEFAULT_LAYER };
+    else delete next.layer;
+  }
   if (overlaps(doc, next, clip.id)) throw new TimelineError("There is already a clip there.");
   return replace(doc, next);
 }
@@ -395,6 +425,7 @@ export function previousAdjacent(doc: TimelineDoc, clip: TimelineClip): Timeline
 }
 /** Longest transition this clip can take (null when it has no neighbour before it). */
 export function maxTransition(doc: TimelineDoc, clip: TimelineClip): number | null {
+  if (isLayerTrack(doc, clip.trackId)) return null; // transitions are for the base picture only
   const prev = previousAdjacent(doc, clip);
   if (!prev) return null;
   return round3(Math.min(MAX_TRANSITION_SECONDS, clipDuration(clip) / 2, clipDuration(prev) * 2));
@@ -483,6 +514,26 @@ export function motionAt(m: ClipMotion | undefined, p: number): { zoom: number; 
   const k = Math.min(1, Math.max(0, p));
   const mix = (a: number, b: number) => a + (b - a) * k;
   return { zoom: mix(m.fromZoom, m.toZoom), x: mix(m.fromX, m.toX), y: mix(m.fromY, m.toY) };
+}
+
+export function layerProblem(l: ClipLayer): string | null {
+  if (!l || typeof l !== "object" || ![l.x, l.y, l.width, l.opacity].every((n) => typeof n === "number" && Number.isFinite(n))) return "Layer settings are invalid.";
+  if (l.x < 0 || l.x > 1 || l.y < 0 || l.y > 1) return "The layer must stay inside the frame.";
+  if (l.width < MIN_LAYER_WIDTH - 1e-9 || l.width > 1) return "Layer size is out of range.";
+  if (l.opacity < 0.05 || l.opacity > 1) return "Layer opacity must be between 5% and 100%.";
+  return null;
+}
+/** Changes where a clip on an upper video track sits. */
+export function setClipLayer(doc: TimelineDoc, clipId: string, patch: Partial<ClipLayer>): TimelineDoc {
+  const clip = find(doc, clipId);
+  unlocked(doc, clip.trackId);
+  if (!isLayerTrack(doc, clip.trackId)) throw new TimelineError("Only clips on the upper video track can be placed over the picture.");
+  const next = { ...DEFAULT_LAYER, ...clip.layer, ...patch };
+  const r = (n: number) => Math.round(n * 1000) / 1000;
+  const layer = { x: r(next.x), y: r(next.y), width: r(next.width), opacity: r(next.opacity) };
+  const why = layerProblem(layer);
+  if (why) throw new TimelineError(why);
+  return replace(doc, { ...clip, layer });
 }
 
 export function setClipFit(doc: TimelineDoc, clipId: string, fit: ClipFit): TimelineDoc {
@@ -644,6 +695,8 @@ export function validateTimeline(doc: unknown): string[] {
     }
   }
   for (const c of d.clips) { const why = transitionProblem(d, c); if (why) errors.push(`Clip ${c.id}: ${why}.`); }
+  for (const c of d.clips) if (c.layer !== undefined) { const why = layerProblem(c.layer); if (why) errors.push(`Clip ${c.id}: ${why}`); }
+  if (d.tracks.filter((t) => t.kind === "video").length > MAX_VIDEO_TRACKS) errors.push("Too many video tracks.");
   for (const c of d.clips) if (c.motion !== undefined) { const why = motionProblem(c.motion); if (why) errors.push(`Clip ${c.id}: ${why}`); }
   if (d.aspect !== undefined && !(ASPECT_RATIOS as readonly string[]).includes(d.aspect)) errors.push("The aspect ratio is not supported.");
   for (const t of d.tracks) {
