@@ -47,5 +47,49 @@ begin
     where conrelid = 'public.fresh_intelligence_claim_revisions'::regclass
       and conname = 'fresh_intelligence_claim_revisions_claim_id_fkey'
   ) then raise exception 'claim revision foreign key is missing'; end if;
+
+  if not exists (
+    select 1 from pg_class
+    where oid = 'public.fresh_intelligence_sources'::regclass and relrowsecurity
+  ) then raise exception 'sources RLS is not enabled'; end if;
+  if not exists (
+    select 1 from pg_class
+    where oid = 'public.fresh_intelligence_entities'::regclass and relrowsecurity
+  ) then raise exception 'entities RLS is not enabled'; end if;
+  if not exists (
+    select 1 from pg_class
+    where oid = 'public.fresh_intelligence_claims'::regclass and relrowsecurity
+  ) then raise exception 'claims RLS is not enabled'; end if;
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'fresh_intelligence_sources'
+      and policyname = 'fresh intelligence sources are readable' and cmd = 'SELECT'
+  ) then raise exception 'sources public-read policy is missing'; end if;
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'fresh_intelligence_entities'
+      and policyname = 'fresh intelligence entities are readable' and cmd = 'SELECT'
+  ) then raise exception 'entities public-read policy is missing'; end if;
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'fresh_intelligence_claims'
+      and policyname = 'fresh intelligence claims are readable' and cmd = 'SELECT'
+  ) then raise exception 'claims public-read policy is missing'; end if;
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'fresh_intelligence_claim_relations'
+      and policyname = 'fresh intelligence claim relations are readable' and cmd = 'SELECT'
+  ) then raise exception 'claim relations public-read policy is missing'; end if;
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'fresh_intelligence_evidence'
+      and policyname = 'fresh intelligence evidence is readable' and cmd = 'SELECT'
+  ) then raise exception 'evidence public-read policy is missing'; end if;
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'fresh_intelligence_claim_evidence'
+      and policyname = 'fresh intelligence claim evidence is readable' and cmd = 'SELECT'
+  ) then raise exception 'claim evidence public-read policy is missing'; end if;
+
 end
-$$;
+$;
