@@ -391,6 +391,13 @@
 
 /* overlays */
 .fs-overlayblock { background: #1f6f5b; border-color: rgba(120,230,200,.6); }
-.fs-overlay-shape, .fs-overlay-pic { position: absolute; z-index: 1; transform: translate(-50%, -50%); cursor: pointer; box-sizing: border-box; }
-.fs-overlay-pic { height: auto; max-width: none; user-select: none; -webkit-user-drag: none; }
-.fs-overlay-shape.is-selected, .fs-overlay-pic.is-selected { outline: 2px solid #fff; outline-offset: 2px; }
+.fs-overlay-item { position: absolute; z-index: 1; transform: translate(-50%, -50%); cursor: grab; box-sizing: border-box; touch-action: none; user-select: none; }
+.fs-overlay-item img { display: block; width: 100%; height: auto; max-width: none; pointer-events: none; -webkit-user-drag: none; }
+.fs-overlay-fill { position: absolute; inset: 0; }
+.fs-overlay-item.is-selected { outline: 2px solid #fff; outline-offset: 2px; }
+.fs-resize-handle { position: absolute; right: -9px; bottom: -9px; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid #635bff; cursor: nwse-resize; touch-action: none; }
+.fs-overlay-text { touch-action: none; cursor: grab; }
+.fs-guides { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.fs-guides i { position: absolute; background: rgba(255, 212, 0, .9); }
+.fs-guides .gx { left: 50%; top: 0; bottom: 0; width: 1px; }
+.fs-guides .gy { top: 50%; left: 0; right: 0; height: 1px; }

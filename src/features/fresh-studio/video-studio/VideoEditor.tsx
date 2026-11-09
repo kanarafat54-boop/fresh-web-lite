@@ -6,6 +6,7 @@ import { ExportCancelled, ExportError, availableExportOptions, runExport, type E
 import { createBrowserExportPorts } from "./renderClient.ts";
 import type { ExportPresetId } from "./renderPlan.ts";
 import { Icon, type IconName } from "./icons.tsx";
+import { useLayerDrag } from "./useLayerDrag.ts";
 import { ClipInspector, OverlayInspector, TextInspector } from "./Inspector.tsx";
 import { ANALYSIS_SAMPLE_RATE } from "./audioAnalysis.ts";
 import { computePeaks, extractFilmstrip, filmstripCount, type Filmstrip } from "./mediaVisuals.ts";
@@ -95,6 +96,9 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
   const visibleTexts = T.textsAt(doc, playhead);
   const selectedOverlay = (doc.overlays ?? []).find((o) => o.id === selected) ?? null;
   const visibleOverlays = T.overlaysAt(doc, playhead);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const drag = useLayerDrag(frameRef, doc, ed.edit, ed.setSelected);
+  const at = <L extends { id: string; x: number; y: number }>(l: L) => (drag.live && drag.live.id === l.id ? { ...l, ...drag.live } : l);
   const videoFade = activeVideo ? fadeFactor(doc, activeVideo, playhead, "video") : 1;
 
   // --- thumbnails and waveforms, computed once per file
@@ -257,23 +261,32 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
 
       <section className="fs-stage" aria-label="Preview">
         <div className="fs-monitor" ref={monitorRef} data-empty={!activeVideo}>
-          <div className="fs-frame" style={{ aspectRatio: aspectValid.replace(":", " / "), ["--ar" as string]: ratioOf(aspectValid) }} data-aspect={aspectValid}>
+          <div className="fs-frame" ref={frameRef} style={{ aspectRatio: aspectValid.replace(":", " / "), ["--ar" as string]: ratioOf(aspectValid) }} data-aspect={aspectValid}>
             <video ref={videoEl} playsInline preload="auto" aria-label="Video preview"
               style={{ visibility: activeVideo ? "visible" : "hidden", objectFit: activeVideo?.fit === "fill" ? "cover" : "contain", filter: lookFilter(activeVideo?.look), opacity: videoFade, transform: motionTransform(activeVideo, playhead) }} />
             {!activeVideo && (empty
               ? <button type="button" className="fs-empty-cta" onClick={openImport} disabled={!!ed.busy}><Icon name="import" size={30} /><strong>Import video or audio</strong><span>or drop files here</span></button>
               : <p className="fs-muted fs-gap">No video at this point. Gaps render as black.</p>)}
-            {visibleTexts.map((t) => (
+            {visibleTexts.map((t0) => { const t = at(t0); return (
               <div key={t.id} className={`fs-overlay-text${selected === t.id ? " is-selected" : ""}`} data-testid="overlay-text"
                 style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`, fontSize: `${t.size * 100}cqh`, color: t.color, fontWeight: t.bold ? 700 : 400, background: t.box ? "rgba(0,0,0,.55)" : "transparent", padding: t.box ? "0.25em" : 0, textShadow: t.box ? "none" : "0.05em 0.05em 0.05em rgba(0,0,0,.6)" }}
-                onPointerDown={(e) => { e.stopPropagation(); ed.setSelected(t.id); }}>{t.text}</div>
-            ))}
-            {visibleOverlays.map((o) => {
+                onPointerDown={(e) => drag.begin(e, t.id, "text")} onPointerMove={drag.move} onPointerUp={drag.end} onPointerCancel={drag.end}>{t.text}</div>
+            ); })}
+            {visibleOverlays.map((o0) => {
+              const o = at(o0) as T.OverlayLayer & { x: number; y: number };
               const url = o.kind === "image" ? ed.media[o.assetId!]?.url : null;
-              return o.kind === "rect"
-                ? <div key={o.id} className={`fs-overlay-shape${selected === o.id ? " is-selected" : ""}`} data-testid="overlay-shape" style={{ left: `${o.x * 100}%`, top: `${o.y * 100}%`, width: `${o.width * 100}%`, height: `${o.height * 100}%`, background: o.color, opacity: o.opacity }} onPointerDown={(e) => { e.stopPropagation(); ed.setSelected(o.id); }} />
-                : <img key={o.id} alt="" className={`fs-overlay-pic${selected === o.id ? " is-selected" : ""}`} data-testid="overlay-picture" src={url ?? undefined} style={{ left: `${o.x * 100}%`, top: `${o.y * 100}%`, width: `${o.width * 100}%`, opacity: o.opacity, visibility: url ? "visible" : "hidden" }} onPointerDown={(e) => { e.stopPropagation(); ed.setSelected(o.id); }} />;
+              return (
+                <div key={o.id} className={`fs-overlay-item${selected === o.id ? " is-selected" : ""}`} data-testid={o.kind === "rect" ? "overlay-shape" : "overlay-picture"}
+                  style={{ left: `${o.x * 100}%`, top: `${o.y * 100}%`, width: `${o.width * 100}%`, ...(o.kind === "rect" ? { height: `${o.height * 100}%` } : {}) }}
+                  onPointerDown={(e) => drag.begin(e, o.id, "overlay")} onPointerMove={drag.move} onPointerUp={drag.end} onPointerCancel={drag.end}>
+                  {o.kind === "rect"
+                    ? <div className="fs-overlay-fill" style={{ background: o.color, opacity: o.opacity }} />
+                    : <img alt="" src={url ?? undefined} draggable={false} style={{ opacity: o.opacity, visibility: url ? "visible" : "hidden" }} />}
+                  {selected === o.id && <span className="fs-resize-handle" role="presentation" data-testid="resize-handle" onPointerDown={(e) => drag.begin(e, o.id, "overlay", "resize")} onPointerMove={drag.move} onPointerUp={drag.end} onPointerCancel={drag.end} />}
+                </div>
+              );
             })}
+            {(drag.guides.x || drag.guides.y) && <div className="fs-guides" aria-hidden="true">{drag.guides.x && <i className="gx" />}{drag.guides.y && <i className="gy" />}</div>}
             {safeAreas && <div className="fs-safe" aria-hidden="true"><i /><i /></div>}
             {ed.busy && <div className="fs-busy" role="status">{ed.busy}</div>}
           </div>
