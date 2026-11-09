@@ -12,6 +12,8 @@ import type { UniversalCommentAttachment, InteractionMediaKind } from "../../../
 import { rankRootsBySignal } from "../../../core/platform/commentSignalRanking";
 import { sortCommentRoots, mentionQueryAt, insertMention, splitMentions, type CommentSortMode } from "../core/commentTools";
 import { loadMutedCreators, setCreatorMuted } from "../../fresh-flow/core/shortsSafety";
+import { loadBlockedIds } from "../../fresh-flow/core/userBlocksService";
+import { withoutBlockedAuthors } from "../../fresh-flow/core/userBlocks";
 import ShortsReportSheet from "../../fresh-flow/components/ShortsReportSheet";
 import "./CommentPanel.css";
 
@@ -203,6 +205,11 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
       setError(queryError.message);
       setLoading(false);
       return;
+    }
+    // Comments by accounts the viewer blocked are hidden from them.
+    if (user && !isGuest) {
+      const blocked = await loadBlockedIds(user.id);
+      data = withoutBlockedAuthors((data ?? []) as any[], blocked, (row: any) => row.author_id);
     }
     const ids = [...new Set((data ?? []).map((row: any) => row.author_id).filter(Boolean))];
     let profiles: any[] = [];
