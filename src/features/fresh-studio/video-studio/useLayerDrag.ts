@@ -26,7 +26,10 @@ export function useLayerDrag(frame: RefObject<HTMLElement | null>, doc: T.Timeli
     e.stopPropagation(); e.preventDefault();
     select(id);
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    const orig: LiveLayer = { id, x: layer.x, y: layer.y, ...("width" in layer ? { width: layer.width } : {}), ...("height" in layer ? { height: layer.height } : {}) };
+    const shape = layer as { x: number; y: number; width?: number; height?: number };
+    const orig: LiveLayer = { id, x: shape.x, y: shape.y };
+    if (typeof shape.width === "number") orig.width = shape.width;
+    if (typeof shape.height === "number") orig.height = shape.height;
     gesture.current = { id, kind, mode, startX: e.clientX, startY: e.clientY, orig, rect: el.getBoundingClientRect(), moved: false };
   }, [frame, doc, select]);
 
