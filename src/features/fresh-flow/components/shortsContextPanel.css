@@ -48,3 +48,4 @@
 .shorts-report-fields small, .shorts-report-details small { opacity: 0.7; font-size: 0.78rem; }
 .shorts-report-details { display: grid; gap: 4px; margin: 8px 0; }
 .shorts-report-details textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.25); background: transparent; color: inherit; font: inherit; resize: vertical; }
+.shorts-history-row .shorts-history-unblock { width: auto; padding: 0 14px; border: 1px solid rgba(255,255,255,0.25); border-radius: 12px; }
