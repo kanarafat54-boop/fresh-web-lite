@@ -91,5 +91,33 @@ begin
       and policyname = 'fresh intelligence claim evidence is readable' and cmd = 'SELECT'
   ) then raise exception 'claim evidence public-read policy is missing'; end if;
 
+  if not exists (select 1 from pg_class where oid = 'public.fresh_intelligence_claim_relations'::regclass and relrowsecurity) then
+    raise exception 'claim relations RLS is not enabled';
+  end if;
+  if not exists (select 1 from pg_class where oid = 'public.fresh_intelligence_evidence'::regclass and relrowsecurity) then
+    raise exception 'evidence RLS is not enabled';
+  end if;
+  if not exists (select 1 from pg_class where oid = 'public.fresh_intelligence_claim_evidence'::regclass and relrowsecurity) then
+    raise exception 'claim evidence RLS is not enabled';
+  end if;
+  if not exists (select 1 from pg_class where oid = 'public.fresh_intelligence_evidence_lineage'::regclass and relrowsecurity) then
+    raise exception 'evidence lineage RLS is not enabled';
+  end if;
+  if not exists (select 1 from pg_class where oid = 'public.fresh_intelligence_arbitrations'::regclass and relrowsecurity) then
+    raise exception 'arbitrations RLS is not enabled';
+  end if;
+  if not exists (select 1 from pg_class where oid = 'public.fresh_intelligence_claim_revisions'::regclass and relrowsecurity) then
+    raise exception 'claim revisions RLS is not enabled';
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='fresh_intelligence_arbitrations' and policyname='fresh intelligence arbitrations are readable') then
+    raise exception 'arbitrations public-read policy is missing';
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='fresh_intelligence_claim_revisions' and policyname='fresh intelligence claim revisions are readable') then
+    raise exception 'claim revisions public-read policy is missing';
+  end if;
+  if exists (select 1 from pg_policies where schemaname='public' and tablename='fresh_intelligence_evidence_lineage') then
+    raise exception 'evidence lineage must remain internal-only';
+  end if;
+
 end
 $;
