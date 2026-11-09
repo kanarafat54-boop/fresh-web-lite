@@ -4,31 +4,60 @@
 
 create table if not exists public.fresh_intelligence_sources (
   id text primary key,
-  title text,
+  provider text not null,
+  name text,
   url text,
-  source_type text,
+  reliability numeric(5,4),
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
 
 create table if not exists public.fresh_intelligence_entities (
   id text primary key,
-  name text not null default '',
-  entity_type text,
-  metadata jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now()
+  entity_type text not null,
+  label text not null,
+  attributes jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists public.fresh_intelligence_claims (
   id text primary key,
-  statement text not null default '',
-  source_id text references public.fresh_intelligence_sources (id) on delete set null,
-  entity_id text references public.fresh_intelligence_entities (id) on delete set null,
-  confidence numeric,
-  status text not null default 'open',
-  metadata jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now()
+  subject_entity_id text references public.fresh_intelligence_entities(id) on delete set null,
+  predicate text not null,
+  object jsonb not null,
+  normalized_text text not null,
+  status text not null check (status in ('supported', 'contested', 'uncertain', 'unsubstantiated')),
+  confidence numeric(5,4) not null default 0 check (confidence >= 0 and confidence <= 1),
+  first_observed_at timestamptz not null,
+  last_observed_at timestamptz not null,
+  valid_from timestamptz,
+  valid_to timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
+
+-- These tables are restored before claims. Add their claim foreign keys only
+-- after the canonical claims table exists; the earlier reconstruction skipped them.
+do $
+begin
+  if not exists (select 1 from pg_constraint where conname = 'fresh_intelligence_arbitrations_left_claim_id_fkey' and conrelid = 'public.fresh_intelligence_arbitrations'::regclass) then
+    alter table public.fresh_intelligence_arbitrations
+      add constraint fresh_intelligence_arbitrations_left_claim_id_fkey
+      foreign key (left_claim_id) references public.fresh_intelligence_claims(id) on delete cascade;
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'fresh_intelligence_arbitrations_right_claim_id_fkey' and conrelid = 'public.fresh_intelligence_arbitrations'::regclass) then
+    alter table public.fresh_intelligence_arbitrations
+      add constraint fresh_intelligence_arbitrations_right_claim_id_fkey
+      foreign key (right_claim_id) references public.fresh_intelligence_claims(id) on delete cascade;
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'fresh_intelligence_claim_revisions_claim_id_fkey' and conrelid = 'public.fresh_intelligence_claim_revisions'::regclass) then
+    alter table public.fresh_intelligence_claim_revisions
+      add constraint fresh_intelligence_claim_revisions_claim_id_fkey
+      foreign key (claim_id) references public.fresh_intelligence_claims(id) on delete cascade;
+  end if;
+end
+$;
 
 -- Restore claim-to-claim relation storage before the later observed_at
 -- compatibility migration. The production catalog confirms these columns,
@@ -38,9 +67,10 @@ create table if not exists public.fresh_intelligence_claim_relations (
   left_claim_id text not null references public.fresh_intelligence_claims(id) on delete cascade,
   right_claim_id text not null references public.fresh_intelligence_claims(id) on delete cascade,
   relation text not null check (relation in ('same', 'supports', 'contradicts', 'unrelated', 'conditional_contradiction')),
-  confidence numeric not null default 0 check (confidence >= 0 and confidence <= 1),
+  confidence numeric(5,4) not null default 0 check (confidence >= 0 and confidence <= 1),
   rationale text,
-  observed_at timestamptz not null default now()
+  observed_at timestamptz not null default now(),
+  unique (left_claim_id, right_claim_id, relation)
 );
 
 create index if not exists fresh_intelligence_claim_relations_left_claim_id_idx
@@ -52,10 +82,12 @@ alter table public.fresh_intelligence_claim_relations enable row level security;
 revoke all on table public.fresh_intelligence_claim_relations from public, anon, authenticated;
 grant all on table public.fresh_intelligence_claim_relations to service_role;
 
-create index if not exists fresh_intelligence_claims_source_idx
-  on public.fresh_intelligence_claims (source_id);
-create index if not exists fresh_intelligence_claims_entity_idx
-  on public.fresh_intelligence_claims (entity_id);
+create index if not exists idx_fi_claims_entity
+  on public.fresh_intelligence_claims (subject_entity_id);
+create index if not exists idx_fi_claims_status
+  on public.fresh_intelligence_claims (status);
+create index if not exists idx_fi_claims_validity
+  on public.fresh_intelligence_claims (valid_from, valid_to);
 
 -- Restore evidence tables that existed in production but were absent from the
 -- clean-replay migration history. These are server-managed; clients receive no
@@ -99,7 +131,9 @@ create index if not exists idx_fi_lineage_to
   on public.fresh_intelligence_evidence_lineage(to_evidence_id);
 create index if not exists idx_fi_lineage_relation
   on public.fresh_intelligence_evidence_lineage(relation);
-create index if not exists fresh_intelligence_evidence_source_id_idx
+create index if not exists idx_fi_evidence_observed
+  on public.fresh_intelligence_evidence(observed_at desc);
+create index if not exists idx_fi_evidence_source
   on public.fresh_intelligence_evidence(source_id);
 create index if not exists fresh_intelligence_claim_evidence_evidence_id_idx
   on public.fresh_intelligence_claim_evidence(evidence_id);
