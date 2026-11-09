@@ -26,5 +26,7 @@ export async function submitReport(reporterId: string, draft: ReportDraft): Prom
     if (!retry.error) return { status: "sent", explanationSaved: false };
     throw new Error("Fresh could not save your report. Try again.");
   }
+  // 23514: the database does not accept this kind of report yet (reporting migration not applied).
+  if (first.error.code === "23514") throw new Error("Reporting this kind of content is not available yet.");
   throw new Error("Fresh could not save your report. Try again.");
 }

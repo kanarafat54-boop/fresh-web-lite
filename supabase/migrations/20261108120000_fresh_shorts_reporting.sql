@@ -1,8 +1,46 @@
--- Fresh Shorts reporting (spec 10.2, 10.3): an optional explanation and a review status on reports.
--- Additive only. Existing rows keep working: they get status 'open' and no explanation.
--- The reporter can never set their own report's status: a trigger forces 'open' on every client insert, so
--- review outcomes can only be recorded by a reviewer using the service role or the database.
--- Apply after schema review. Rollback: drop the trigger and function, then drop the two columns.
+-- Fresh Shorts reporting (spec 10.2, 10.3).
+--
+-- 1. Allows the report target types the app now sends. Production restricts reports.target_type to
+--    ('post', 'short'), so reports on comments (short_comment, post_comment), profiles and sounds are rejected
+--    today, including the existing comment report. This only widens the allowed set; every existing row stays valid.
+-- 2. Adds an optional explanation (details) and a review status.
+-- 3. Forces every client insert to status 'open', so a reporter can never set their own report's outcome.
+--
+-- `public.reports` already exists in production but has no creating migration in this repository, so it is
+-- created here only if missing (mirroring the live columns, foreign key and policies) to keep the migration
+-- history replayable. In production the create is a no-op.
+-- Apply after schema review. Rollback: drop the trigger and function, drop the two columns, restore the
+-- two-value check.
+
+create table if not exists public.reports (
+  id uuid primary key default gen_random_uuid(),
+  target_type text not null,
+  target_id uuid not null,
+  reporter_id uuid references public.users (id) on delete cascade,
+  reason text,
+  created_at timestamptz default now()
+);
+
+alter table public.reports enable row level security;
+
+do $$
+begin
+  create policy "Users can submit reports" on public.reports
+    for insert to public with check ((select auth.uid()) = reporter_id);
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create policy "Users can view their own reports" on public.reports
+    for select to public using ((select auth.uid()) = reporter_id);
+exception when duplicate_object then null;
+end $$;
+
+alter table public.reports drop constraint if exists reports_target_type_check;
+alter table public.reports
+  add constraint reports_target_type_check
+  check (target_type in ('post', 'short', 'post_comment', 'short_comment', 'profile', 'sound'));
 
 alter table public.reports
   add column if not exists details text,

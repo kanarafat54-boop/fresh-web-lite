@@ -50,9 +50,14 @@ assert.equal(isMissingReportColumn(null), false);
 
 // Migration is additive, caps match, and the reporter cannot set status.
 const sql = fs.readFileSync(new URL("../supabase/migrations/20261108120000_fresh_shorts_reporting.sql", import.meta.url), "utf8");
+const svc0 = fs.readFileSync(new URL("../src/features/fresh-flow/core/shortsReportingService.ts", import.meta.url), "utf8");
 const code = sql.replace(/--.*$/gm, "");
 assert.ok(/add column if not exists details/.test(code) && /add column if not exists status/.test(code));
 assert.ok(!/\bdrop\s+(table|column)\b|\bdelete\s+from\b|\btruncate\b/i.test(code), "migration only adds");
+for (const type of Object.keys(REPORT_TARGETS)) assert.ok(code.includes(`'${type}'`), `database accepts target type ${type}`);
+assert.ok(code.includes("'post_comment'") && /drop constraint if exists reports_target_type_check/.test(code), "the existing two-value type check is widened");
+assert.ok(/create table if not exists public\.reports/.test(code), "history stays replayable where the table has no creating migration");
+assert.ok(svc0.includes("23514"), "a rejected type is reported as unavailable, not as a generic failure");
 assert.ok(code.includes("<= 500") && code.includes("'open', 'reviewing', 'actioned', 'dismissed'"));
 assert.ok(/new\.status := 'open'/.test(code) && /before insert on public\.reports/.test(code), "client inserts are forced to open");
 
