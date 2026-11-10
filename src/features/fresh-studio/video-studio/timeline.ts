@@ -76,7 +76,10 @@ export const MAX_VIDEO_TRACKS = 2;
 
 
 /** Start and end keyframes for the picture. Zoom 1 = whole frame; position −1…1 pans across the extra area a zoom reveals. */
-export type ClipMotion = { fromZoom: number; toZoom: number; fromX: number; toX: number; fromY: number; toY: number };
+export type MotionKey = { /** Progress through the clip, strictly between 0 and 1. */ at: number; zoom: number; x: number; y: number };
+export type ClipMotion = { fromZoom: number; toZoom: number; fromX: number; toX: number; fromY: number; toY: number; /** Extra keyframes between the start and the end. Optional so older projects stay valid. */ mid?: MotionKey[] };
+export const MAX_MID_KEYS = 4;
+export const MIN_KEY_GAP = 0.02;
 export const MIN_ZOOM = 1;
 export const MAX_ZOOM = 3;
 export const MOTION_PRESETS: ReadonlyArray<{ id: string; name: string; motion: ClipMotion | null }> = [
@@ -269,10 +272,9 @@ export function splitClip(doc: TimelineDoc, clipId: string, at: number, rightId?
   if (t <= clip.start + MIN_CLIP_SECONDS || t >= clipEnd(clip) - MIN_CLIP_SECONDS) throw new TimelineError("Move the playhead inside the clip to split it.");
   const sourceAt = round3(clip.sourceIn + (t - clip.start) * clip.speed);
   const p = (t - clip.start) / clipDuration(clip);
-  const mid = clip.motion ? motionAt(clip.motion, p) : null;
   const m = clip.motion;
-  const leftMotion = m && mid ? { motion: { ...m, toZoom: round3(mid.zoom), toX: round3(mid.x), toY: round3(mid.y) } } : {};
-  const rightMotion = m && mid ? { motion: { ...m, fromZoom: round3(mid.zoom), fromX: round3(mid.x), fromY: round3(mid.y) } } : {};
+  const leftMotion = m ? { motion: sliceMotion(m, 0, p) } : {};
+  const rightMotion = m ? { motion: sliceMotion(m, p, 1) } : {};
   const left: TimelineClip = withFittedFades({ ...clip, ...leftMotion, sourceOut: sourceAt, ...(clip.fadeOut ? { fadeOut: 0 } : {}) });
   const { transitionIn: _t, ...clipNoTransition } = clip; void _t;
   const right: TimelineClip = withFittedFades({ ...clipNoTransition, ...rightMotion, id: rightId ?? newId("clip"), start: t, sourceIn: sourceAt, ...(clip.fadeIn ? { fadeIn: 0 } : {}) });
@@ -495,7 +497,33 @@ export function motionProblem(m: ClipMotion): string | null {
   if (!m || typeof m !== "object") return "Motion settings are missing.";
   if (!within(m.fromZoom, MIN_ZOOM, MAX_ZOOM) || !within(m.toZoom, MIN_ZOOM, MAX_ZOOM)) return `Zoom must be between ${MIN_ZOOM}× and ${MAX_ZOOM}×.`;
   if (![m.fromX, m.toX, m.fromY, m.toY].every((v) => within(v, -1, 1))) return "Position must stay inside the frame (−100% to 100%).";
+  if (m.mid !== undefined) {
+    if (!Array.isArray(m.mid) || m.mid.length > MAX_MID_KEYS) return `A clip can have at most ${MAX_MID_KEYS} extra keyframes.`;
+    let last = 0;
+    for (const k of m.mid) {
+      if (!k || typeof k !== "object" || typeof k.at !== "number" || !Number.isFinite(k.at)) return "A keyframe has invalid settings.";
+      if (!within(k.zoom, MIN_ZOOM, MAX_ZOOM)) return `Zoom must be between ${MIN_ZOOM}× and ${MAX_ZOOM}×.`;
+      if (!within(k.x, -1, 1) || !within(k.y, -1, 1)) return "Position must stay inside the frame (−100% to 100%).";
+      if (k.at < last + MIN_KEY_GAP - 1e-9 || k.at > 1 - MIN_KEY_GAP + 1e-9) return "Keyframes must be in order and not on top of each other or the clip's ends.";
+      last = k.at;
+    }
+  }
   return null;
+}
+type MotionPoint = { at: number; zoom: number; x: number; y: number };
+/** Every keyframe in order, start and end included. */
+export const motionPoints = (m: ClipMotion): MotionPoint[] => [{ at: 0, zoom: m.fromZoom, x: m.fromX, y: m.fromY }, ...(m.mid ?? []), { at: 1, zoom: m.toZoom, x: m.toX, y: m.toY }];
+function motionFromPoints(pts: MotionPoint[]): ClipMotion {
+  const r = (n: number) => Math.round(n * 1000) / 1000;
+  const first = pts[0], last = pts[pts.length - 1], mid = pts.slice(1, -1).map((k) => ({ at: r(k.at), zoom: r(k.zoom), x: r(k.x), y: r(k.y) }));
+  return { fromZoom: r(first.zoom), fromX: r(first.x), fromY: r(first.y), toZoom: r(last.zoom), toX: r(last.x), toY: r(last.y), ...(mid.length ? { mid } : {}) };
+}
+/** The part of a motion between progress a and b (0–1), stretched to fill a whole clip. Used when a clip is split. */
+export function sliceMotion(m: ClipMotion, a: number, b: number): ClipMotion {
+  const at = (p: number) => ({ at: p, ...motionAt(m, p) });
+  const inside = motionPoints(m).filter((k) => k.at > a + MIN_KEY_GAP / 2 && k.at < b - MIN_KEY_GAP / 2).map((k) => ({ ...k, at: (k.at - a) / (b - a) }));
+  const s = at(a), e = at(b);
+  return motionFromPoints([{ ...s, at: 0 }, ...inside, { ...e, at: 1 }]);
 }
 /** Sets (or with null removes) the start→end motion of a clip. */
 export function setClipMotion(doc: TimelineDoc, clipId: string, motion: ClipMotion | null): TimelineDoc {
@@ -508,15 +536,18 @@ export function setClipMotion(doc: TimelineDoc, clipId: string, motion: ClipMoti
   }
   const why = motionProblem(motion);
   if (why) throw new TimelineError(why);
-  const r = (n: number) => Math.round(n * 1000) / 1000;
-  return { ...doc, clips: doc.clips.map((c) => (c.id === clip.id ? { ...c, motion: { fromZoom: r(motion.fromZoom), toZoom: r(motion.toZoom), fromX: r(motion.fromX), toX: r(motion.toX), fromY: r(motion.fromY), toY: r(motion.toY) } } : c)) };
+  return { ...doc, clips: doc.clips.map((c) => (c.id === clip.id ? { ...c, motion: motionFromPoints(motionPoints(motion)) } : c)) };
 }
 /** Zoom and position at progress p (0–1) through the clip. */
 export function motionAt(m: ClipMotion | undefined, p: number): { zoom: number; x: number; y: number } {
   if (!m) return { zoom: 1, x: 0, y: 0 };
   const k = Math.min(1, Math.max(0, p));
-  const mix = (a: number, b: number) => a + (b - a) * k;
-  return { zoom: mix(m.fromZoom, m.toZoom), x: mix(m.fromX, m.toX), y: mix(m.fromY, m.toY) };
+  const pts = motionPoints(m);
+  let i = 0;
+  while (i < pts.length - 2 && k > pts[i + 1].at) i += 1;
+  const a = pts[i], b = pts[i + 1], f = b.at === a.at ? 0 : (k - a.at) / (b.at - a.at);
+  const mix = (u: number, v: number) => u + (v - u) * f;
+  return { zoom: mix(a.zoom, b.zoom), x: mix(a.x, b.x), y: mix(a.y, b.y) };
 }
 
 export function layerProblem(l: ClipLayer): string | null {
@@ -728,4 +759,30 @@ export function undo(h: History): History {
 export function redo(h: History): History {
   if (!h.future.length) return h;
   return { past: [...h.past, h.present], present: h.future[0], future: h.future.slice(1) };
+}
+
+/** Adds a keyframe at progress p, holding the movement as it is there, or moves the one already close to it. */
+export function addMotionKey(doc: TimelineDoc, clipId: string, p: number): TimelineDoc {
+  const clip = find(doc, clipId);
+  if (!clip.motion) throw new TimelineError("Choose a motion first, then add keyframes to it.");
+  const at = Math.round(Math.min(1 - MIN_KEY_GAP, Math.max(MIN_KEY_GAP, p)) * 1000) / 1000;
+  const pts = motionPoints(clip.motion);
+  if (pts.some((k) => Math.abs(k.at - at) < MIN_KEY_GAP - 1e-9)) throw new TimelineError("There is already a keyframe here. Move the playhead to add another.");
+  if ((clip.motion.mid?.length ?? 0) >= MAX_MID_KEYS) throw new TimelineError(`A clip can have at most ${MAX_MID_KEYS} extra keyframes.`);
+  const here = motionAt(clip.motion, at);
+  return setClipMotion(doc, clipId, { ...clip.motion, mid: [...(clip.motion.mid ?? []), { at, ...here }].sort((a, b) => a.at - b.at) });
+}
+export function updateMotionKey(doc: TimelineDoc, clipId: string, index: number, patch: Partial<MotionKey>): TimelineDoc {
+  const clip = find(doc, clipId);
+  const mid = clip.motion?.mid;
+  if (!clip.motion || !mid || !mid[index]) throw new TimelineError("That keyframe no longer exists.");
+  return setClipMotion(doc, clipId, { ...clip.motion, mid: mid.map((k, i) => (i === index ? { ...k, ...patch } : k)) });
+}
+export function removeMotionKey(doc: TimelineDoc, clipId: string, index: number): TimelineDoc {
+  const clip = find(doc, clipId);
+  const mid = clip.motion?.mid;
+  if (!clip.motion || !mid || !mid[index]) throw new TimelineError("That keyframe no longer exists.");
+  const { mid: _m, ...rest } = clip.motion; void _m;
+  const left = mid.filter((_, i) => i !== index);
+  return setClipMotion(doc, clipId, { ...rest, ...(left.length ? { mid: left } : {}) });
 }

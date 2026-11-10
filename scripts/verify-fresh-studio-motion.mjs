@@ -38,6 +38,49 @@ const M = (o) => ({ fromZoom: 1, toZoom: 1, fromX: 0, toX: 0, fromY: 0, toY: 0, 
   assert.ok(T.MOTION_PRESETS.every((p) => !p.motion || !T.motionProblem(p.motion)), "every preset is valid");
 }
 
+// ---------- multi-point keyframes ----------
+{
+  const d = one();
+  const base = M({ fromZoom: 2, toZoom: 2, fromX: -1, toX: 1 });
+  const hold = { ...base, mid: [{ at: 0.5, zoom: 2, x: -1, y: 0 }] };
+  const k = T.setClipMotion(d, "c1", hold);
+  assert.equal(T.validateTimeline(k).length, 0);
+  assert.deepEqual(T.motionAt(hold, 0.25), { zoom: 2, x: -1, y: 0 }, "holds between the first two keyframes");
+  assert.equal(T.motionAt(hold, 0.75).x, 0, "then moves on to the end");
+  assert.equal(T.motionAt(hold, 1).x, 1);
+  assert.equal(T.motionAt(hold, 0.5).x, -1);
+  // add / update / remove keys
+  const withMotion1 = T.setClipMotion(d, "c1", base);
+  const a1 = T.addMotionKey(withMotion1, "c1", 0.5);
+  assert.deepEqual(a1.clips[0].motion.mid, [{ at: 0.5, zoom: 2, x: 0, y: 0 }], "a new key keeps the movement as it was there");
+  const a2 = T.addMotionKey(a1, "c1", 0.25);
+  assert.deepEqual(a2.clips[0].motion.mid.map((m) => m.at), [0.25, 0.5], "kept in order");
+  assert.throws(() => T.addMotionKey(a2, "c1", 0.51), /already a keyframe/);
+  assert.equal(T.addMotionKey(a2, "c1", 0.0).clips[0].motion.mid[0].at, 0.02, "a key asked for on the clip's start is placed just inside it");
+  assert.throws(() => T.addMotionKey(d, "c1", 0.5), /Choose a motion first/);
+  let many = withMotion1; for (const at of [0.2, 0.4, 0.6, 0.8]) many = T.addMotionKey(many, "c1", at);
+  assert.throws(() => T.addMotionKey(many, "c1", 0.9), /at most 4/);
+  const u = T.updateMotionKey(a1, "c1", 0, { zoom: 3, x: -1 });
+  assert.equal(u.clips[0].motion.mid[0].zoom, 3);
+  assert.throws(() => T.updateMotionKey(a2, "c1", 0, { at: 0.5 }), /order|on top/, "keys cannot cross");
+  assert.throws(() => T.updateMotionKey(a1, "c1", 0, { zoom: 9 }), /Zoom/);
+  assert.throws(() => T.updateMotionKey(a1, "c1", 5, { zoom: 2 }), /no longer exists/);
+  const r = T.removeMotionKey(a1, "c1", 0);
+  assert.ok(!("mid" in r.clips[0].motion), "no empty list left behind");
+  assert.ok(T.validateTimeline({ ...d, clips: [{ ...d.clips[0], motion: { ...base, mid: [{ at: 0.6, zoom: 2, x: 0, y: 0 }, { at: 0.4, zoom: 2, x: 0, y: 0 }] } }] }).length > 0, "unordered saved keys are refused");
+  // the two-keyframe presets and older saved projects behave exactly as before
+  assert.deepEqual(T.motionAt(base, 0.5), { zoom: 2, x: 0, y: 0 });
+  // splitting a keyframed clip keeps every key, re-timed, and the cut point continuous
+  const s = T.splitClip(k, "c1", 1, "c2");
+  const [left, right] = [s.clips.find((c) => c.id === "c1").motion, s.clips.find((c) => c.id === "c2").motion];
+  assert.equal(left.mid, undefined); assert.equal(left.toX, -1);
+  assert.deepEqual(right.mid.map((m) => m.at), [0.333]); assert.equal(right.fromX, -1); assert.equal(right.toX, 1);
+  assert.equal(T.validateTimeline(s).length, 0);
+  const s2 = T.splitClip(k, "c1", 3, "c2");
+  assert.deepEqual(s2.clips.find((c) => c.id === "c1").motion.mid.map((m) => m.at), [0.667], "the key before the cut stays on the left");
+  assert.equal(s2.clips.find((c) => c.id === "c2").motion.fromX, 0, "and the right side starts where the left ended");
+}
+
 // ---------- renderer (real ffmpeg) ----------
 const have = (bin) => spawnSync(bin, ["-version"]).status === 0;
 if (!have("ffmpeg") || !have("ffprobe")) {
@@ -110,6 +153,25 @@ const withMotion = (id, motion, tweak = (d) => d) => tweak(T.setClipMotion(one(i
   d = T.setClipMotion(T.setClipMotion(d, "c1", M({ fromZoom: 1, toZoom: 2 })), "c2", M({ fromZoom: 2, toZoom: 1 }));
   d = T.setTransition(d, "c2", { type: "dissolve", duration: 0.6 });
   const t = render(d); assert.ok(Math.abs(duration(t) - 6) < 0.2, `motion + transition keep length (${duration(t)})`);
+}
+
+// keyframes in the export: hold on the left, then pan right; a zoom that goes in and back out
+{
+  const hold = render(withMotion("lr", M({ fromZoom: 2, toZoom: 2, fromX: -1, toX: 1, mid: [{ at: 0.5, zoom: 2, x: -1, y: 0 }] })));
+  assert.ok(Math.abs(duration(hold) - 4) < 0.15, "length unchanged");
+  assert.ok(red(uv(hold, 1.0)) && red(uv(hold, 1.8)), `holds on the left for the first half (${JSON.stringify(uv(hold, 1.8))})`);
+  const late = uv(hold, 3.0); assert.ok(!red(late) && !blue(late), `moving in the second half (${JSON.stringify(late)})`);
+  assert.ok(blue(uv(hold, 3.9)), "ends on the right half");
+  const linear = render(withMotion("lr", M({ fromZoom: 2, toZoom: 2, fromX: -1, toX: 1 })));
+  assert.ok(!red(uv(linear, 1.8)), "without the keyframe it would already be moving (so the hold is real)");
+  const bump = render(withMotion("box", M({ fromZoom: 1, toZoom: 1, mid: [{ at: 0.5, zoom: 3, x: 0, y: 0 }] })));
+  const [b0, b1, b2] = [uv(bump, 0.05).v, uv(bump, 2.0).v, uv(bump, 3.9).v];
+  assert.ok(b1 > b0 + 8 && b1 > b2 + 8, `zooms in to the middle key then back out (${b0} ${b1} ${b2})`);
+  const four = render(withMotion("lr", M({ fromZoom: 2, toZoom: 2, fromX: -1, toX: 1, mid: [0.2, 0.4, 0.6, 0.8].map((at, i) => ({ at, zoom: 2, x: i % 2 ? 1 : -1, y: 0 })) })));
+  assert.ok(Math.abs(duration(four) - 4) < 0.15, "the maximum number of keys renders");
+  // a split clip stays continuous through the cut
+  const cut = render(T.splitClip(T.setClipMotion(one("lr"), "c1", M({ fromZoom: 2, toZoom: 2, fromX: -1, toX: 1, mid: [{ at: 0.5, zoom: 2, x: -1, y: 0 }] })), "c1", 1, "c2"));
+  assert.ok(red(uv(cut, 1.8)) && blue(uv(cut, 3.9)), "split keyframed clip renders the same movement");
 }
 
 console.log("Fresh Studio motion contract passed (zoom and pan verified on real media).");
