@@ -537,7 +537,6 @@ export function setClipMotion(doc             , clipId        , motion          
   }
   const why = motionProblem(motion);
   if (why) throw new TimelineError(why);
-  const r = (n        ) => Math.round(n * 1000) / 1000;
   return { ...doc, clips: doc.clips.map((c) => (c.id === clip.id ? { ...c, motion: motionFromPoints(motionPoints(motion)) } : c)) };
 }
 /** Zoom and position at progress p (0–1) through the clip. */
