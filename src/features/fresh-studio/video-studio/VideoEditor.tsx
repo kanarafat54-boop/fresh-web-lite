@@ -219,6 +219,13 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
     setPxPerSec(Math.max(10, Math.min(200, Math.floor((w - 40) / Math.max(duration, 5)))));
   };
 
+  // The editor fills the window, so the page behind it must not scroll.
+  useEffect(() => {
+    const root = document.documentElement, prev = root.style.overflow;
+    root.style.overflow = "hidden";
+    return () => { root.style.overflow = prev; };
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (isTyping(e.target)) return;

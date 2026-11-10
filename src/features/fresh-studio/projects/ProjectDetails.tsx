@@ -199,14 +199,16 @@ export default function ProjectDetails({ projectId, startOpen, state, notify, go
         </div>
       </section>
 
-      <section className="fs-panel" aria-label="Open in an editor">
-        <h2>Editing</h2>
-        <p className="fs-muted">The multitrack Studio editor is not built yet. Until then you can use the existing tools, which are not linked to this project&apos;s files.</p>
-        <div className="fs-actions">
-          <button type="button" className="fs-btn" onClick={openDeviceEditor}>Open device editor</button>
-          <button type="button" className="fs-btn" onClick={() => navigateRoute("ai")}>Open Fresh AI</button>
-        </div>
-      </section>
+      {base.meta.kind !== "video" && (
+        <section className="fs-panel" aria-label="Open in an editor">
+          <h2>Editing</h2>
+          <p className="fs-muted">A Studio editor for this kind of project is not built yet. You can use the existing tools; they are not linked to this project&apos;s files.</p>
+          <div className="fs-actions">
+            <button type="button" className="fs-btn" onClick={openDeviceEditor}>Open device editor</button>
+            <button type="button" className="fs-btn" onClick={() => navigateRoute("ai")}>Open Fresh AI</button>
+          </div>
+        </section>
+      )}
 
       <section className="fs-panel" aria-label="Version history">
         <h2>Version history</h2>

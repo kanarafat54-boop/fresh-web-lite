@@ -173,11 +173,11 @@
 @media (prefers-reduced-motion: reduce) { .fs-nav { transition: none; } }
 
 /* ---------- Video editor ---------- */
-.fs-editor { --fs-rail-w: 76px; display: grid; position: relative; min-width: 0; background: var(--fs-bg); color: var(--fs-text);
+.fs-editor { --fs-rail-w: 76px; display: grid; min-width: 0; background: var(--fs-bg); color: var(--fs-text);
   grid-template-columns: var(--fs-rail-w) 320px minmax(0, 1fr) 264px;
   grid-template-rows: auto auto minmax(0, 1fr) auto auto;
   grid-template-areas: "top top top top" "banner banner banner banner" "rail panel stage inspector" "tools tools tools tools" "tl tl tl tl";
-  height: calc(100dvh - 24px); max-height: 1000px; min-height: 640px; border-radius: 14px; overflow: hidden; border: 1px solid var(--fs-line); }
+  position: fixed; inset: 0; z-index: 50; height: 100dvh; width: 100vw; border-radius: 0; overflow: hidden; border: 0; }
 .fs-editor[data-panel="none"] { grid-template-columns: var(--fs-rail-w) 0 minmax(0, 1fr) 264px; }
 .fs-editor button { font: inherit; }
 .fs-editor button:disabled { opacity: .4; cursor: not-allowed; }
@@ -303,8 +303,8 @@
 
 /* ---------- phones and small tablets ---------- */
 @media (max-width: 899px) {
-  .fs-editor, .fs-editor[data-panel="none"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto auto auto auto;
-    grid-template-areas: "top" "banner" "stage" "inspector" "tools" "tl" "rail"; height: auto; min-height: 0; max-height: none; border-radius: 0; border-left: 0; border-right: 0; overflow: visible; }
+  .fs-editor, .fs-editor[data-panel="none"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(7, max-content);
+    grid-template-areas: "top" "banner" "stage" "inspector" "tools" "tl" "rail"; height: 100dvh; min-height: 0; max-height: none; border-radius: 0; border-left: 0; border-right: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
   .fs-stage { padding: 8px 10px; }
   .fs-monitor { flex: none; height: 38dvh; width: 100%; min-height: 0; }
   .fs-transport { grid-template-columns: auto auto 1fr; gap: 8px; }
