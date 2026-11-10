@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { FreshInteractionCommand } from './FreshInteractionService'
+import { writeStatefulInteraction } from './statefulInteractionWrite'
 
 const STATEFUL_INTERACTIONS = new Set([
   'react',
@@ -51,16 +52,9 @@ export async function persistUniversalInteraction(
     },
   }
 
-  const query = STATEFUL_INTERACTIONS.has(command.type)
-    ? supabase
-        .from('universal_interactions')
-        .upsert(row, {
-          onConflict: 'actor_id,target_type,target_id,interaction_type',
-          ignoreDuplicates: false,
-        })
-    : supabase.from('universal_interactions').insert(row)
-
-  const { error } = await query
+  const { error } = STATEFUL_INTERACTIONS.has(command.type)
+    ? await writeStatefulInteraction(supabase, row)
+    : await supabase.from('universal_interactions').insert(row)
   if (error) throw new Error(`Failed to persist interaction: ${error.message}`)
 }
 

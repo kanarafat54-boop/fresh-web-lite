@@ -485,11 +485,11 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
         <div className="sheet-drag-handle" onPointerDown={(event) => { dragY.current = event.clientY; dragH.current = sheetHeight; }} onPointerMove={(event) => { if (event.buttons === 1 && dragY.current !== null) setSheetHeight(Math.min(SHEET_MAX, Math.max(SHEET_MIN, dragH.current + ((dragY.current - event.clientY) / window.innerHeight) * 100))); }} onPointerUp={() => { dragY.current = null; setSheetHeight((height) => height > (SHEET_MIN + SHEET_MAX) / 2 ? SHEET_MAX : SHEET_MIN); }} />
         <div className="comment-panel-header">
           <h3>Comments{comments.length ? ` (${compact(countAll(comments))})` : ""}</h3>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button className="back-btn comment-close-btn" onClick={onClose} aria-label="Close comments"><CloseIcon size={20} /></button>
+          <div className="comment-sort-row">
             {([ ["relevant", "Relevant"], ["newest", "Newest"], ["liked", "Most liked"], ["oldest", "Oldest"] ] as Array<[CommentSortMode, string]>).map(([mode, label]) => (
               <button key={mode} type="button" className="reply-btn" onClick={() => setSortMode(mode)} aria-pressed={sortMode === mode} title={mode === "relevant" ? "Domain expertise / signal-value ranking" : undefined}>{label}</button>
             ))}
-            <button className="back-btn" onClick={onClose} aria-label="Close comments"><CloseIcon size={20} /></button>
           </div>
         </div>
         <div className="comment-list">
