@@ -33,6 +33,8 @@ const start = () => T.addClip(T.addAsset(T.addAsset(T.createTimeline(30), vid), 
   assert.throws(() => T.addOverlay(d, { kind: "rect", start: 0, patch: { width: 0 } }), /size/);
   assert.throws(() => T.addOverlay(d, { kind: "rect", start: 0, patch: { color: "red" } }), /colour/);
   assert.throws(() => T.addOverlay(d, { kind: "rect", start: 0, duration: 0.05 }), /at least/);
+  assert.throws(() => T.addOverlay(d, { kind: "rect", start: 0, patch: { rotation: 200 } }), /rotation/);
+  assert.equal(T.updateOverlay(r, "o1", { rotation: -45 }).overlays[0].rotation, -45);
   const u = T.updateOverlay(r, "o1", { x: 0.2, opacity: 0.5 });
   assert.equal(u.overlays[0].x, 0.2);
   assert.throws(() => T.updateOverlay(r, "o1", { opacity: 3 }), /opacity/);
@@ -125,6 +127,22 @@ assert.ok(blue(stat(render(start()), 2, centre)));
   assert.ok(blue(stat(o, 1, centre)), "centre untouched");
   assert.ok(blue(stat(o, 0.2, at(0.2, 0.3))), "nothing before the start");
   assert.ok(blue(stat(o, 3.8, at(0.2, 0.3))), "gone after the end");
+}
+// rotation: a wide bar turned a quarter turn becomes a tall bar, and a picture turned 45 degrees still renders
+{
+  const bar = { color: "#00ff00", width: 0.6, height: 0.1 };
+  const at2 = (fx, fy) => `crop=iw/32:ih/32:iw*${fx}-iw/64:ih*${fy}-ih/64`;
+  const flat = render(T.addOverlay(start(), { kind: "rect", start: 0, duration: 4, patch: bar }));
+  assert.ok(green(stat(flat, 2, at2(0.75, 0.5))), "flat bar reaches the right");
+  assert.ok(blue(stat(flat, 2, at2(0.5, 0.2))), "flat bar does not reach above");
+  const turned = render(T.addOverlay(start(), { kind: "rect", start: 0, duration: 4, patch: { ...bar, rotation: 90 } }));
+  assert.ok(Math.abs(duration(turned) - 4) < 0.15, "length unchanged");
+  assert.ok(green(stat(turned, 2, at2(0.5, 0.2))), `turned bar reaches above (${JSON.stringify(stat(turned, 2, at2(0.5, 0.2)))})`);
+  assert.ok(blue(stat(turned, 2, at2(0.75, 0.5))), "turned bar no longer reaches right");
+  assert.ok(green(stat(turned, 2, at2(0.5, 0.5))), "still centred where it was placed");
+  const pict = render(T.addOverlay(start(), { kind: "image", assetId: "logo", start: 0, duration: 4, patch: { width: 0.3, rotation: 45 } }));
+  assert.ok(red(stat(pict, 2, centre)), "turned picture is still in the middle");
+  assert.ok(blue(stat(pict, 2, corner)), "and the corner is still the video");
 }
 // picture and rectangle together with a transition, text and a different frame shape
 {

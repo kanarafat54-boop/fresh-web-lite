@@ -247,6 +247,8 @@ export function planRender(input                 )             {
       cur = next;
     });
   }
+  // A turned layer grows to fit its corners; the empty corners stay transparent. The overlay is centred, so it still lands on x/y.
+  const turn = (deg         ) => (deg ? `,rotate=a=${num(deg)}*PI/180:ow=rotw(${num(deg)}*PI/180):oh=roth(${num(deg)}*PI/180):c=none` : "");
   if (overlays.length) {
     let cur = "vbase";
     [...overlays].sort((a, b) => a.start - b.start).forEach((o, k) => {
@@ -255,12 +257,12 @@ export function planRender(input                 )             {
       if (o.kind === "rect") {
         const w = even(W * o.width), h = even(H * o.height);
         // drawbox ignores transparency on this pixel format, so the rectangle is its own tinted layer instead.
-        filters.push(`color=c=0x${o.color.slice(1)}@${num(o.opacity)}:s=${w}x${h}:r=${fps},format=rgba[ov${k}]`);
+        filters.push(`color=c=0x${o.color.slice(1)}@${num(o.opacity)}:s=${w}x${h}:r=${fps},format=rgba${turn(o.rotation)}[ov${k}]`);
         filters.push(`[${cur}][ov${k}]overlay=x=${num(o.x)}*${W}-w/2:y=${num(o.y)}*${H}-h/2:${when}[${next}]`);
       } else {
         const wpx = even(W * o.width);
         // A single decoded picture is repeated for as long as the video runs; the overlay is only visible inside its time window.
-        filters.push(`[${overlayInput.get(o.id)}:v]loop=loop=-1:size=1,setpts=N/${fps}/TB,scale=${wpx}:-2,format=rgba,colorchannelmixer=aa=${num(o.opacity)}[ov${k}]`);
+        filters.push(`[${overlayInput.get(o.id)}:v]loop=loop=-1:size=1,setpts=N/${fps}/TB,scale=${wpx}:-2,format=rgba,colorchannelmixer=aa=${num(o.opacity)}${turn(o.rotation)}[ov${k}]`);
         filters.push(`[${cur}][ov${k}]overlay=x=${num(o.x)}*${W}-w/2:y=${num(o.y)}*${H}-h/2:${when}[${next}]`);
       }
       cur = next;

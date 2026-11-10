@@ -201,6 +201,15 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
       return T.addClip(withTrack, { trackId: track.id, assetId, start: Math.min(playhead, Math.max(0, T.timelineDuration(withTrack) - 0.5)), id });
     })) ed.setSelected(id);
   };
+  /** Alt + arrow moves the selected text, picture, rectangle or picture-in-picture by 1% of the frame (5% with Shift). */
+  const nudge = (key: string, amount: number) => {
+    const dx = key === "ArrowLeft" ? -amount : key === "ArrowRight" ? amount : 0;
+    const dy = key === "ArrowUp" ? -amount : key === "ArrowDown" ? amount : 0;
+    const clampUnit = (n: number) => Math.min(1, Math.max(0, T.round3(n)));
+    if (selectedText) ed.edit((d) => T.updateText(d, selectedText.id, { x: clampUnit(selectedText.x + dx), y: clampUnit(selectedText.y + dy) }));
+    else if (selectedOverlay) ed.edit((d) => T.updateOverlay(d, selectedOverlay.id, { x: clampUnit(selectedOverlay.x + dx), y: clampUnit(selectedOverlay.y + dy) }));
+    else if (selectedClip && T.isLayerTrack(doc, selectedClip.trackId) && selectedClip.layer) { const L = selectedClip.layer; ed.edit((d) => T.setClipLayer(d, selectedClip.id, { x: clampUnit(L.x + dx), y: clampUnit(L.y + dy) })); }
+  };
   const step = (dir: 1 | -1) => { setPlaying(false); ed.setPlayhead(Math.min(duration, Math.max(0, T.round3(playheadRef.current + dir / doc.fps)))); };
   const fullscreen = () => { const el = monitorRef.current; if (!el) return; if (document.fullscreenElement) void document.exitFullscreen(); else void el.requestFullscreen?.().catch(() => notify("error", "Fullscreen is not available here.")); };
   const duplicate = () => { if (selectedClip) ed.edit((d) => T.duplicateClip(d, selectedClip.id)); else notify("error", "Select a clip first."); };
@@ -216,6 +225,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key.toLowerCase() === "z") { e.preventDefault(); if (e.shiftKey) ed.redo(); else ed.undo(); }
       else if (mod && e.key.toLowerCase() === "y") { e.preventDefault(); ed.redo(); }
+      else if (e.altKey && e.key.startsWith("Arrow")) { e.preventDefault(); nudge(e.key, e.shiftKey ? 0.05 : 0.01); }
       else if (e.key === " ") { e.preventDefault(); togglePlay(); }
       else if (e.key.toLowerCase() === "s" && !mod) { e.preventDefault(); split(); }
       else if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); remove(e.shiftKey); }
@@ -297,7 +307,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
               const url = o.kind === "image" ? ed.media[o.assetId!]?.url : null;
               return (
                 <div key={o.id} className={`fs-overlay-item${selected === o.id ? " is-selected" : ""}`} data-testid={o.kind === "rect" ? "overlay-shape" : "overlay-picture"}
-                  style={{ left: `${o.x * 100}%`, top: `${o.y * 100}%`, width: `${o.width * 100}%`, ...(o.kind === "rect" ? { height: `${o.height * 100}%` } : {}) }}
+                  style={{ left: `${o.x * 100}%`, top: `${o.y * 100}%`, width: `${o.width * 100}%`, ...(o.kind === "rect" ? { height: `${o.height * 100}%` } : {}), ...(o.rotation ? { transform: `translate(-50%, -50%) rotate(${o.rotation}deg)` } : {}) }}
                   onPointerDown={(e) => drag.begin(e, o.id, "overlay")} onPointerMove={drag.move} onPointerUp={drag.end} onPointerCancel={drag.end}>
                   {o.kind === "rect"
                     ? <div className="fs-overlay-fill" style={{ background: o.color, opacity: o.opacity }} />

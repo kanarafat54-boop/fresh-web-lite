@@ -165,6 +165,7 @@ export function OverlayInspector({ layer, assetName, edit, duration }: { layer: 
         <Slider label={layer.kind === "rect" ? "Width" : "Size"} value={layer.width} min={0.02} max={1} step={0.01} format={pct} onCommit={(v) => up({ width: v })} />
         {layer.kind === "rect" && <Slider label="Height" value={layer.height} min={0.02} max={1} step={0.01} format={pct} onCommit={(v) => up({ height: v })} />}
         <Slider label="Opacity" value={layer.opacity} min={0.05} max={1} step={0.05} format={pct} onCommit={(v) => up({ opacity: v })} />
+        <Slider label="Rotate" value={layer.rotation ?? 0} min={-T.MAX_ROTATION} max={T.MAX_ROTATION} step={1} format={(v) => `${Math.round(v)}°`} onCommit={(v) => up({ rotation: v })} />
         <Slider label="Shows for" value={layer.duration} min={T.MIN_OVERLAY_SECONDS} max={Math.max(10, Math.ceil(duration))} step={0.1} format={(v) => `${v.toFixed(1)} s`} onCommit={(v) => up({ duration: v })} />
         {layer.kind === "rect" && (
           <>
