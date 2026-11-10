@@ -267,3 +267,20 @@
 .fresh-flow-advanced > button:disabled { opacity: 0.5; cursor: default; }
 .fresh-flow-advanced > button:active { background: rgba(109, 74, 255, 0.28); }
 .fresh-flow-advanced .fresh-flow-menu-icon { display: inline-grid; place-items: center; color: #9b82ff; }
+
+/* Like button: always full white (pink once liked), never dimmed, even if a default button style applies. */
+.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions .short-like-btn,
+.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions .short-like-btn:disabled {
+  opacity: 1;
+  color: #fff;
+}
+.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions .short-like-btn.liked { color: var(--shorts-like); }
+
+/* Shorts is an immersive dark surface: the comments sheet stays dark even when the app theme is light. */
+:root[data-theme="light"] .fresh-flow-shorts-fullscreen .fresh-comments {
+  background: #0b0f1d;
+  color: #fff;
+  border-color: rgba(129, 92, 255, 0.28);
+}
+:root[data-theme="light"] .fresh-flow-shorts-fullscreen .fresh-comments .sheet-drag-handle { background: rgba(255, 255, 255, 0.28); }
+:root[data-theme="light"] .fresh-flow-shorts-fullscreen .fresh-comments .comment-input { border-color: rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.06); color: #fff; }
