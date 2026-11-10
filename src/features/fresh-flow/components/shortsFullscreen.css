@@ -86,15 +86,15 @@
     position: absolute;
     top: calc(44px + env(safe-area-inset-top));
     right: 6px;
-    z-index: 96;
+    z-index: 120;
     flex-direction: column;
     gap: 2px;
     min-width: 200px;
     padding: 6px;
     border-radius: 14px;
-    background: var(--shorts-surface);
+    background: #0d0d24;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
   }
   .fresh-flow-shorts-fullscreen .fresh-flow-header-more-list.open { display: flex; }
   .fresh-flow-shorts-fullscreen .fresh-shorts-header .fresh-flow-header-more-list > button,
@@ -123,9 +123,18 @@
     justify-content: flex-start;
     padding: 0 8px;
   }
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-tabs {
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+  }
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-tabs button svg { display: none; }
   .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-tabs button {
+    flex: 0 0 auto;
+    padding-left: 10px;
+    padding-right: 10px;
+    white-space: nowrap;
     color: var(--shorts-muted);
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 700;
     box-shadow: inset 0 -3px 0 transparent;
   }
@@ -237,3 +246,24 @@
     white-space: nowrap;
   }
 }
+
+/* "More actions" menu on a Short: dark glass rows instead of default light buttons. */
+.fresh-flow-advanced > button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  font: inherit;
+  font-size: 0.92rem;
+  text-align: left;
+  cursor: pointer;
+}
+.fresh-flow-advanced > button:disabled { opacity: 0.5; cursor: default; }
+.fresh-flow-advanced > button:active { background: rgba(109, 74, 255, 0.28); }
+.fresh-flow-advanced .fresh-flow-menu-icon { display: inline-grid; place-items: center; color: #9b82ff; }

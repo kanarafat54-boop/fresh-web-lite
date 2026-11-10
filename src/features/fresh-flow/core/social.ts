@@ -29,10 +29,11 @@ export async function getFriendAuthorIds(userId: string): Promise<string[]> {
 export async function setAuthorFollow(followerId: string, followedId: string, following: boolean): Promise<void> {
   if (followerId === followedId) throw new Error("You cannot follow yourself.");
   if (following) {
-    const { error } = await supabase.from("follows").upsert({ follower_id: followerId, followed_id: followedId }, { onConflict: "follower_id,followed_id" });
-    if (error) throw error;
+    // follows has no UPDATE policy, so an upsert is refused; a plain insert works and a repeat follow is already done.
+    const { error } = await supabase.from("follows").insert({ follower_id: followerId, followed_id: followedId });
+    if (error && error.code !== "23505") throw new Error(error.message || "Fresh could not update the follow right now.");
     return;
   }
   const { error } = await supabase.from("follows").delete().eq("follower_id", followerId).eq("followed_id", followedId);
-  if (error) throw error;
+  if (error) throw new Error(error.message || "Fresh could not update the follow right now.");
 }
