@@ -241,6 +241,7 @@ export default function FreshFlowHub() {
         {isOverview ? (
           <FreshFlowHome
             onOpenSearch={openFreshSearch}
+            onOpenShort={(shortId) => { requestOpenShort(shortId); setActiveRoute("fresh-flow-shorts"); }}
             onOpenSystem={(systemId) => {
               const routeMap: Record<string, string> = {
                 "fresh-shorts": "fresh-flow-shorts",

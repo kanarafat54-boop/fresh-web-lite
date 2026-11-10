@@ -6,6 +6,8 @@ import { runIntelligence, type IntelligenceResponse } from "../ai/intelligence";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
 import { useEffect, useState } from "react";
 import { FeedModule } from "../feed/components/FeedModule";
+import ShortsSuggestionsRow from "../fresh-flow/components/ShortsSuggestionsRow";
+import { requestOpenShort } from "../fresh-flow/core/shortsExplore";
 import "./HomeDashboard.css";
 
 type SearchMode = "instant" | "ai" | "research" | "private";
@@ -172,6 +174,13 @@ export default function HomeDashboard() {
           ))}
         </section>
       )}
+
+      {experienceMode !== "simple" && <section className="fresh-home-suggestions" aria-label="Suggested Shorts">
+        <ShortsSuggestionsRow
+          onOpen={(shortId) => { requestOpenShort(shortId); setActiveRoute("fresh-flow-shorts"); }}
+          onSeeAll={() => setActiveRoute("fresh-flow-shorts")}
+        />
+      </section>}
 
       {experienceMode !== "simple" && <section className="fresh-home-feed" aria-label="Your Fresh feed">
         <div className="fresh-home-section-heading">

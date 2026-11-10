@@ -4,14 +4,17 @@ import {
   FRESH_FLOW_SYSTEM_FAMILIES,
   getFreshFlowSystemsByFamily,
 } from "../core/freshFlowSystemRegistry";
+import ShortsSuggestionsRow from "./ShortsSuggestionsRow";
 import "./FreshFlowHome.css";
 
 type Props = {
   onOpenSystem: (systemId: string) => void;
   onOpenSearch: () => void;
+  /** Opens one Short in the Shorts feed. */
+  onOpenShort: (shortId: string) => void;
 };
 
-export default function FreshFlowHome({ onOpenSystem, onOpenSearch }: Props) {
+export default function FreshFlowHome({ onOpenSystem, onOpenSearch, onOpenShort }: Props) {
   const [showDirectory, setShowDirectory] = useState(false);
   const [directoryQuery, setDirectoryQuery] = useState("");
   const filteredSystems = useMemo(() => {
@@ -82,7 +85,8 @@ export default function FreshFlowHome({ onOpenSystem, onOpenSearch }: Props) {
               <button type="button" className="fresh-flow-text-action" onClick={() => setShowDirectory(true)}>All systems <span aria-hidden="true">→</span></button>
             </div>
             <p className="fresh-flow-feed-description">A personalized mix of creators, useful discoveries, and content from across Fresh Flow.</p>
-            <div className="fresh-flow-example-notice"><span aria-hidden="true">ⓘ</span><span><strong>Example content — not a live feed.</strong> Real recommendations will appear when the feed and content sources are connected.</span></div>
+            <ShortsSuggestionsRow onOpen={onOpenShort} onSeeAll={() => onOpenSystem("fresh-shorts")} />
+            <div className="fresh-flow-example-notice"><span aria-hidden="true">ⓘ</span><span><strong>Example content — not a live feed.</strong> The Shorts above are live; the cards below are examples until their content sources are connected.</span></div>
             <div className="fresh-flow-recommendation-grid">
                 <button type="button" className="fresh-flow-recommendation-card feature-card" onClick={() => onOpenSystem("learn")}>
                   <span className="fresh-flow-recommendation-art art-learn" aria-hidden="true"><span>LEARN</span><b>Small steps.<br />Big ideas.</b><i>✦</i></span>
