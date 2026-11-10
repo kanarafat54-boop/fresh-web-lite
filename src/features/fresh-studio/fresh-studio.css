@@ -401,3 +401,10 @@
 .fs-guides i { position: absolute; background: rgba(255, 212, 0, .9); }
 .fs-guides .gx { left: 50%; top: 0; bottom: 0; width: 1px; }
 .fs-guides .gy { top: 50%; left: 0; right: 0; height: 1px; }
+
+/* picture-in-picture layer */
+.fs-pip { position: absolute; z-index: 1; transform: translate(-50%, -50%); overflow: visible; background: #000; cursor: grab; touch-action: none; box-sizing: border-box; box-shadow: 0 0 0 1px rgba(255,255,255,.25); }
+.fs-pip[hidden] { display: none; }
+.fs-pip.is-selected { outline: 2px solid #fff; outline-offset: 2px; }
+.fs-pip-clip { position: absolute; inset: 0; overflow: hidden; }
+.fs-pip video { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }

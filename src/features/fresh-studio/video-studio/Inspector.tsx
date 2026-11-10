@@ -20,7 +20,7 @@ function Slider({ label, value, min, max, step, format, onChange, onCommit }: { 
   );
 }
 
-type Section = "speed" | "audio" | "look" | "frame" | "motion" | "transition";
+type Section = "speed" | "audio" | "look" | "frame" | "motion" | "transition" | "layer";
 export function ClipInspector({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T.TimelineClip; edit: EditFn }) {
   const [section, setSection] = useState<Section>("speed");
   const asset = doc.assets.find((a) => a.id === clip.assetId);
@@ -28,7 +28,10 @@ export function ClipInspector({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T
   const isVideo = track?.kind === "video";
   const look = clip.look ?? T.NEUTRAL_LOOK;
   const dur = T.clipDuration(clip);
-  const sections: Array<[Section, string]> = isVideo ? [["speed", "Speed"], ["audio", "Audio"], ["look", "Look"], ["frame", "Frame"], ["motion", "Motion"], ["transition", "Transition"]] : [["speed", "Speed"], ["audio", "Audio"]];
+  const onLayer = isVideo && T.isLayerTrack(doc, clip.trackId);
+  const sections: Array<[Section, string]> = isVideo
+    ? [["speed", "Speed"], ["audio", "Audio"], ["look", "Look"], ["frame", "Frame"], ["motion", "Motion"], onLayer ? ["layer", "Layer"] : ["transition", "Transition"]]
+    : [["speed", "Speed"], ["audio", "Audio"]];
   const active = sections.some(([id]) => id === section) ? section : "speed";
   const setLook = (l: T.ClipLook | null) => edit((d) => T.setClipLook(d, clip.id, l ?? null));
   return (
@@ -68,6 +71,7 @@ export function ClipInspector({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T
           </>
         )}
         {active === "motion" && <MotionPanel clip={clip} edit={edit} />}
+        {active === "layer" && <LayerPanel clip={clip} edit={edit} />}
         {active === "transition" && <TransitionPicker doc={doc} clip={clip} edit={edit} />}
         {active === "frame" && (
           <>
@@ -78,6 +82,25 @@ export function ClipInspector({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T
           </>
         )}
       </div>
+    </>
+  );
+}
+
+function LayerPanel({ clip, edit }: { clip: T.TimelineClip; edit: EditFn }) {
+  const L = clip.layer ?? T.DEFAULT_LAYER;
+  const up = (patch: Partial<T.ClipLayer>) => edit((d) => T.setClipLayer(d, clip.id, patch));
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+  const corners = [["Top left", 0.25, 0.25], ["Top right", 0.75, 0.25], ["Bottom left", 0.25, 0.75], ["Bottom right", 0.75, 0.75], ["Centre", 0.5, 0.5]] as const;
+  return (
+    <>
+      <div className="fs-chips" role="group" aria-label="Quick position">
+        {corners.map(([n, x, y]) => <button key={n} type="button" className="fs-chip" onClick={() => up({ x, y, ...(n === "Centre" ? { width: 1 } : { width: Math.min(L.width, 0.5) }) })}>{n === "Centre" ? "Full frame" : n}</button>)}
+      </div>
+      <Slider label="Size" value={L.width} min={T.MIN_LAYER_WIDTH} max={1} step={0.01} format={pct} onCommit={(v) => up({ width: v })} />
+      <Slider label="Left ↔ right" value={L.x} min={0} max={1} step={0.01} format={pct} onCommit={(v) => up({ x: v })} />
+      <Slider label="Top ↔ bottom" value={L.y} min={0} max={1} step={0.01} format={pct} onCommit={(v) => up({ y: v })} />
+      <Slider label="Opacity" value={L.opacity} min={0.05} max={1} step={0.05} format={pct} onCommit={(v) => up({ opacity: v })} />
+      <p className="fs-muted">This clip plays in a window over the main video. Drag the window in the preview, or the white dot to resize it. Fades make it see-through. Its sound is mixed in with the main video.</p>
     </>
   );
 }
