@@ -38,6 +38,7 @@ jobs:
           npm run test:fresh-shorts-why
           npm run test:fresh-user-blocks
           npm run test:fresh-shorts-suggestions
+          npm run test:fresh-proof
           npm run test:fresh-stateful-interaction
           npm run test:fresh-shorts-reporting
           npm run test:fresh-shorts-notification-state

@@ -113,6 +113,7 @@
     "test:fresh-shorts-reporting": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-reporting.mjs",
     "test:fresh-stateful-interaction": "node --experimental-strip-types --no-warnings scripts/test-fresh-stateful-interaction.mjs",
     "test:fresh-user-blocks": "node --experimental-strip-types --no-warnings scripts/test-fresh-user-blocks.mjs",
+    "test:fresh-proof": "node --experimental-strip-types --no-warnings scripts/test-fresh-proof.mjs",
     "test:fresh-shorts-suggestions": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-suggestions.mjs",
     "test:fresh-shorts-why": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-why.mjs",
     "test:fresh-shorts-filters": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-filters.mjs",
