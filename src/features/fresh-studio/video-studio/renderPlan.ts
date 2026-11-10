@@ -5,7 +5,7 @@
  * with a clear message instead of being silently ignored (spec §6.10, §26.7).
  */
 import { escapeFilterPath } from "./captions.ts";
-import { clipDuration, effectiveFades, previousAdjacent, nextAdjacent, round3, timelineDuration, trackClips, validateTimeline, type TimelineClip, type TimelineDoc } from "./timeline.ts";
+import { clipDuration, effectiveFades, previousAdjacent, nextAdjacent, motionPoints, round3, timelineDuration, trackClips, validateTimeline, type TimelineClip, type TimelineDoc } from "./timeline.ts";
 
 const XFADE = { dissolve: "fade", wipe: "wipeleft", slide: "slideleft" } as const;
 
@@ -89,14 +89,21 @@ function pictureChain(clip: TimelineClip, W: number, H: number, fps: number, fad
     : `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:black`;
   const parts = [frame, "setsar=1", `fps=${fps}`];
   const m = clip.motion;
-  if (m && (m.fromZoom !== 1 || m.toZoom !== 1)) {
+  const pts = m ? motionPoints(m) : [];
+  if (m && pts.some((k) => k.zoom !== 1)) {
     // zoompan keeps a fixed output size (a per-frame scale + crop does not: crop reads its size once). The picture is
     // enlarged 2x first so the slow movement stays smooth instead of stepping a pixel at a time.
     const frames = Math.max(1, Math.round(clipDuration(clip) * fps) - 1);
     const p = `min(1,on/${frames})`;
-    const mix = (a: number, b: number) => `(${num(a)}+(${num(b)}-${num(a)})*${p})`;
+    // Piecewise-linear through every keyframe: a nested if() picks the segment the progress is in.
+    const track = (pick: (k: { zoom: number; x: number; y: number }) => number) => {
+      const seg = (i: number) => { const a = pts[i], b = pts[i + 1]; return `(${num(pick(a))}+(${num(pick(b))}-${num(pick(a))})*(${p}-${num(a.at)})/${num(b.at - a.at)})`; };
+      let expr = seg(pts.length - 2);
+      for (let i = pts.length - 3; i >= 0; i -= 1) expr = `if(lt(${p},${num(pts[i + 1].at)}),${seg(i)},${expr})`;
+      return expr;
+    };
     parts.push(`scale=${W * 2}:${H * 2}`);
-    parts.push(`zoompan=z='${mix(m.fromZoom, m.toZoom)}':x='(iw-iw/zoom)*(1+${mix(m.fromX, m.toX)})/2':y='(ih-ih/zoom)*(1+${mix(m.fromY, m.toY)})/2':d=1:s=${W}x${H}:fps=${fps}`);
+    parts.push(`zoompan=z='${track((k) => k.zoom)}':x='(iw-iw/zoom)*(1+${track((k) => k.x)})/2':y='(ih-ih/zoom)*(1+${track((k) => k.y)})/2':d=1:s=${W}x${H}:fps=${fps}`);
     parts.push("setsar=1");
   }
   const l = clip.look;

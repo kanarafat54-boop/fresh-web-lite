@@ -347,7 +347,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
       </section>
 
       <aside className="fs-inspector" aria-label="Clip settings">
-        {selectedClip ? <ClipInspector doc={doc} clip={selectedClip} edit={ed.edit} />
+        {selectedClip ? <ClipInspector doc={doc} clip={selectedClip} edit={ed.edit} playhead={playhead} />
           : selectedText ? <TextInspector layer={selectedText} edit={ed.edit} duration={duration} />
           : selectedOverlay ? <OverlayInspector layer={selectedOverlay} assetName={doc.assets.find((a) => a.id === selectedOverlay.assetId)?.name ?? null} edit={ed.edit} duration={duration} />
           : (

@@ -21,7 +21,7 @@ function Slider({ label, value, min, max, step, format, onChange, onCommit }: { 
 }
 
 type Section = "speed" | "audio" | "look" | "frame" | "motion" | "transition" | "layer";
-export function ClipInspector({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T.TimelineClip; edit: EditFn }) {
+export function ClipInspector({ doc, clip, edit, playhead = 0 }: { doc: T.TimelineDoc; clip: T.TimelineClip; edit: EditFn; playhead?: number }) {
   const [section, setSection] = useState<Section>("speed");
   const asset = doc.assets.find((a) => a.id === clip.assetId);
   const track = doc.tracks.find((t) => t.id === clip.trackId);
@@ -70,7 +70,7 @@ export function ClipInspector({ doc, clip, edit }: { doc: T.TimelineDoc; clip: T
             <p className="fs-muted">The preview is an approximation. The exported video uses exact values.</p>
           </>
         )}
-        {active === "motion" && <MotionPanel clip={clip} edit={edit} />}
+        {active === "motion" && <MotionPanel clip={clip} edit={edit} playhead={playhead} />}
         {active === "layer" && <LayerPanel clip={clip} edit={edit} />}
         {active === "transition" && <TransitionPicker doc={doc} clip={clip} edit={edit} />}
         {active === "frame" && (
@@ -105,12 +105,16 @@ function LayerPanel({ clip, edit }: { clip: T.TimelineClip; edit: EditFn }) {
   );
 }
 
-function MotionPanel({ clip, edit }: { clip: T.TimelineClip; edit: EditFn }) {
+function MotionPanel({ clip, edit, playhead }: { clip: T.TimelineClip; edit: EditFn; playhead: number }) {
   const m = clip.motion;
-  const same = (a: T.ClipMotion | null, b: T.ClipMotion | null) => (a === null || b === null ? a === b : (Object.keys(a) as Array<keyof T.ClipMotion>).every((k) => Math.abs(a[k] - b[k]) < 1e-6));
+  const same = (a: T.ClipMotion | null, b: T.ClipMotion | null) => (a === null || b === null ? a === b : !a.mid?.length && !b.mid?.length && (["fromZoom", "toZoom", "fromX", "toX", "fromY", "toY"] as const).every((k) => Math.abs(a[k] - b[k]) < 1e-6));
   const set = (patch: Partial<T.ClipMotion>) => edit((d) => T.setClipMotion(d, clip.id, { ...(m ?? T.MOTION_PRESETS[1].motion!), ...patch }));
   const pct = (v: number) => `${v > 0 ? "+" : ""}${Math.round(v * 100)}%`;
-  const noZoom = m && m.fromZoom === 1 && m.toZoom === 1;
+  const noZoom = m && T.motionPoints(m).every((k) => k.zoom === 1);
+  const progress = (playhead - clip.start) / Math.max(0.001, T.clipDuration(clip));
+  const canKey = progress > 0 && progress < 1;
+  const keys = m?.mid ?? [];
+  const seconds = (at: number) => `${(at * T.clipDuration(clip)).toFixed(1)} s`;
   return (
     <>
       <div className="fs-chips" role="group" aria-label="Motion presets">
@@ -124,10 +128,25 @@ function MotionPanel({ clip, edit }: { clip: T.TimelineClip; edit: EditFn }) {
           <Slider label="Left–right at end" value={m.toX} min={-1} max={1} step={0.05} format={pct} onCommit={(v) => set({ toX: v })} />
           <Slider label="Up–down at start" value={m.fromY} min={-1} max={1} step={0.05} format={pct} onCommit={(v) => set({ fromY: v })} />
           <Slider label="Up–down at end" value={m.toY} min={-1} max={1} step={0.05} format={pct} onCommit={(v) => set({ toY: v })} />
+          <div className="fs-label">Keyframes</div>
+          {keys.length === 0 && <p className="fs-muted">Add a keyframe at the playhead to hold, speed up or change direction part-way through the clip.</p>}
+          {keys.map((k, n) => (
+            <fieldset key={`${n}-${k.at}`} className="fs-keyframe" aria-label={`Keyframe ${n + 1}`}>
+              <legend>Keyframe {n + 1} · {seconds(k.at)}</legend>
+              <Slider label="Position in clip" value={k.at} min={T.MIN_KEY_GAP} max={1 - T.MIN_KEY_GAP} step={0.01} format={(v) => seconds(v)} onCommit={(v) => edit((d) => T.updateMotionKey(d, clip.id, n, { at: v }))} />
+              <Slider label="Zoom" value={k.zoom} min={T.MIN_ZOOM} max={T.MAX_ZOOM} step={0.05} format={(v) => `${v.toFixed(2)}×`} onCommit={(v) => edit((d) => T.updateMotionKey(d, clip.id, n, { zoom: v }))} />
+              <Slider label="Left–right" value={k.x} min={-1} max={1} step={0.05} format={pct} onCommit={(v) => edit((d) => T.updateMotionKey(d, clip.id, n, { x: v }))} />
+              <Slider label="Up–down" value={k.y} min={-1} max={1} step={0.05} format={pct} onCommit={(v) => edit((d) => T.updateMotionKey(d, clip.id, n, { y: v }))} />
+              <button type="button" className="fs-btn" onClick={() => edit((d) => T.removeMotionKey(d, clip.id, n))}>Remove keyframe {n + 1}</button>
+            </fieldset>
+          ))}
+          <button type="button" className="fs-btn" disabled={!canKey || keys.length >= T.MAX_MID_KEYS} onClick={() => edit((d) => T.addMotionKey(d, clip.id, progress))}>Add keyframe at playhead</button>
+          {!canKey && <p className="fs-muted">Move the playhead inside this clip to add a keyframe.</p>}
+          {keys.length >= T.MAX_MID_KEYS && <p className="fs-muted">A clip can have up to {T.MAX_MID_KEYS} extra keyframes.</p>}
           {noZoom && <p className="fs-muted" role="status">Moving needs some zoom. At 1× the whole picture is already showing, so there is nothing to move across.</p>}
         </>
       )}
-      <p className="fs-muted">Two keyframes: the picture eases from the start settings to the end settings over the clip. Splitting a clip keeps the movement smooth across the cut.</p>
+      <p className="fs-muted">The picture moves in straight lines from keyframe to keyframe, from the start settings to the end settings. Splitting a clip keeps the movement smooth across the cut.</p>
     </>
   );
 }
