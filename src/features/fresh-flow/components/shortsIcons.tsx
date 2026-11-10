@@ -32,6 +32,7 @@ const fill = (p: ShortsIconProps) => (p.filled ? "currentColor" : "none");
 
 // --- Discovery tabs ---------------------------------------------------------------------------
 export const ForYouIcon = (p: ShortsIconProps) => svg(p, <path d="m12 3 2.4 5.6L20 9.3l-4.2 3.8 1.3 5.9L12 16l-5.1 3 1.3-5.9L4 9.3l5.6-.7L12 3Z" fill={fill(p)} />);
+export const FriendsIcon = (p: ShortsIconProps) => svg(p, <><circle cx="8.5" cy="8.5" r="3" /><circle cx="16.5" cy="9.5" r="2.5" /><path d="M3 19.5a5.5 5.5 0 0 1 11 0" /><path d="M15 15a4.5 4.5 0 0 1 6 4.5" /></>);
 export const FollowingIcon = (p: ShortsIconProps) => svg(p, <><circle cx="9" cy="8" r="3.2" /><path d="M3 20a6 6 0 0 1 12 0" /><path d="M17 8.5a2.7 2.7 0 0 1 0 5M18.5 15.2A5.2 5.2 0 0 1 21.5 20" /></>);
 export const TrendingIcon = (p: ShortsIconProps) => svg(p, <><path d="m3 17 6-6 4 4 7-8" /><path d="M15 7h5v5" /></>);
 export const PicksIcon = (p: ShortsIconProps) => svg(p, <><path d="m12 3 1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3Z" /><path d="m18.5 15 .8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" /></>);

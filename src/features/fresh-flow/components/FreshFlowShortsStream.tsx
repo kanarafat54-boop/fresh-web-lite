@@ -31,7 +31,7 @@ import { sendGift, getGiftTotals, type GiftTotal } from "../core/giftService";
 import { interactWithShort, removeShortInteraction } from "../../shorts/core/ShortsUniversalInteractionAdapter";
 import type { UniversalReactionKind } from "../../../core/interactions/FreshReactionModel";
 import type { Short } from "../../shorts/types/short";
-import { getSocialAuthorIds, setAuthorFollow } from "../core/social";
+import { getFriendAuthorIds, getSocialAuthorIds, setAuthorFollow } from "../core/social";
 import { useFreshFlowFeedRefresh } from "../core/useFreshFlowFeedRefresh";
 import { useFreshFlowRuntime } from "../core/useFreshFlowRuntime";
 import { FreshFlowTelemetryBuffer, type FreshFlowTelemetryEvent } from "../core/freshFlowTelemetry";
@@ -70,6 +70,7 @@ type FreshFlowShortsStreamProps = {
 const SUB_TABS: Array<{ id: SubTab; label: string; icon: ReactNode }> = [
   { id: "for-you", label: "For You", icon: <ShortsIcons.ForYouIcon size={16} /> },
   { id: "following", label: "Following", icon: <ShortsIcons.FollowingIcon size={16} /> },
+  { id: "friends", label: "Friends", icon: <ShortsIcons.FriendsIcon size={16} /> },
   { id: "trending", label: "Trending", icon: <ShortsIcons.TrendingIcon size={16} /> },
   { id: "more", label: "Fresh Picks", icon: <ShortsIcons.PicksIcon size={16} /> },
   { id: "learn", label: "Learn", icon: <ShortsIcons.LearnTabIcon size={16} /> },
@@ -249,7 +250,13 @@ export default function FreshFlowShortsStream({
       } else { prefsRef.current = EMPTY_PREFS; mutedCreatorsRef.current = new Set(); }
       let candidates = result.shorts.filter((s) => !mutedCreatorsRef.current.has(s.authorId));
       if (tab === "following") candidates = candidates.filter((s) => s.isFollowingAuthor);
-      else if (mode === "social") {
+      else if (tab === "friends") {
+        if (!user || isGuest) candidates = [];
+        else {
+          const friendIds = new Set(await getFriendAuthorIds(user.id));
+          candidates = candidates.filter((s) => friendIds.has(s.authorId));
+        }
+      } else if (mode === "social") {
         if (!user || isGuest) candidates = [];
         else {
           const socialIds = new Set(await getSocialAuthorIds(user.id));
@@ -310,7 +317,13 @@ export default function FreshFlowShortsStream({
       const result = await loadFreshFlowShorts(user?.id ?? null, isGuest, options);
       let candidates = result.shorts.filter((s) => !mutedCreatorsRef.current.has(s.authorId));
       if (subTab === "following") candidates = candidates.filter((s) => s.isFollowingAuthor);
-      else if (filterMode === "social") {
+      else if (subTab === "friends") {
+        if (!user || isGuest) candidates = [];
+        else {
+          const friendIds = new Set(await getFriendAuthorIds(user.id));
+          candidates = candidates.filter((s) => friendIds.has(s.authorId));
+        }
+      } else if (filterMode === "social") {
         if (!user || isGuest) candidates = [];
         else {
           const socialIds = new Set(await getSocialAuthorIds(user.id));
@@ -996,10 +1009,10 @@ export default function FreshFlowShortsStream({
           <div className="fresh-flow-empty">
             <ShortsStateScreen
               kind="empty"
-              title={activeFilterCount(shortFilters) > 0 ? "No Shorts match your filters" : subTab === "following" ? "Nothing from people you follow yet" : subTab === "learn" || subTab === "relax" ? `No ${subTab} Shorts yet` : "No Shorts yet"}
-              message={activeFilterCount(shortFilters) > 0 ? "Try removing a filter to see more." : subTab === "following" ? "Follow creators and their Shorts will appear here." : "Be the first to create something amazing."}
+              title={activeFilterCount(shortFilters) > 0 ? "No Shorts match your filters" : subTab === "following" ? "Nothing from people you follow yet" : subTab === "friends" ? "No Shorts from friends yet" : subTab === "learn" || subTab === "relax" ? `No ${subTab} Shorts yet` : "No Shorts yet"}
+              message={activeFilterCount(shortFilters) > 0 ? "Try removing a filter to see more." : subTab === "following" ? "Follow creators and their Shorts will appear here." : subTab === "friends" ? (isGuest || !user ? "Sign in to see Shorts from people you follow who follow you back." : "Friends are people you follow who follow you back. Their Shorts will appear here.") : "Be the first to create something amazing."}
               primary={activeFilterCount(shortFilters) > 0 ? { label: "Clear filters", onClick: () => setShortFilters(DEFAULT_SHORT_FILTERS) } : { label: "Create Short", onClick: () => setActiveRoute("fresh-flow-system-fresh-studio") }}
-              secondary={subTab === "following" ? { label: "Browse For You", onClick: () => setSubTab("for-you") } : undefined}
+              secondary={subTab === "following" || subTab === "friends" ? { label: "Browse For You", onClick: () => setSubTab("for-you") } : undefined}
             />
           </div>
         ) : (

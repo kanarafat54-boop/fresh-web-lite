@@ -93,6 +93,7 @@ export default function FreshFlowHub() {
   const shortsHeader = isShortsRoute || independentSystem?.id === "fresh-studio";
 
   const [searchOpen, setSearchOpen] = useState(false);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [shortsNotificationsOpen, setShortsNotificationsOpen] = useState(false);
   const [shortsCreateMode, setShortsCreateMode] = useState<"create" | "camera" | null>(null);
   const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
@@ -208,6 +209,10 @@ export default function FreshFlowHub() {
           <div className="fresh-flow-header-actions">
             <button type="button" className="fresh-flow-search-icon-button" onClick={openFreshSearch} aria-label="Search Fresh Flow" title="Search"><ShortsIcons.SearchIcon size={22} /></button>
             {shortsHeader && (
+              <button type="button" className="fresh-flow-search-icon-button fresh-flow-header-more-toggle" onClick={() => setHeaderMenuOpen((open) => !open)} aria-label="More Fresh Shorts options" aria-expanded={headerMenuOpen} aria-haspopup="true" title="More"><ShortsIcons.RailMoreIcon size={22} /></button>
+            )}
+            <div className={`fresh-flow-header-more-list${headerMenuOpen ? " open" : ""}`} onClick={() => setHeaderMenuOpen(false)}>
+              {shortsHeader && (
               <>
                 <button type="button" className="fresh-flow-search-icon-button fresh-shorts-bell" onClick={() => setShortsNotificationsOpen(true)} aria-label="Notifications" title="Notifications"><ShortsIcons.BellIcon size={22} /></button>
                 <button type="button" className="fresh-flow-search-icon-button fresh-shorts-add" onClick={() => openCreator("create")} aria-label="Add or create a Short" title="Add / Create"><ShortsIcons.NavCreateIcon size={22} /></button>
@@ -215,9 +220,10 @@ export default function FreshFlowHub() {
               </>
             )}
             <button type="button" className="fresh-flow-search-icon-button fresh-flow-switch-open" onClick={() => setFlowSwitchOpen(true)} aria-label="All media worlds and Flow profile photo" title="All media worlds"><ShortsIcons.WorldsGridIcon size={22} /></button>
-            <button type="button" className="fresh-flow-unified-profile" onClick={() => setActiveRoute("profile")} aria-label="Open your main Fresh ID profile">
+            <button type="button" className="fresh-flow-unified-profile" title="Profile" onClick={() => setActiveRoute("profile")} aria-label="Open your main Fresh ID profile">
               {mainProfileAvatarUrl ? <img src={mainProfileAvatarUrl} alt="" /> : <span>{isAuthenticated ? (user?.email?.slice(0, 1).toUpperCase() || "M") : "?"}</span>}
             </button>
+            </div>
           </div>
         </header>
 

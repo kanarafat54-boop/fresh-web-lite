@@ -73,6 +73,12 @@ async function diagnose(page, label) {
 
 const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"] });
 const WIDTHS = [320, 390, 430];
+// On phones every header control except Search lives in the "more" menu; open it before using one.
+async function openHeaderMenu(page) {
+  const list = page.locator("header .fresh-flow-header-more-list");
+  if (!(await list.evaluate((el) => el.classList.contains("open")))) await page.locator('header [aria-label="More Fresh Shorts options"]').click();
+}
+
 for (const width of WIDTHS) {
   const context = await browser.newContext({ viewport: { width, height: 760 }, hasTouch: true, isMobile: true });
   const page = await context.newPage();
@@ -143,7 +149,7 @@ for (const width of WIDTHS) {
     return { count: boxes.length, top: Math.min(...boxes.map((r) => r.top)), bottom: Math.max(...boxes.map((r) => r.bottom)), itemBottom: itemBox.bottom, tabsBottom };
   });
   const modes = (await page.locator('.fresh-flow-tabs [role="tab"]').allInnerTexts()).map((t) => t.replace(/^\S+\s/, "").trim());
-  check(JSON.stringify(modes) === JSON.stringify(["For You", "Following", "Trending", "Fresh Picks", "Learn", "Relax"]), `${tag} discovery modes are For You · Social · Trending · Fresh Picks · Learn · Relax (got ${modes.join(" · ")})`);
+  check(JSON.stringify(modes) === JSON.stringify(["For You", "Following", "Friends", "Trending", "Fresh Picks", "Learn", "Relax"]), `${tag} discovery modes are For You · Following · Friends · Trending · Fresh Picks · Learn · Relax (got ${modes.join(" · ")})`);
   check((await page.locator(".fresh-flow-item").first().locator(".fresh-flow-rail-avatar").count()) === 1, `${tag} rail starts with the creator profile photo`);
   check(rail.count >= 7, `${tag} action rail has profile, react, comment, repost, save, share and more (${rail.count})`);
   check(rail.top >= rail.tabsBottom - 1 && rail.bottom <= rail.itemBottom + 1, `${tag} every action sits inside the visible Short, below the tabs (${Math.round(rail.top)} >= ${Math.round(rail.tabsBottom)})`);
@@ -174,10 +180,13 @@ for (const width of WIDTHS) {
   const shortsTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
   check(JSON.stringify(shortsTabs) === JSON.stringify(["Live", "VR / AR", "Podcasts", "Music", "Others"]), `${tag} Shorts top navigation is Live · VR / AR · Podcasts · Music · Others (got ${shortsTabs.join(" · ")})`);
   check((await page.locator("header .fresh-shorts-brand").textContent()).includes("Fresh Shorts"), `${tag} Shorts world header is branded Fresh Shorts`);
-  for (const label of ["Search Fresh Flow", "Notifications", "Add or create a Short", "Open camera to record a Short", "All media worlds and Flow profile photo", "Open your main Fresh ID profile"]) {
+  for (const label of ["Search Fresh Flow", "More Fresh Shorts options", "Notifications", "Add or create a Short", "Open camera to record a Short", "All media worlds and Flow profile photo", "Open your main Fresh ID profile"]) {
+    if (label === "Notifications") await openHeaderMenu(page);
     const box = await page.locator(`header [aria-label="${label}"]`).first().boundingBox();
     check(Boolean(box) && box.x >= 0 && box.x + box.width <= width + 0.5 && box.width >= 36 && box.height >= 36, `${tag} header control "${label}" is on-screen and tappable`);
   }
+  await page.locator('header [aria-label="More Fresh Shorts options"]').click();
+  check(await page.locator("header .fresh-flow-header-more-list.open").count() === 0, `${tag} header menu closes again`);
   check(await page.locator("nav.fresh-flow-bottom-nav").isVisible(), `${tag} bottom navigation visible on Shorts when idle`);
 
   // Exactly one video playing.
@@ -316,6 +325,7 @@ for (const width of WIDTHS) {
   check(!(await profile.isVisible().catch(() => false)), `${tag} Back closes the profile`);
 
   // Notifications (signed-out visitor sees an honest sign-in prompt) and its tabs.
+  await openHeaderMenu(page);
   await page.locator('header [aria-label="Notifications"]').click();
   const notify = page.getByRole("dialog", { name: "Notifications" });
   check(await notify.isVisible(), `${tag} Notifications opens from the Shorts header`);
@@ -326,6 +336,7 @@ for (const width of WIDTHS) {
   check(!(await notify.isVisible().catch(() => false)), `${tag} Notifications closes`);
 
   // Create Short (design screen 5): camera tools, Upload and Templates, close returns to the feed.
+  await openHeaderMenu(page);
   await page.locator('header [aria-label="Add or create a Short"]').click();
   const create = page.getByRole("dialog", { name: "Create Short" });
   await create.waitFor({ state: "visible", timeout: 8000 }).catch(() => undefined);

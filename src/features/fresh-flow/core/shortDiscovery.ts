@@ -12,7 +12,7 @@ const ICONS: Record<string, string> = {
   more: "✦",
 };
 
-export type ShortDiscoveryId = "for-you" | "following" | "trending" | "learn" | "relax" | "more";
+export type ShortDiscoveryId = "for-you" | "following" | "trending" | "learn" | "relax" | "more" | "friends";
 
 export const SHORT_DISCOVERY_TABS = worldById("short").discovery.map((d) => ({
   id: d.id as ShortDiscoveryId,
