@@ -52,12 +52,12 @@ export default function BottomNav() {
 
   return (
     <>
-      <nav className={`fresh-bottom-nav${isFreshFlowRoute ? " fresh-flow-bottom-nav" : ""}${isFreshFlowRoute && !flowNavigationVisible ? " flow-navigation-hidden" : ""}`} aria-label={isFreshFlowRoute ? "Fresh Flow navigation" : "Fresh primary navigation"}>
+      <nav className={`fresh-bottom-nav${isFreshFlowRoute ? " fresh-flow-bottom-nav" : ""}${activeRoute === "fresh-flow-shorts" ? " fresh-shorts-nav" : ""}${isFreshFlowRoute && !flowNavigationVisible ? " flow-navigation-hidden" : ""}`} aria-label={isFreshFlowRoute ? "Fresh Flow navigation" : "Fresh primary navigation"}>
         <div className="fresh-bottom-nav-scroll">
           {isFreshFlowRoute ? freshFlowDestinations.map(({ id, label, icon }) => {
             const active = activeRoute === id;
             return (
-              <button key={id} type="button" className={`fresh-nav-item fresh-flow-nav-item${active ? " active" : ""}`} aria-current={active ? "page" : undefined} aria-label={label} onClick={() => setActiveRoute(id)}>
+              <button key={id} type="button" className={`fresh-nav-item fresh-flow-nav-item${active ? " active" : ""}${id === "fresh-flow-system-fresh-studio" ? " fresh-flow-nav-create" : ""}`} aria-current={active ? "page" : undefined} aria-label={label} onClick={() => setActiveRoute(id)}>
                 <span className="fresh-nav-icon fresh-flow-nav-glyph" aria-hidden="true">{icon(active)}</span>
                 <span className="fresh-nav-label">{label}</span>
               </button>

@@ -1030,12 +1030,6 @@ export default function FreshFlowShortsStream({
               <div className="fresh-flow-progress" role="slider" aria-label="Seek" aria-valuemin={0} aria-valuemax={100} aria-valuenow={0} onPointerDown={(event) => seekFromPointer(event, index)}><i className="fresh-flow-progress-fill" /></div>
               <div className="fresh-flow-overlay">
                 <div className="fresh-flow-meta">
-                  <h3 className={expandedCaptions.has(short.id) ? "expanded" : "clamped"}>{short.caption ? splitCaption(short.caption).map((segment, i) => segment.tag
-                    ? <button key={i} type="button" className="fresh-flow-hashtag" onClick={() => setTopicPage({ kind: "hashtag", value: segment.tag as string })}>{segment.text}</button>
-                    : <span key={i}>{segment.text}</span>) : "Fresh Short"}</h3>
-                  {(short.caption?.length ?? 0) > 80 && (
-                    <button type="button" className="fresh-flow-caption-toggle" aria-expanded={expandedCaptions.has(short.id)} onClick={() => setExpandedCaptions((current) => { const next = new Set(current); if (next.has(short.id)) next.delete(short.id); else next.add(short.id); return next; })}>{expandedCaptions.has(short.id) ? "less" : "more"}</button>
-                  )}
                   <div className="fresh-flow-author-row">
                     <button type="button" className="fresh-flow-author-link" onClick={() => setOpenCreatorId(short.authorId)} aria-label={`Open @${short.authorUsername} profile`}>
                       <span className="fresh-flow-author-avatar" aria-hidden="true">{(short.authorUsername || "F")[0]?.toUpperCase()}</span>
@@ -1043,15 +1037,28 @@ export default function FreshFlowShortsStream({
                     </button>
                     <button type="button" className="fresh-flow-follow-btn" onClick={() => void handleFollow(short)}>{followingAuthors.has(short.authorId) ? "Following" : "Follow"}</button>
                   </div>
+                  <h3 className={expandedCaptions.has(short.id) ? "expanded" : "clamped"}>{short.caption ? splitCaption(short.caption).map((segment, i) => segment.tag
+                    ? <button key={i} type="button" className="fresh-flow-hashtag" onClick={() => setTopicPage({ kind: "hashtag", value: segment.tag as string })}>{segment.text}</button>
+                    : <span key={i}>{segment.text}</span>) : "Fresh Short"}</h3>
+                  {(short.caption?.length ?? 0) > 80 && (
+                    <button type="button" className="fresh-flow-caption-toggle" aria-expanded={expandedCaptions.has(short.id)} onClick={() => setExpandedCaptions((current) => { const next = new Set(current); if (next.has(short.id)) next.delete(short.id); else next.add(short.id); return next; })}>{expandedCaptions.has(short.id) ? "less" : "more"}</button>
+                  )}
                   <div className="fresh-flow-tags">
                     {short.soundName ? <button type="button" className="fresh-flow-sound-link" onClick={() => setTopicPage({ kind: "sound", value: short.soundName as string })}>♪ {short.soundName}</button> : <span>♪ Original sound</span>}
                     {short.isHot ? <span>🔥 Hot</span> : null}
                   </div>
                 </div>
                 <div className="fresh-flow-actions">
-                  <button type="button" className="fresh-flow-rail-avatar" onClick={() => setOpenCreatorId(short.authorId)} aria-label={`Open @${short.authorUsername} profile`}>
-                    <span aria-hidden="true">{(short.authorUsername || "F")[0]?.toUpperCase()}</span>
-                  </button>
+                  <div className="fresh-flow-rail-creator">
+                    <button type="button" className="fresh-flow-rail-avatar" onClick={() => setOpenCreatorId(short.authorId)} aria-label={`Open @${short.authorUsername} profile`}>
+                      <span aria-hidden="true">{(short.authorUsername || "F")[0]?.toUpperCase()}</span>
+                    </button>
+                    {!followingAuthors.has(short.authorId) && (
+                      <button type="button" className="fresh-flow-rail-follow" onClick={() => void handleFollow(short)} aria-label={`Follow @${short.authorUsername}`}>
+                        <ShortsIcons.NavCreateIcon size={14} strokeWidth={3} />
+                      </button>
+                    )}
+                  </div>
                   <ReactionPicker
                     myReaction={short.myReaction ?? null}
                     count={Object.values(short.reactionBreakdown).reduce((total, value) => total + value, 0)}
@@ -1059,23 +1066,23 @@ export default function FreshFlowShortsStream({
                     onReact={(kind) => void handleReaction(short.id, kind as UniversalReactionKind)}
                   />
                   <button type="button" onClick={() => { setOpenCommentsFor(short.id); track("comment_open", short.id); }} aria-label="Comments">
-                    <span><ShortsIcons.RailCommentIcon size={26} /></span>
+                    <span><ShortsIcons.RailBubbleSolidIcon size={30} /></span>
                     <span>{short.commentCount}</span>
                   </button>
-                  <button type="button" onClick={() => void handleRepost(short)} aria-label={short.repostedByMe ? "Undo repost" : "Repost"} aria-pressed={Boolean(short.repostedByMe)} className={short.repostedByMe ? "saved" : ""}>
-                    <span><ShortsIcons.RailRepostIcon size={26} /></span>
-                    <span>{short.repostCount || "Repost"}</span>
-                  </button>
-                  <button type="button" onClick={() => void handleSave(short)} aria-label={savedIds.has(short.id) ? "Remove from saved" : "Save"} aria-pressed={savedIds.has(short.id)} className={savedIds.has(short.id) ? "saved" : ""}>
-                    <span><ShortsIcons.RailSaveIcon size={26} filled={savedIds.has(short.id)} /></span>
-                    <span>{savedIds.has(short.id) ? "Saved" : "Save"}</span>
-                  </button>
                   <button type="button" onClick={() => void handleShare(short)} aria-label="Share">
-                    <span><ShortsIcons.RailShareIcon size={26} /></span>
+                    <span><ShortsIcons.RailShareSolidIcon size={30} /></span>
                     <span>Share</span>
                   </button>
+                  <button type="button" onClick={() => void handleSave(short)} aria-label={savedIds.has(short.id) ? "Remove from saved" : "Save"} aria-pressed={savedIds.has(short.id)} className={savedIds.has(short.id) ? "saved" : ""}>
+                    <span><ShortsIcons.RailSaveSolidIcon size={30} /></span>
+                    <span>{savedIds.has(short.id) ? "Saved" : "Save"}</span>
+                  </button>
+                  <button type="button" onClick={() => void handleRepost(short)} aria-label={short.repostedByMe ? "Undo repost" : "Repost"} aria-pressed={Boolean(short.repostedByMe)} className={short.repostedByMe ? "saved" : ""}>
+                    <span><ShortsIcons.RailRepostIcon size={28} /></span>
+                    <span>{short.repostCount || "Repost"}</span>
+                  </button>
                   <button type="button" onClick={() => setAdvancedOpen((v) => !v)} aria-label="More" aria-expanded={advancedOpen && index === currentIndex}>
-                    <span><ShortsIcons.RailMoreIcon size={26} /></span>
+                    <span><ShortsIcons.RailMoreIcon size={28} /></span>
                   </button>
                 </div>
                 {freshAiPanelOpen && index === currentIndex && (

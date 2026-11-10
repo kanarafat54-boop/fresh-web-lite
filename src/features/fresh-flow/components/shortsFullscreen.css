@@ -1,0 +1,205 @@
+/*
+ * Fresh Shorts — full-screen layout that follows the reference design.
+ *
+ * Before this file the Shorts route stacked the Fresh Flow header (logo, tagline, a second row of
+ * Live / VR-AR / Podcasts, six icons) above the video and a floating navigation pill below it, so the
+ * video only got the strip left in between. Here the video fills the whole screen and the header and
+ * navigation float over it, as in the mock.
+ *
+ * Scoped to phones and tablets in portrait (< 900px) and to the Shorts route only
+ * (.fresh-flow-shorts-fullscreen on the hub, .fresh-shorts-nav on the bottom navigation).
+ * Nothing is removed: every header control stays in the DOM and clickable.
+ */
+.fresh-flow-shorts-fullscreen,
+.fresh-bottom-nav.fresh-flow-bottom-nav.fresh-shorts-nav {
+  --shorts-bg: #07071a;          /* deep navy-black behind the video */
+  --shorts-surface: rgba(8, 8, 26, 0.92);
+  --shorts-accent: #6d4aff;      /* Fresh violet: active tab, "+", follow badge */
+  --shorts-accent-soft: #9b82ff; /* active nav icon and saved state */
+  --shorts-like: #ff4d7a;
+  --shorts-text: #ffffff;
+  --shorts-muted: rgba(255, 255, 255, 0.68);
+  --rail-dot: #0a0a1a;
+}
+
+@media (max-width: 899px) {
+  /* The hub becomes the whole screen; the video lives edge to edge inside it. */
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    background: var(--shorts-bg);
+  }
+  .fresh-flow-shorts-fullscreen .fresh-flow-media-content {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    margin: 0;
+  }
+  .fresh-flow-shorts-fullscreen .fresh-flow-short-experience { height: 100%; }
+
+  /* Header: transparent, floating, icons only (brand and the media-world row are hidden). */
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-unified-header.fresh-shorts-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 95;
+    display: flex;
+    justify-content: flex-end;
+    padding: calc(4px + env(safe-area-inset-top)) 6px 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    pointer-events: none;
+  }
+  .fresh-flow-shorts-fullscreen .fresh-shorts-header .fresh-shorts-brand,
+  .fresh-flow-shorts-fullscreen .fresh-shorts-header .fresh-flow-header-world-nav { display: none; }
+  .fresh-flow-shorts-fullscreen .fresh-shorts-header .fresh-flow-header-actions { pointer-events: auto; gap: 2px; }
+  .fresh-flow-shorts-fullscreen .fresh-shorts-header .fresh-flow-header-actions .fresh-flow-search-icon-button,
+  .fresh-flow-shorts-fullscreen .fresh-shorts-header .fresh-flow-header-actions .fresh-flow-unified-profile {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.28);
+    color: var(--shorts-text);
+    display: grid;
+    place-items: center;
+  }
+
+  /* Tabs: For You / Following, bold white, violet underline on the active one. */
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-tabs {
+    top: calc(2px + env(safe-area-inset-top));
+    right: 232px;
+    justify-content: flex-start;
+    padding: 0 8px;
+  }
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-tabs button {
+    color: var(--shorts-muted);
+    font-size: 1rem;
+    font-weight: 700;
+    box-shadow: inset 0 -3px 0 transparent;
+  }
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-tabs button.active {
+    color: var(--shorts-text);
+    box-shadow: inset 0 -3px 0 var(--shorts-accent);
+  }
+  /* On narrow phones the six header icons would crowd the tabs, so the tabs take their own row. */
+  @media (max-width: 420px) {
+    .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-tabs {
+      top: calc(44px + env(safe-area-inset-top));
+      right: 0;
+    }
+  }
+
+  /* Right-hand rail: white solid icons with counts, as in the mock. */
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions {
+    right: 6px;
+    bottom: calc(80px + env(safe-area-inset-bottom));
+    gap: 4px;
+  }
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions button {
+    color: var(--shorts-text);
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  }
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions button svg { filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.45)); }
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions .short-like-btn.liked { color: var(--shorts-like); }
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions button.saved { color: var(--shorts-accent-soft); }
+
+  .fresh-flow-shorts-fullscreen .fresh-flow-rail-creator { position: relative; margin-bottom: 14px; }
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions .fresh-flow-rail-avatar {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
+    border: 2px solid #fff;
+  }
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions .fresh-flow-rail-follow {
+    position: absolute;
+    left: 50%;
+    bottom: -10px;
+    transform: translateX(-50%);
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
+    padding: 0;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: var(--shorts-accent);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    text-shadow: none;
+  }
+  /* Keep a comfortable touch target around the small badge. */
+  .fresh-flow-shorts-fullscreen .fresh-flow-rail-follow::after { content: ""; position: absolute; inset: -11px; }
+
+  /* Caption block: creator first, then caption, then sound, sitting just above the navigation. */
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-meta {
+    left: 14px;
+    right: 76px;
+    bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+  .fresh-flow-shorts-fullscreen .fresh-flow-author-avatar { display: none; }
+  .fresh-flow-shorts-fullscreen .fresh-flow-author-link strong { font-size: 1.05rem; }
+  .fresh-flow-shorts-fullscreen .fresh-flow-verified { color: #4da3ff; }
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-follow-btn {
+    min-height: 30px;
+    padding: 4px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+  }
+  .fresh-flow-shorts-fullscreen .fresh-flow-hashtag { color: #fff; }
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-progress { bottom: calc(66px + env(safe-area-inset-bottom)); }
+  .fresh-flow-shorts-fullscreen .fresh-flow-progress-fill { background: var(--shorts-accent); }
+
+  /* Bottom navigation: flat full-width bar, violet active icon, raised violet "+" in the middle. */
+  .fresh-bottom-nav.fresh-flow-bottom-nav.fresh-shorts-nav {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: none;
+    transform: none;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    border: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0;
+    background: var(--shorts-surface);
+    box-shadow: none;
+  }
+  .fresh-bottom-nav.fresh-flow-bottom-nav.fresh-shorts-nav.flow-navigation-hidden { transform: translateY(calc(100% + 16px)); }
+  .fresh-bottom-nav.fresh-flow-bottom-nav.fresh-shorts-nav .fresh-flow-nav-item { color: var(--shorts-muted); border-radius: 12px; }
+  .fresh-bottom-nav.fresh-flow-bottom-nav.fresh-shorts-nav .fresh-flow-nav-item.active,
+  .fresh-bottom-nav.fresh-flow-bottom-nav.fresh-shorts-nav .fresh-flow-nav-item.active .fresh-flow-nav-glyph { color: var(--shorts-accent-soft); background: transparent; }
+  .fresh-bottom-nav.fresh-flow-bottom-nav.fresh-shorts-nav .fresh-flow-nav-create { position: relative; overflow: visible; }
+  .fresh-bottom-nav.fresh-flow-bottom-nav.fresh-shorts-nav .fresh-flow-nav-create .fresh-flow-nav-glyph {
+    width: 46px;
+    height: 46px;
+    margin-top: -6px;
+    border-radius: 50%;
+    background: var(--shorts-accent);
+    color: #fff;
+    box-shadow: 0 0 0 3px rgba(109, 74, 255, 0.28), 0 6px 18px rgba(109, 74, 255, 0.45);
+  }
+  .fresh-bottom-nav.fresh-flow-bottom-nav.fresh-shorts-nav .fresh-flow-nav-create .fresh-nav-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}

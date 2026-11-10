@@ -24,6 +24,8 @@ import { getFreshFlowSystem } from "./core/freshFlowSystemRegistry";
 import { requestOpenShort } from "./core/shortsExplore";
 import { parseRequestedShort } from "./core/shortsLinks";
 import { supabase } from "../../lib/supabase";
+import * as ShortsIcons from "./components/shortsIcons";
+import "./components/shortsFullscreen.css";
 
 type FreshFlowSection = FreshFlowRouteId;
 
@@ -178,7 +180,7 @@ export default function FreshFlowHub() {
 
   return (
     <div
-      className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}`}
+      className={`fresh-flow-hub ${isOverview ? "fresh-flow-overview" : "fresh-flow-media-experience"}${isShortsRoute ? " fresh-flow-shorts-fullscreen" : ""}`}
       aria-label="Fresh Flow"
       data-media-world={world.id}
       data-surface={world.surface}
@@ -204,15 +206,15 @@ export default function FreshFlowHub() {
             })}
           </nav>
           <div className="fresh-flow-header-actions">
-            <button type="button" className="fresh-flow-search-icon-button" onClick={openFreshSearch} aria-label="Search Fresh Flow" title="Search">⌕</button>
+            <button type="button" className="fresh-flow-search-icon-button" onClick={openFreshSearch} aria-label="Search Fresh Flow" title="Search"><ShortsIcons.SearchIcon size={22} /></button>
             {shortsHeader && (
               <>
-                <button type="button" className="fresh-flow-search-icon-button fresh-shorts-bell" onClick={() => setShortsNotificationsOpen(true)} aria-label="Notifications" title="Notifications">🔔</button>
-                <button type="button" className="fresh-flow-search-icon-button fresh-shorts-add" onClick={() => openCreator("create")} aria-label="Add or create a Short" title="Add / Create">＋</button>
-                <button type="button" className="fresh-flow-search-icon-button fresh-shorts-camera" onClick={() => openCreator("camera")} aria-label="Open camera to record a Short" title="Camera">◉</button>
+                <button type="button" className="fresh-flow-search-icon-button fresh-shorts-bell" onClick={() => setShortsNotificationsOpen(true)} aria-label="Notifications" title="Notifications"><ShortsIcons.BellIcon size={22} /></button>
+                <button type="button" className="fresh-flow-search-icon-button fresh-shorts-add" onClick={() => openCreator("create")} aria-label="Add or create a Short" title="Add / Create"><ShortsIcons.NavCreateIcon size={22} /></button>
+                <button type="button" className="fresh-flow-search-icon-button fresh-shorts-camera" onClick={() => openCreator("camera")} aria-label="Open camera to record a Short" title="Camera"><ShortsIcons.CameraIcon size={22} /></button>
               </>
             )}
-            <button type="button" className="fresh-flow-search-icon-button fresh-flow-switch-open" onClick={() => setFlowSwitchOpen(true)} aria-label="All media worlds and Flow profile photo" title="All media worlds">⊞</button>
+            <button type="button" className="fresh-flow-search-icon-button fresh-flow-switch-open" onClick={() => setFlowSwitchOpen(true)} aria-label="All media worlds and Flow profile photo" title="All media worlds"><ShortsIcons.WorldsGridIcon size={22} /></button>
             <button type="button" className="fresh-flow-unified-profile" onClick={() => setActiveRoute("profile")} aria-label="Open your main Fresh ID profile">
               {mainProfileAvatarUrl ? <img src={mainProfileAvatarUrl} alt="" /> : <span>{isAuthenticated ? (user?.email?.slice(0, 1).toUpperCase() || "M") : "?"}</span>}
             </button>
