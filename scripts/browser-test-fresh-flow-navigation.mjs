@@ -270,6 +270,8 @@ for (const width of WIDTHS) {
   check((await page.locator("nav.fresh-flow-bottom-nav button.active .fresh-nav-label").allInnerTexts()).map((t) => t.trim()).join() === "Shorts", `${tag} Shorts is the active bottom item on the Shorts route`);
 
   // All-worlds sheet exposes the relocated Fresh Flow photo controls.
+  // On Shorts the media-worlds control lives in the header's "more" menu.
+  await page.locator('header [aria-label="More Fresh Shorts options"]').click();
   await page.locator('header [aria-label="All media worlds and Flow profile photo"]').click();
   const dialog = page.getByRole("dialog", { name: "Fresh Flow media worlds" });
   check(await dialog.isVisible(), `${tag} all-worlds sheet opens`);

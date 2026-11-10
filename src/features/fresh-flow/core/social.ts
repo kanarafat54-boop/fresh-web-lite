@@ -16,6 +16,15 @@ export async function getSocialAuthorIds(userId: string): Promise<string[]> {
   return Array.from(ids);
 }
 
+/** Friends are mutual: people you follow who also follow you back. */
+export async function getFriendAuthorIds(userId: string): Promise<string[]> {
+  const [{ data: following }, { data: followers }] = await Promise.all([
+    supabase.from("follows").select("followed_id").eq("follower_id", userId),
+    supabase.from("follows").select("follower_id").eq("followed_id", userId),
+  ]);
+  const followsMe = new Set((followers ?? []).map((row: any) => row.follower_id as string));
+  return Array.from(new Set((following ?? []).map((row: any) => row.followed_id as string))).filter((id) => followsMe.has(id));
+}
 
 export async function setAuthorFollow(followerId: string, followedId: string, following: boolean): Promise<void> {
   if (followerId === followedId) throw new Error("You cannot follow yourself.");

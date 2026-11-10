@@ -32,6 +32,7 @@ const fill = (p: ShortsIconProps) => (p.filled ? "currentColor" : "none");
 
 // --- Discovery tabs ---------------------------------------------------------------------------
 export const ForYouIcon = (p: ShortsIconProps) => svg(p, <path d="m12 3 2.4 5.6L20 9.3l-4.2 3.8 1.3 5.9L12 16l-5.1 3 1.3-5.9L4 9.3l5.6-.7L12 3Z" fill={fill(p)} />);
+export const FriendsIcon = (p: ShortsIconProps) => svg(p, <><circle cx="8.5" cy="8.5" r="3" /><circle cx="16.5" cy="9.5" r="2.5" /><path d="M3 19.5a5.5 5.5 0 0 1 11 0" /><path d="M15 15a4.5 4.5 0 0 1 6 4.5" /></>);
 export const FollowingIcon = (p: ShortsIconProps) => svg(p, <><circle cx="9" cy="8" r="3.2" /><path d="M3 20a6 6 0 0 1 12 0" /><path d="M17 8.5a2.7 2.7 0 0 1 0 5M18.5 15.2A5.2 5.2 0 0 1 21.5 20" /></>);
 export const TrendingIcon = (p: ShortsIconProps) => svg(p, <><path d="m3 17 6-6 4 4 7-8" /><path d="M15 7h5v5" /></>);
 export const PicksIcon = (p: ShortsIconProps) => svg(p, <><path d="m12 3 1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3Z" /><path d="m18.5 15 .8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" /></>);
@@ -44,6 +45,19 @@ export const RailRepostIcon = (p: ShortsIconProps) => svg(p, <><path d="m17 3 4 
 export const RailSaveIcon = (p: ShortsIconProps) => svg(p, <path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4.5L5 21V4.5a1 1 0 0 1 1-1Z" fill={fill(p)} />);
 export const RailShareIcon = (p: ShortsIconProps) => svg(p, <><path d="M14 4l7 6.5-7 6.5v-4c-5 0-8 1.5-10 5 .5-6 4-10 10-10.5V4Z" /></>);
 export const RailMoreIcon = (p: ShortsIconProps) => svg(p, <><circle cx="5" cy="12" r="1.4" fill="currentColor" /><circle cx="12" cy="12" r="1.4" fill="currentColor" /><circle cx="19" cy="12" r="1.4" fill="currentColor" /></>);
+
+// Solid rail icons that match the Fresh Shorts reference design: white filled heart, speech bubble with
+// three dots, forward arrow and bookmark. The dots are cut out with the page colour token.
+export const RailHeartSolidIcon = (p: ShortsIconProps) => svg({ ...p, strokeWidth: 1 }, <path d="M12 20.6c-.3 0-.6-.1-.8-.3C6.4 16.4 3 13.4 3 9.6 3 6.9 5.1 5 7.5 5c1.7 0 3.4.9 4.5 2.5C13.1 5.9 14.8 5 16.5 5 18.9 5 21 6.9 21 9.6c0 3.8-3.4 6.8-8.2 10.7-.2.2-.5.3-.8.3Z" fill="currentColor" />);
+export const RailBubbleSolidIcon = (p: ShortsIconProps) => svg({ ...p, strokeWidth: 1 }, <><path d="M20.5 11.8a8.3 8.3 0 0 1-12 7.4L3.8 20.5l1.2-4.1a8.3 8.3 0 1 1 15.5-4.6Z" fill="currentColor" /><circle cx="8.5" cy="12" r="1.2" fill="var(--rail-dot, #0a0a1a)" stroke="none" /><circle cx="12.2" cy="12" r="1.2" fill="var(--rail-dot, #0a0a1a)" stroke="none" /><circle cx="15.9" cy="12" r="1.2" fill="var(--rail-dot, #0a0a1a)" stroke="none" /></>);
+export const RailShareSolidIcon = (p: ShortsIconProps) => svg({ ...p, strokeWidth: 1 }, <path d="M14 4l7.5 6.8L14 17.6v-4c-5.2 0-8.3 1.5-10.5 5.2.5-6.2 4.2-10.3 10.5-10.8V4Z" fill="currentColor" />);
+export const RailSaveSolidIcon = (p: ShortsIconProps) => svg({ ...p, strokeWidth: 1 }, <path d="M6 3h12a1 1 0 0 1 1 1v17.5l-7-4.7-7 4.7V4a1 1 0 0 1 1-1Z" fill="currentColor" />);
+
+// --- Header ------------------------------------------------------------------------------------
+export const SearchIcon = (p: ShortsIconProps) => svg(p, <><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></>);
+export const CameraIcon = (p: ShortsIconProps) => svg(p, <><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.6l1.200-1.800h5.400L16 6h1.5A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-8Z" /><circle cx="12" cy="12.5" r="3.200" /></>);
+export const WorldsGridIcon = (p: ShortsIconProps) => svg(p, <><rect x="4" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" /></>);
+export const BellIcon = (p: ShortsIconProps) => svg(p, <><path d="M6 17h12l-1.5-2v-4.5a4.5 4.5 0 0 0-9 0V15L6 17Z" /><path d="M10 20a2 2 0 0 0 4 0" /></>);
 
 // --- Action menu ------------------------------------------------------------------------------
 export const GiftIcon = (p: ShortsIconProps) => svg(p, <><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M5 12v8h14v-8M12 8v12" /><path d="M12 8c-1.5-4-5.5-4-5.5-1.5S10 8 12 8Zm0 0c1.5-4 5.5-4 5.5-1.5S14 8 12 8Z" /></>);
