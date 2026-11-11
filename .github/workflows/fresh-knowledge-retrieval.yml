@@ -1,0 +1,58 @@
+name: Fresh Knowledge Retrieval
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "docs/**"
+      - "data/fresh-eval/**"
+      - "scripts/test-fresh-knowledge-retrieval.sh"
+      - ".github/workflows/fresh-knowledge-retrieval.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "docs/**"
+      - "data/fresh-eval/**"
+      - "scripts/test-fresh-knowledge-retrieval.sh"
+      - ".github/workflows/fresh-knowledge-retrieval.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fresh-knowledge-retrieval-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  retrieval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: knowledge_retrieval_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d knowledge_retrieval_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Replay knowledge migrations and measure retrieval on the held-out Fresh questions
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/knowledge_retrieval_test
+        run: bash scripts/test-fresh-knowledge-retrieval.sh
