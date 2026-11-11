@@ -1,12 +1,22 @@
 .wallet-dashboard {
   display: grid;
-  gap: 1rem;
-  padding: clamp(1rem, 3vw, 2rem);
-  max-width: 1100px;
-  margin: 0 auto;
+  gap: clamp(1rem, 2vw, 1.5rem);
+  width: 100vw;
+  max-width: none;
+  min-height: 100vh;
+  min-height: 100svh;
+  box-sizing: border-box;
+  margin-inline: calc(50% - 50vw);
+  padding: clamp(1rem, 3vw, 2.25rem) clamp(1rem, 3.5vw, 3.5rem) 3rem;
+  color: #f8f7ff;
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(99, 91, 255, .16), transparent 34rem),
+    radial-gradient(ellipse at 88% 18%, rgba(45, 103, 255, .12), transparent 32rem),
+    #0d0d12;
   position: relative;
   z-index: 1;
   pointer-events: auto;
+  overflow: clip;
 }
 
 .wallet-hero,
@@ -441,4 +451,55 @@ button.wallet-chip.active {
   .wallet-dashboard { gap: .85rem; padding: 1rem; }
   .wallet-hero, .wallet-card { border-radius: 16px; }
   .wallet-hero { flex-direction: column; align-items: stretch; }
+}
+
+
+/* Fresh Global full-window workspace: responsive, immersive, and consistent with the approved pass. */
+.wallet-dashboard > .fresh-global-pass,
+.wallet-dashboard > .wallet-hero,
+.wallet-dashboard > .wallet-grid,
+.wallet-dashboard > .wallet-card {
+  width: 100%;
+  max-width: 1600px;
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+.wallet-dashboard > .fresh-global-pass { margin-bottom: .25rem; }
+.wallet-dashboard .fresh-global-pass__card {
+  min-height: clamp(310px, 34vw, 470px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.wallet-dashboard .wallet-hero {
+  border-color: rgba(116, 99, 255, .25);
+  background: linear-gradient(115deg, rgba(25, 23, 48, .96), rgba(17, 20, 39, .92));
+  box-shadow: 0 16px 45px rgba(0,0,0,.22);
+}
+.wallet-dashboard .wallet-card {
+  border-color: rgba(132, 115, 255, .2);
+  background: linear-gradient(145deg, rgba(25, 24, 39, .96), rgba(17, 18, 29, .96));
+  box-shadow: 0 12px 34px rgba(0,0,0,.16);
+}
+.wallet-dashboard .wallet-balance-card {
+  background:
+    radial-gradient(ellipse at 85% 10%, rgba(99,91,255,.16), transparent 55%),
+    linear-gradient(145deg, rgba(31,28,55,.98), rgba(17,18,29,.98));
+}
+.wallet-dashboard .wallet-grid { grid-template-columns: minmax(0, 1.35fr) minmax(260px, .65fr); }
+.wallet-dashboard .wallet-rail-fields { max-width: 620px; }
+.wallet-dashboard .wallet-method-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
+@media (min-width: 1500px) {
+  .wallet-dashboard { padding-inline: max(3.5rem, calc((100vw - 1600px)/2)); }
+}
+@media (max-width: 760px) {
+  .wallet-dashboard {
+    width: 100%;
+    margin-inline: 0;
+    min-height: 100svh;
+    padding: 1rem .85rem 2rem;
+    overflow: visible;
+  }
+  .wallet-dashboard .wallet-grid { grid-template-columns: minmax(0,1fr); }
+  .wallet-dashboard .fresh-global-pass__card { min-height: 0; }
 }
