@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { formatMinorUnits, parseAmountToMinor } from "../../core/treasury/moneyPrecision";
 import {
   treasuryClient,
   type TreasuryBalance,
@@ -21,28 +22,6 @@ import "./WalletDashboard.css";
 import { FreshGlobalMoneyPass } from "./FreshGlobalMoneyPass";
 
 const supportedAssetFamilies = ["Fiat", "Fresh Coin", "Crypto", "Token"];
-
-function formatMinorUnits(value: string, assetCode: string): string {
-  try {
-    const amount = BigInt(value);
-    const sign = amount < 0n ? "-" : "";
-    const absolute = amount < 0n ? -amount : amount;
-    const whole = absolute / 100n;
-    const minor = (absolute % 100n).toString().padStart(2, "0");
-    return `${sign}${assetCode} ${whole.toString()}.${minor}`;
-  } catch {
-    return `${assetCode} —`;
-  }
-}
-
-function parseAmountToMinor(input: string): string | null {
-  const trimmed = input.trim();
-  if (!/^\d+(\.\d{1,2})?$/.test(trimmed)) return null;
-  const [whole, fraction = ""] = trimmed.split(".");
-  const minor = (fraction + "00").slice(0, 2);
-  const combined = `${whole}${minor}`.replace(/^0+(?=\d)/, "");
-  return combined.length > 0 ? combined : "0";
-}
 
 export default function WalletDashboard() {
   const [balances, setBalances] = useState<TreasuryBalance[]>([]);
@@ -150,7 +129,7 @@ export default function WalletDashboard() {
       return;
     }
 
-    const amountMinor = parseAmountToMinor(amountInput);
+    const amountMinor = parseAmountToMinor(amountInput, "FRESH");
     if (!amountMinor || BigInt(amountMinor) <= 0n) {
       setSendError("Enter a valid amount, e.g. 5.00");
       return;
@@ -190,7 +169,7 @@ export default function WalletDashboard() {
       setRailError("Choose a payment or withdrawal method.");
       return;
     }
-    const amountMinor = parseAmountToMinor(railAmount);
+    const amountMinor = parseAmountToMinor(railAmount, railCurrency);
     if (!amountMinor || BigInt(amountMinor) <= 0n) {
       setRailError("Enter a valid amount, e.g. 100.00");
       return;
