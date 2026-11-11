@@ -32,6 +32,8 @@ jobs:
         run: python -m unittest discover -s training -p 'test_serve_fresh_unified_v2.py' -v
       - name: Fresh AI unified contract
         run: npm run test:fresh-ai
+      - name: Fresh Autonomous Learning Core privacy and consent contract
+        run: npm run test:falc-core
       - name: Fresh AI shared specialist engine fabric
         run: npm run test:fresh-ai-engine-fabric
       - name: Fresh AI cognitive diversity routing
