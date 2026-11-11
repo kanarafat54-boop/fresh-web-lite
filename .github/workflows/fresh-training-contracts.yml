@@ -39,6 +39,8 @@ jobs:
         run: npm run test:fresh-hf-translation-intake
       - name: Verify consent-gated continuous learning candidate preparation
         run: npm run test:fresh-learning-candidates
+      - name: Verify Fresh Autonomous Learning Core consent and scheduling contracts
+        run: npm run test:fresh-autonomous-learning-core
       - name: Verify authenticated explicit-consent feedback capture and review gate
         run: npm run test:fresh-ai-training-feedback
       - name: Prepare curated user-intake manifest (no training)
