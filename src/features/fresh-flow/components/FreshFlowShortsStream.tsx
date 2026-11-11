@@ -3,6 +3,7 @@ import { FlagIcon } from "../../../components/Icons";
 import * as ShortsIcons from "./shortsIcons";
 import ShortsContextPanel from "./ShortsContextPanel";
 import ShortsWhySheet from "./ShortsWhySheet";
+import ShortsPredictionSheet from "./ShortsPredictionSheet";
 import ShortsHistorySheet from "./ShortsHistorySheet";
 import ShortsSavedSheet from "./ShortsSavedSheet";
 import type { WhyInput } from "../core/shortsWhy";
@@ -153,6 +154,7 @@ export default function FreshFlowShortsStream({
   const { replaceQueue, appendQueue, setActive: setRuntimeActive } = useFreshFlowRuntime();
   const [contextShortId, setContextShortId] = useState<string | null>(null);
   const [whyShortId, setWhyShortId] = useState<string | null>(null);
+  const [predictionShortId, setPredictionShortId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [savedOpen, setSavedOpen] = useState(false);
   const [blockSheet, setBlockSheet] = useState<{ target: { id: string; name: string } | null } | null>(null);
@@ -963,6 +965,10 @@ export default function FreshFlowShortsStream({
       ) : null}
       {savedOpen && user && !isGuest ? <ShortsSavedSheet userId={user.id} onClose={() => setSavedOpen(false)} onUnsaved={(id) => setSavedIds((current) => { const next = new Set(current); next.delete(id); return next; })} /> : null}
       {historyOpen && user && !isGuest ? <ShortsHistorySheet userId={user.id} onClose={() => setHistoryOpen(false)} /> : null}
+      {predictionShortId && shorts.find((item) => item.id === predictionShortId) ? (() => {
+        const target = shorts.find((item) => item.id === predictionShortId)!;
+        return <ShortsPredictionSheet shortId={target.id} authorId={target.authorId} authorName={target.authorUsername ? `@${target.authorUsername}` : target.authorName} onClose={() => setPredictionShortId(null)} />;
+      })() : null}
       {whyShortId && shorts.find((item) => item.id === whyShortId) ? (() => {
         const target = shorts.find((item) => item.id === whyShortId)!;
         const taste = tasteRef.current;
@@ -1144,6 +1150,9 @@ export default function FreshFlowShortsStream({
                     </button>
                     <button type="button" onClick={() => { setAdvancedOpen(false); setWhyShortId(short.id); }} title="The signals behind this Short showing up in your feed">
                       <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Why am I seeing this?
+                    </button>
+                    <button type="button" onClick={() => { setAdvancedOpen(false); setPredictionShortId(short.id); }} title="Dated predictions by the creator, with a public track record">
+                      <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Predictions
                     </button>
                     {user && !isGuest ? (
                       <button type="button" onClick={() => { setAdvancedOpen(false); setSavedOpen(true); }} title="Shorts you saved">
