@@ -19,7 +19,7 @@ do $$ begin create role service_role; exception when duplicate_object then null;
 create extension if not exists pgcrypto;
 create table public.fresh_ai_knowledge(id uuid primary key default gen_random_uuid(), user_id uuid, project_id text not null, title text not null, content text not null, modality text default 'text', source text, provenance jsonb default '{}', truth_state text default 'PROBABLE', confidence numeric default 0.75, metadata jsonb default '{}', created_at timestamptz default now(), updated_at timestamptz default now());
 SQL
-for f in 20261014140300_fresh_ai_full_text_search 20261021200000_fresh_ai_platform_docs_knowledge 20261111100000_fresh_ai_knowledge_search_v2; do
+for f in 20261014140300_fresh_ai_full_text_search 20261021200000_fresh_ai_platform_docs_knowledge 20261111120000_fresh_ai_knowledge_search_v2; do
   $psql -f "supabase/migrations/$f.sql" >/dev/null
 done
 
