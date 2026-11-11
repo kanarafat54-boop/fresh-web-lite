@@ -501,3 +501,13 @@
 .fs-editor .fs-textblock { background: linear-gradient(180deg, #4a3d22, #382e19); border-color: rgba(232,201,142,.6); border-radius: 9px; color: #fff3d6; }
 .fs-editor .fs-textblock.fs-overlayblock { background: linear-gradient(180deg, #4d2231, #3a1a26); border-color: rgba(251,113,133,.6); color: #ffe1e6; }
 .fs-editor .fs-textblock.is-selected { border: 2px solid #fff; box-shadow: 0 0 0 1px var(--fs-primary), 0 0 0 5px rgba(124,108,255,.25), 0 6px 18px rgba(0,0,0,.55); }
+
+/* scenes panel */
+.fs-scene { margin-top: 14px; padding: 12px; display: grid; gap: 10px; border: 1px solid var(--fs-line); border-radius: 14px; background: rgba(255,255,255,.03); min-width: 0; }
+.fs-scene-head { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.fs-scene-head .fs-input { flex: 1; min-width: 0; font-weight: 650; }
+.fs-input, .fs-scene .fs-field select, .fs-scene .fs-field input, .fs-scene textarea { background: var(--fs-bg); color: inherit; border: 1px solid var(--fs-line); border-radius: 8px; padding: 8px; min-height: 40px; font: inherit; min-width: 0; width: 100%; box-sizing: border-box; }
+.fs-scene .fs-field { margin: 0; }
+.fs-scene .fs-row { align-items: flex-end; }
+.fs-scene .fs-bin { margin: 0; }
+.fs-linked { font-size: 13px; color: var(--k-sound, #2dd4bf); overflow-wrap: anywhere; }

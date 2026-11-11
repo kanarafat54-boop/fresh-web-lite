@@ -1,3 +1,6 @@
+import type { FilmPlan } from "./film.ts";
+import { validateFilm } from "./film.ts";
+
 /**
  * Fresh Studio multitrack timeline (spec §6.5, §6.6).
  * Pure, immutable operations on a plain-JSON document so it can be autosaved, versioned,
@@ -159,6 +162,8 @@ export type TimelineDoc = {
   overlays?: OverlayLayer[];
   /** Output aspect ratio the preview and export use, e.g. "16:9". */
   aspect?: string;
+  /** Scenes and shots for a multi-scene film (see film.ts). Optional so older saved timelines stay valid. */
+  film?: FilmPlan;
 };
 
 export class TimelineError extends Error {
@@ -705,6 +710,7 @@ export function validateTimeline(doc: unknown): string[] {
       if (!(l && Number.isFinite(l.brightness) && Number.isFinite(l.contrast) && Number.isFinite(l.saturation) && l.brightness >= -1 && l.brightness <= 1 && l.contrast >= 0 && l.contrast <= 2 && l.saturation >= 0 && l.saturation <= 3)) errors.push(`Clip ${c.id} has invalid colour settings.`);
     }
   }
+  errors.push(...validateFilm(d.film));
   if (d.texts !== undefined) {
     if (!Array.isArray(d.texts)) errors.push("Text layers are malformed.");
     else {
