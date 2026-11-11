@@ -1,4 +1,5 @@
 import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
+import { handleMachineGateway } from "../../src/server/machine/entry.js";
 import { handleFreshAIStatus } from "../../src/server/freshAIStatus.js";
 import { createClient } from "@supabase/supabase-js";
 import { createFreshAIIntelligenceGateway, type FreshAIResponse } from "../../src/core/fresh-ai/FreshAIIntelligenceGateway.js";
@@ -221,6 +222,7 @@ async function conversationLedger(userId: string | null, conversationId: string 
 export async function GET(req: Request): Promise<Response> {
   const url = new URL(req.url);
   if (url.searchParams.has("__fresh_ai_status")) return handleFreshAIStatus();
+  if (url.searchParams.has("__fresh_machine")) return handleMachineGateway(req);
   if (url.searchParams.has("__fresh_media_worker_path")) return handleMediaWorkerProxy(req);
   if (url.searchParams.has("__fresh_blender_worker_path")) return handleBlenderWorkerProxy(req);
   return json({ error: "Method not allowed." }, 405);
