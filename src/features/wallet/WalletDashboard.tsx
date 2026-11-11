@@ -18,6 +18,7 @@ import {
   type RailRequestRow,
 } from "../../core/treasury/railRequestClient";
 import "./WalletDashboard.css";
+import { FreshGlobalMoneyPass } from "./FreshGlobalMoneyPass";
 
 const supportedAssetFamilies = ["Fiat", "Fresh Coin", "Crypto", "Token"];
 
@@ -228,6 +229,7 @@ export default function WalletDashboard() {
 
   return (
     <section className="wallet-dashboard" aria-labelledby="wallet-title">
+      <FreshGlobalMoneyPass />
       <header className="wallet-hero">
         <div>
           <span className="wallet-eyebrow">Fresh Treasury</span>
