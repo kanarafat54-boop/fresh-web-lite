@@ -41,6 +41,7 @@ jobs:
           npm run test:fresh-proof
           npm run test:fresh-predictions
           npm run test:fresh-machine-access
+          npm run test:fresh-shorts-privacy
           npm run test:fresh-stateful-interaction
           npm run test:fresh-shorts-reporting
           npm run test:fresh-shorts-notification-state
