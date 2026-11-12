@@ -7,7 +7,7 @@ import ShortsPredictionSheet from "./ShortsPredictionSheet";
 import ShortsHistorySheet from "./ShortsHistorySheet";
 import ShortsSavedSheet from "./ShortsSavedSheet";
 import type { WhyInput } from "../core/shortsWhy";
-import { activeCue, parseCaptionFile, pickTrack, readCaptionsOn, writeCaptionsOn, type CaptionTrack } from "../core/shortsCaptions";
+import { activeCue, parseCaptionFile, pickTrack, readCaptionsOn, writeCaptionsOn, type CaptionCue, type CaptionTrack } from "../core/shortsCaptions";
 import { loadCaptionTracks, saveCreatorCaptions } from "../core/shortCaptionsService";
 import { dataSaverLabel, isDataSaverActive, nextDataSaverMode, prefetchRadiusFor, preloadFor, readConnectionHint, readDataSaverMode, writeDataSaverMode, type DataSaverMode } from "../core/shortsDataSaver";
 import { ShortsStateScreen } from "./ShortsStateScreen";
@@ -54,6 +54,8 @@ import ShortsReportSheet from "./ShortsReportSheet";
 import ShortsBlockedSheet from "./ShortsBlockedSheet";
 import ShortsModerationSheet from "./ShortsModerationSheet";
 import ShortsProvenanceSheet from "./ShortsProvenanceSheet";
+import ShortsCaptionWriterSheet from "./ShortsCaptionWriterSheet";
+import { startDeviceNotifications } from "../core/notificationDeliveryRunner";
 import { isReviewer } from "../core/moderationReview";
 import ShortsPrivacySheet from "./ShortsPrivacySheet";
 import { DEFAULT_PRIVACY, explainControlError, type AudienceChoice, type ShortsPrivacySettings } from "../core/shortsPrivacy";
@@ -167,6 +169,7 @@ export default function FreshFlowShortsStream({
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [provenanceShortId, setProvenanceShortId] = useState<string | null>(null);
+  const [captionWriter, setCaptionWriter] = useState<{ shortId: string; duration: number } | null>(null);
   const [privacy, setPrivacy] = useState<ShortsPrivacySettings>({ ...DEFAULT_PRIVACY });
   const [savedOpen, setSavedOpen] = useState(false);
   const [blockSheet, setBlockSheet] = useState<{ target: { id: string; name: string } | null } | null>(null);
@@ -176,6 +179,10 @@ export default function FreshFlowShortsStream({
     let alive = true;
     void loadPrivacy(user.id).then((loaded) => { if (alive) setPrivacy(loaded.settings); }).catch(() => { /* defaults stay in place */ });
     return () => { alive = false; };
+  }, [user, isGuest]);
+  useEffect(() => {
+    if (!user || isGuest) return;
+    return startDeviceNotifications(user.id);
   }, [user, isGuest]);
   useEffect(() => {
     if (quiet.reason) document.querySelectorAll("video").forEach((video) => video.pause());
@@ -586,6 +593,23 @@ export default function FreshFlowShortsStream({
       setCaptionNotice(cause instanceof Error && cause.message ? `Captions could not be saved: ${cause.message}` : "Captions could not be saved.");
     }
   }
+  async function saveTypedCaptions(shortId: string, cues: CaptionCue[]) {
+    if (!user) throw new Error("Sign in first.");
+    const language = (navigator.language || "en").toLowerCase().split("-")[0];
+    await saveCreatorCaptions({ shortId, userId: user.id, language, cues });
+    setCaptionTracks((all) => ({ ...all, [shortId]: { language, cues } }));
+    setCaptionsOn(true); writeCaptionsOn(true);
+    setCaptionNotice(`Captions saved (${cues.length} lines).`);
+  }
+
+  function openCaptionWriter(short: Short) {
+    const item = containerRef.current?.querySelector<HTMLElement>(`.fresh-flow-item[data-index="${currentIndex}"]`);
+    const video = item?.querySelector<HTMLVideoElement>("video");
+    const duration = video && Number.isFinite(video.duration) ? video.duration : short.durationSeconds ?? 0;
+    setAdvancedOpen(false);
+    setCaptionWriter({ shortId: short.id, duration });
+  }
+
   useEffect(() => {
     if (!activeShortId) return;
     const item = containerRef.current?.querySelector<HTMLElement>(`.fresh-flow-item[data-index="${currentIndex}"]`);
@@ -997,6 +1021,7 @@ export default function FreshFlowShortsStream({
         />
       ) : null}
       {savedOpen && user && !isGuest ? <ShortsSavedSheet userId={user.id} onClose={() => setSavedOpen(false)} onUnsaved={(id) => setSavedIds((current) => { const next = new Set(current); next.delete(id); return next; })} /> : null}
+      {captionWriter ? <ShortsCaptionWriterSheet durationSeconds={captionWriter.duration} onSave={(cues) => saveTypedCaptions(captionWriter.shortId, cues)} onClose={() => setCaptionWriter(null)} /> : null}
       {reviewOpen && user && isReviewer(user.role) ? <ShortsModerationSheet onClose={() => setReviewOpen(false)} /> : null}
       {privacyOpen && user && !isGuest ? <ShortsPrivacySheet userId={user.id} onClose={() => setPrivacyOpen(false)} onOpenBlocked={() => setBlockSheet({ target: null })} onSaved={setPrivacy} /> : null}
       {quiet.reason && user && !isGuest ? (
@@ -1185,6 +1210,11 @@ export default function FreshFlowShortsStream({
                     ) : (
                       <button type="button" disabled title="The creator has not added captions to this Short.">
                         <span className="fresh-flow-menu-icon"><ShortsIcons.CaptionsIcon size={18} /></span> Captions: not available
+                      </button>
+                    )}
+                    {user && short.authorId === user.id && (
+                      <button type="button" onClick={() => openCaptionWriter(short)} title="Type what is said and Fresh times the lines across the video.">
+                        <span className="fresh-flow-menu-icon"><ShortsIcons.CaptionsIcon size={18} /></span> Write captions
                       </button>
                     )}
                     {user && short.authorId === user.id && (

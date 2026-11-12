@@ -43,6 +43,7 @@ jobs:
           npm run test:fresh-machine-access
           npm run test:fresh-moderation-review
           npm run test:fresh-provenance
+          npm run test:fresh-notification-delivery
           npm run test:fresh-shorts-privacy
           npm run test:fresh-sound-reuse
           npm run test:fresh-stateful-interaction
