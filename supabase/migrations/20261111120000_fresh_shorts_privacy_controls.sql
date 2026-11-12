@@ -181,12 +181,23 @@ begin
 end;
 $$;
 revoke all on function public.guard_short_interaction_blocks() from public, anon, authenticated;
-drop trigger if exists guard_short_likes_blocks on public.short_likes;
-create trigger guard_short_likes_blocks before insert on public.short_likes for each row execute function public.guard_short_interaction_blocks();
-drop trigger if exists guard_short_reposts_blocks on public.short_reposts;
-create trigger guard_short_reposts_blocks before insert on public.short_reposts for each row execute function public.guard_short_interaction_blocks();
-drop trigger if exists guard_universal_interaction_blocks on public.universal_interactions;
-create trigger guard_universal_interaction_blocks before insert on public.universal_interactions for each row execute function public.guard_short_interaction_blocks();
+-- Some of these tables exist in production without a creating migration in this repository, so each trigger is
+-- attached only where the table exists. In production all three exist.
+do $$
+declare t record;
+begin
+  for t in select * from (values
+    ('short_likes', 'guard_short_likes_blocks'),
+    ('short_reposts', 'guard_short_reposts_blocks'),
+    ('universal_interactions', 'guard_universal_interaction_blocks')
+  ) as v(tbl, trg)
+  loop
+    if to_regclass('public.' || t.tbl) is not null then
+      execute format('drop trigger if exists %I on public.%I', t.trg, t.tbl);
+      execute format('create trigger %I before insert on public.%I for each row execute function public.guard_short_interaction_blocks()', t.trg, t.tbl);
+    end if;
+  end loop;
+end $$;
 
 -- Direct messages: blocks and who_can_message.
 create or replace function public.guard_direct_message_controls()
