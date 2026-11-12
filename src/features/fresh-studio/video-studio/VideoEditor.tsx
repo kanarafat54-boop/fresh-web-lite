@@ -284,7 +284,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
               {panel === "media" && <MediaPanel ed={ed} onImport={openImport} onOverlay={(id) => addOverlayLayer("image", id)} onLayer={addAsLayer} />}
               {panel === "text" && <TextPanel ed={ed} onAdd={addTextLayer} />}
               {panel === "overlays" && <OverlaysPanel ed={ed} onAdd={addOverlayLayer} onImport={openImport} />}
-              {panel === "scenes" && <ScenesPanel ed={ed} clip={selectedClip} />}
+              {panel === "scenes" && <ScenesPanel ed={ed} clip={selectedClip} ownerId={signedIn ? project.ownerId : null} />}
               {panel === "captions" && <CaptionsPanel ed={ed} />}
               {panel === "smart" && <SmartPanel ed={ed} clip={selectedClip} />}
               {panel === "export" && <ExportPanel ed={ed} projectId={project.id} aspect={aspectValid} signedIn={signedIn} notify={notify} />}

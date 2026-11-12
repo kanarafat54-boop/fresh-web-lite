@@ -160,3 +160,27 @@ export function validateFilm(film         )           {
   }
   return errors;
 }
+
+const isObj = (v         )                               => typeof v === "object" && v !== null && !Array.isArray(v);
+/** Adds the scenes and shots from a saved Director desk production after the ones already in the plan.
+ *  The input comes from storage, so nothing about it is trusted: malformed scenes and shots are skipped,
+ *  text is cut to length, planned lengths are kept in range, and every scene and shot gets a new id. */
+export function importProduction(doc             , production         )              {
+  if (!isObj(production) || !Array.isArray(production.scenes)) throw new TimelineError("That is not a Director plan.");
+  const scenes              = [];
+  for (const raw of production.scenes) {
+    if (!isObj(raw)) continue;
+    const shots             = [];
+    for (const r of Array.isArray(raw.shots) ? raw.shots : []) {
+      if (!isObj(r)) continue;
+      const d = typeof r.duration === "number" && Number.isFinite(r.duration) ? r.duration : 4;
+      shots.push({ id: newId("shot"), title: clean(r.title, TEXT_MAX) || `Shot ${shots.length + 1}`, framing: clean(r.framing, 40) || "Medium", movement: clean(r.movement, 40) || "Static", duration: round3(Math.min(MAX_SHOT_SECONDS, Math.max(0.5, d))), notes: clean(r.notes, NOTES_MAX) });
+    }
+    if (shots.length > MAX_SHOTS_PER_SCENE) throw new TimelineError(`A scene in the Director plan has ${shots.length} shots; a scene here can have up to ${MAX_SHOTS_PER_SCENE}.`);
+    scenes.push({ id: newId("scene"), title: clean(raw.title, TEXT_MAX) || `Scene ${plan(doc).scenes.length + scenes.length + 1}`, location: clean(raw.location, TEXT_MAX) || "Unspecified location", timeOfDay: clean(raw.timeOfDay, 40) || "Day", description: clean(raw.description, NOTES_MAX), shots });
+  }
+  if (scenes.length === 0) throw new TimelineError("The Director plan has no scenes to import.");
+  const room = MAX_SCENES - plan(doc).scenes.length;
+  if (scenes.length > room) throw new TimelineError(`The Director plan has ${scenes.length} scenes; this film has room for ${room} more.`);
+  return withPlan(doc, [...plan(doc).scenes, ...scenes]);
+}

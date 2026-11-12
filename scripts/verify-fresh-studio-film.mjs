@@ -93,6 +93,42 @@ assert.ok(bad({ scenes: [{ id: "s", title: "t", location: "l", timeOfDay: "Day",
 let many = start(); for (let i = 0; i < F.MAX_SCENES; i++) many = F.addScene(many);
 assert.throws(() => F.addScene(many), /up to 40 scenes/);
 
+// ---------- importing a Director desk production (untrusted saved data) ----------
+{
+  const production = { version: 1, title: "Dragon", scenes: [
+    { id: "x", title: "The gate", location: "Old wall", timeOfDay: "Dusk", description: "Mara arrives.", shots: [
+      { id: "s", title: "Wide", framing: "Wide", movement: "Crane", duration: 6, notes: "drone" },
+      { title: "Mara", framing: "Close-up", movement: "Static", duration: "soon", notes: 5 },
+    ] },
+    "junk", null, { title: 7, shots: "no" },
+  ] };
+  const base0 = F.addScene(start(), { id: "mine", title: "My scene" });
+  const imp = F.importProduction(base0, production);
+  assert.equal(imp.film.scenes.length, 3, "kept mine, added two valid scenes, skipped junk entries");
+  assert.equal(imp.film.scenes[0].id, "mine");
+  assert.equal(imp.film.scenes[1].title, "The gate");
+  assert.equal(imp.film.scenes[1].shots[0].framing, "Wide");
+  assert.equal(imp.film.scenes[1].shots[0].duration, 6);
+  assert.equal(imp.film.scenes[1].shots[1].duration, 4, "an unusable length falls back to 4 s");
+  assert.equal(imp.film.scenes[1].shots[1].notes, "", "non-text notes are dropped");
+  assert.equal(imp.film.scenes[2].title, "Scene 3", "an unusable title gets a numbered name");
+  assert.equal(imp.film.scenes[2].shots.length, 0);
+  assert.notEqual(imp.film.scenes[1].id, "x", "ids are regenerated so nothing can collide");
+  assert.equal(T.validateTimeline(imp).length, 0, "the result is a valid document");
+  assert.equal(F.importProduction(imp, production).film.scenes.length, 5, "importing again adds again, never replaces");
+  const long = { scenes: [{ title: "a".repeat(5000), location: "b".repeat(5000), shots: [{ title: "c".repeat(5000), duration: 99999 }] }] };
+  const cut = F.importProduction(start(), long).film.scenes[0];
+  assert.equal(cut.title.length, 200); assert.equal(cut.shots[0].title.length, 200); assert.equal(cut.shots[0].duration, 600);
+  assert.throws(() => F.importProduction(start(), null), /not a Director plan/);
+  assert.throws(() => F.importProduction(start(), { scenes: "x" }), /not a Director plan/);
+  assert.throws(() => F.importProduction(start(), { scenes: [] }), /no scenes/);
+  assert.throws(() => F.importProduction(start(), { scenes: ["x", 4] }), /no scenes/);
+  assert.throws(() => F.importProduction(many, production), /room for 0 more/);
+  assert.throws(() => F.importProduction(start(), { scenes: [{ shots: Array.from({ length: 31 }, () => ({})) }] }), /up to 30/);
+  const proto = JSON.parse('{"scenes":[{"title":"p","__proto__":{"polluted":true},"shots":[]}]}');
+  F.importProduction(start(), proto); assert.equal({}.polluted, undefined, "no prototype pollution");
+}
+
 // ---------- the sequenced film really exports, in film order (real ffmpeg) ----------
 const have = (bin) => spawnSync(bin, ["-version"]).status === 0;
 if (!have("ffmpeg") || !have("ffprobe")) {
