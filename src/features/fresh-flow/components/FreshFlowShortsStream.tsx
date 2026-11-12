@@ -52,6 +52,8 @@ import { EMPTY_PREFS, addUnique, applyShortPrefs, hashtagsOf, loadShortPrefs, re
 import { setCreatorMuted, shortDeepLink } from "../core/shortsSafety";
 import ShortsReportSheet from "./ShortsReportSheet";
 import ShortsBlockedSheet from "./ShortsBlockedSheet";
+import ShortsModerationSheet from "./ShortsModerationSheet";
+import { isReviewer } from "../core/moderationReview";
 import ShortsPrivacySheet from "./ShortsPrivacySheet";
 import { DEFAULT_PRIVACY, explainControlError, type AudienceChoice, type ShortsPrivacySettings } from "../core/shortsPrivacy";
 import { loadPrivacy, setShortCommentsMode } from "../core/shortsPrivacyService";
@@ -162,6 +164,7 @@ export default function FreshFlowShortsStream({
   const [predictionShortId, setPredictionShortId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [privacy, setPrivacy] = useState<ShortsPrivacySettings>({ ...DEFAULT_PRIVACY });
   const [savedOpen, setSavedOpen] = useState(false);
   const [blockSheet, setBlockSheet] = useState<{ target: { id: string; name: string } | null } | null>(null);
@@ -992,6 +995,7 @@ export default function FreshFlowShortsStream({
         />
       ) : null}
       {savedOpen && user && !isGuest ? <ShortsSavedSheet userId={user.id} onClose={() => setSavedOpen(false)} onUnsaved={(id) => setSavedIds((current) => { const next = new Set(current); next.delete(id); return next; })} /> : null}
+      {reviewOpen && user && isReviewer(user.role) ? <ShortsModerationSheet onClose={() => setReviewOpen(false)} /> : null}
       {privacyOpen && user && !isGuest ? <ShortsPrivacySheet userId={user.id} onClose={() => setPrivacyOpen(false)} onOpenBlocked={() => setBlockSheet({ target: null })} onSaved={setPrivacy} /> : null}
       {quiet.reason && user && !isGuest ? (
         <div className="fresh-shorts-break" role="alertdialog" aria-modal="true" aria-label="Take a break">
@@ -1194,6 +1198,11 @@ export default function FreshFlowShortsStream({
                     <button type="button" onClick={() => { setAdvancedOpen(false); setPredictionShortId(short.id); }} title="Dated predictions by the creator, with a public track record">
                       <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Predictions
                     </button>
+                    {user && !isGuest && isReviewer(user.role) ? (
+                      <button type="button" onClick={() => { setAdvancedOpen(false); setReviewOpen(true); }} title="Reports and appeals waiting for a reviewer">
+                        <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Review queue
+                      </button>
+                    ) : null}
                     {user && !isGuest ? (
                       <button type="button" onClick={() => { setAdvancedOpen(false); setSavedOpen(true); }} title="Shorts you saved">
                         <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Saved Shorts
