@@ -15,6 +15,8 @@ import { loadMutedCreators, setCreatorMuted } from "../../fresh-flow/core/shorts
 import { loadBlockedIds } from "../../fresh-flow/core/userBlocksService";
 import { withoutBlockedAuthors } from "../../fresh-flow/core/userBlocks";
 import ShortsReportSheet from "../../fresh-flow/components/ShortsReportSheet";
+import { explainControlError, isCommentHiddenState } from "../../fresh-flow/core/shortsPrivacy";
+import { restrictAccount, reviewHeldComment } from "../../fresh-flow/core/shortsPrivacyService";
 import "./CommentPanel.css";
 
 interface CommentPanelProps {
@@ -162,6 +164,19 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     if (deleteError) { setNotice("Fresh could not delete that comment."); return; }
     setNotice("Comment deleted.");
     await loadComments();
+  }
+
+  async function reviewHeld(commentId: string, approve: boolean) {
+    const result = await reviewHeldComment(commentId, approve);
+    if (result.ok) { setNotice(approve ? "Comment approved." : "Comment removed."); await loadComments(); }
+    else setNotice(result.unavailable ? "Held comments are not available yet." : (explainControlError(result.message) ?? "Fresh could not update that comment. Try again."));
+  }
+
+  async function restrictAuthor(authorId: string, name: string) {
+    setMenuFor(null);
+    if (!user || isGuest) { setNotice("Sign in to restrict someone."); return; }
+    const result = await restrictAccount(user.id, authorId);
+    setNotice(result === "restricted" ? `Restricted ${name}. Their future comments on your Shorts are held for your approval. They are not told.` : result === "unavailable" ? "Restrict is not available yet." : "Fresh could not restrict that account. Try again.");
   }
 
   async function blockAuthor(authorId: string, name: string) {
@@ -370,7 +385,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
       setFiles([]);
       await loadComments();
     } catch (postError: any) {
-      setError(postError?.message ?? "Couldn't post comment");
+      setError(explainControlError(postError?.message) ?? postError?.message ?? "Couldn't post comment");
     } finally {
       setPosting(false);
     }
@@ -406,7 +421,8 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
 
   function renderComment(comment: ViewRow, depth = 0): React.ReactNode {
     const like = likes[comment.id] ?? { count: 0, mine: false };
-    const hidden = comment.moderation_state && comment.moderation_state !== "visible";
+    const hidden = isCommentHiddenState(comment.moderation_state);
+    const held = comment.moderation_state === "pending";
     return (
       <div key={comment.id} className={depth ? "comment-reply" : "comment-root"}>
         <div className="comment-item">
@@ -416,6 +432,13 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
               <button type="button" className="comment-author-profile" onClick={() => openProfile(comment.author_id)}>{comment.authorUsername !== "unknown" ? comment.authorUsername : comment.authorName}</button>
               <span className="post-time">{timeAgo(comment.created_at)}</span>
             </div>
+            {held && <span className="short-comment-held" role="status">{user?.id === comment.author_id ? "Held for review. Only you and the creator can see this until it is approved." : "Held for your review."}</span>}
+            {held && targetType === "short" && user?.id === shortAuthorId && !isGuest && (
+              <span className="comment-menu" role="group" aria-label="Review held comment">
+                <button type="button" className="reply-btn" onClick={() => void reviewHeld(comment.id, true)}>Approve</button>
+                <button type="button" className="reply-btn" onClick={() => void reviewHeld(comment.id, false)}>Remove</button>
+              </span>
+            )}
             {comment.pinned_at && !hidden && <span className="short-comment-pinned" aria-label="Pinned by creator">📌 Pinned by creator</span>}
             {hidden ? (
               <p className="empty-state">This comment is {comment.moderation_state}.</p>
@@ -440,6 +463,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
                     ) : (
                       <>
                         <button type="button" className="reply-btn" onClick={() => void reportComment(comment.id)}>Report</button>
+                        {targetType === "short" && user?.id === shortAuthorId && !isGuest && <button type="button" className="reply-btn" onClick={() => void restrictAuthor(comment.author_id, comment.authorName)}>Restrict {comment.authorUsername !== "unknown" ? `@${comment.authorUsername}` : comment.authorName}</button>}
                         <button type="button" className="reply-btn" onClick={() => void blockAuthor(comment.author_id, comment.authorName)}>Block {comment.authorUsername !== "unknown" ? `@${comment.authorUsername}` : comment.authorName}</button>
                       </>
                     )}

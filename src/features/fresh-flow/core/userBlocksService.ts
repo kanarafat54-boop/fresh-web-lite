@@ -35,3 +35,13 @@ export async function unblockAccount(userId: string, targetId: string): Promise<
   const { error } = await supabase.from("user_blocks").delete().eq("blocker_id", userId).eq("blocked_id", targetId);
   return !error;
 }
+
+/** Drops accounts that blocked the viewer. If the database function is not there yet, nothing is dropped. */
+export async function keepVisibleAuthors<T>(rows: T[], authorOf: (row: T) => string): Promise<T[]> {
+  const ids = [...new Set(rows.map(authorOf))];
+  if (ids.length === 0) return rows;
+  const { data, error } = await supabase.rpc("visible_author_ids", { p_ids: ids });
+  if (error || !Array.isArray(data)) return rows;
+  const visible = new Set<string>(data as string[]);
+  return rows.filter((row) => visible.has(authorOf(row)));
+}

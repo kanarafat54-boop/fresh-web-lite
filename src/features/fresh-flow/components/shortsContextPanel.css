@@ -49,3 +49,14 @@
 .shorts-report-details { display: grid; gap: 4px; margin: 8px 0; }
 .shorts-report-details textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.25); background: transparent; color: inherit; font: inherit; resize: vertical; }
 .shorts-history-row .shorts-history-unblock { width: auto; padding: 0 14px; border: 1px solid rgba(255,255,255,0.25); border-radius: 12px; }
+
+/* Privacy and safety sheet */
+.shorts-privacy-sheet { max-height: 88vh; overflow-y: auto; }
+.shorts-privacy-body h4 { margin: 16px 0 6px; font-size: 14px; }
+.shorts-privacy-field { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; font-size: 13px; }
+.shorts-privacy-field select, .shorts-privacy-field input, .shorts-privacy-field textarea { padding: 8px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.07); color: #fff; font: inherit; }
+.shorts-privacy-field select option { color: #111; }
+.shorts-privacy-toggle { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0; font-size: 13px; }
+.shorts-privacy-row { display: flex; gap: 12px; }
+.shorts-privacy-row .shorts-privacy-field { flex: 1; }
+.shorts-privacy-link { background: none; border: 0; color: inherit; text-decoration: underline; padding: 6px 0; font: inherit; cursor: pointer; }

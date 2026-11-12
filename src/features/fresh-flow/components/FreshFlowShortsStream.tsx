@@ -52,6 +52,10 @@ import { EMPTY_PREFS, addUnique, applyShortPrefs, hashtagsOf, loadShortPrefs, re
 import { setCreatorMuted, shortDeepLink } from "../core/shortsSafety";
 import ShortsReportSheet from "./ShortsReportSheet";
 import ShortsBlockedSheet from "./ShortsBlockedSheet";
+import ShortsPrivacySheet from "./ShortsPrivacySheet";
+import { DEFAULT_PRIVACY, explainControlError, type AudienceChoice, type ShortsPrivacySettings } from "../core/shortsPrivacy";
+import { loadPrivacy, setShortCommentsMode } from "../core/shortsPrivacyService";
+import { useQuietBreak } from "../core/useQuietBreak";
 import { loadBlockedIds } from "../core/userBlocksService";
 import "./FreshFlow.css";
 
@@ -156,8 +160,28 @@ export default function FreshFlowShortsStream({
   const [whyShortId, setWhyShortId] = useState<string | null>(null);
   const [predictionShortId, setPredictionShortId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [privacy, setPrivacy] = useState<ShortsPrivacySettings>({ ...DEFAULT_PRIVACY });
   const [savedOpen, setSavedOpen] = useState(false);
   const [blockSheet, setBlockSheet] = useState<{ target: { id: string; name: string } | null } | null>(null);
+  const quiet = useQuietBreak(privacy, Boolean(user && !isGuest));
+  useEffect(() => {
+    if (!user || isGuest) { setPrivacy({ ...DEFAULT_PRIVACY }); return; }
+    let alive = true;
+    void loadPrivacy(user.id).then((loaded) => { if (alive) setPrivacy(loaded.settings); }).catch(() => { /* defaults stay in place */ });
+    return () => { alive = false; };
+  }, [user, isGuest]);
+  useEffect(() => {
+    if (quiet.reason) document.querySelectorAll("video").forEach((video) => video.pause());
+  }, [quiet.reason]);
+  async function changeCommentsMode(shortId: string, mode: AudienceChoice) {
+    const result = await setShortCommentsMode(shortId, mode);
+    pushNotification({
+      title: result.ok ? "Comment settings saved" : "Comment settings",
+      message: result.ok ? (mode === "nobody" ? "Comments are off for this Short." : mode === "following" ? "Only people you follow can comment on this Short." : "Everyone can comment on this Short.") : result.unavailable ? "Comment settings are not available yet." : (explainControlError(result.message) ?? "Fresh could not save that. Try again."),
+      type: result.ok ? "success" : "error",
+    });
+  }
   const [captionsOn, setCaptionsOn] = useState<boolean>(() => readCaptionsOn());
   const [captionTracks, setCaptionTracks] = useState<Record<string, CaptionTrack | null>>({});
   const [captionText, setCaptionText] = useState<string | null>(null);
@@ -964,6 +988,18 @@ export default function FreshFlowShortsStream({
         />
       ) : null}
       {savedOpen && user && !isGuest ? <ShortsSavedSheet userId={user.id} onClose={() => setSavedOpen(false)} onUnsaved={(id) => setSavedIds((current) => { const next = new Set(current); next.delete(id); return next; })} /> : null}
+      {privacyOpen && user && !isGuest ? <ShortsPrivacySheet userId={user.id} onClose={() => setPrivacyOpen(false)} onOpenBlocked={() => setBlockSheet({ target: null })} onSaved={setPrivacy} /> : null}
+      {quiet.reason && user && !isGuest ? (
+        <div className="fresh-shorts-break" role="alertdialog" aria-modal="true" aria-label="Take a break">
+          <ShortsStateScreen
+            kind="empty"
+            title={quiet.reason === "quiet-hours" ? "Quiet hours" : "You reached your daily limit"}
+            message={quiet.reason === "quiet-hours" ? "Shorts is paused because you asked for a break during these hours." : "You set a daily watch limit and reached it today. Time on this device only."}
+            primary={{ label: "Keep watching for 10 more minutes", onClick: quiet.keepWatching }}
+            secondary={{ label: "Quiet Mode settings", onClick: () => setPrivacyOpen(true) }}
+          />
+        </div>
+      ) : null}
       {historyOpen && user && !isGuest ? <ShortsHistorySheet userId={user.id} onClose={() => setHistoryOpen(false)} /> : null}
       {predictionShortId && shorts.find((item) => item.id === predictionShortId) ? (() => {
         const target = shorts.find((item) => item.id === predictionShortId)!;
@@ -1163,6 +1199,24 @@ export default function FreshFlowShortsStream({
                       <button type="button" onClick={() => { setAdvancedOpen(false); setHistoryOpen(true); }} title="Shorts you watched, with remove and clear controls">
                         <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Watch history
                       </button>
+                    ) : null}
+                    {user && !isGuest ? (
+                      <button type="button" onClick={() => { setAdvancedOpen(false); setPrivacyOpen(true); }} title="Comments, messages, Quiet Mode, restricted and blocked accounts">
+                        <span className="fresh-flow-menu-icon"><ShortsIcons.ManageIcon size={18} /></span> Privacy and safety
+                      </button>
+                    ) : null}
+                    {user && !isGuest && short.authorId === user.id ? (
+                      <>
+                        <button type="button" onClick={() => { setAdvancedOpen(false); void changeCommentsMode(short.id, "everyone"); }}>
+                          <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Comments here: everyone
+                        </button>
+                        <button type="button" onClick={() => { setAdvancedOpen(false); void changeCommentsMode(short.id, "following"); }}>
+                          <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Comments here: people I follow
+                        </button>
+                        <button type="button" onClick={() => { setAdvancedOpen(false); void changeCommentsMode(short.id, "nobody"); }}>
+                          <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Comments here: off
+                        </button>
+                      </>
                     ) : null}
                     {ADVANCED_ACTIONS.map((a) => (
                       <button key={a.id} type="button" onClick={() => openAdvanced(a.id, short)} title={a.description}>

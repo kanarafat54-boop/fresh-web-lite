@@ -14,3 +14,5 @@
 @keyframes fresh-shorts-shimmer { to { background-position: -200% 0; } }
 .fresh-shorts-offline-banner { position: absolute; top: 56px; left: 50%; transform: translateX(-50%); z-index: 20; padding: 6px 14px; border-radius: 999px; background: rgba(25, 25, 37, 0.94); color: #fff; font-size: 0.8rem; border: 1px solid rgba(165, 161, 255, 0.4); }
 .fresh-flow-empty:has(> .fresh-shorts-state) { opacity: 1; padding: 0; width: 100%; }
+
+.fresh-shorts-break{position:fixed;inset:0;z-index:2500;background:#07071a;display:flex;align-items:center;justify-content:center}
