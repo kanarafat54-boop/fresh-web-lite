@@ -56,3 +56,5 @@
 .fresh-comments .comment-sort-row{order:3;flex:1 1 100%;display:flex;gap:8px;align-items:center;overflow-x:auto;scrollbar-width:none}
 .fresh-comments .comment-sort-row::-webkit-scrollbar{display:none}
 .fresh-comments .comment-sort-row .reply-btn{flex:0 0 auto;white-space:nowrap}
+
+.short-comment-held{display:inline-flex;align-items:center;gap:5px;margin:4px 0 6px;padding:4px 8px;border-radius:99px;background:rgba(255,184,77,.14);color:#ffcf85;font-size:.74rem;font-weight:700}

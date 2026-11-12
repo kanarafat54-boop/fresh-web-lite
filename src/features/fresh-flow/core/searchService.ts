@@ -1,4 +1,5 @@
 import { supabase } from "../../../lib/supabase";
+import { keepVisibleAuthors } from "./userBlocksService";
 import { runIntelligence, type IntelligenceResponse } from "../../ai/intelligence";
 
 export type VideoResult = {
@@ -63,6 +64,7 @@ export async function searchVideos(query: string, limit = 20): Promise<VideoResu
     rows = fallbackData ?? [];
   }
 
+  rows = await keepVisibleAuthors(rows, (r: any) => String(r.author_id));
   const names = await namesFor([...new Set<string>(rows.map((r: any) => String(r.author_id)))]);
   return rows.map((r: any) => ({
     id: r.id,
@@ -129,7 +131,8 @@ export async function searchPeople(query: string, limit = 20): Promise<PersonRes
     .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
     .limit(limit);
   if (error) throw new Error(error.message);
-  return (data ?? []).map((r: any) => ({ id: r.id, username: r.username ?? "", fullName: r.full_name?.trim() ?? "" }));
+  const visible = await keepVisibleAuthors(data ?? [], (r: any) => String(r.id));
+  return visible.map((r: any) => ({ id: r.id, username: r.username ?? "", fullName: r.full_name?.trim() ?? "" }));
 }
 
 /**
