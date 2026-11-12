@@ -204,7 +204,7 @@ export function OverlayInspector({ layer, assetName, edit, duration }: { layer: 
   );
 }
 
-type TextSection = "text" | "style" | "place";
+type TextSection = "text" | "style" | "animate" | "place";
 export function TextInspector({ layer, edit, duration }: { layer: T.TextLayer; edit: EditFn; duration: number }) {
   const [section, setSection] = useState<TextSection>("text");
   const up = (patch: Partial<Omit<T.TextLayer, "id">>) => edit((d) => T.updateText(d, layer.id, patch));
@@ -212,7 +212,7 @@ export function TextInspector({ layer, edit, duration }: { layer: T.TextLayer; e
     <>
       <h2>Text</h2>
       <div className="fs-seg" role="tablist" aria-label="Text settings">
-        {([["text", "Text"], ["style", "Style"], ["place", "Place"]] as const).map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={section === id} className={section === id ? "is-active" : ""} onClick={() => setSection(id)}>{label}</button>)}
+        {([["text", "Text"], ["style", "Style"], ["animate", "Animate"], ["place", "Place"]] as const).map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={section === id} className={section === id ? "is-active" : ""} onClick={() => setSection(id)}>{label}</button>)}
       </div>
       <div className="fs-inspector-body">
         {section === "text" && (
@@ -233,7 +233,25 @@ export function TextInspector({ layer, edit, duration }: { layer: T.TextLayer; e
               <button type="button" className={`fs-chip${layer.bold ? " is-active" : ""}`} aria-pressed={layer.bold} onClick={() => up({ bold: !layer.bold })}>Bold</button>
               <button type="button" className={`fs-chip${layer.box ? " is-active" : ""}`} aria-pressed={layer.box} onClick={() => up({ box: !layer.box })}>Background</button>
             </div>
+            <Slider label="Turn" value={layer.rotation ?? 0} min={-T.MAX_ROTATION} max={T.MAX_ROTATION} step={1} format={(v) => `${Math.round(v)}°`} onCommit={(v) => up({ rotation: v })} />
             <p className="fs-muted">Exports use the DejaVu Sans font.</p>
+          </>
+        )}
+        {section === "animate" && (
+          <>
+            {(["animIn", "animOut"] as const).map((key) => (
+              <div key={key}>
+                <div className="fs-label">{key === "animIn" ? "How it arrives" : "How it leaves"}</div>
+                <div className="fs-chips" role="group" aria-label={key === "animIn" ? "Arrival animation" : "Exit animation"}>
+                  {([["none", "None"], ["fade", "Fade"], ["rise", "Rise"], ["slide", "Slide"]] as const).map(([id, label]) => {
+                    const on = (layer[key] ?? "none") === id;
+                    return <button key={id} type="button" className={`fs-chip${on ? " is-active" : ""}`} aria-pressed={on} onClick={() => up({ [key]: id })}>{label}</button>;
+                  })}
+                </div>
+              </div>
+            ))}
+            {(layer.animIn || layer.animOut) && <Slider label="Takes" value={layer.animSeconds ?? T.DEFAULT_ANIM_SECONDS} min={T.MIN_ANIM_SECONDS} max={Math.min(T.MAX_ANIM_SECONDS, layer.duration)} step={0.1} format={(v) => `${v.toFixed(1)} s`} onCommit={(v) => up({ animSeconds: v })} />}
+            <p className="fs-muted">Every animation also fades. Rise moves up into place; slide comes in from the left and leaves to the right.</p>
           </>
         )}
         {section === "place" && (

@@ -288,22 +288,62 @@ export function planRender(input                 )             {
     });
   }
   if (texts.length) {
-    const drawn           = [];
-    for (const t of [...texts].sort((a, b) => a.start - b.start)) {
-      const file = input.textFiles?.[t.id];
-      if (!file || !input.fonts) { errors.push(`Text "${t.text.slice(0, 20)}" cannot be rendered because its file or font is missing.`); continue; }
-      if (!FFMPEG_COLOR.test(t.color)) { errors.push("A text colour is invalid."); continue; }
+    const target = burn ? "vcat" : "vout";
+    const sorted = [...texts].sort((a, b) => a.start - b.start);
+    const plain = sorted.filter((t) => !t.rotation), turned = sorted.filter((t) => t.rotation);
+    const total = Math.max(timelineDuration(doc), 0.1);
+    // Moves and fades for the way a title arrives and leaves, as ffmpeg expressions of time t.
+    const motion = (t                         , frameW        , frameH        ) => {
+      const D = num(t.animSeconds ?? 0.5), end = t.start + t.duration;
+      const pin = t.animIn && t.animIn !== "none" ? `min(1,max(0,(t-${num(t.start)})/${D}))` : null;
+      const pout = t.animOut && t.animOut !== "none" ? `min(1,max(0,(${num(end)}-t)/${D}))` : null;
+      const ease = (p        ) => `(${p}*(2-${p}))`;
+      const parts = (p               , kind                    , dir        ) => ({
+        dx: p && kind === "slide" ? `${dir === 1 ? "-" : "+"}(1-${ease(p)})*${frameW}*0.18` : "",
+        dy: p && kind === "rise" ? `${dir === 1 ? "+" : "-"}(1-${ease(p)})*${frameH}*0.06` : "",
+      });
+      const a = parts(pin, t.animIn, 1), b = parts(pout, t.animOut, -1);
+      const alpha = [pin, pout].filter(Boolean).join("*");
+      return { dx: a.dx + b.dx, dy: a.dy + b.dy, alpha: alpha || null, fadeIn: pin ? num(t.start) : null, fadeOut: pout ? num(end) : null, D };
+    };
+    const drawText = (t                         , file        , where                          , alpha               , withWindow         ) => {
       const fontSize = Math.max(8, Math.round(H * t.size));
       const opts = [
-        `fontfile=${escapeFilterPath(t.bold ? input.fonts.bold : input.fonts.regular)}`, `textfile=${escapeFilterPath(file)}`, `expansion=none`, `fontsize=${fontSize}`, `fontcolor=${t.color}`,
-        `x=w*${num(t.x)}-text_w/2`, `y=h*${num(t.y)}-text_h/2`,
+        `fontfile=${escapeFilterPath(t.bold ? input.fonts .bold : input.fonts .regular)}`, `textfile=${escapeFilterPath(file)}`, `expansion=none`, `fontsize=${fontSize}`, `fontcolor=${t.color}`,
+        `x='${where.x}'`, `y='${where.y}'`,
         t.box ? `box=1:boxcolor=black@0.55:boxborderw=${Math.round(fontSize * 0.25)}` : "shadowx=2:shadowy=2:shadowcolor=black@0.6",
-        `enable=between(t\\,${num(t.start)}\\,${num(t.start + t.duration)})`,
       ];
-      drawn.push(`drawtext=${opts.join(":")}`);
+      if (alpha) opts.push(`alpha='${alpha}'`);
+      if (withWindow) opts.push(`enable=between(t\\,${num(t.start)}\\,${num(t.start + t.duration)})`);
+      return `drawtext=${opts.join(":")}`;
+    };
+    const check = (t                         ) => {
+      const file = input.textFiles?.[t.id];
+      if (!file || !input.fonts) { errors.push(`Text "${t.text.slice(0, 20)}" cannot be rendered because its file or font is missing.`); return null; }
+      if (!FFMPEG_COLOR.test(t.color)) { errors.push("A text colour is invalid."); return null; }
+      return file;
+    };
+    const drawn           = [];
+    for (const t of plain) {
+      const file = check(t); if (!file) continue;
+      const m = motion(t, "w", "h");
+      drawn.push(drawText(t, file, { x: `w*${num(t.x)}-text_w/2${m.dx}`, y: `h*${num(t.y)}-text_h/2${m.dy}` }, m.alpha, true));
     }
+    const rotatedFilters           = [];
+    let cur = plain.length ? "vtx" : "vraw";
+    turned.forEach((t, k) => {
+      const file = check(t); if (!file) return;
+      const m = motion(t, String(W), String(H));
+      // A turned title is drawn on its own transparent canvas the size of the frame, turned about its centre, then laid over the picture.
+      const fades = (m.fadeIn !== null ? `,fade=t=in:st=${m.fadeIn}:d=${num(m.D)}:alpha=1` : "") + (m.fadeOut !== null ? `,fade=t=out:st=${num(Number(m.fadeOut) - m.D)}:d=${num(m.D)}:alpha=1` : "");
+      const next = k === turned.length - 1 ? target : `vt${k + 1}`;
+      rotatedFilters.push(`color=c=black@0:s=${W}x${H}:r=${fps}:d=${num(total)},format=rgba,${drawText(t, file, { x: "(w-text_w)/2", y: "(h-text_h)/2" }, null, false)}${turn(t.rotation)}${fades}[tx${k}]`);
+      rotatedFilters.push(`[${cur}][tx${k}]overlay=x='${num(t.x)}*${W}-w/2${m.dx}':y='${num(t.y)}*${H}-h/2${m.dy}':enable=between(t\\,${num(t.start)}\\,${num(t.start + t.duration)})[${next}]`);
+      cur = next;
+    });
     if (errors.length) return { ok: false, errors };
-    filters.push(`[vraw]${drawn.join(",")}[${burn ? "vcat" : "vout"}]`);
+    if (drawn.length) filters.push(`[vraw]${drawn.join(",")}[${turned.length ? "vtx" : target}]`);
+    filters.push(...rotatedFilters);
   }
   if (burn) {
     const size = Math.max(14, Math.round(H * 0.045));

@@ -324,7 +324,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
             </div>
             {visibleTexts.map((t0) => { const t = at(t0); return (
               <div key={t.id} className={`fs-overlay-text${selected === t.id ? " is-selected" : ""}`} data-testid="overlay-text"
-                style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`, fontSize: `${t.size * 100}cqh`, color: t.color, fontWeight: t.bold ? 700 : 400, background: t.box ? "rgba(0,0,0,.55)" : "transparent", padding: t.box ? "0.25em" : 0, textShadow: t.box ? "none" : "0.05em 0.05em 0.05em rgba(0,0,0,.6)" }}
+                style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`, fontSize: `${t.size * 100}cqh`, color: t.color, fontWeight: t.bold ? 700 : 400, background: t.box ? "rgba(0,0,0,.55)" : "transparent", padding: t.box ? "0.25em" : 0, textShadow: t.box ? "none" : "0.05em 0.05em 0.05em rgba(0,0,0,.6)", ...(t.rotation || t.animIn || t.animOut ? (() => { const a = T.textAnimationAt(t, playhead); return { opacity: a.opacity, transform: `translate(-50%, -50%) translate(${a.dx * 100}cqw, ${a.dy * 100}cqh)${t.rotation ? ` rotate(${t.rotation}deg)` : ""}` }; })() : {}) }}
                 onPointerDown={(e) => drag.begin(e, t.id, "text")} onPointerMove={drag.move} onPointerUp={drag.end} onPointerCancel={drag.end}>{t.text}</div>
             ); })}
             {visibleOverlays.map((o0) => {

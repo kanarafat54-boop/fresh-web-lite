@@ -139,7 +139,19 @@ export type TextLayer = {
   bold: boolean;
   /** Semi-transparent box behind the text for legibility. */
   box: boolean;
+  /** Degrees clockwise, -180 to 180. */
+  rotation?: number;
+  /** How the title arrives and leaves. Every animation also fades; "rise" moves up, "slide" comes in from the left and leaves to the right. */
+  animIn?: TextAnimation;
+  animOut?: TextAnimation;
+  /** Seconds each animation takes (default 0.5). */
+  animSeconds?: number;
 };
+export const TEXT_ANIMATIONS = ["none", "fade", "rise", "slide"] as const;
+export type TextAnimation = (typeof TEXT_ANIMATIONS)[number];
+export const DEFAULT_ANIM_SECONDS = 0.5;
+export const MIN_ANIM_SECONDS = 0.1;
+export const MAX_ANIM_SECONDS = 2;
 
 export const MAX_OVERLAYS = 30;
 export const MIN_OVERLAY_SECONDS = 0.2;
@@ -620,6 +632,11 @@ export function validateTextLayer(t: TextLayer): string | null {
   if (t.x < 0 || t.x > 1 || t.y < 0 || t.y > 1) return "Text must stay inside the frame.";
   if (t.size < 0.02 || t.size > 0.3) return "Text size is out of range.";
   if (!HEX.test(t.color)) return "Text colour is invalid.";
+  if (t.rotation !== undefined && !(Number.isFinite(t.rotation) && Math.abs(t.rotation) <= MAX_ROTATION)) return `Text can be turned by at most ${MAX_ROTATION} degrees either way.`;
+  for (const a of [t.animIn, t.animOut]) if (a !== undefined && !TEXT_ANIMATIONS.includes(a)) return "Unknown text animation.";
+  if (t.animSeconds !== undefined && !(Number.isFinite(t.animSeconds) && t.animSeconds >= MIN_ANIM_SECONDS && t.animSeconds <= MAX_ANIM_SECONDS)) return `Animations take between ${MIN_ANIM_SECONDS} and ${MAX_ANIM_SECONDS} seconds.`;
+  const used = (t.animIn && t.animIn !== "none" ? 1 : 0) + (t.animOut && t.animOut !== "none" ? 1 : 0);
+  if (used > 0 && (t.animSeconds ?? DEFAULT_ANIM_SECONDS) * used > t.duration + 1e-6) return "The text is too short for its animation. Show it longer or shorten the animation.";
   return null;
 }
 const findText = (doc: TimelineDoc, id: string) => {
@@ -638,6 +655,11 @@ export function addText(doc: TimelineDoc, input: { text?: string; start: number;
 export function updateText(doc: TimelineDoc, id: string, patch: Partial<Omit<TextLayer, "id">>): TimelineDoc {
   const next: TextLayer = { ...findText(doc, id), ...patch };
   next.start = round3(next.start); next.duration = round3(next.duration);
+  // Tidy optional fields so projects stay small and "no change" never leaves a stray value behind.
+  if (!next.rotation) delete next.rotation;
+  if (next.animIn === "none") delete next.animIn;
+  if (next.animOut === "none") delete next.animOut;
+  if (!next.animIn && !next.animOut) delete next.animSeconds;
   const problem = validateTextLayer(next);
   if (problem) throw new TimelineError(problem);
   return { ...doc, texts: (doc.texts ?? []).map((t) => (t.id === id ? next : t)) };
@@ -645,6 +667,24 @@ export function updateText(doc: TimelineDoc, id: string, patch: Partial<Omit<Tex
 export function deleteText(doc: TimelineDoc, id: string): TimelineDoc {
   findText(doc, id);
   return { ...doc, texts: (doc.texts ?? []).filter((t) => t.id !== id) };
+}
+/** Opacity and offset (fractions of frame width and height) of a title at `time`; mirrors what the export does. */
+export function textAnimationAt(t: TextLayer, time: number): { opacity: number; dx: number; dy: number } {
+  const d = t.animSeconds ?? DEFAULT_ANIM_SECONDS;
+  const ease = (p: number) => p * (2 - p);
+  const clamp = (v: number) => Math.min(1, Math.max(0, v));
+  let opacity = 1, dx = 0, dy = 0;
+  if (t.animIn && t.animIn !== "none") {
+    const p = clamp((time - t.start) / d); opacity *= p;
+    if (t.animIn === "slide") dx -= (1 - ease(p)) * 0.18;
+    if (t.animIn === "rise") dy += (1 - ease(p)) * 0.06;
+  }
+  if (t.animOut && t.animOut !== "none") {
+    const p = clamp((t.start + t.duration - time) / d); opacity *= p;
+    if (t.animOut === "slide") dx += (1 - ease(p)) * 0.18;
+    if (t.animOut === "rise") dy -= (1 - ease(p)) * 0.06;
+  }
+  return { opacity, dx, dy };
 }
 export const textsAt = (doc: TimelineDoc, time: number) => (doc.texts ?? []).filter((t) => time >= t.start - 1e-6 && time < t.start + t.duration - 1e-6);
 

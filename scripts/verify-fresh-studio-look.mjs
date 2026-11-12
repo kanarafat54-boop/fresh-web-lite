@@ -176,6 +176,49 @@ const near = (a, e, tol, label) => assert.ok(Math.abs(a - e) <= tol, `${label}: 
   // position: moved to the top, the centre is empty
   const top = T.updateText(d, "t1", { y: 0.12 });
   near(stat(render(top, { textFiles: files, fonts: FONTS }), "YAVG", { at: 1.5, vf: centre }), baseLuma, 3, "moving the text moves it");
+  // turning, fading and moving titles
+  {
+    const lay = (patch, text = "WWWWWWWW", id = "t9") => {
+      write(id, text);
+      let x = T.addText(dark(), { start: 1, duration: 3, id, text }); x = T.updateText(x, id, { size: 0.12, ...patch }); return x;
+    };
+    const rend = (x) => render(x, { textFiles: files, fonts: FONTS });
+    const flat = baseLuma;
+    // model rules
+    assert.throws(() => T.updateText(lay({}), "t9", { rotation: 200 }), /at most 180/);
+    assert.throws(() => T.updateText(lay({}), "t9", { animIn: "spin" }), /Unknown/);
+    assert.throws(() => T.updateText(lay({}), "t9", { animIn: "fade", animSeconds: 5 }), /between/);
+    assert.throws(() => T.updateText(lay({}), "t9", { animIn: "fade", animOut: "fade", animSeconds: 2, duration: 3 }), /too short/);
+    const tidy = T.updateText(T.updateText(lay({ rotation: 30, animIn: "rise" }), "t9", { rotation: 0, animIn: "none" }), "t9", {});
+    assert.ok(!("rotation" in tidy.texts[0]) && !("animIn" in tidy.texts[0]) && !("animSeconds" in tidy.texts[0]), "cleared options leave nothing behind");
+    // rotation: a wide word turned a quarter turn becomes tall
+    const wide = rend(lay({}));
+    const turned = rend(lay({ rotation: 90 }));
+    const leftBand = "crop=60:40:140:160", topBand = "crop=40:60:300:60";
+    assert.ok(stat(wide, "YAVG", { at: 2, vf: leftBand }) > flat + 15, "plain text reaches the left");
+    assert.ok(stat(turned, "YAVG", { at: 2, vf: leftBand }) < flat + 4, "turned text no longer reaches the left");
+    assert.ok(stat(turned, "YAVG", { at: 2, vf: topBand }) > flat + 15, "turned text reaches the top");
+    assert.ok(stat(wide, "YAVG", { at: 2, vf: topBand }) < flat + 4, "plain text does not");
+    assert.ok(stat(turned, "YAVG", { at: 0.4, vf: topBand }) < flat + 2 && stat(turned, "YAVG", { at: 4.5, vf: topBand }) < flat + 2, "turned text keeps its time window");
+    // fade in and out
+    const faded = rend(lay({ animIn: "fade", animOut: "fade", animSeconds: 1 }));
+    const mid = "crop=200:60:220:150";
+    assert.ok(stat(faded, "YAVG", { at: 1.1, vf: mid }) < stat(faded, "YAVG", { at: 2.5, vf: mid }) - 10, "fades in");
+    assert.ok(stat(faded, "YAVG", { at: 3.9, vf: mid }) < stat(faded, "YAVG", { at: 2.5, vf: mid }) - 10, "fades out");
+    const fadedTurned = rend(lay({ rotation: 15, animIn: "fade", animOut: "fade", animSeconds: 1 }));
+    assert.ok(stat(fadedTurned, "YAVG", { at: 1.1, vf: mid }) < stat(fadedTurned, "YAVG", { at: 2.5, vf: mid }) - 6, "a turned title fades in too");
+    // slide comes from the left; rise comes from below
+    const slide = rend(lay({ animIn: "slide", animSeconds: 1 })), still = rend(lay({ animIn: "fade", animSeconds: 1 }));
+    const leftHalf = "crop=100:60:170:150", rightHalf = "crop=40:60:456:150";
+        assert.ok(stat(slide, "YAVG", { at: 1.5, vf: rightHalf }) < stat(still, "YAVG", { at: 1.5, vf: rightHalf }) - 4, "so the right is emptier than a plain fade");
+    const rise = rend(lay({ animIn: "rise", animSeconds: 0.3 })), fade = rend(lay({ animIn: "fade", animSeconds: 0.3 }));
+    const below = "crop=300:20:170:197";
+    assert.ok(stat(rise, "YMAX", { at: 1.1, vf: below }) > stat(fade, "YMAX", { at: 1.1, vf: below }) + 15, "rise starts lower than a plain fade");
+    // after the animation everything matches an unanimated title
+    near(stat(rise, "YAVG", { at: 2.5, vf: mid }), stat(wide, "YAVG", { at: 2.5, vf: mid }), 2, "settled position and colour are unchanged");
+    // old-style text still plans the same filters
+    assert.ok(!/fade=t=|overlay=x='/.test(R.planRender({ doc: lay({}), preset: "360p", aspectRatio: "16:9", sources, outputPath: "o.mp4", textFiles: files, fonts: FONTS }).filterGraph), "plain text adds no new filters");
+  }
   // hostile text renders literally and cannot break out of the filter graph
   const nasty = "It's 100%: a, b; [c] \\ {d} %{pts} $(x) '";
   let n = T.addText(dark(), { start: 0.5, duration: 3, id: "t2", text: nasty }); n = T.updateText(n, "t2", { size: 0.15, bold: false, box: true });
