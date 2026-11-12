@@ -4,7 +4,7 @@ import { NotificationService } from "../services/notificationService";
 import { FeatureRegistry } from "../registry/FeatureRegistry";
 import { LayoutContext } from "./LayoutContextValue";
 import type { LayoutState, LayoutActions } from "./LayoutTypes";
-import { isShortsPath } from "../../features/fresh-flow/core/shortsLinks";
+import { isShortsPath, SHORTS_HOME_PATH } from "../../features/fresh-flow/core/shortsLinks";
 
 function routeFromPath(pathname: string): string {
   const path = pathname.replace(/\/+$/, "") || "/";
@@ -30,6 +30,7 @@ function pathForRoute(route: string): string {
   if (route === "onboarding") return "/onboarding";
   if (route === "auth-sign-in" || route === "auth-signin") return "/auth/sign-in";
   if (route === "auth-sign-up" || route === "auth-signup") return "/auth/sign-up";
+  if (route === "fresh-flow-shorts") return SHORTS_HOME_PATH;
   if (route === "fresh-flow" || route.startsWith("fresh-flow-")) return `/${route}`;
   return FeatureRegistry.getFeature(route)?.route ?? "/";
 }

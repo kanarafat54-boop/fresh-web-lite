@@ -57,6 +57,7 @@ import { DEFAULT_PRIVACY, explainControlError, type AudienceChoice, type ShortsP
 import { loadPrivacy, setShortCommentsMode } from "../core/shortsPrivacyService";
 import { useQuietBreak } from "../core/useQuietBreak";
 import { loadBlockedIds } from "../core/userBlocksService";
+import { addressForPlayingShort } from "../core/shortsLinks";
 import "./FreshFlow.css";
 
 type SubTab = ShortDiscoveryId;
@@ -447,6 +448,9 @@ export default function FreshFlowShortsStream({
         if (activeIndex < 0) return;
         setCurrentIndex((previous) => (previous === activeIndex ? previous : activeIndex));
         if (shorts[activeIndex]) {
+          // Keep the address bar on the playing Short so the page can be refreshed, bookmarked and shared.
+          const address = addressForPlayingShort(window.location.pathname, shorts[activeIndex].id);
+          if (address) { try { window.history.replaceState(window.history.state, "", address); } catch { /* address stays as it was */ } }
           viewedRef.current.add(shorts[activeIndex].id);
           setRuntimeActive(shorts[activeIndex].id);
           telemetryRef.current.push({
