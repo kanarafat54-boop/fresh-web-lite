@@ -20,6 +20,29 @@ const MODE_CONFIG: Record<ResearchMode, { searchDepth: "basic" | "advanced"; top
   local: { searchDepth: "advanced", topic: "general", prefix: "Prioritize geographically relevant and local sources when the query contains a location." },
 };
 
+function retrievalCapabilities(configured: boolean) {
+  const active = configured ? "available" : "not_configured";
+  const biased = configured ? "query_biased" : "not_configured";
+  return {
+    provider: "Tavily",
+    configured,
+    categories: {
+      web: { status: active, detail: "General web retrieval through Tavily." },
+      news: { status: active, detail: "Tavily news-topic retrieval; shares the same provider as web search." },
+      academic: { status: biased, detail: "Academic-focused query against general web results; no dedicated scholarly index is connected." },
+      business: { status: biased, detail: "Business-focused query against general web results; no dedicated market-data provider is connected." },
+      people: { status: biased, detail: "Public-entity-focused query against general web results; no dedicated people index is connected." },
+      local: { status: biased, detail: "Location-focused query against general web results; no dedicated local places provider is connected." },
+      images: { status: "not_configured", detail: "No dedicated image-search provider is connected. Direct image links in web results are not a complete image-search experience." },
+      videos: { status: "not_configured", detail: "No dedicated video-search provider is connected. Video-site links in web results are not a complete video-search experience." },
+      posts: { status: "not_configured", detail: "No dedicated public-posts or discussions provider is connected." },
+      organizations: { status: "not_configured", detail: "No dedicated organization/entity knowledge provider is connected." },
+      relatedResearch: { status: "not_configured", detail: "No separate related-query retrieval service is connected." },
+      music: { status: "not_configured", detail: "No dedicated music-search provider is connected." },
+    },
+  };
+}
+
 function elapsed(start: number): number { return Date.now() - start; }
 function logStage(runId: string, stage: string, details: Record<string, unknown> = {}): void { console.info("TRUEMODE", { runId, stage, ...details }); }
 
@@ -75,7 +98,7 @@ export async function POST(req: Request): Promise<Response> {
   const dryRun = process.env.PERSISTENCE_DRY_RUN === "true";
   logStage(runId, "research.request", { method: req.method, dryRun });
   const apiKey = process.env.TAVILY_API_KEY;
-  if (!apiKey) return json({ error: "Web research is not configured. Set TAVILY_API_KEY on the server.", runId }, 503);
+  if (!apiKey) return json({ error: "Web research is not configured. Set TAVILY_API_KEY on the server.", runId, retrievalCapabilities: retrievalCapabilities(false) }, 503);
   let body: SearchRequest;
   try { body = await req.json() as SearchRequest; } catch { return json({ error: "Invalid JSON body", runId }, 400); }
   const query = typeof body.query === "string" ? body.query.trim() : "";
@@ -126,7 +149,7 @@ export async function POST(req: Request): Promise<Response> {
       if (persistenceTimeout) clearTimeout(persistenceTimeout);
     }
     const warnings = [...(failures.length ? [`${failures.length} research pass(es) failed or timed out; Fresh returned the successfully completed evidence.`] : []), ...(persistenceWarning ? [persistenceWarning] : [])];
-    return json({ answer: synthesis.answer, sources: synthesis.sources, claims: synthesis.claims, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning }, 200, { "x-truemode-run-id": runId });
+    return json({ answer: synthesis.answer, sources: synthesis.sources, claims: synthesis.claims, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, retrievalCapabilities: retrievalCapabilities(true), persistence: persistence ?? null, intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning }, 200, { "x-truemode-run-id": runId });
   } catch (error) {
     console.error("Fresh Web Research error", { runId, error });
     return json({ error: error instanceof Error ? error.message : "Web research provider unavailable", runId }, 502);
