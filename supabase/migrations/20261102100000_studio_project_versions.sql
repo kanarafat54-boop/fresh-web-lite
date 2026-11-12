@@ -4,7 +4,7 @@
 -- Studio fields in metadata.studio, so no parallel project table is introduced.
 -- This migration only adds the version-history table that fresh_projects lacks.
 --
--- NOT applied automatically. Review, then apply with `supabase db push` or the Supabase MCP.
+-- Applied to production on 2026-11-12 through the Supabase MCP (see also 20261112100000_studio_project_versions_least_privilege.sql).
 
 -- public.fresh_projects already exists in production (see supabase/baseline/production_public_schema_2026-10-23.sql)
 -- but no earlier migration creates it, so a from-scratch replay would fail on the foreign key below.
