@@ -13,7 +13,7 @@ for (const [name, content] of generate()) {
   assert.equal(fs.readFileSync(file, "utf8"), content, `workers/media-worker/vendor/${name} is out of date. Run: node scripts/sync-studio-worker.mjs`);
 }
 
-const { getRenderLimits, parseRenderRequest, runRenderJob, cancelRender } = await import("../workers/media-worker/render-job.mjs");
+const { getRenderLimits, parseRenderRequest, runRenderJob, cancelRender, checkProbe } = await import("../workers/media-worker/render-job.mjs");
 const T = await import("../src/features/fresh-studio/video-studio/timeline.ts");
 
 // --- Limits and request validation (no ffmpeg needed)
@@ -105,11 +105,24 @@ if (limits.text) {
   const done = jobs.get(job.id);
   assert.equal(done.status, "succeeded", done.error);
   assert.ok(done.outputBytes > 1000);
+  assert.equal(done.output.bytes, done.outputBytes); assert.match(done.output.sha256, /^[0-9a-f]{64}$/); assert.equal(done.output.vcodec, "h264");
   assert.deepEqual(fs.readdirSync(root).filter((n) => n.endsWith("-render")), [], "text files are cleaned up too");
   const stats = spawnSync("ffmpeg", ["-hide_banner", "-ss", "1", "-i", done.outputPath, "-frames:v", "1", "-vf", "signalstats,metadata=print:file=-", "-f", "null", "-"], { encoding: "utf8" });
   assert.ok(Number((stats.stdout + stats.stderr).match(/SATAVG=([\d.]+)/)[1]) < 3, "Mono look was applied by the worker");
   const noFonts = parseRenderRequest({ timeline: doc, preset: "360p", aspectRatio: "16:9", sources: { a: "https://media.test/short.mp4" } }, { ...limits, text: false });
   assert.equal(noFonts.ok, false); assert.match(noFonts.error, /no fonts/);
+}
+
+// --- 1c) The probe check compares the finished file with what the planner promised
+{
+  const plan = { width: 640, height: 360, duration: 10 };
+  const ok = { vcodec: "h264", width: 640, height: 360, duration: 10.1 };
+  assert.equal(checkProbe(ok, plan), null);
+  assert.match(checkProbe({ ...ok, vcodec: undefined }, plan), /no picture/);
+  assert.match(checkProbe({ ...ok, vcodec: "vp9" }, plan), /H\.264/);
+  assert.match(checkProbe({ ...ok, width: 320 }, plan), /320×360/);
+  assert.match(checkProbe({ ...ok, duration: 14 }, plan), /long/);
+  assert.match(checkProbe({ ...ok, duration: NaN }, plan), /readable/);
 }
 
 // --- 2) A failed download fails the job cleanly and leaves nothing behind
@@ -149,7 +162,7 @@ try {
   const base = `http://127.0.0.1:${freePort}`;
   for (let i = 0; i < 50; i += 1) { try { if ((await fetch(base + "/health")).ok) break; } catch { /* starting */ } await wait(100); }
   const alice = crypto.randomUUID(), bob = crypto.randomUUID();
-  const call = (method, p, { token = TOKEN, user, body } = {}) => fetch(base + p, { method, headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(user ? { "x-fresh-user-id": user } : {}), ...(body ? { "content-type": "application/json" } : {}) }, ...(body ? { body: typeof body === "string" ? body : JSON.stringify(body) } : {}) });
+  const call = (method, p, { token = TOKEN, user, body, extraHeaders = {} } = {}) => fetch(base + p, { method, headers: { ...extraHeaders, ...(token ? { authorization: `Bearer ${token}` } : {}), ...(user ? { "x-fresh-user-id": user } : {}), ...(body ? { "content-type": "application/json" } : {}) }, ...(body ? { body: typeof body === "string" ? body : JSON.stringify(body) } : {}) });
 
   assert.equal((await call("GET", "/health", { token: null })).status, 200);
   assert.equal((await call("GET", "/capabilities", { token: null })).status, 401, "capabilities needs the token");
@@ -166,6 +179,18 @@ try {
   const huge = await call("POST", "/renders", { user: alice, body: JSON.stringify({ x: "y".repeat(300 * 1024) }) });
   assert.equal(huge.status, 400);
   assert.match((await huge.json()).error, /too large/i);
+
+  // The same idempotency key sent twice at once starts one render; a bad key is refused
+  {
+    const key = "retry-key-" + crypto.randomUUID().slice(0, 8);
+    const post = (k) => call("POST", "/renders", { user: alice, body: good(), extraHeaders: { "x-idempotency-key": k } });
+    const [a, b] = await Promise.all([post(key), post(key)]);
+    const ja = await a.json(), jb = await b.json();
+    assert.equal(a.status, 202); assert.equal(b.status, 202); assert.equal(ja.jobId, jb.jobId, "one job for one key");
+    assert.equal((await post("bad key!")).status, 400);
+    await call("DELETE", `/jobs/${ja.jobId}`, { user: alice });
+    for (let i = 0; i < 100; i += 1) { const st = await (await call("GET", `/jobs/${ja.jobId}`, { user: alice })).json(); if (st.status !== "queued" && st.status !== "running") break; await wait(100); }
+  }
 
   // A private-network source is refused by the existing safe-URL guard, and the job fails without any fetch
   const accepted = await call("POST", "/renders", { user: alice, body: good({ sources: { a: "https://127.0.0.1/a.mp4" } }) });

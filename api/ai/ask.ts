@@ -63,6 +63,8 @@ async function handleMediaWorkerProxy(req: Request): Promise<Response> {
         if (!parsed || typeof parsed !== "object" || typeof (parsed as { timeline?: unknown }).timeline !== "object") return jsonProxy({ error: "A timeline is required." }, 400);
       } else if (!parsed || typeof parsed !== "object" || typeof (parsed as { inputUrl?: unknown }).inputUrl !== "string") return jsonProxy({ error: "inputUrl is required." }, 400);
       headers.set("content-type", "application/json");
+      const idempotencyKey = req.headers.get("x-idempotency-key") ?? "";
+      if (path === "/renders" && /^[A-Za-z0-9_-]{8,64}$/.test(idempotencyKey)) headers.set("x-idempotency-key", idempotencyKey);
     }
     const upstream = await fetch(workerUrl + path, { method: req.method, headers, ...(body === undefined ? {} : { body }), cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(45_000) });
     const contentType = upstream.headers.get("content-type") ?? "";

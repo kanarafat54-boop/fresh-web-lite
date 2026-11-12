@@ -32,14 +32,17 @@ export function parseCapabilities(raw: unknown): WorkerCapabilities {
   return { presets: r.presets as ExportPresetId[], aspectRatios: r.aspectRatios, frameRates: r.frameRates, maxSeconds: r.maxSeconds!, maxSources: r.maxSources!, maxInputBytes: r.maxInputBytes!, text: r.text === true };
 }
 
-export type WorkerStatus = { status: "queued" | "running" | "succeeded" | "failed" | "cancelled"; progress?: number; error?: string };
+/** What the worker recorded about the finished file, read back with ffprobe. */
+export type OutputFacts = { bytes: number; sha256: string; duration: number; width: number; height: number };
+export type WorkerStatus = { status: "queued" | "running" | "succeeded" | "failed" | "cancelled"; progress?: number; error?: string; output?: OutputFacts };
 export type RenderRequestBody = { timeline: TimelineDoc; preset: ExportPresetId; aspectRatio: string; fps?: number; sources: Record<string, string>; captionsSrt?: string };
 
 export type ExportPorts = {
   getCapabilities(): Promise<WorkerCapabilities>;
   /** Uploads one source and returns an https URL the worker can fetch. */
   uploadSource(assetId: string, blob: Blob): Promise<string>;
-  submit(body: RenderRequestBody): Promise<{ jobId: string }>;
+  /** The key makes a repeated submit return the same job instead of starting a second render. */
+  submit(body: RenderRequestBody, idempotencyKey: string): Promise<{ jobId: string }>;
   status(jobId: string): Promise<WorkerStatus>;
   cancel(jobId: string): Promise<void>;
   download(jobId: string): Promise<Blob>;
@@ -48,7 +51,18 @@ export type ExportPorts = {
 
 export type ExportStage = "checking" | "uploading" | "rendering" | "downloading";
 export type ExportInput = { doc: TimelineDoc; preset: ExportPresetId; aspectRatio: string; fps?: number; captions: Cue[]; blobs: Map<string, Blob>; names: Map<string, string> };
-export type ExportHooks = { onStage?: (stage: ExportStage, detail?: string) => void; onProgress?: (fraction: number) => void; signal?: AbortSignal };
+export type ExportHooks = {
+  onStage?: (stage: ExportStage, detail?: string) => void; onProgress?: (fraction: number) => void; signal?: AbortSignal;
+  /** Called with what the worker recorded; `verified` is true only when the downloaded bytes matched it exactly. */
+  onOutput?: (facts: OutputFacts & { verified: boolean }) => void;
+  /** Overridable for tests. */
+  idempotencyKey?: string;
+};
+
+async function sha256Hex(blob: Blob): Promise<string> {
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 export class ExportError extends Error {
   constructor(message: string) { super(message); this.name = "ExportError"; }
@@ -112,18 +126,28 @@ export async function runExport(ports: ExportPorts, input: ExportInput, hooks: E
 
   onStage?.("rendering");
   onProgress?.(0);
-  const { jobId } = await ports.submit({
+  const key = hooks.idempotencyKey ?? globalThis.crypto.randomUUID();
+  const body: RenderRequestBody = {
     timeline: input.doc, preset: input.preset, aspectRatio: input.aspectRatio, ...(input.fps !== undefined ? { fps: input.fps } : {}), sources,
     ...(input.captions.length ? { captionsSrt: serializeSrt(input.captions) } : {}),
+  };
+  // One quiet retry for a dropped connection. The key means a request that did reach the worker is not rendered twice.
+  const { jobId } = await ports.submit(body, key).catch(async (e: unknown) => {
+    ensureLive();
+    if (e instanceof ExportError) throw e;
+    await ports.sleep(1500);
+    ensureLive();
+    return ports.submit(body, key);
   });
 
   const deadline = MAX_POLL_SECONDS * 1000;
   let waited = 0;
+  let facts: OutputFacts | undefined;
   for (;;) {
     if (signal?.aborted) { await ports.cancel(jobId).catch(() => {}); throw new ExportCancelled(); }
     const st = await ports.status(jobId);
     if (typeof st.progress === "number") onProgress?.(Math.min(1, Math.max(0, st.progress)));
-    if (st.status === "succeeded") break;
+    if (st.status === "succeeded") { facts = st.output; break; }
     if (st.status === "failed") throw new ExportError(st.error || "The render failed.");
     if (st.status === "cancelled") throw new ExportCancelled();
     if (waited >= deadline) { await ports.cancel(jobId).catch(() => {}); throw new ExportError("The render took too long and was stopped."); }
@@ -133,8 +157,19 @@ export async function runExport(ports: ExportPorts, input: ExportInput, hooks: E
 
   ensureLive();
   onStage?.("downloading");
-  const blob = await ports.download(jobId);
+  // A download that does not match what the worker recorded is fetched once more before giving up.
+  let blob = await ports.download(jobId);
+  let verified = false;
+  if (facts) {
+    for (let attempt = 0; ; attempt += 1) {
+      if (blob.size === facts.bytes && (await sha256Hex(blob)) === facts.sha256) { verified = true; break; }
+      if (attempt >= 1) throw new ExportError("The downloaded video does not match what the server rendered, so it was not saved. Try the export again.");
+      ensureLive();
+      blob = await ports.download(jobId);
+    }
+  }
   if (blob.size < 1000) throw new ExportError("The finished video was empty. Try again.");
   onProgress?.(1);
+  if (facts) hooks.onOutput?.({ ...facts, verified });
   return blob;
 }

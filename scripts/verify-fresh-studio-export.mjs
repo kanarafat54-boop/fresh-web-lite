@@ -63,3 +63,21 @@ const fakePorts = (over = {}) => {
   assert.match(E.checkExport(input({ doc: withText }), { ...caps, text: false }), /cannot export text/);
 }
 console.log("fresh-studio export orchestration: ok");
+
+// retry on a dropped connection reuses one key; a real answer from the service is final
+{ const keys = []; let n = 0;
+  const { ports } = fakePorts({ submit: async (_b, k) => { keys.push(k); if (n++ === 0) throw new Error("network down"); return { jobId: "j1" }; } });
+  await E.runExport(ports, input()); assert.equal(keys.length, 2); assert.equal(keys[0], keys[1]); assert.ok(keys[0].length >= 8); }
+{ let n = 0; const { ports } = fakePorts({ submit: async () => { n += 1; throw new E.ExportError("You already have a render in progress."); } });
+  await assert.rejects(E.runExport(ports, input()), /already have a render/); assert.equal(n, 1); }
+{ let n = 0; const { ports } = fakePorts({ submit: async () => { n += 1; throw new Error("network down"); } });
+  await assert.rejects(E.runExport(ports, input()), /network down/); assert.equal(n, 2); }
+// output verification: matching bytes pass, a bad first download is fetched once more, two bad ones fail
+{ const bytes = new Uint8Array(5000).fill(7); const sha = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), (b) => b.toString(16).padStart(2, "0")).join("");
+  const facts = { bytes: 5000, sha256: sha, duration: 1, width: 640, height: 360 };
+  const run = (downloads) => { let i = 0; const seen = []; const { ports } = fakePorts({ status: async () => ({ status: "succeeded", output: facts }), download: async () => downloads[Math.min(i++, downloads.length - 1)] });
+    return E.runExport(ports, input(), { onOutput: (f) => seen.push(f) }).then(() => seen); };
+  const good = new Blob([bytes]), bad = new Blob([new Uint8Array(5000).fill(1)]);
+  assert.equal((await run([good]))[0].verified, true);
+  assert.equal((await run([bad, good]))[0].verified, true);
+  await assert.rejects(run([bad, bad]), /does not match/); }
