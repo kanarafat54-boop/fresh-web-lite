@@ -34,7 +34,7 @@ function Storyboard({ doc, thumbs, onPick }: { doc: T.TimelineDoc; thumbs: Recor
               const label = `Shot ${i + 1} of scene ${n + 1}: ${x.title || "Untitled shot"}`;
               const inner = (
                 <>
-                  <span className={`fs-frame${c ? "" : " fs-frame-empty"}`}>{src ? <img src={src} alt="" draggable={false} /> : <span>{c ? "No preview" : x.framing}</span>}</span>
+                  <span className={`fs-shotframe${c ? "" : " fs-shotframe-empty"}`}>{src ? <img src={src} alt="" draggable={false} /> : <span>{c ? "No preview" : x.framing}</span>}</span>
                   <span className="fs-board-cap"><strong>{i + 1}. {x.title || "Untitled shot"}</strong><span className="fs-muted">{x.framing} · {x.movement} · {formatClock(c ? T.clipDuration(c) : x.duration)}</span></span>
                 </>
               );
