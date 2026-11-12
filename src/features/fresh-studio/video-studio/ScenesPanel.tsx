@@ -1,5 +1,6 @@
 import * as T from "./timeline.ts";
 import * as F from "./film.ts";
+import { PLANNER_MAX_SECONDS } from "./renderPlan.ts";
 import { Icon } from "./icons.tsx";
 import { formatClock } from "./Timeline.tsx";
 import { useState } from "react";
@@ -18,7 +19,7 @@ export function ScenesPanel({ ed, clip, ownerId }: { ed: Ed; clip: T.TimelineCli
   const base = T.baseVideoTrack(doc);
   const canLink = !!clip && !!base && clip.trackId === base.id;
   const nameOf = (c: T.TimelineClip) => doc.assets.find((a) => a.id === c.assetId)?.name ?? "Clip";
-  const over = sum.linkedSeconds > 300;
+  const over = sum.linkedSeconds > PLANNER_MAX_SECONDS;
   const importFromDirector = async () => {
     setImporting(true); setImportNote(null);
     try {
@@ -91,7 +92,7 @@ export function ScenesPanel({ ed, clip, ownerId }: { ed: Ed; clip: T.TimelineCli
       {scenes.length > 0 && (
         <>
           {!canLink && sum.shots > sum.linked && <p className="fs-muted">To link a shot, select a clip on the main video track first.</p>}
-          {over && <p className="fs-warn" role="alert">The linked clips run {formatClock(sum.linkedSeconds)}. Exports are limited to {formatClock(300)} for now, so the film cannot be exported as it stands.</p>}
+          {over && <p className="fs-warn" role="alert">The linked clips run {formatClock(sum.linkedSeconds)}. Exports are limited to {formatClock(PLANNER_MAX_SECONDS)}, so the film cannot be exported as it stands.</p>}
           <button type="button" className="fs-btn fs-btn-primary" disabled={sum.linked === 0} onClick={() => ed.edit((d) => F.sequenceFilm(d))}>Arrange clips in film order</button>
           <p className="fs-muted">Arranging moves the linked clips on the main video track end to end, in scene and shot order. Clips that are not linked follow after them. Other tracks stay where they are.</p>
         </>

@@ -21,7 +21,10 @@ const limits = getRenderLimits({});
 assert.deepEqual(limits.presets, ["360p", "480p", "720p"], "default worker never advertises 1080p");
 assert.deepEqual(getRenderLimits({ FRESH_RENDER_MAX_PRESET: "1080p" }).presets, ["360p", "480p", "720p", "1080p"]);
 assert.deepEqual(getRenderLimits({ FRESH_RENDER_MAX_PRESET: "4K" }).presets, ["360p", "480p", "720p"], "unknown presets fall back to the safe default");
-assert.equal(getRenderLimits({ FRESH_RENDER_MAX_SECONDS: "99999" }).maxSeconds, 300);
+assert.equal(getRenderLimits({ FRESH_RENDER_MAX_SECONDS: "99999" }).maxSeconds, 1200);
+assert.equal(getRenderLimits({}).maxSeconds, 120, "the default stays modest until the operator raises it");
+assert.equal(getRenderLimits({ FRESH_RENDER_MAX_SECONDS: "900" }).maxSeconds, 900);
+assert.equal(getRenderLimits({ FRESH_RENDER_TIMEOUT_MS: "99999999" }).timeoutMs, 3600000);
 assert.equal(getRenderLimits({ FRESH_RENDER_MAX_SECONDS: "1" }).maxSeconds, 5);
 
 const asset = (id, duration) => ({ id, name: id, kind: "video", duration, width: 640, height: 360, hasAudio: true });
