@@ -3,7 +3,7 @@ import { SAMPLE_LIMIT, summarizeSound, type SoundSummary } from "./shortsSound";
 export { splitCaption, type CaptionSegment } from "./shortsCaption.js";
 
 export type TopicKind = "hashtag" | "sound";
-export type TopicShort = { id: string; caption: string; videoUrl: string; viewCount: number; createdAt: string };
+export type TopicShort = { id: string; authorId: string; caption: string; videoUrl: string; viewCount: number; createdAt: string };
 
 function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (char) => `\\${char}`);
@@ -11,14 +11,14 @@ function escapeLike(value: string): string {
 
 /** Real Shorts for a hashtag (caption contains it) or a sound (same sound_name). No invented results. */
 export async function loadTopicShorts(kind: TopicKind, value: string, limit = 60): Promise<TopicShort[]> {
-  let query = supabase.from("shorts").select("id, caption, video_url, view_count, created_at").order("view_count", { ascending: false }).limit(limit);
+  let query = supabase.from("shorts").select("id, author_id, caption, video_url, view_count, created_at").order("view_count", { ascending: false }).limit(limit);
   query = kind === "sound" ? query.eq("sound_name", value) : query.ilike("caption", `%#${escapeLike(value)}%`);
   const { data, error } = await query;
   if (error) throw new Error(error.message);
   const tagBoundary = new RegExp(`#${value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}_])`, "iu");
   return ((data ?? []) as any[])
     .filter((row) => kind === "sound" || tagBoundary.test(row.caption ?? ""))
-    .map((row) => ({ id: row.id, caption: row.caption ?? "", videoUrl: row.video_url, viewCount: Number(row.view_count) || 0, createdAt: row.created_at }));
+    .map((row) => ({ id: row.id, authorId: row.author_id, caption: row.caption ?? "", videoUrl: row.video_url, viewCount: Number(row.view_count) || 0, createdAt: row.created_at }));
 }
 
 export type SoundOverview = SoundSummary & { firstUseCreator: string | null };
@@ -36,4 +36,11 @@ export async function loadSoundOverview(soundName: string): Promise<SoundOvervie
     if (data) firstUseCreator = data.username ? `@${data.username}` : data.full_name || null;
   }
   return { ...summary, firstUseCreator };
+}
+
+/** Whether this creator lets others reuse their sounds. Defaults to allowed when the setting is not available yet. */
+export async function loadSoundReuseAllowed(creatorId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc("short_sound_reuse_allowed", { p_creator: creatorId });
+  if (error || typeof data !== "boolean") return true;
+  return data;
 }

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { loadSoundOverview, loadTopicShorts, type SoundOverview, type TopicKind, type TopicShort } from "../core/shortsTopics";
+import { loadSoundOverview, loadSoundReuseAllowed, loadTopicShorts, type SoundOverview, type TopicKind, type TopicShort } from "../core/shortsTopics";
 import ShortsReportSheet from "./ShortsReportSheet";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { creatorsLabel, sortTopicShorts, type TopicSort } from "../core/shortsSound";
 import { formatCount, requestOpenShort } from "../core/shortsExplore";
+import { decideReuse, requestUseSound } from "../core/soundReuse";
 import "./ShortsCreatorProfile.css";
 
 type Props = { kind: TopicKind; value: string; onClose: () => void; onOpenShort: (shortId: string) => void };
@@ -16,6 +17,7 @@ export default function ShortsTopicPage({ kind, value, onClose, onOpenShort }: P
   const [sort, setSort] = useState<TopicSort>("popular");
   const { user, isGuest } = useFreshId();
   const [reporting, setReporting] = useState(false);
+  const [reuseAllowed, setReuseAllowed] = useState<boolean | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -25,6 +27,20 @@ export default function ShortsTopicPage({ kind, value, onClose, onOpenShort }: P
     if (kind === "sound") loadSoundOverview(value).then((result) => { if (!cancelled) setOverview(result); }).catch(() => { /* the list still works; counts fall back to what is loaded */ });
     return () => { cancelled = true; };
   }, [kind, value]);
+
+  // The original is the earliest known use when the sample covered every Short, otherwise the most viewed one.
+  const sourceShort = kind === "sound" && shorts && shorts.length > 0
+    ? (overview?.firstUse ? shorts.find((item) => item.id === overview.firstUse!.shortId) : undefined) ?? [...shorts].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))[0]
+    : null;
+  const sourceAuthorId = sourceShort?.authorId ?? null;
+  useEffect(() => {
+    setReuseAllowed(null);
+    if (!sourceAuthorId) return undefined;
+    let cancelled = false;
+    void loadSoundReuseAllowed(sourceAuthorId).then((allowed) => { if (!cancelled) setReuseAllowed(allowed); });
+    return () => { cancelled = true; };
+  }, [sourceAuthorId]);
+  const reuse = sourceShort ? decideReuse({ viewerId: !isGuest && user ? user.id : null, sourceAuthorId: sourceShort.authorId, reuseAllowed: reuseAllowed !== false }) : null;
 
   const title = kind === "hashtag" ? `#${value}` : `♪ ${value}`;
   const views = (shorts ?? []).reduce((total, short) => total + short.viewCount, 0);
@@ -48,9 +64,18 @@ export default function ShortsTopicPage({ kind, value, onClose, onOpenShort }: P
           {kind === "sound" && (
             <div className="shorts-profile-actions">
               {overview?.firstUse ? <p className="shorts-profile-note">First used {new Date(overview.firstUse.at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}{overview.firstUseCreator ? ` by ${overview.firstUseCreator}` : ""}.</p> : null}
-              <button type="button" disabled title="Reusing a sound in a new Short is not available yet">Use this sound</button>
+              <button
+                type="button"
+                disabled={!reuse || !reuse.allowed || reuseAllowed === null}
+                title={reuse && !reuse.allowed ? reuse.reason : "Record a new Short with this sound, credited to the original creator"}
+                onClick={() => {
+                  if (!sourceShort || !reuse?.allowed) return;
+                  requestUseSound({ name: value, sourceShortId: sourceShort.id, sourceAuthorId: sourceShort.authorId, sourceVideoUrl: sourceShort.videoUrl, creatorLabel: overview?.firstUseCreator ?? null });
+                  onClose();
+                }}
+              >Use this sound</button>
               {shorts.length > 0 ? <button type="button" onClick={() => setReporting(true)}>Report sound</button> : null}
-              <p className="shorts-profile-note">Reusing a sound in a new Short is not available yet. It needs creators' permission settings for their audio first.</p>
+              <p className="shorts-profile-note">{reuse && !reuse.allowed ? reuse.reason : "Your new Short credits the original creator and links back to this sound."}</p>
             </div>
           )}
           {shorts.length > 1 ? (
