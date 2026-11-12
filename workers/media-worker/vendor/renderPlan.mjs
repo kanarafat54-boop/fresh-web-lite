@@ -109,6 +109,18 @@ function pictureChain(clip              , W        , H        , fps        , fad
   }
   const l = clip.look;
   if (l && (Math.abs(l.brightness) > 1e-6 || Math.abs(l.contrast - 1) > 1e-6 || Math.abs(l.saturation - 1) > 1e-6)) parts.push(`eq=brightness=${num(l.brightness)}:contrast=${num(l.contrast)}:saturation=${num(l.saturation)}`);
+  if (l) {
+    const warm = l.warmth ?? 0, split = l.split ?? 0;
+    if (Math.abs(warm) > 1e-6 || split > 1e-6) {
+      // Warmth pushes mids and highlights toward orange (or blue); split toning adds teal to shadows and orange to highlights.
+      const rs = -0.18 * split, bs = 0.18 * split;
+      const rm = 0.2 * warm, bm = -0.2 * warm;
+      const rh = 0.15 * warm + 0.2 * split, bh = -0.15 * warm - 0.2 * split;
+      parts.push(`colorbalance=rs=${num(rs)}:bs=${num(bs)}:rm=${num(rm)}:bm=${num(bm)}:rh=${num(rh)}:bh=${num(bh)}`);
+    }
+    if ((l.vignette ?? 0) > 1e-6) parts.push(`vignette=angle=${num((Math.PI / 2) * (1 - 0.7 * (l.vignette ?? 0)))}:mode=forward`);
+    if ((l.grain ?? 0) > 1e-6) parts.push(`noise=alls=${Math.round((l.grain ?? 0) * 28)}:allf=t`);
+  }
   const d = clipDuration(clip);
   // On an upper layer a fade makes the clip see-through instead of black, so what is below shows through.
   const A = alpha ? ":alpha=1" : "";

@@ -511,3 +511,7 @@
 .fs-scene .fs-row { align-items: flex-end; }
 .fs-scene .fs-bin { margin: 0; }
 .fs-linked { font-size: 13px; color: var(--k-sound, #2dd4bf); overflow-wrap: anywhere; }
+
+/* Grade preview layers sit over the video and under text and overlays */
+.fs-editor .fs-grade { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: soft-light; }
+.fs-editor .fs-grade-vignette { mix-blend-mode: normal; }

@@ -33,7 +33,17 @@ export const MAX_TRACKS = 12;
                                                                                                            
 
 /** Colour adjustments. Neutral is brightness 0, contrast 1, saturation 1. Rendered with ffmpeg `eq`; the editor preview approximates it. */
-                                                                                    
+/**
+ * Colour grade for one clip. Brightness, contrast and saturation are always present; the rest are optional so older projects stay valid.
+ * warmth: -1 cool (blue) to +1 warm (orange). split: 0 to 1, teal shadows with orange highlights. vignette and grain: 0 to 1.
+ */
+                                                                                                                                                        
+export const LOOK_EXTRAS = { warmth: [-1, 1], split: [0, 1], vignette: [0, 1], grain: [0, 1] }         ;
+                                                 
+/** True when every optional grade value is absent or in range. */
+export function lookExtrasValid(l          )          {
+  return (Object.keys(LOOK_EXTRAS)               ).every((k) => { const v = l[k]; const [lo, hi] = LOOK_EXTRAS[k]; return v === undefined || (Number.isFinite(v) && v >= lo && v <= hi); });
+}
 export const NEUTRAL_LOOK           = { brightness: 0, contrast: 1, saturation: 1 };
 export const LOOK_PRESETS                                                              = [
   { id: "none", name: "Original", look: NEUTRAL_LOOK },
@@ -42,6 +52,11 @@ export const LOOK_PRESETS                                                       
   { id: "punchy", name: "Punchy", look: { brightness: -0.02, contrast: 1.3, saturation: 1.2 } },
   { id: "faded", name: "Faded", look: { brightness: 0.06, contrast: 0.85, saturation: 0.7 } },
   { id: "moody", name: "Moody", look: { brightness: -0.12, contrast: 1.2, saturation: 0.85 } },
+  { id: "warm", name: "Warm film", look: { brightness: 0.02, contrast: 1.08, saturation: 1.1, warmth: 0.5, grain: 0.2 } },
+  { id: "cool", name: "Cool", look: { brightness: 0, contrast: 1.1, saturation: 0.9, warmth: -0.5 } },
+  { id: "tealorange", name: "Teal and orange", look: { brightness: -0.02, contrast: 1.15, saturation: 1.15, split: 0.7 } },
+  { id: "cinema", name: "Cinema", look: { brightness: -0.04, contrast: 1.2, saturation: 0.9, split: 0.35, vignette: 0.55 } },
+  { id: "retro", name: "Retro", look: { brightness: 0.04, contrast: 0.9, saturation: 0.75, warmth: 0.35, vignette: 0.4, grain: 0.5 } },
 ];
 export const MAX_VOLUME = 2;
                                      
@@ -426,7 +441,10 @@ export function setClipLook(doc             , clipId        , look              
   if (look === null) { const { look: _drop, ...rest } = clip; return replace(doc, rest); }
   const ok = (n        , lo        , hi        ) => Number.isFinite(n) && n >= lo && n <= hi;
   if (!ok(look.brightness, -1, 1) || !ok(look.contrast, 0, 2) || !ok(look.saturation, 0, 3)) throw new TimelineError("That colour setting is out of range.");
-  return replace(doc, { ...clip, look: { brightness: round3(look.brightness), contrast: round3(look.contrast), saturation: round3(look.saturation) } });
+  if (!lookExtrasValid(look)) throw new TimelineError("That colour setting is out of range.");
+  const next           = { brightness: round3(look.brightness), contrast: round3(look.contrast), saturation: round3(look.saturation) };
+  for (const k of Object.keys(LOOK_EXTRAS)               ) { const v = look[k]; if (v !== undefined && Math.abs(v) > 1e-6) next[k] = round3(v); }
+  return replace(doc, { ...clip, look: next });
 }
 
 /** The clip that ends exactly where `clip` starts on the same track, if any. */
@@ -708,7 +726,7 @@ export function validateTimeline(doc         )           {
     if (c.fit !== undefined && c.fit !== "fit" && c.fit !== "fill") errors.push(`Clip ${c.id} has an unknown framing option.`);
     if (c.look !== undefined) {
       const l = c.look;
-      if (!(l && Number.isFinite(l.brightness) && Number.isFinite(l.contrast) && Number.isFinite(l.saturation) && l.brightness >= -1 && l.brightness <= 1 && l.contrast >= 0 && l.contrast <= 2 && l.saturation >= 0 && l.saturation <= 3)) errors.push(`Clip ${c.id} has invalid colour settings.`);
+      if (!(l && Number.isFinite(l.brightness) && Number.isFinite(l.contrast) && Number.isFinite(l.saturation) && l.brightness >= -1 && l.brightness <= 1 && l.contrast >= 0 && l.contrast <= 2 && l.saturation >= 0 && l.saturation <= 3 && lookExtrasValid(l))) errors.push(`Clip ${c.id} has invalid colour settings.`);
     }
   }
   errors.push(...validateFilm(d.film));

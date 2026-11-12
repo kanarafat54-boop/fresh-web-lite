@@ -61,6 +61,20 @@ function motionTransform(c: T.TimelineClip | null, t: number): string | undefine
   const m = T.motionAt(c.motion, (t - c.start) / Math.max(0.001, T.clipDuration(c)));
   return `translate(${(-m.x * (m.zoom - 1) * 50).toFixed(3)}%, ${(-m.y * (m.zoom - 1) * 50).toFixed(3)}%) scale(${m.zoom.toFixed(4)})`;
 }
+/** Approximate preview of warmth, split toning and vignette (the export is exact). */
+function GradeOverlay({ look }: { look: T.ClipLook }) {
+  const warm = look.warmth ?? 0, split = look.split ?? 0, vig = look.vignette ?? 0;
+  if (Math.abs(warm) < 1e-6 && split < 1e-6 && vig < 1e-6) return null;
+  const tint = warm > 0 ? `rgba(255,150,60,${0.55 * warm})` : `rgba(60,130,255,${0.55 * -warm})`;
+  const splitTint = `linear-gradient(rgba(255,150,60,${0.6 * split}), rgba(20,120,170,${0.6 * split}))`;
+  return (
+    <>
+      {(Math.abs(warm) > 1e-6 || split > 1e-6) && <div className="fs-grade" aria-hidden="true" style={{ background: split > 1e-6 ? `${splitTint}${Math.abs(warm) > 1e-6 ? `, linear-gradient(${tint}, ${tint})` : ""}` : tint }} />}
+      {vig > 1e-6 && <div className="fs-grade fs-grade-vignette" aria-hidden="true" style={{ background: `radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,${0.75 * vig}) 100%)` }} />}
+    </>
+  );
+}
+
 const lookFilter = (l: T.ClipLook | undefined) => (l ? `brightness(${1 + l.brightness}) contrast(${l.contrast}) saturate(${l.saturation})` : "none");
 const ratioOf = (a: string) => { const [w, h] = a.split(":").map(Number); return w / h; };
 
@@ -298,6 +312,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
           <div className="fs-frame" ref={frameRef} style={{ aspectRatio: aspectValid.replace(":", " / "), ["--ar" as string]: ratioOf(aspectValid) }} data-aspect={aspectValid}>
             <video ref={videoEl} playsInline preload="auto" aria-label="Video preview"
               style={{ visibility: activeVideo ? "visible" : "hidden", objectFit: activeVideo?.fit === "fill" ? "cover" : "contain", filter: lookFilter(activeVideo?.look), opacity: videoFade, transform: motionTransform(activeVideo, playhead) }} />
+            {activeVideo?.look && <GradeOverlay look={activeVideo.look} />}
             {!activeVideo && (empty
               ? <button type="button" className="fs-empty-cta" onClick={openImport} disabled={!!ed.busy}><Icon name="import" size={30} /><strong>Import video or audio</strong><span>or drop files here</span></button>
               : <p className="fs-muted fs-gap">No video at this point. Gaps render as black.</p>)}

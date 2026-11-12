@@ -60,14 +60,18 @@ export function ClipInspector({ doc, clip, edit, playhead = 0 }: { doc: T.Timeli
           <>
             <div className="fs-chips" role="group" aria-label="Look presets">
               {T.LOOK_PRESETS.map((p) => {
-                const on = Math.abs(look.brightness - p.look.brightness) < 1e-6 && Math.abs(look.contrast - p.look.contrast) < 1e-6 && Math.abs(look.saturation - p.look.saturation) < 1e-6;
+                const on = (Object.keys(p.look) as (keyof T.ClipLook)[]).concat("warmth", "split", "vignette", "grain").every((k) => Math.abs((look[k] ?? (k === "contrast" || k === "saturation" ? 1 : 0)) - (p.look[k] ?? (k === "contrast" || k === "saturation" ? 1 : 0))) < 1e-6);
                 return <button key={p.id} type="button" className={`fs-chip${on ? " is-active" : ""}`} aria-pressed={on} onClick={() => setLook(p.id === "none" ? null : p.look)}>{p.name}</button>;
               })}
             </div>
             <Slider label="Brightness" value={look.brightness} min={-0.5} max={0.5} step={0.02} format={(v) => (v > 0 ? "+" : "") + Math.round(v * 100)} onCommit={(v) => setLook({ ...look, brightness: v })} />
             <Slider label="Contrast" value={look.contrast} min={0.5} max={1.8} step={0.02} format={(v) => `${Math.round(v * 100)}%`} onCommit={(v) => setLook({ ...look, contrast: v })} />
             <Slider label="Saturation" value={look.saturation} min={0} max={2} step={0.02} format={(v) => `${Math.round(v * 100)}%`} onCommit={(v) => setLook({ ...look, saturation: v })} />
-            <p className="fs-muted">The preview is an approximation. The exported video uses exact values.</p>
+            <Slider label="Warmth" value={look.warmth ?? 0} min={-1} max={1} step={0.05} format={(v) => (v > 0 ? "Warm " : v < 0 ? "Cool " : "") + Math.round(Math.abs(v) * 100)} onCommit={(v) => setLook({ ...look, warmth: v })} />
+            <Slider label="Teal and orange" value={look.split ?? 0} min={0} max={1} step={0.05} format={(v) => `${Math.round(v * 100)}%`} onCommit={(v) => setLook({ ...look, split: v })} />
+            <Slider label="Vignette" value={look.vignette ?? 0} min={0} max={1} step={0.05} format={(v) => `${Math.round(v * 100)}%`} onCommit={(v) => setLook({ ...look, vignette: v })} />
+            <Slider label="Film grain" value={look.grain ?? 0} min={0} max={1} step={0.05} format={(v) => `${Math.round(v * 100)}%`} onCommit={(v) => setLook({ ...look, grain: v })} />
+            <p className="fs-muted">The preview is an approximation, and film grain only shows in the exported video. The export uses exact values.</p>
           </>
         )}
         {active === "motion" && <MotionPanel clip={clip} edit={edit} playhead={playhead} />}

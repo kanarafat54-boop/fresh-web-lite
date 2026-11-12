@@ -45,6 +45,13 @@ const mk = () => T.addClip(T.addAsset(T.addAsset(T.createTimeline(30), asset("a"
   assert.throws(() => T.setClipFit(d, "c1", "stretch"), /framing/);
   assert.equal(T.setClipFit(d, "c1", "fill").clips[0].fit, "fill");
   assert.throws(() => T.setAspect(d, "5:3"), /aspect/); assert.equal(T.setAspect(d, "9:16").aspect, "9:16");
+  // grades: optional extras validate, store only when used, and old looks stay valid
+  const g = T.setClipLook(d, "c1", { brightness: 0, contrast: 1, saturation: 1, warmth: 0.5, vignette: 0, grain: 0.2 });
+  assert.equal(g.clips[0].look.warmth, 0.5); assert.ok(!("vignette" in g.clips[0].look), "zero extras are not stored"); assert.equal(T.validateTimeline(g).length, 0);
+  for (const bad of [{ warmth: 1.5 }, { warmth: -2 }, { split: -0.1 }, { vignette: 2 }, { grain: NaN }]) assert.throws(() => T.setClipLook(d, "c1", { brightness: 0, contrast: 1, saturation: 1, ...bad }), /out of range/);
+  const sneaky = { ...g, clips: g.clips.map((c) => ({ ...c, look: { ...c.look, grain: 9 } })) };
+  assert.ok(T.validateTimeline(sneaky).some((e) => /invalid colour/.test(e)));
+  assert.ok(T.LOOK_PRESETS.every((p) => T.lookExtrasValid(p.look)) && T.LOOK_PRESETS.length >= 11);
   // locked tracks refuse look/audio edits
   const locked = T.setTrackFlags(d, "v1", { locked: true });
   assert.throws(() => T.setClipLook(locked, "c1", T.LOOK_PRESETS[2].look), /locked/);
@@ -86,7 +93,9 @@ const A = path.join(dir, "a.mp4"), B = path.join(dir, "b.mp4"), DARK = path.join
 ff("-f", "lavfi", "-i", "testsrc=duration=6:size=640x360:rate=30", "-f", "lavfi", "-i", "sine=frequency=440:duration=6", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", A);
 ff("-f", "lavfi", "-i", "testsrc2=duration=4:size=320x240:rate=25", "-c:v", "libx264", "-pix_fmt", "yuv420p", B);
 ff("-f", "lavfi", "-i", "color=c=0x202020:s=640x360:d=6:r=30", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-t", "6", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", DARK);
-const sources = { a: A, b: B, dark: DARK };
+const GRAY = path.join(dir, "gray.mp4");
+ff("-f", "lavfi", "-i", "color=c=0x808080:s=640x360:d=6:r=30", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-t", "6", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", GRAY);
+const sources = { a: A, b: B, dark: DARK, gray: GRAY };
 
 const render = (doc, extra = {}, preset = "360p", aspect = "16:9") => {
   const out = path.join(dir, `o-${Math.random().toString(36).slice(2)}.mp4`);
@@ -183,6 +192,28 @@ const near = (a, e, tol, label) => assert.ok(Math.abs(a - e) <= tol, `${label}: 
   assert.match(R.planRender({ doc: d, preset: "360p", aspectRatio: "16:9", sources, outputPath: "o.mp4", fonts: FONTS }).errors[0], /missing/);
   const badColour = { ...d, texts: [{ ...d.texts[0], color: "red;rm" }] };
   assert.equal(R.planRender({ doc: badColour, preset: "360p", aspectRatio: "16:9", sources, outputPath: "o.mp4", textFiles: files, fonts: FONTS }).ok, false);
+}
+// grades render: warmth, cool, vignette and grain change the picture the way they say
+{
+  const U = (f) => stat(f, "UAVG", { at: 2 }), V = (f) => stat(f, "VAVG", { at: 2 });
+  const withLook = (look) => render(T.setClipLook(mk(), "c1", { brightness: 0, contrast: 1, saturation: 1, ...look }));
+  const plain = render(mk());
+  const warm = withLook({ warmth: 0.8 }), cool = withLook({ warmth: -0.8 });
+  assert.ok(V(warm) > V(plain) + 3 && U(warm) < U(plain) - 3, "warm adds red and removes blue");
+  assert.ok(V(cool) < V(plain) - 3 && U(cool) > U(plain) + 3, "cool adds blue and removes red");
+  const grayDoc = (look) => T.setClipLook(T.addClip(T.addAsset(T.createTimeline(30), asset("gray", 6, "video", true)), { trackId: "v1", assetId: "gray", id: "c1" }), "c1", { brightness: 0, contrast: 1, saturation: 1, ...look });
+  const flat = render(grayDoc({})), vig = render(grayDoc({ vignette: 1 }));
+  const corner = (f) => stat(f, "YAVG", { at: 2, vf: "crop=60:40:0:0" }), centre = (f) => stat(f, "YAVG", { at: 2, vf: "crop=60:40:290:160" });
+  assert.ok(corner(vig) < corner(flat) - 15, "vignette darkens the corners");
+  assert.ok(Math.abs(centre(vig) - centre(flat)) < 6, "and leaves the centre alone");
+  const split = withLook({ split: 1 });
+  assert.notEqual(Math.round(U(split)), Math.round(U(plain)), "teal and orange changes the colour balance");
+  // grain: a still picture should shimmer from frame to frame
+  const still = (look) => { const d = T.setClipLook(T.addClip(T.addAsset(T.createTimeline(30), asset("dark", 6, "video", true)), { trackId: "v1", assetId: "dark", id: "c1" }), "c1", { brightness: 0, contrast: 1, saturation: 1, ...look }); return render(d); };
+  const ydif = (f) => { const r = spawnSync("ffmpeg", ["-hide_banner", "-ss", "1", "-i", f, "-frames:v", "4", "-vf", "signalstats,metadata=print:file=-", "-f", "null", "-"], { encoding: "utf8" }); const all = [...(r.stdout + r.stderr).matchAll(/YDIF=([\d.]+)/g)]; return Number(all[all.length - 1][1]); };
+  assert.ok(ydif(still({ grain: 1 })) > ydif(still({})) + 0.5, "grain shimmers");
+  // every preset renders
+  for (const p of T.LOOK_PRESETS) render(T.setClipLook(mk(), "c1", p.look));
 }
 // existing behaviour is untouched: an old-style clip renders the same graph as before
 {
