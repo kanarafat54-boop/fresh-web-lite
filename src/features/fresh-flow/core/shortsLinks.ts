@@ -37,3 +37,17 @@ export function isShortsPath(pathname: string): boolean {
 export function parseRequestedShort(search: string, pathname: string): string | null {
   return parseShortWatchPath(pathname) ?? parseShortDeepLink(search);
 }
+
+/**
+ * The address the browser should show while a Short is playing, or null to leave the address alone.
+ * Only the Shorts environment's own addresses are rewritten; anywhere else (another section, an unrelated page)
+ * the address is never touched. `/fresh-flow-shorts` is the older address and is upgraded to the spec route.
+ */
+export function addressForPlayingShort(pathname: string, shortId: string): string | null {
+  if (!UUID.test(shortId)) return null;
+  const path = pathname.replace(/\/+$/, "");
+  const inShorts = isShortsPath(path) || path === "/fresh-flow-shorts";
+  if (!inShorts) return null;
+  const next = shortWatchPath(shortId);
+  return next === path ? null : next;
+}

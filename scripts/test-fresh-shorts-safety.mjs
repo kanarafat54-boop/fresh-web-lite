@@ -23,3 +23,16 @@ const src = readFileSync("src/features/fresh-flow/core/shortsSafety.ts", "utf8")
 assert.match(src, /target_type: "short"/);
 assert.match(src, /muted_creators/);
 console.log("fresh-shorts-safety: ok");
+
+// Address bar follows the playing Short, only inside the Shorts environment.
+{
+  const { addressForPlayingShort } = await import("../src/features/fresh-flow/core/shortsLinks.ts");
+  const other = "22222222-2222-4222-8222-222222222222";
+  assert.equal(addressForPlayingShort("/flow/shorts", id), `/flow/shorts/watch/${id}`);
+  assert.equal(addressForPlayingShort("/fresh-flow-shorts", id), `/flow/shorts/watch/${id}`);
+  assert.equal(addressForPlayingShort(`/flow/shorts/watch/${id}`, other), `/flow/shorts/watch/${other}`);
+  assert.equal(addressForPlayingShort(`/flow/shorts/watch/${id}`, id), null, "no churn when already correct");
+  assert.equal(addressForPlayingShort("/fresh-flow-long-videos", id), null, "never rewrites another section");
+  assert.equal(addressForPlayingShort("/", id), null);
+  assert.equal(addressForPlayingShort("/flow/shorts", "not-a-uuid"), null);
+}
