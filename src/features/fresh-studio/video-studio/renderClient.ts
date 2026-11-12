@@ -2,7 +2,7 @@
  * Browser ports for export: the same-origin authenticated proxy to the render worker, and a private
  * Supabase Storage bucket for source files (signed, short-lived URLs). Secrets stay server-side.
  */
-import { parseCapabilities, type ExportPorts, type RenderRequestBody, type WorkerCapabilities, type WorkerStatus } from "./exportJob.ts";
+import { ExportError, parseCapabilities, type ExportPorts, type RenderRequestBody, type WorkerCapabilities, type WorkerStatus } from "./exportJob.ts";
 
 export const SOURCE_BUCKET = "studio-media";
 const SIGNED_URL_SECONDS = 60 * 60;
@@ -18,10 +18,11 @@ async function session() {
 
 async function worker(path: string, init: RequestInit = {}): Promise<Response> {
   const { token } = await session();
-  const res = await fetch(`/api/media-worker${path}`, { ...init, cache: "no-store", headers: { authorization: `Bearer ${token}`, ...(init.body ? { "content-type": "application/json" } : {}) } });
+  const res = await fetch(`/api/media-worker${path}`, { ...init, cache: "no-store", headers: { ...(init.headers as Record<string, string> | undefined), authorization: `Bearer ${token}`, ...(init.body ? { "content-type": "application/json" } : {}) } });
   if (!res.ok) {
     const detail = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(detail.error ?? `The render service answered ${res.status}.`);
+    // A real answer from the service (busy, too long, not allowed) is final; only a dropped connection is retried.
+    throw new ExportError(detail.error ?? `The render service answered ${res.status}.`);
   }
   return res;
 }
@@ -38,8 +39,8 @@ export function createBrowserExportPorts(projectId: string): ExportPorts {
       if (signed.error || !signed.data?.signedUrl) throw new Error("Could not prepare the uploaded file for rendering.");
       return signed.data.signedUrl;
     },
-    async submit(body: RenderRequestBody) {
-      const data = (await (await worker("/renders", { method: "POST", body: JSON.stringify(body) })).json()) as { jobId?: string };
+    async submit(body: RenderRequestBody, idempotencyKey: string) {
+      const data = (await (await worker("/renders", { method: "POST", headers: { "x-idempotency-key": idempotencyKey }, body: JSON.stringify(body) })).json()) as { jobId?: string };
       if (!data.jobId) throw new Error("The render service did not return a job.");
       return { jobId: data.jobId };
     },

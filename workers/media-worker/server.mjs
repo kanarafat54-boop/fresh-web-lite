@@ -193,11 +193,18 @@ const server = http.createServer(async (req, res) => {
       const limits = getRenderLimits();
       const parsed = parseRenderRequest(await body(req, 256 * 1024), limits);
       if (!parsed.ok) return json(res, 400, { error: parsed.error });
+      await pruneJobs(); // awaited first so the lookup and the insert below run with no gap between them
+      // The same key from the same person returns the render already started, so a retried or double-sent request never renders twice.
+      const key = String(req.headers["x-idempotency-key"] ?? "");
+      if (key) {
+        if (!/^[A-Za-z0-9_-]{8,64}$/.test(key)) return json(res, 400, { error: "x-idempotency-key must be 8-64 letters, numbers, - or _." });
+        const same = [...jobs.values()].find((job) => job.kind === "render" && job.ownerId === userId && job.idempotencyKey === key && job.status !== "failed" && job.status !== "cancelled");
+        if (same) return json(res, 202, { jobId: same.id, status: same.status, statusUrl: "/jobs/" + same.id, reused: true });
+      }
       const active = [...jobs.values()].filter((job) => job.kind === "render" && (job.status === "queued" || job.status === "running"));
       if (active.filter((job) => job.ownerId === userId).length >= limits.maxActivePerUser) return json(res, 429, { error: "You already have a render in progress." });
       if (active.length >= limits.maxActiveTotal) return json(res, 429, { error: "The render worker is busy. Try again shortly." });
-      await pruneJobs();
-      const job = { id: randomUUID(), kind: "render", ownerId: userId, request: parsed.value, status: "queued", progress: 0, createdAt: new Date().toISOString() };
+      const job = { id: randomUUID(), kind: "render", ownerId: userId, ...(key ? { idempotencyKey: key } : {}), request: parsed.value, status: "queued", progress: 0, createdAt: new Date().toISOString() };
       jobs.set(job.id, job);
       void runRenderJob(job, { root: ROOT, jobs, download, limits });
       return json(res, 202, { jobId: job.id, status: "queued", statusUrl: "/jobs/" + job.id });
@@ -206,7 +213,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && match) {
       const job = jobs.get(match[1]);
       if (!job || !visibleTo(job, requestUser(req))) return json(res, 404, { error: "Job not found." });
-      const { outputPath, request, ownerId, cancelRequested, ...safe } = job;
+      const { outputPath, request, ownerId, cancelRequested, idempotencyKey, ...safe } = job;
       return json(res, 200, { ...safe, outputUrl: job.status === "succeeded" ? "/jobs/" + job.id + "/output" : null });
     }
     if (req.method === "DELETE" && match) {

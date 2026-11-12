@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { createReadStream, existsSync } from "node:fs";
 import { mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { EXPORT_PRESETS, planRender } from "./vendor/renderPlan.mjs";
@@ -62,6 +63,41 @@ export function parseRenderRequest(input, limits) {
   return { ok: true, value: { timeline, preset, aspectRatio, sources, fps, captionsSrt, duration: dry.duration, width: dry.width, height: dry.height } };
 }
 
+/** Reads the finished file back with ffprobe so the job can vouch for what it produced. */
+export function probeOutput(file) {
+  return new Promise((resolve, reject) => {
+    const child = spawn("ffprobe", ["-v", "error", "-print_format", "json", "-show_format", "-show_streams", file], { stdio: ["ignore", "pipe", "pipe"] });
+    let out = "";
+    child.stdout.on("data", (c) => { out += c.toString(); });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code !== 0) return reject(new Error("probe failed"));
+      try {
+        const data = JSON.parse(out);
+        const v = (data.streams ?? []).find((x) => x.codec_type === "video");
+        const a = (data.streams ?? []).find((x) => x.codec_type === "audio");
+        resolve({ duration: Number(data.format?.duration), width: v?.width, height: v?.height, vcodec: v?.codec_name, acodec: a?.codec_name });
+      } catch (error) { reject(error); }
+    });
+  });
+}
+
+export const sha256File = (file) => new Promise((resolve, reject) => {
+  const hash = createHash("sha256");
+  createReadStream(file).on("data", (c) => hash.update(c)).on("error", reject).on("end", () => resolve(hash.digest("hex")));
+});
+
+/** What the planner promised versus what ffprobe found. Returns a message, or null when the file is what was asked for. */
+export function checkProbe(probe, plan) {
+  if (!probe.vcodec) return "The finished video has no picture.";
+  if (probe.vcodec !== "h264") return "The finished video is not H.264.";
+  if (probe.width !== plan.width || probe.height !== plan.height) return `The finished video is ${probe.width}×${probe.height}, not the ${plan.width}×${plan.height} that was asked for.`;
+  if (!Number.isFinite(probe.duration)) return "The finished video has no readable length.";
+  const tolerance = Math.max(0.6, plan.duration * 0.03);
+  if (Math.abs(probe.duration - plan.duration) > tolerance) return `The finished video is ${probe.duration.toFixed(1)} s long, not the ${plan.duration.toFixed(1)} s that was asked for.`;
+  return null;
+}
+
 export function cancelRender(jobId) {
   const child = procs.get(jobId);
   if (!child) return false;
@@ -74,7 +110,7 @@ export function cancelRender(jobId) {
  * stays testable without a network. Always cleans its temporary input files.
  */
 export async function runRenderJob(job, ctx) {
-  const { root, jobs, download, limits } = ctx;
+  const { root, jobs, download, limits, probe = probeOutput } = ctx;
   const update = (patch) => { const current = jobs.get(job.id); if (current) jobs.set(job.id, { ...current, ...patch }); };
   const dir = join(root, `${job.id}-render`);
   const output = join(root, `${job.id}-output.mp4`);
@@ -135,7 +171,13 @@ export async function runRenderJob(job, ctx) {
     const info = await stat(output);
     if (info.size > 100 * 1024 * 1024) throw new Error("The finished video is larger than the 100 MB limit.");
     if (info.size < 1000) throw new Error("The render produced an empty file.");
-    update({ status: "succeeded", progress: 1, completedAt: new Date().toISOString(), outputBytes: info.size, outputPath: output, width: plan.width, height: plan.height, duration: plan.duration });
+    let probed;
+    try { probed = await probe(output); } catch { throw new Error("The finished video could not be read back, so it was discarded."); }
+    const mismatch = checkProbe(probed, plan);
+    if (mismatch) throw new Error(mismatch);
+    const sha256 = await sha256File(output);
+    update({ status: "succeeded", progress: 1, completedAt: new Date().toISOString(), outputBytes: info.size, outputPath: output, width: plan.width, height: plan.height, duration: plan.duration,
+      output: { bytes: info.size, sha256, duration: Number(probed.duration.toFixed(3)), width: probed.width, height: probed.height, vcodec: probed.vcodec, ...(probed.acodec ? { acodec: probed.acodec } : {}) } });
   } catch (error) {
     await rm(output, { force: true }).catch(() => {});
     const cancelled = error instanceof Error && error.message === "cancelled";
