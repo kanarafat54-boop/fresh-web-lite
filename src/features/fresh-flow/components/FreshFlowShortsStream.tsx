@@ -53,6 +53,7 @@ import { setCreatorMuted, shortDeepLink } from "../core/shortsSafety";
 import ShortsReportSheet from "./ShortsReportSheet";
 import ShortsBlockedSheet from "./ShortsBlockedSheet";
 import ShortsModerationSheet from "./ShortsModerationSheet";
+import ShortsProvenanceSheet from "./ShortsProvenanceSheet";
 import { isReviewer } from "../core/moderationReview";
 import ShortsPrivacySheet from "./ShortsPrivacySheet";
 import { DEFAULT_PRIVACY, explainControlError, type AudienceChoice, type ShortsPrivacySettings } from "../core/shortsPrivacy";
@@ -165,6 +166,7 @@ export default function FreshFlowShortsStream({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [provenanceShortId, setProvenanceShortId] = useState<string | null>(null);
   const [privacy, setPrivacy] = useState<ShortsPrivacySettings>({ ...DEFAULT_PRIVACY });
   const [savedOpen, setSavedOpen] = useState(false);
   const [blockSheet, setBlockSheet] = useState<{ target: { id: string; name: string } | null } | null>(null);
@@ -1009,6 +1011,10 @@ export default function FreshFlowShortsStream({
         </div>
       ) : null}
       {historyOpen && user && !isGuest ? <ShortsHistorySheet userId={user.id} onClose={() => setHistoryOpen(false)} /> : null}
+      {provenanceShortId && shorts.find((item) => item.id === provenanceShortId) ? (() => {
+        const target = shorts.find((item) => item.id === provenanceShortId)!;
+        return <ShortsProvenanceSheet shortId={target.id} authorId={target.authorId} authorName={target.authorUsername ? `@${target.authorUsername}` : target.authorName} onClose={() => setProvenanceShortId(null)} />;
+      })() : null}
       {predictionShortId && shorts.find((item) => item.id === predictionShortId) ? (() => {
         const target = shorts.find((item) => item.id === predictionShortId)!;
         return <ShortsPredictionSheet shortId={target.id} authorId={target.authorId} authorName={target.authorUsername ? `@${target.authorUsername}` : target.authorName} onClose={() => setPredictionShortId(null)} />;
@@ -1197,6 +1203,9 @@ export default function FreshFlowShortsStream({
                     </button>
                     <button type="button" onClick={() => { setAdvancedOpen(false); setPredictionShortId(short.id); }} title="Dated predictions by the creator, with a public track record">
                       <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Predictions
+                    </button>
+                    <button type="button" onClick={() => { setAdvancedOpen(false); setProvenanceShortId(short.id); }} title="Where this Short comes from, as declared by its creator">
+                      <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Origin
                     </button>
                     {user && !isGuest && isReviewer(user.role) ? (
                       <button type="button" onClick={() => { setAdvancedOpen(false); setReviewOpen(true); }} title="Reports and appeals waiting for a reviewer">
