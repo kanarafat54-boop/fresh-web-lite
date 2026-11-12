@@ -2,12 +2,16 @@ import * as T from "./timeline.ts";
 import * as F from "./film.ts";
 import { Icon } from "./icons.tsx";
 import { formatClock } from "./Timeline.tsx";
+import { useState } from "react";
+import { loadDirectorProduction } from "./directorSource.ts";
 import type { useVideoEditor } from "./useVideoEditor.ts";
 
 type Ed = ReturnType<typeof useVideoEditor>;
 
 /** Plan a multi-scene film: scenes, shots, link each shot to a clip, then lay the clips out in film order. */
-export function ScenesPanel({ ed, clip }: { ed: Ed; clip: T.TimelineClip | null }) {
+export function ScenesPanel({ ed, clip, ownerId }: { ed: Ed; clip: T.TimelineClip | null; /** Signed-in owner, used to find the Director desk plan saved to the account. */ ownerId: string | null }) {
+  const [importNote, setImportNote] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
   const doc = ed.doc;
   const scenes = doc.film?.scenes ?? [];
   const sum = F.filmSummary(doc);
@@ -15,9 +19,22 @@ export function ScenesPanel({ ed, clip }: { ed: Ed; clip: T.TimelineClip | null 
   const canLink = !!clip && !!base && clip.trackId === base.id;
   const nameOf = (c: T.TimelineClip) => doc.assets.find((a) => a.id === c.assetId)?.name ?? "Clip";
   const over = sum.linkedSeconds > 300;
+  const importFromDirector = async () => {
+    setImporting(true); setImportNote(null);
+    try {
+      const production = await loadDirectorProduction(ownerId);
+      if (!production) { setImportNote("No Director plan found yet. Plan scenes in the Director desk first, then come back."); return; }
+      if (ed.edit((d) => F.importProduction(d, production))) setImportNote("Imported. The Director scenes were added after yours; undo removes them.");
+      else setImportNote(null);
+    } finally { setImporting(false); }
+  };
   return (
     <div>
-      <button type="button" className="fs-btn fs-btn-primary" onClick={() => ed.edit((d) => F.addScene(d))}><Icon name="plus" size={18} /> Add scene</button>
+      <div className="fs-row">
+        <button type="button" className="fs-btn fs-btn-primary" onClick={() => ed.edit((d) => F.addScene(d))}><Icon name="plus" size={18} /> Add scene</button>
+        <button type="button" className="fs-btn" disabled={importing} onClick={() => void importFromDirector()}>{importing ? "Looking…" : "Import from Director desk"}</button>
+      </div>
+      {importNote && <p className="fs-muted" role="status">{importNote}</p>}
       {scenes.length > 0 && (
         <p className="fs-muted" role="status">
           {sum.scenes} {sum.scenes === 1 ? "scene" : "scenes"} · {sum.shots} {sum.shots === 1 ? "shot" : "shots"} · {sum.linked} linked · planned {formatClock(sum.plannedSeconds)} · on the timeline {formatClock(sum.linkedSeconds)}
