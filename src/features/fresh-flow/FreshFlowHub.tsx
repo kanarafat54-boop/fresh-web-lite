@@ -13,6 +13,7 @@ import FreshFlowSearchSurface from "./components/FreshFlowSearchSurface";
 import FreshFlowSwitch from "./components/FreshFlowSwitch";
 import ShortsNotifications from "./components/ShortsNotifications";
 import ShortsCreateCamera from "./components/ShortsCreateCamera";
+import { takeUseSound, USE_SOUND_EVENT, type SoundSource } from "./core/soundReuse";
 import "./components/FreshFlow.css";
 import "./components/FreshFlowReferenceShell.css";
 import "./components/FreshFlowReferenceHeader.css";
@@ -96,6 +97,14 @@ export default function FreshFlowHub() {
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [shortsNotificationsOpen, setShortsNotificationsOpen] = useState(false);
   const [shortsCreateMode, setShortsCreateMode] = useState<"create" | "camera" | null>(null);
+  const [createSound, setCreateSound] = useState<SoundSource | null>(null);
+  useEffect(() => {
+    const open = (sound: SoundSource | null) => { if (!sound) return; setCreateSound(sound); setShortsCreateMode("camera"); };
+    open(takeUseSound());
+    const onUse = (event: Event) => { takeUseSound(); open((event as CustomEvent<SoundSource>).detail ?? null); };
+    window.addEventListener(USE_SOUND_EVENT, onUse);
+    return () => window.removeEventListener(USE_SOUND_EVENT, onUse);
+  }, []);
   const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
   const scrollIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -294,7 +303,8 @@ export default function FreshFlowHub() {
       {shortsCreateMode && isShortsRoute && (
         <ShortsCreateCamera
           initialMode={shortsCreateMode}
-          onClose={() => setShortsCreateMode(null)}
+          sound={createSound}
+          onClose={() => { setShortsCreateMode(null); setCreateSound(null); }}
           onOpenTemplates={() => { setShortsCreateMode(null); try { sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: "create", requestedAt: new Date().toISOString() })); } catch { /* ignore */ } setActiveRoute("creator"); }}
         />
       )}

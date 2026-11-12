@@ -7,6 +7,8 @@ export type PublishShortInput = {
   caption: string;
   videoUrl: string;
   soundName?: string | null;
+  /** The Short this sound was taken from. Needs the Fresh sound-reuse database update; publishing works without it. */
+  soundSourceShortId?: string | null;
   category?: "learn" | "relax" | null;
   remixOfShortId?: string | null;
   duetOfShortId?: string | null;
@@ -40,6 +42,7 @@ export async function publishFreshShort(input: PublishShortInput): Promise<Publi
     video_url: videoUrl,
     sound_name: input.soundName ?? null,
   };
+  if (input.soundSourceShortId) row.sound_source_short_id = input.soundSourceShortId;
   if (input.category) row.category = input.category;
   if (input.remixOfShortId) row.remix_of_short_id = input.remixOfShortId;
   if (input.duetOfShortId) row.duet_of_short_id = input.duetOfShortId;
@@ -52,9 +55,13 @@ export async function publishFreshShort(input: PublishShortInput): Promise<Publi
 
   const hasMetadata = durationSeconds !== null || Boolean(language);
   const insert = (values: Record<string, unknown>) => supabase.from("shorts").insert(values).select("id, author_id, caption, video_url, created_at").single();
-  let { data, error } = await insert(withMetadata);
-  // Duration and language columns arrive with a migration; publishing must work before and after it.
-  if (error && hasMetadata && isMissingColumnError(error)) ({ data, error } = await insert(row));
+  // Columns arrive with migrations; publishing must work before and after each. Drop the newest optional columns first.
+  const withoutSource = (values: Record<string, unknown>) => { const copy = { ...values }; delete copy.sound_source_short_id; return copy; };
+  const attempts: Array<Record<string, unknown>> = [withMetadata];
+  if (input.soundSourceShortId) attempts.push(withoutSource(withMetadata));
+  if (hasMetadata) attempts.push(withoutSource(row));
+  let { data, error } = await insert(attempts[0]);
+  for (let i = 1; error && isMissingColumnError(error) && i < attempts.length; i += 1) ({ data, error } = await insert(attempts[i]));
 
   if (error) throw new Error(error.message || "Could not publish Short.");
   if (!data?.id) throw new Error("Publish succeeded but no Short id was returned.");

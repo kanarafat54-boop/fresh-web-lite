@@ -26,3 +26,6 @@
 .shorts-create-form-actions button{flex:1;min-height:48px;border:1px solid rgba(255,255,255,.22);border-radius:99px;background:rgba(255,255,255,.08);color:#fff;font:inherit;font-weight:800;cursor:pointer}
 .shorts-create-form-actions button.primary{border-color:transparent;background:linear-gradient(135deg,#6f30ff,#11a7e7)}
 .shorts-create-form-actions button:disabled{opacity:.55}
+
+.shorts-create-sound { position: absolute; top: 56px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 96px); margin: 0; padding: 6px 12px; border-radius: 999px; background: rgba(7, 7, 26, 0.72); color: #fff; font-size: 12px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; z-index: 3; }
+.shorts-create-form .shorts-create-sound { position: static; transform: none; max-width: 100%; margin: 0 0 8px; }

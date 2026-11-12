@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { publishFreshShort } from "../../creator/core/publishFreshShort";
+import { creditLine, explainSoundError, type SoundSource } from "../core/soundReuse";
+import { startSoundMix, type SoundMix } from "../core/mixSound";
 import { markFeedRefresh } from "../../creator/core/createIntent";
 import "./ShortsCreateCamera.css";
 
@@ -17,14 +19,14 @@ const FILTERS: Array<{ id: string; label: string; css: string }> = [
 ];
 const BEAUTY_CSS = "blur(.6px) brightness(1.06) contrast(.96) saturate(1.05)";
 
-type Props = { initialMode?: "create" | "camera"; onClose: () => void; onOpenTemplates: () => void };
+type Props = { initialMode?: "create" | "camera"; /** A sound taken from another Short ("Use this sound"). */ sound?: SoundSource | null; onClose: () => void; onOpenTemplates: () => void };
 type Panel = "none" | "filters";
 
 /**
  * Create Short (design screen 5). Records with the device camera into a canvas so Filters and Beauty are baked
  * into the saved file, or takes an uploaded video, then publishes through the canonical Shorts write path.
  */
-export default function ShortsCreateCamera({ initialMode = "create", onClose, onOpenTemplates }: Props) {
+export default function ShortsCreateCamera({ initialMode = "create", sound = null, onClose, onOpenTemplates }: Props) {
   const { user, isGuest } = useFreshId();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -34,6 +36,7 @@ export default function ShortsCreateCamera({ initialMode = "create", onClose, on
   const rafRef = useRef(0);
   const settingsRef = useRef({ filter: "none", beauty: false });
   const tickRef = useRef<number | null>(null);
+  const mixRef = useRef<SoundMix | null>(null);
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [filter, setFilter] = useState("none");
   const [beauty, setBeauty] = useState(false);
@@ -95,7 +98,7 @@ export default function ShortsCreateCamera({ initialMode = "create", onClose, on
     return stopCamera;
   }, [file, startCamera, stopCamera]);
 
-  useEffect(() => () => { stopCamera(); if (tickRef.current) window.clearInterval(tickRef.current); }, [stopCamera]);
+  useEffect(() => () => { stopCamera(); mixRef.current?.stop(); if (tickRef.current) window.clearInterval(tickRef.current); }, [stopCamera]);
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
   const takeFile = (next: File | null | undefined) => {
@@ -114,17 +117,21 @@ export default function ShortsCreateCamera({ initialMode = "create", onClose, on
     setRecording(false);
   };
 
-  const beginRecording = () => {
+  const beginRecording = async () => {
     const canvas = canvasRef.current;
     const stream = streamRef.current;
     if (!canvas || !stream || typeof MediaRecorder === "undefined") { setMessage("Recording is not supported here. Use Upload instead."); return; }
     const out = canvas.captureStream(30);
-    stream.getAudioTracks().forEach((track) => out.addTrack(track));
+    mixRef.current = sound ? await startSoundMix(stream, sound.sourceVideoUrl) : null;
+    if (sound && !mixRef.current) setMessage("Your browser could not mix the sound in, so only your microphone is recorded. The original creator is still credited.");
+    (mixRef.current ? [mixRef.current.track] : stream.getAudioTracks()).forEach((track) => out.addTrack(track));
     const mime = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"].find((type) => MediaRecorder.isTypeSupported(type));
     const recorder = new MediaRecorder(out, mime ? { mimeType: mime } : undefined);
     chunksRef.current = [];
     recorder.ondataavailable = (event) => { if (event.data.size) chunksRef.current.push(event.data); };
     recorder.onstop = () => {
+      mixRef.current?.stop();
+      mixRef.current = null;
       const type = (recorder.mimeType || "video/webm").split(";")[0];
       takeFile(new File([new Blob(chunksRef.current, { type })], `short-${Date.now()}.${type.includes("mp4") ? "mp4" : "webm"}`, { type }));
     };
@@ -143,12 +150,12 @@ export default function ShortsCreateCamera({ initialMode = "create", onClose, on
   const onRecordPress = () => {
     if (recording) { finishRecording(); return; }
     if (countdown !== null) return;
-    if (!timer) { beginRecording(); return; }
+    if (!timer) { void beginRecording(); return; }
     let left: number = timer;
     setCountdown(left);
     const id = window.setInterval(() => {
       left -= 1;
-      if (left <= 0) { window.clearInterval(id); setCountdown(null); beginRecording(); } else setCountdown(left);
+      if (left <= 0) { window.clearInterval(id); setCountdown(null); void beginRecording(); } else setCountdown(left);
     }, 1000);
   };
 
@@ -164,11 +171,12 @@ export default function ShortsCreateCamera({ initialMode = "create", onClose, on
       const { error } = await supabase.storage.from("post-videos").upload(path, file, { upsert: false, contentType: file.type });
       if (error) throw error;
       const { data } = supabase.storage.from("post-videos").getPublicUrl(path);
-      const short = await publishFreshShort({ authorId: user.id, caption, videoUrl: data.publicUrl });
+      const short = await publishFreshShort({ authorId: user.id, caption, videoUrl: data.publicUrl, soundName: sound?.name ?? null, soundSourceShortId: sound?.sourceShortId ?? null });
       markFeedRefresh(short.id);
       onClose();
     } catch (cause) {
-      setMessage(cause instanceof Error ? cause.message : "Could not publish the Short.");
+      const text = cause instanceof Error ? cause.message : undefined;
+      setMessage(explainSoundError(text) ?? text ?? "Could not publish the Short.");
     } finally {
       setPublishing(false);
     }
@@ -184,6 +192,7 @@ export default function ShortsCreateCamera({ initialMode = "create", onClose, on
         <div className="shorts-create-review">
           <video src={previewUrl} controls playsInline loop autoPlay muted className="shorts-create-stage" />
           <div className="shorts-create-form">
+            {sound && <p className="shorts-create-sound" role="status">♪ {creditLine(sound)}</p>}
             <input value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={300} placeholder="Describe your Short… #hashtags" aria-label="Caption" />
             <div className="shorts-create-form-actions">
               <button type="button" onClick={discard} disabled={publishing}>Retake</button>
@@ -197,6 +206,7 @@ export default function ShortsCreateCamera({ initialMode = "create", onClose, on
           <canvas ref={canvasRef} className="shorts-create-stage" />
           {cameraError && <p className="shorts-create-note" role="alert">{cameraError}</p>}
           {countdown !== null && <div className="shorts-create-countdown" aria-live="assertive">{countdown}</div>}
+          {sound && <div className="shorts-create-sound" role="status">♪ {creditLine(sound)}</div>}
           {recording && <div className="shorts-create-rec" aria-live="polite">● {mm}</div>}
           <div className="shorts-create-tools" aria-label="Camera tools">
             <button type="button" onClick={() => setFacing((value) => (value === "user" ? "environment" : "user"))} disabled={recording}><span aria-hidden="true">⟲</span>Flip</button>
