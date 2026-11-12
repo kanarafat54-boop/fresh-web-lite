@@ -219,6 +219,25 @@ const near = (a, e, tol, label) => assert.ok(Math.abs(a - e) <= tol, `${label}: 
     // old-style text still plans the same filters
     assert.ok(!/fade=t=|overlay=x='/.test(R.planRender({ doc: lay({}), preset: "360p", aspectRatio: "16:9", sources, outputPath: "o.mp4", textFiles: files, fonts: FONTS }).filterGraph), "plain text adds no new filters");
   }
+  // stickers are ordinary titles that the model accepts and the export can draw
+  {
+    const St = await import("../src/features/fresh-studio/video-studio/stickers.ts");
+    assert.ok(St.STICKERS.length >= 20 && new Set(St.STICKERS.map((x) => x.glyph)).size === St.STICKERS.length && new Set(St.STICKERS.map((x) => x.name)).size === St.STICKERS.length, "unique stickers");
+    for (const st of St.STICKERS) {
+      let x = T.addText(dark(), { start: 1, duration: 3, id: "s1" });
+      x = T.updateText(x, "s1", St.stickerLayer(st));
+      assert.equal(T.validateTimeline(x).length, 0, `${st.name} is valid`);
+    }
+    const star = St.STICKERS[0];
+    write("s1", star.glyph);
+    let x = T.addText(dark(), { start: 1, duration: 3, id: "s1" }); x = T.updateText(x, "s1", St.stickerLayer(star));
+    const out = render(x, { textFiles: files, fonts: FONTS });
+    assert.ok(stat(out, "YAVG", { at: 2.5, vf: centre }) > baseLuma + 3, "the sticker is drawn");
+    near(stat(out, "YAVG", { at: 0.3, vf: centre }), baseLuma, 2, "and only in its time window");
+    // a turned sticker renders too
+    const spun = T.updateText(x, "s1", { rotation: 40 });
+    assert.ok(stat(render(spun, { textFiles: files, fonts: FONTS }), "YAVG", { at: 2.5, vf: centre }) > baseLuma + 3, "a turned sticker is drawn");
+  }
   // hostile text renders literally and cannot break out of the filter graph
   const nasty = "It's 100%: a, b; [c] \\ {d} %{pts} $(x) '";
   let n = T.addText(dark(), { start: 0.5, duration: 3, id: "t2", text: nasty }); n = T.updateText(n, "t2", { size: 0.15, bold: false, box: true });

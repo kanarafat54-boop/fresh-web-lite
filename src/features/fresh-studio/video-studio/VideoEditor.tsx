@@ -7,6 +7,7 @@ import { createBrowserExportPorts } from "./renderClient.ts";
 import type { ExportPresetId } from "./renderPlan.ts";
 import { Icon, type IconName } from "./icons.tsx";
 import { useLayerDrag } from "./useLayerDrag.ts";
+import { STICKERS, stickerLayer } from "./stickers.ts";
 import { ClipInspector, OverlayInspector, TextInspector } from "./Inspector.tsx";
 import { ANALYSIS_SAMPLE_RATE } from "./audioAnalysis.ts";
 import { computePeaks, extractFilmstrip, filmstripCount, type Filmstrip } from "./mediaVisuals.ts";
@@ -462,6 +463,11 @@ function TextPanel({ ed, onAdd }: { ed: Ed; onAdd: (patch?: Partial<Omit<T.TextL
       <div className="fs-styles">
         {TEXT_STYLES.map((st) => <button key={st.name} type="button" className="fs-style" onClick={() => onAdd(st.patch)}><strong>{st.name}</strong><span>{st.hint}</span></button>)}
       </div>
+      <h3>Stickers</h3>
+      <div className="fs-stickers" role="group" aria-label="Stickers">
+        {STICKERS.map((st) => <button key={st.name} type="button" className="fs-sticker" aria-label={`Add ${st.name} sticker`} title={st.name} style={{ color: st.color }} onClick={() => onAdd(stickerLayer(st))}>{st.glyph}</button>)}
+      </div>
+      <p className="fs-muted">Single-colour symbols that you can move, resize, turn and recolour like text. Colour emoji and animated sticker packs are not available.</p>
       <h3>Text on this video</h3>
       <ul className="fs-bin">
         {texts.length === 0 && <li className="fs-muted">No text yet.</li>}
