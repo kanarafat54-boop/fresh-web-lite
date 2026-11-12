@@ -14,6 +14,8 @@ export type ActivityItem = {
   text: string;
   detail?: string;
   shortId?: string;
+  /** Set on moderation items the viewer can appeal. */
+  appeal?: { targetType: "short" | "short_comment"; targetId: string };
   unread: boolean;
 };
 
@@ -73,6 +75,8 @@ export type RawActivity = {
   /** Recent Shorts from creators the viewer follows. */
   followedShorts: Array<{ id: string; author_id: string; created_at: string; caption: string | null }>;
   names: Map<string, string>;
+  /** Viewer's Shorts a reviewer hid. Empty until the moderation update is live. */
+  hiddenShorts?: Array<{ id: string; caption: string | null; moderation_reason: string | null; moderated_at: string | null }>;
   likes: Array<{ short_id: string; user_id: string; created_at: string; reaction_type: string | null }>;
   comments: Array<{ id: string; short_id: string; author_id: string; content: string | null; created_at: string; parent_id: string | null; moderation_state?: string | null }>;
   replies: Array<{ id: string; short_id: string; author_id: string; content: string | null; created_at: string; parent_id: string | null; moderation_state?: string | null }>;
@@ -123,7 +127,12 @@ export function buildActivityItems(raw: RawActivity, limit = 80): ActivityItem[]
   for (const [id, mine] of raw.myComments) {
     const state = mine.moderation_state;
     if (!state || state === "visible" || !mine.moderated_at || !valid(mine.moderated_at)) continue;
-    items.push({ id: `moderation-${id}`, kind: "moderation", at: mine.moderated_at, actorId: null, actorName: "Fresh", text: state === "removed" ? "Your comment was removed" : "Your comment was hidden", detail: mine.moderation_reason ?? mine.content ?? undefined, shortId: mine.short_id, unread: false });
+    items.push({ id: `moderation-${id}`, kind: "moderation", at: mine.moderated_at, actorId: null, actorName: "Fresh", text: state === "removed" ? "Your comment was removed" : "Your comment was hidden", detail: mine.moderation_reason ?? mine.content ?? undefined, shortId: mine.short_id, appeal: state === "hidden" || state === "removed" ? { targetType: "short_comment", targetId: id } : undefined, unread: false });
+  }
+
+  for (const hidden of raw.hiddenShorts ?? []) {
+    if (!hidden.moderated_at || !valid(hidden.moderated_at)) continue;
+    items.push({ id: `moderation-short-${hidden.id}`, kind: "moderation", at: hidden.moderated_at, actorId: null, actorName: "Fresh", text: "Your Short was hidden", detail: hidden.moderation_reason ?? hidden.caption ?? undefined, shortId: hidden.id, appeal: { targetType: "short", targetId: hidden.id }, unread: false });
   }
 
   for (const r of raw.commentReactions) {
