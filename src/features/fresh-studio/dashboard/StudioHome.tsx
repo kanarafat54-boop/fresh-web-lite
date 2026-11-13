@@ -45,6 +45,13 @@ export default function StudioHome(props: StudioScreenProps) {
         </div>
       )}
 
+      {!state.loading && !state.error && active.length === 0 && (
+        <div className="fs-empty-start" role="note">
+          <strong>No projects yet</strong>
+          <span>Choose a video shape above to start. Your projects will appear here.</span>
+        </div>
+      )}
+
       {latest && (
         <Section title="Continue editing">
           <div className="fs-grid fs-grid-one"><ProjectCard project={latest} onAction={onCardAction} /></div>
