@@ -80,6 +80,7 @@ jobs:
           npm run test:fresh-studio-multitrack
           npm run test:fresh-studio-film
           npm run test:fresh-studio-beats
+          npm run test:fresh-studio-handoff
       - name: Phases 15-22 certification
         run: npm run test:fresh-phases-15-22
       - name: Phases 15-24 certification

@@ -529,3 +529,4 @@
 .fs-editor .fs-board-cap strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fs-editor .fs-board-cap .fs-muted { overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: no-preference) { .fs-editor .fs-shotframe { transition: border-color .15s; } }
+.fs-editor .fs-shorts-send { display: grid; gap: 6px; margin-top: 10px; }
