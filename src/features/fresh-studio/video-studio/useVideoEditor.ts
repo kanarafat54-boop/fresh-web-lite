@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { beatsOnTimeline, detectBeats, everyNth, splitTrackAt } from "./beats.ts";
 import type { StudioProject } from "../shared/types.ts";
 import { StudioConflictError, type StudioProjectService } from "../projects/projectService.ts";
 import { removeSilences } from "./analysis.ts";
@@ -144,6 +145,20 @@ export function useVideoEditor(project: StudioProject, service: StudioProjectSer
     return message;
   }, [edit]);
 
+  /** Finds the beat of one clip's audio and cuts the main video track on every Nth beat. */
+  const cutToBeat = useCallback((clipId: string, every: number) => {
+    const clip = docRef.current.clips.find((c) => c.id === clipId);
+    const entry = clip ? mediaRef.current[clip.assetId] : null;
+    if (!clip || !entry) return "Select the music or video clip whose beat you want to follow.";
+    if (!entry.samples) return entry.missing ? "This file is not stored on this device." : "This clip has no audio that could be analysed here.";
+    const found = detectBeats(entry.samples, ANALYSIS_SAMPLE_RATE);
+    if (!found) return "No steady beat was found in this clip. Music with a clear pulse works best.";
+    const times = everyNth(beatsOnTimeline(clip, found.beats), every);
+    let message = "";
+    edit((d) => { const r = splitTrackAt(d, "v1", times); message = r.splits === 0 ? `Found about ${Math.round(found.bpm)} BPM, but there was no video to cut at those beats.` : `About ${Math.round(found.bpm)} BPM. Cut the video ${r.splits} time${r.splits === 1 ? "" : "s"} on the beat. Undo restores it.`; return r.splits === 0 ? d : r.doc; });
+    return message;
+  }, [edit]);
+
   const duration = T.timelineDuration(doc);
   useEffect(() => { setPlayhead((p) => Math.min(p, duration)); }, [duration]);
 
@@ -158,5 +173,5 @@ export function useVideoEditor(project: StudioProject, service: StudioProjectSer
     setCaptionsState(fresh.meta.captions.map((c) => ({ ...c }))); dirty.current = false; blocked.current = false; setSaveState("saved");
   }, [service, project.id, onSaved]);
 
-  return { notify, doc, history, captions, setCaptions, selected, setSelected, playhead, setPlayhead, duration, media, saveState, busy, edit, undo, redo, canUndo: T.canUndo(history), canRedo: T.canRedo(history), importFiles, removeAsset, trimSilence, reloadLatest, flushNow: () => flushRef.current() };
+  return { notify, doc, history, captions, setCaptions, selected, setSelected, playhead, setPlayhead, duration, media, saveState, busy, edit, undo, redo, canUndo: T.canUndo(history), canRedo: T.canRedo(history), importFiles, removeAsset, trimSilence, cutToBeat, reloadLatest, flushNow: () => flushRef.current() };
 }
