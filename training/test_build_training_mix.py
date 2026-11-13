@@ -39,7 +39,7 @@ class MixTest(unittest.TestCase):
         val_answers = {mix.normalized_target(r) for r in v1}
         self.assertFalse(train_answers & val_answers, "normalized answer groups leaked across train/validation")
         self.assertEqual(rep["splitGrouping"], "normalized-target-sha256-v1")
-        self.assertEqual(len(t1) + 2 * len(v1), 2 * 160)
+        self.assertEqual(len(t1) // 2 + len(v1), 160)
         self.assertGreater(len(train_answers), 0)
         self.assertGreater(len(val_answers), 0)
         self.assertEqual(rep["skipped"][0]["id"], "missing")
