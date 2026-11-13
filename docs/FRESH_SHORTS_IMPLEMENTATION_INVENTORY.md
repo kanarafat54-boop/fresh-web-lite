@@ -139,3 +139,24 @@ Known limits, stated plainly:
 - TrueMode origin and provenance tracing needs a provenance service. Not built; the Context panel does not claim it.
 - "Use this sound" is not built. It needs an owner decision on whether creators allow others to reuse their audio, storage for attribution and permission, and mixing tested on real devices.
 - No physical Android device pass is evidenced. Supabase migration-history drift remains a separate release gate.
+
+## Progress update (2026-11-13 — items 1–8 and the previously blocked five)
+
+Supersedes the "not applied" table above: the owner approved applying additive migrations to the live database, and the migrations through `20261112110000_fresh_sound_reuse.sql` were applied and checked. Repository presence is still not evidence of application; the moderation migration below is **not** applied yet.
+
+| Item | State | Where |
+|---|---|---|
+| Privacy settings (10.5), comment controls, Quiet Mode, Restrict, block coverage for likes, messages and search | Merged (#270) and live | `shortsPrivacy.ts`, `shortsPrivacyService.ts`, privacy migration |
+| Real Shorts addresses | Merged (#276) | `/flow/shorts` and `/flow/shorts/watch/:id`; the address follows the playing Short |
+| Sound page and "Use this sound" | Merged (#275) and live | `sound_source_short_id`, `guard_short_sound_reuse` (honours the creator's reuse setting and blocks) |
+| Reviewer queue, appeals, creator moderation notices | In PR #277, migration not applied | `20261112120000_fresh_shorts_moderation_review.sql`; reviewer = `users.role = 'admin'` |
+| Origin declaration (TrueMode, creator-declared) | In PR #277 | Proof records of kind "provenance"; only the author's records count |
+| Typed captions with timing | In PR #277 | `cuesFromTranscript`, `shiftCues`, "Write captions" |
+| Device notifications while Fresh is open | In PR #277 | Opt-in, honours category switches and Quiet Mode |
+
+Limits, stated plainly:
+- Origin is what the creator declares. Fresh does not verify it and the panel says so.
+- Typed captions are timing estimates from text the creator wrote, not speech recognition. Automatic captions from audio are still not built; they need a speech-to-text engine and an owner decision about sending audio to it.
+- Device notifications use the browser Notification API and only appear while Fresh is open. Real push with the app closed needs Web Push keys and a server sender; not built.
+- Mixing a reused sound in the camera has not been tested on a physical phone. No Android device pass is evidenced.
+- Only users with the admin role can review. Who else may review is an owner decision.
