@@ -15,7 +15,7 @@ Use the reviewed PR commit containing the answer-disjoint generator, target-grou
 ```bash
 git clone https://github.com/kanarafat54-boop/fresh-web-lite.git
 cd fresh-web-lite
-git checkout <REVIEWED_RUN5_COMMIT_SHA>
+git checkout 808f1703628f9db2cabae0b07d5bce4d5ad948dd
 npm ci
 node scripts/generate-fresh-knowledge-sft.mjs
 npm run test:fresh-knowledge-sft
@@ -46,12 +46,38 @@ Attach the verified Run 3 tokenizer file and Run 3 checkpoint to the Kaggle note
 - Run 3 checkpoint SHA-256: `298b558e89edab77745834389cb2b1979e632979f9be7b4adad1892c2f2fc25d`
 - Run 3 tokenizer SHA-256: `dc820bac32dd5f3bc0b47eac545d4baa33cde93da05014b2d90d0903b0c7b06c`
 
-Find their exact paths under `/kaggle/input`; fail closed if either file is missing or the hash differs. Encode the new train and validation JSONL files using the verified Run 3 tokenizer:
+Find their exact paths under `/kaggle/input`; fail closed if either file is missing or the hash differs. This cell finds each artifact once and verifies both identities:
+
+```python
+from pathlib import Path
+import hashlib
+
+def unique_input(name):
+    matches = list(Path("/kaggle/input").rglob(name))
+    if len(matches) != 1:
+        raise RuntimeError(f"Expected exactly one {name}; found {len(matches)}")
+    return matches[0]
+
+def sha256(path):
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+RUN3_CHECKPOINT = unique_input("fresh-unified-1-run3.pt")
+RUN3_TOKENIZER = unique_input("tokenizer-v2.json")
+assert sha256(RUN3_CHECKPOINT) == "298b558e89edab77745834389cb2b1979e632979f9be7b4adad1892c2f2fc25d"
+assert sha256(RUN3_TOKENIZER) == "dc820bac32dd5f3bc0b47eac545d4baa33cde93da05014b2d90d0903b0c7b06c"
+print("Run 3 checkpoint and tokenizer identities verified")
+```
+
+Encode the new train and validation JSONL files using the verified Run 3 tokenizer:
 
 ```bash
 for split in train validation; do
   python3 training/fresh_tokenizer_v2.py encode \
-    --tokenizer /kaggle/input/<run3-artifact-dataset>/tokenizer-v2.json \
+    --tokenizer $RUN3_TOKENIZER \
     --input /kaggle/working/fresh-run5-data/mix/${split}.jsonl.gz \
     --output /kaggle/working/fresh-run5-data/${split}.bin
 done
@@ -65,9 +91,9 @@ Run 4's recorded settings were: context 1024, micro-batch 8, accumulation 4, 654
 python3 training/train_fresh_unified_full.py \
   --train-bin /kaggle/working/fresh-run5-data/train.bin \
   --val-bin /kaggle/working/fresh-run5-data/validation.bin \
-  --tokenizer /kaggle/input/<run3-artifact-dataset>/tokenizer-v2.json \
+  --tokenizer $RUN3_TOKENIZER \
   --spec training/model_spec.json \
-  --init-from /kaggle/input/<run3-artifact-dataset>/fresh-unified-1-run3.pt \
+  --init-from $RUN3_CHECKPOINT \
   --mix-manifest /kaggle/working/fresh-run5-data/mix/manifest.json \
   --seq-len 1024 --micro-batch 8 --accum 4 --max-steps 654 \
   --lr 0.0001 --warmup 20 --eval-every 100 --save-every 50 --seed 42 \
@@ -83,8 +109,8 @@ Run the same evaluator twice against the same corrected recall set and the same 
 
 ```bash
 python3 training/eval_fresh_model.py \
-  --checkpoint /kaggle/input/<run3-artifact-dataset>/fresh-unified-1-run3.pt \
-  --tokenizer /kaggle/input/<run3-artifact-dataset>/tokenizer-v2.json \
+  --checkpoint $RUN3_CHECKPOINT \
+  --tokenizer $RUN3_TOKENIZER \
   --recall-eval data/fresh-eval/fresh-knowledge-recall-v1.jsonl \
   --validation /kaggle/working/fresh-run5-data/mix/validation.jsonl.gz \
   --limit-recall 428 --limit-per-group 100 \
@@ -92,7 +118,7 @@ python3 training/eval_fresh_model.py \
 
 python3 training/eval_fresh_model.py \
   --checkpoint /kaggle/working/fresh-run5-training/fresh-unified-1-run5.pt \
-  --tokenizer /kaggle/input/<run3-artifact-dataset>/tokenizer-v2.json \
+  --tokenizer $RUN3_TOKENIZER \
   --recall-eval data/fresh-eval/fresh-knowledge-recall-v1.jsonl \
   --validation /kaggle/working/fresh-run5-data/mix/validation.jsonl.gz \
   --limit-recall 428 --limit-per-group 100 \
