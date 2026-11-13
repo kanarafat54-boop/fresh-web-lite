@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import { build, TRAIN_TEMPLATES, EVAL_TEMPLATES, TRAIN_OUT, EVAL_OUT, AUTH_ID, normalizeKnowledgeAnswer } from "./generate-fresh-knowledge-sft.mjs";
 
 const fail = (m) => { throw new Error(m); };
@@ -23,3 +24,7 @@ const expectTrain = train.map((r) => JSON.stringify(r)).join("\n") + "\n";
 const expectEval = evalSet.map((r) => JSON.stringify(r)).join("\n") + "\n";
 if (onDisk(TRAIN_OUT) !== expectTrain || onDisk(EVAL_OUT) !== expectEval) fail("committed data is stale: re-run node scripts/generate-fresh-knowledge-sft.mjs");
 console.log(`Fresh knowledge SFT data: PASS (${train.length} train rows, ${evalSet.length} answer-disjoint held-out recall questions)`);
+
+const splitTest = spawnSync("python3", ["training/test_build_training_mix.py"], { encoding: "utf8" });
+if (splitTest.status !== 0) fail(splitTest.stderr || splitTest.stdout || "training split regression tests failed");
+console.log(splitTest.stdout.trim());
