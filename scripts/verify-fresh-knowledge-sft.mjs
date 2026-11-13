@@ -2,13 +2,16 @@ import fs from "node:fs";
 import { build, TRAIN_TEMPLATES, EVAL_TEMPLATES, TRAIN_OUT, EVAL_OUT, AUTH_ID } from "./generate-fresh-knowledge-sft.mjs";
 
 const fail = (m) => { throw new Error(m); };
+const normalize = (value) => value.normalize("NFKC").toLocaleLowerCase("en").replace(/\s+/g, " ").trim();
 const a = build(), b = build();
 if (JSON.stringify(a) !== JSON.stringify(b)) fail("generation is not deterministic");
 const { train, evalSet } = a;
-if (train.length < 600 || evalSet.length < 200) fail(`too few rows: train=${train.length} eval=${evalSet.length}`);
+if (train.length < 500 || evalSet.length < 150) fail(`too few rows after answer-disjoint split: train=${train.length} eval=${evalSet.length}`);
 if (TRAIN_TEMPLATES.some((t) => EVAL_TEMPLATES.includes(t))) fail("train and eval templates overlap");
 const trainInputs = new Set(train.map((r) => r.input));
 if (evalSet.some((r) => trainInputs.has(r.input))) fail("an eval question also appears in training");
+const trainAnswers = new Set(train.map((r) => normalize(r.target)));
+if (evalSet.some((r) => trainAnswers.has(normalize(r.reference)))) fail("an evaluation answer also appears in training");
 for (const rows of [train, evalSet]) if (new Set(rows.map((r) => r.id)).size !== rows.length) fail("duplicate ids");
 for (const r of train) {
   if (r.metadata.authorizationId !== AUTH_ID) fail("wrong authorization id");
@@ -20,4 +23,4 @@ const onDisk = (p) => (fs.existsSync(p) ? fs.readFileSync(p, "utf8") : fail(`${p
 const expectTrain = train.map((r) => JSON.stringify(r)).join("\n") + "\n";
 const expectEval = evalSet.map((r) => JSON.stringify(r)).join("\n") + "\n";
 if (onDisk(TRAIN_OUT) !== expectTrain || onDisk(EVAL_OUT) !== expectEval) fail("committed data is stale: re-run node scripts/generate-fresh-knowledge-sft.mjs");
-console.log(`Fresh knowledge SFT data: PASS (${train.length} train rows, ${evalSet.length} held-out recall questions, deterministic, disjoint phrasings)`);
+console.log(`Fresh knowledge SFT data: PASS (${train.length} train rows, ${evalSet.length} answer-disjoint held-out recall questions)`);
