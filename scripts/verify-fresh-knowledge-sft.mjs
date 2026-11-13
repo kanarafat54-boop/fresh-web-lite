@@ -31,3 +31,15 @@ console.log(`Fresh knowledge SFT data: PASS (${train.length} train rows, ${evalS
 const splitTest = spawnSync("python3", ["training/test_build_training_mix.py"], { encoding: "utf8" });
 if (splitTest.status !== 0) fail(splitTest.stderr || splitTest.stdout || "training split regression tests failed");
 console.log(splitTest.stdout.trim());
+
+const leakageTests = spawnSync("python3", ["training/test_fresh_eval_leakage.py"], { encoding: "utf8" });
+if (leakageTests.status !== 0) fail(leakageTests.stderr || leakageTests.stdout || "evaluation leakage audit tests failed");
+console.log(leakageTests.stdout.trim());
+
+const sourceAudit = spawnSync("python3", [
+  "training/audit_fresh_eval_leakage.py",
+  "--train", TRAIN_OUT,
+  "--recall-eval", EVAL_OUT,
+], { encoding: "utf8" });
+if (sourceAudit.status !== 0) fail(sourceAudit.stderr || sourceAudit.stdout || "Fresh docs answer leakage audit failed");
+console.log("Fresh docs final-source answer leakage audit: PASS");
