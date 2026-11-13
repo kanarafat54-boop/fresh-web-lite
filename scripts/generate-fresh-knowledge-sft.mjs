@@ -35,8 +35,8 @@ const STOP = new Set("about after again against because before being between cou
 
 const sha = (s, n = 16) => crypto.createHash("sha256").update(s).digest("hex").slice(0, n);
 const fill = (t, v) => t.replace("{h}", v.h).replace("{d}", v.d).replace("{p}", v.p);
-const normalizeAnswer = (value) => value.normalize("NFKC").toLocaleLowerCase("en").replace(/\s+/g, " ").trim();
-const isHeldOutAnswer = (answer) => Number.parseInt(sha(normalizeAnswer(answer), 8), 16) / 0xffffffff < 0.5;
+export const normalizeKnowledgeAnswer = (value) => answerBody(value).normalize("NFKC").toLocaleLowerCase("en").replace(/\s+/g, " ").trim();
+const isHeldOutAnswer = (answer) => Number.parseInt(sha(normalizeKnowledgeAnswer(answer), 8), 16) / 0xffffffff < 0.5;
 
 function parseTitle(title) {
   // "Doc: STEM — Heading (part i/n)"
