@@ -83,7 +83,7 @@ def main() -> int:
     if args.out:
         output = Path(args.out)
         output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(rendered + "\\n", encoding="utf-8")
+        output.write_text(rendered + "\n", encoding="utf-8")
     print(rendered)
     if not report["passed"]:
         raise SystemExit("FRESH EVAL LEAKAGE AUDIT FAILED: remove overlapping answer groups and rebuild before training")
