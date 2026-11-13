@@ -76,6 +76,8 @@ jobs:
             --validation /tmp/fresh-run5-mix/validation.jsonl.gz \
             --recall-eval data/fresh-eval/fresh-knowledge-recall-v1.jsonl \
             --out /tmp/fresh-run5-mix/recall-leakage-audit.json
+      - name: Validate Run 5 Kaggle notebook syntax and safety gates
+        run: python3 -m unittest training.test_fresh_run5_notebook
       - name: Test corpus importer, screening, training-mix builder, packing and evaluation helpers
         run: cd training && python3 -m unittest test_import_hf_dataset test_screen_corpus test_build_training_mix test_fresh_pack test_fresh_eval
       - run: npm run test:fresh-training-promotion

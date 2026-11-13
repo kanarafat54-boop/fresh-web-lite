@@ -10,12 +10,14 @@ The final-corpus leakage audit checks held-out recall answers against BOTH the e
 
 ## Run 5 data preparation (Kaggle GPU notebook)
 
+The ready-to-run notebook is [`training/notebooks/fresh_unified_training_run5_kaggle.ipynb`](../training/notebooks/fresh_unified_training_run5_kaggle.ipynb). It includes the GPU check, pinned repository checkout, dataset regeneration, final leakage audit, Run 3 artifact hash verification, tokenizer reuse, smoke test, controlled training, paired evaluation and evidence packaging.
+
 Use the reviewed PR commit containing the answer-disjoint generator, target-grouped split, and final-corpus audit. At the time this runbook is finalized, pin the exact commit SHA in the notebook before running; do not pull a moving branch.
 
 ```bash
 git clone https://github.com/kanarafat54-boop/fresh-web-lite.git
 cd fresh-web-lite
-git checkout 808f1703628f9db2cabae0b07d5bce4d5ad948dd
+git checkout 73da0be7d572e56bb92b23cc869be68d31ed97e3
 npm ci
 node scripts/generate-fresh-knowledge-sft.mjs
 npm run test:fresh-knowledge-sft
