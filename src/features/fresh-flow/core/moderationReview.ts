@@ -131,5 +131,5 @@ export function isModerationUnavailable(error: { code?: string; message?: string
 }
 
 export function isReviewer(role: string | null | undefined): boolean {
-  return role === "admin";
+  return role === "admin" || role === "owner";
 }

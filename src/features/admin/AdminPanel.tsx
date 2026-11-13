@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
 
-type AdminUser = { id: string; full_name: string; username: string; email: string; role: string; verified: boolean; presence: string; created_at: string };
+type AdminUser = { id: string; full_name: string; username: string; email: string | null; role: string; verified: boolean; presence: string; created_at: string };
 type OverviewMetric = { label: string; value: number };
 type AdminPayload = { users?: AdminUser[]; user?: AdminUser; metrics?: OverviewMetric[]; generatedAt?: string; error?: string };
 
@@ -17,7 +17,7 @@ export function AdminPanel() {
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.role === "admin") {
+    if (user?.role === "admin" || user?.role === "owner") {
       void loadOverview();
       void loadUsers();
     }
@@ -61,12 +61,13 @@ export function AdminPanel() {
     finally { setSavingId(null); }
   }
 
-  if (!user || user.role !== "admin") return <div className="module"><h2>Admin</h2><p className="empty-state">You don't have access to this area.</p></div>;
+  const isOwner = user?.role === "owner";
+  if (!user || (user.role !== "admin" && user.role !== "owner")) return <div className="module"><h2>Admin</h2><p className="empty-state">You don't have access to this area.</p></div>;
 
   return (
     <div className="module">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <div><h2 style={{ marginBottom: 4 }}>Fresh Admin Overview</h2><p className="empty-state" style={{ margin: 0 }}>Live platform health and trusted administration.</p></div>
+        <div><h2 style={{ marginBottom: 4 }}>Fresh Admin Overview</h2><p className="empty-state" style={{ margin: 0 }}>{isOwner ? "Owner view: full control of the platform." : "Admin view: limited access. Roles, profiles and email addresses are managed by the owner."}</p></div>
         <button className="auth-submit-btn" onClick={() => { void loadOverview(); void loadUsers(); }} disabled={loading || overviewLoading}>{loading || overviewLoading ? "Refreshing..." : "Refresh"}</button>
       </div>
       {error && <p className="auth-error">{error}</p>}
@@ -77,15 +78,21 @@ export function AdminPanel() {
       <h3>People</h3>
       {users.length === 0 && !loading && <p className="empty-state">No users returned from the trusted admin boundary.</p>}
       <div className="admin-user-list">
-        {users.map((target) => (
-          <div className="admin-user-card" key={target.id}>
-            <input className="auth-input" value={target.full_name} onChange={(event) => setUsers((current) => current.map((item) => item.id === target.id ? { ...item, full_name: event.target.value } : item))} aria-label="Full name" />
-            <input className="auth-input" value={target.username} onChange={(event) => setUsers((current) => current.map((item) => item.id === target.id ? { ...item, username: event.target.value } : item))} aria-label="Username" />
-            <select className="auth-input" value={target.role} onChange={(event) => setUsers((current) => current.map((item) => item.id === target.id ? { ...item, role: event.target.value } : item))} aria-label="Role"><option value="user">user</option><option value="admin">admin</option></select>
-            <span className="post-username">{target.email}</span>
-            <button className="auth-submit-btn" onClick={() => void saveUser(target)} disabled={savingId === target.id}>{savingId === target.id ? "Saving..." : "Save"}</button>
-          </div>
-        ))}
+        {users.map((target) => {
+          const locked = !isOwner || target.role === "owner" || target.id === user.id;
+          const setField = (field: "full_name" | "username" | "role", value: string) => setUsers((current) => current.map((item) => item.id === target.id ? { ...item, [field]: value } : item));
+          return (
+            <div className="admin-user-card" key={target.id}>
+              <input className="auth-input" value={target.full_name} onChange={(event) => setField("full_name", event.target.value)} aria-label="Full name" disabled={!isOwner || (target.role === "owner" && target.id !== user.id)} />
+              <input className="auth-input" value={target.username} onChange={(event) => setField("username", event.target.value)} aria-label="Username" disabled={!isOwner || (target.role === "owner" && target.id !== user.id)} />
+              {target.role === "owner"
+                ? <span className="fresh-id-tier">Owner</span>
+                : <select className="auth-input" value={target.role} onChange={(event) => setField("role", event.target.value)} aria-label="Role" disabled={locked}><option value="user">user</option><option value="admin">admin</option></select>}
+              {isOwner ? <span className="post-username">{target.email}</span> : null}
+              {isOwner ? <button className="auth-submit-btn" onClick={() => void saveUser(target)} disabled={savingId === target.id}>{savingId === target.id ? "Saving..." : "Save"}</button> : null}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
