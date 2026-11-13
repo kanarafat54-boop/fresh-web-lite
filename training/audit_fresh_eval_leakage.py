@@ -36,7 +36,7 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def audit_rows(train_rows: list[dict], eval_rows: list[dict]) -> dict:
+def audit_rows(train_rows: list[dict], eval_rows: list[dict], validation_rows: list[dict] | None = None) -> dict:
     train_answers = {
         normalize_answer(row.get("target", ""))
         for row in train_rows
@@ -48,6 +48,8 @@ def audit_rows(train_rows: list[dict], eval_rows: list[dict]) -> dict:
     ]
     eval_answers = [answer for answer in eval_answers if answer]
     overlap = sorted(set(eval_answers) & train_answers)
+    validation_answers = {normalize_answer(row.get("target", "")) for row in (validation_rows or []) if normalize_answer(row.get("target", ""))}
+    validation_overlap = sorted(set(eval_answers) & validation_answers)
     eval_inputs = [" ".join(unicodedata.normalize("NFKC", str(row.get("input", ""))).casefold().split())
                    for row in eval_rows]
     train_inputs = {" ".join(unicodedata.normalize("NFKC", str(row.get("input", ""))).casefold().split())
@@ -60,10 +62,12 @@ def audit_rows(train_rows: list[dict], eval_rows: list[dict]) -> dict:
         "uniqueEvaluationAnswers": len(set(eval_answers)),
         "uniqueTrainingAnswers": len(train_answers),
         "answerOverlapCount": len(overlap),
+        "validationAnswerOverlapCount": len(validation_overlap),
         "questionOverlapCount": len(input_overlap),
         "answerOverlapSamples": overlap[:5],
         "questionOverlapSamples": input_overlap[:5],
-        "passed": not overlap and not input_overlap,
+        "validationAnswerOverlapSamples": validation_overlap[:5],
+        "passed": not overlap and not validation_overlap and not input_overlap,
     }
 
 
@@ -71,12 +75,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--train", required=True, help="Final training JSONL or JSONL.GZ")
     parser.add_argument("--recall-eval", required=True, help="Held-out recall JSONL")
+    parser.add_argument("--validation", default=None, help="Optional final validation JSONL or JSONL.GZ; recall answers must be absent here too")
     parser.add_argument("--out", default=None, help="Optional JSON report path")
     args = parser.parse_args()
     train_path, eval_path = Path(args.train), Path(args.recall_eval)
-    report = audit_rows(read_jsonl(train_path), read_jsonl(eval_path))
+    validation_path = Path(args.validation) if args.validation else None
+    validation_rows = read_jsonl(validation_path) if validation_path else None
+    report = audit_rows(read_jsonl(train_path), read_jsonl(eval_path), validation_rows)
     report["trainSha256"] = sha256_file(train_path)
     report["recallEvalSha256"] = sha256_file(eval_path)
+    if validation_path:
+        report["validationSha256"] = sha256_file(validation_path)
+        report["validationPath"] = str(validation_path)
     report["trainPath"] = str(train_path)
     report["recallEvalPath"] = str(eval_path)
     rendered = json.dumps(report, indent=2, ensure_ascii=False)
