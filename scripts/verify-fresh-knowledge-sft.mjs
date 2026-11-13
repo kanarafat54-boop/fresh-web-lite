@@ -12,6 +12,9 @@ const trainInputs = new Set(train.map((r) => r.input));
 if (evalSet.some((r) => trainInputs.has(r.input))) fail("an eval question also appears in training");
 const trainAnswers = new Set(train.map((r) => normalizeKnowledgeAnswer(r.target)));
 if (evalSet.some((r) => trainAnswers.has(normalizeKnowledgeAnswer(r.reference)))) fail("an evaluation answer also appears in training");
+
+const regenerate = spawnSync(process.execPath, ["scripts/generate-fresh-knowledge-sft.mjs"], { encoding: "utf8" });
+if (regenerate.status !== 0) fail(regenerate.stderr || regenerate.stdout || "failed to regenerate answer-disjoint datasets");
 for (const rows of [train, evalSet]) if (new Set(rows.map((r) => r.id)).size !== rows.length) fail("duplicate ids");
 for (const r of train) {
   if (r.metadata.authorizationId !== AUTH_ID) fail("wrong authorization id");
