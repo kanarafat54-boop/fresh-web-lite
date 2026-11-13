@@ -511,3 +511,21 @@
 .fs-scene .fs-row { align-items: flex-end; }
 .fs-scene .fs-bin { margin: 0; }
 .fs-linked { font-size: 13px; color: var(--k-sound, #2dd4bf); overflow-wrap: anywhere; }
+
+/* Storyboard: shots as frames, scene by scene */
+.fs-editor .fs-board { display: grid; gap: 14px; margin: 14px 0 4px; padding: 12px; border: 1px solid var(--fs-line); border-radius: 14px; background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02)); min-width: 0; }
+.fs-editor .fs-board-scene { display: grid; gap: 8px; min-width: 0; }
+.fs-editor .fs-board-title { font-size: 13px; line-height: 1.3; overflow-wrap: anywhere; }
+.fs-editor .fs-board-row { list-style: none; margin: 0; padding: 0 0 6px; display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x proximity; }
+.fs-editor .fs-board-row li { flex: 0 0 144px; scroll-snap-align: start; padding: 0; border: 0; background: none; display: block; }
+.fs-editor .fs-board-shot { display: grid; gap: 6px; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.fs-editor .fs-board-open { cursor: default; }
+.fs-editor .fs-shotframe { position: relative; display: grid; place-items: center; width: 100%; min-width: 0; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 9px; background: #05070b; border: 1px solid var(--fs-line); font-size: 12px; color: var(--fs-muted); text-align: center; padding: 4px; }
+.fs-editor .fs-shotframe img { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; display: block; }
+.fs-editor .fs-shotframe-empty { border-style: dashed; }
+.fs-editor .fs-board-shot:is(button):hover .fs-shotframe { border-color: var(--fs-primary); }
+.fs-editor .fs-board-shot:focus-visible { outline: 2px solid var(--fs-primary); outline-offset: 3px; border-radius: 9px; }
+.fs-editor .fs-board-cap { display: grid; gap: 1px; font-size: 12px; line-height: 1.3; min-width: 0; }
+.fs-editor .fs-board-cap strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-editor .fs-board-cap .fs-muted { overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: no-preference) { .fs-editor .fs-shotframe { transition: border-color .15s; } }
