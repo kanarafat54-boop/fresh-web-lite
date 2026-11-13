@@ -517,7 +517,14 @@ function CaptionsPanel({ ed }: { ed: Ed }) {
         <button type="button" className="fs-btn" disabled={!ed.captions.length} onClick={() => download(new Blob([serializeSrt(ed.captions)], { type: "text/plain" }), "captions.srt")}>Export SRT</button>
         <button type="button" className="fs-btn" disabled={!ed.captions.length} onClick={() => download(new Blob([serializeVtt(ed.captions)], { type: "text/vtt" }), "captions.vtt")}>Export VTT</button>
       </div>
-      <p className="fs-muted">Imported captions are treated as timeline time. Burned into the video on export.</p>
+      <div className="fs-label">Caption style</div>
+      <div className="fs-chips" role="group" aria-label="Caption style">
+        {T.CAPTION_STYLES.map((st) => {
+          const on = (ed.doc.captionStyle ?? "classic") === st.id;
+          return <button key={st.id} type="button" className={`fs-chip${on ? " is-active" : ""}`} aria-pressed={on} title={st.hint} onClick={() => ed.edit((d) => T.setCaptionStyle(d, st.id))}>{st.name}</button>;
+        })}
+      </div>
+      <p className="fs-muted">{T.CAPTION_STYLES.find((s) => s.id === (ed.doc.captionStyle ?? "classic"))?.hint}. Imported captions are treated as timeline time. Captions are burned into the video on export; the preview does not show their style.</p>
       {issues.length > 0 && <p className="fs-warn" role="alert">{issues[0].message}</p>}
       <ul className="fs-cues">
         {ed.captions.length === 0 && <li className="fs-muted">No captions.</li>}

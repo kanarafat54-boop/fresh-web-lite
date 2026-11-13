@@ -106,6 +106,17 @@ export const MIN_TRANSITION_SECONDS = 0.2;
 export const MAX_TRANSITION_SECONDS = 2;
 const ADJACENT = 1e-3;
 
+/** How burned-in captions look. "classic" is the original look. */
+export const CAPTION_STYLES = [
+  { id: "classic", name: "Classic", hint: "White with an outline" },
+  { id: "bold", name: "Bold", hint: "Large yellow" },
+  { id: "box", name: "Box", hint: "White on a dark box" },
+  { id: "minimal", name: "Minimal", hint: "Small and quiet" },
+  { id: "top", name: "Headline", hint: "Large, at the top" },
+] as const;
+export type CaptionStyleId = (typeof CAPTION_STYLES)[number]["id"];
+export const isCaptionStyle = (v: unknown): v is CaptionStyleId => CAPTION_STYLES.some((s) => s.id === v);
+
 export const MAX_TEXTS = 50;
 export const MAX_TEXT_CHARS = 200;
 export const MIN_TEXT_SECONDS = 0.2;
@@ -158,6 +169,8 @@ export type TimelineDoc = {
   clips: TimelineClip[];
   /** Title and text layers. Optional so older saved timelines stay valid. */
   texts?: TextLayer[];
+  /** Look of burned-in captions; absent means classic. */
+  captionStyle?: CaptionStyleId;
   /** Pictures and shapes shown on top of the video. */
   overlays?: OverlayLayer[];
   /** Output aspect ratio the preview and export use, e.g. "16:9". */
@@ -628,6 +641,12 @@ export function deleteText(doc: TimelineDoc, id: string): TimelineDoc {
   findText(doc, id);
   return { ...doc, texts: (doc.texts ?? []).filter((t) => t.id !== id) };
 }
+/** Sets how burned-in captions look. "classic" clears the setting. */
+export function setCaptionStyle(doc: TimelineDoc, style: CaptionStyleId): TimelineDoc {
+  if (!isCaptionStyle(style)) throw new TimelineError("Unknown caption style.");
+  if (style === "classic") { const { captionStyle: _drop, ...rest } = doc; return rest as TimelineDoc; }
+  return doc.captionStyle === style ? doc : { ...doc, captionStyle: style };
+}
 export const textsAt = (doc: TimelineDoc, time: number) => (doc.texts ?? []).filter((t) => time >= t.start - 1e-6 && time < t.start + t.duration - 1e-6);
 
 // ---- overlays (images and rectangles)
@@ -711,6 +730,7 @@ export function validateTimeline(doc: unknown): string[] {
     }
   }
   errors.push(...validateFilm(d.film));
+  if (d.captionStyle !== undefined && !isCaptionStyle(d.captionStyle)) errors.push("Unknown caption style.");
   if (d.texts !== undefined) {
     if (!Array.isArray(d.texts)) errors.push("Text layers are malformed.");
     else {

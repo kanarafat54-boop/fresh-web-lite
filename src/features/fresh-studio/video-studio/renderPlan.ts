@@ -119,6 +119,19 @@ function pictureChain(clip: TimelineClip, W: number, H: number, fps: number, fad
 
 const FFMPEG_COLOR = /^#[0-9a-fA-F]{6}$/;
 
+/** ASS style overrides for each caption look, scaled to the frame height. Classic is exactly what exports looked like before styles existed. */
+export function captionForceStyle(style: string | undefined, H: number): string {
+  const px = (f: number) => Math.max(14, Math.round(H * f));
+  const margin = Math.round(H * 0.08);
+  switch (style) {
+    case "bold": return `FontSize=${px(0.06)},Bold=1,PrimaryColour=&H0000E6FF&,Outline=3,Shadow=0,MarginV=${margin}`;
+    case "box": return `FontSize=${px(0.045)},BorderStyle=3,Outline=5,PrimaryColour=&H00FFFFFF&,OutlineColour=&H5A000000&,Shadow=0,MarginV=${margin}`;
+    case "minimal": return `FontSize=${px(0.035)},Outline=0,Shadow=1,MarginV=${margin}`;
+    case "top": return /* ffmpeg reads Alignment in SSA numbering, where 6 is top centre */ `FontSize=${px(0.065)},Bold=1,Outline=3,Shadow=0,Alignment=6,MarginV=${Math.round(H * 0.06)}`;
+    default: return `FontSize=${px(0.045)},Outline=2,Shadow=0,MarginV=${margin}`;
+  }
+}
+
 export function planRender(input: RenderPlanInput): RenderPlan {
   const { doc, preset, aspectRatio, sources, outputPath } = input;
   const errors: string[] = [];
@@ -293,8 +306,7 @@ export function planRender(input: RenderPlanInput): RenderPlan {
     filters.push(`[vraw]${drawn.join(",")}[${burn ? "vcat" : "vout"}]`);
   }
   if (burn) {
-    const size = Math.max(14, Math.round(H * 0.045));
-    filters.push(`[vcat]subtitles=filename=${escapeFilterPath(input.captionsFile!)}:force_style='FontSize=${size},Outline=2,Shadow=0,MarginV=${Math.round(H * 0.08)}'[vout]`);
+    filters.push(`[vcat]subtitles=filename=${escapeFilterPath(input.captionsFile!)}:force_style='${captionForceStyle(doc.captionStyle, H)}'[vout]`);
   }
   filters.push(`${aLabels.map((l) => `[${l}]`).join("")}concat=n=${aLabels.length}:v=0:a=1[abase]`);
 

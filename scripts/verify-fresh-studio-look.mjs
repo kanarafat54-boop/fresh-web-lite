@@ -178,6 +178,27 @@ const near = (a, e, tol, label) => assert.ok(Math.abs(a - e) <= tol, `${label}: 
   let m = T.addText(d, { start: 0, duration: 4, id: "t3", text: "Line one\nLine two" });
   const srt = path.join(dir, "c.srt"); fs.writeFileSync(srt, "1\n00:00:00,500 --> 00:00:02,500\nCaption\n", "utf8");
   render(m, { textFiles: files, fonts: FONTS, captionsFile: srt });
+  // caption styles
+  {
+    assert.equal(T.CAPTION_STYLES.length, 5);
+    assert.throws(() => T.setCaptionStyle(m, "neon"), /Unknown caption style/);
+    assert.ok(!("captionStyle" in T.setCaptionStyle(T.setCaptionStyle(m, "bold"), "classic")), "classic clears the setting");
+    assert.equal(T.setCaptionStyle(m, "box").captionStyle, "box");
+    assert.ok(T.validateTimeline({ ...m, captionStyle: "nope" }).some((e) => /caption style/.test(e)));
+    assert.equal(R.captionForceStyle(undefined, 360), R.captionForceStyle("classic", 360), "classic is the original look");
+    const cap = path.join(dir, "styles.srt"); fs.writeFileSync(cap, "1\n00:00:00,500 --> 00:00:03,500\nHello world\n", "utf8");
+    const shot = (style) => render(T.setCaptionStyle(dark(), style), { captionsFile: cap });
+    const bottom = "crop=400:60:120:290", top = "crop=400:60:120:10";
+    const bright = (f, vf, at = 2) => stat(f, "YMAX", { at, vf }), avg = (f, vf, at = 2) => stat(f, "YAVG", { at, vf });
+    const classic = shot("classic");
+    assert.ok(bright(classic, bottom) > 200, "classic captions sit at the bottom");
+    assert.ok(stat(shot("bold"), "VMAX", { at: 2, vf: bottom }) > stat(classic, "VMAX", { at: 2, vf: bottom }) + 10, "bold is yellow");
+    const topped = shot("top");
+    assert.ok(bright(topped, top) > 200 && bright(topped, bottom) < 80, "headline sits at the top");
+    assert.ok(Math.abs(avg(shot("box"), bottom) - avg(classic, bottom)) > 0.3, "box draws a different caption from classic");
+    const quiet = shot("minimal"); assert.ok(bright(quiet, bottom) > 200 && Math.abs(avg(quiet, bottom) - avg(classic, bottom)) > 0.3, "minimal still shows its text, differently from classic");
+    assert.ok(bright(classic, bottom, 0.2) < 80, "captions only show while their cue lasts");
+  }
   // refuses to guess
   assert.deepEqual(R.planRender({ doc: d, preset: "360p", aspectRatio: "16:9", sources, outputPath: "o.mp4" }).ok, false);
   assert.match(R.planRender({ doc: d, preset: "360p", aspectRatio: "16:9", sources, outputPath: "o.mp4", fonts: FONTS }).errors[0], /missing/);
