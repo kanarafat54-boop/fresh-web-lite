@@ -17,7 +17,7 @@ Use the reviewed PR commit containing the answer-disjoint generator, target-grou
 ```bash
 git clone https://github.com/kanarafat54-boop/fresh-web-lite.git
 cd fresh-web-lite
-git checkout 808f1703628f9db2cabae0b07d5bce4d5ad948dd
+git checkout 73da0be7d572e56bb92b23cc869be68d31ed97e3
 npm ci
 node scripts/generate-fresh-knowledge-sft.mjs
 npm run test:fresh-knowledge-sft
