@@ -1,11 +1,11 @@
-// Builds Fresh-knowledge fine-tune data and a held-out recall evaluation set from the allowlisted
-// product docs. No outside AI is used: questions come from fixed templates and answers are the
-// docs' own text (with its "Per docs/<file>" citation), so provenance is Fresh's own documents.
+// Builds Fresh-knowledge fine-tune data and an answer-disjoint held-out evaluation set
+// from the allowlisted product docs. No outside AI is used: questions come from fixed templates
+// and answers are the docs' own text (with their "Per docs/<file>" citation).
 //
 //   node scripts/generate-fresh-knowledge-sft.mjs
 //
-// Train phrasings and eval phrasings are disjoint, so the eval measures whether the model absorbed the
-// FACT, not whether it memorised one question wording. Scoring is keyword recall (see training/fresh_eval.py).
+// IMPORTANT: split by normalized answer content BEFORE generating question templates. Splitting
+// question phrasings alone leaks identical reference answers across train and evaluation.
 import fs from "node:fs";
 import crypto from "node:crypto";
 import path from "node:path";
@@ -17,7 +17,7 @@ export const SYSTEM = "You are Fresh AI. Be accurate, safe, and explicit about u
 export const TRAIN_OUT = "data/fresh-training/fresh-docs-qa-v1.jsonl";
 export const EVAL_OUT = "data/fresh-eval/fresh-knowledge-recall-v1.jsonl";
 
-// {h} = section heading, {d} = doc title, {p} = part note. Train and eval lists must never overlap.
+// {h} = section heading, {d} = doc title, {p} = part note. Lists must never overlap.
 export const TRAIN_TEMPLATES = [
   "According to {d}, what does the section \"{h}\"{p} say?",
   "Tell me about \"{h}\"{p} in Fresh ({d}).",
@@ -35,6 +35,8 @@ const STOP = new Set("about after again against because before being between cou
 
 const sha = (s, n = 16) => crypto.createHash("sha256").update(s).digest("hex").slice(0, n);
 const fill = (t, v) => t.replace("{h}", v.h).replace("{d}", v.d).replace("{p}", v.p);
+const normalizeAnswer = (value) => value.normalize("NFKC").toLocaleLowerCase("en").replace(/\s+/g, " ").trim();
+const isHeldOutAnswer = (answer) => Number.parseInt(sha(normalizeAnswer(answer), 8), 16) / 0xffffffff < 0.5;
 
 function parseTitle(title) {
   // "Doc: STEM — Heading (part i/n)"
@@ -63,13 +65,17 @@ export function build(chunks = collect()) {
   const idf = new Map([...df].map(([w, n]) => [w, Math.log(1 + items.length / n)]));
   const train = [], evalSet = [];
   for (const it of items) {
+    const heldOut = isHeldOutAnswer(it.c.content);
     const vars = { h: it.h, d: it.d, p: it.part ? ` (part ${it.part})` : "" };
-    for (const [i, tpl] of TRAIN_TEMPLATES.entries()) {
-      const input = fill(tpl, vars);
-      train.push({
-        id: `fresh-docs-qa-${sha(input + it.c.hash)}`, input, target: it.c.content,
-        metadata: { authorizationId: AUTH_ID, sourceType: "internal-synthetic", license: "internal-synthetic", system: SYSTEM, source: it.c.source, template: i, kind: "fresh-docs-qa" },
-      });
+    if (!heldOut) {
+      for (const [i, tpl] of TRAIN_TEMPLATES.entries()) {
+        const input = fill(tpl, vars);
+        train.push({
+          id: `fresh-docs-qa-${sha(input + it.c.hash)}`, input, target: it.c.content,
+          metadata: { authorizationId: AUTH_ID, sourceType: "internal-synthetic", license: "internal-synthetic", system: SYSTEM, source: it.c.source, template: i, kind: "fresh-docs-qa" },
+        });
+      }
+      continue;
     }
     const keywords = keywordsFor(it.body, idf);
     if (keywords.length < 3) continue;
@@ -89,5 +95,5 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   fs.writeFileSync(TRAIN_OUT, toJsonl(train));
   fs.writeFileSync(EVAL_OUT, toJsonl(evalSet));
   console.log(`Wrote ${TRAIN_OUT}: ${train.length} training rows`);
-  console.log(`Wrote ${EVAL_OUT}: ${evalSet.length} held-out recall questions`);
+  console.log(`Wrote ${EVAL_OUT}: ${evalSet.length} answer-disjoint held-out recall questions`);
 }
