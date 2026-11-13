@@ -294,7 +294,7 @@ export function planRender(input                 )             {
     const total = Math.max(timelineDuration(doc), 0.1);
     // Moves and fades for the way a title arrives and leaves, as ffmpeg expressions of time t.
     const motion = (t                         , frameW        , frameH        ) => {
-      const D = num(t.animSeconds ?? 0.5), end = t.start + t.duration;
+      const seconds = t.animSeconds ?? 0.5, D = num(seconds), end = t.start + t.duration;
       const pin = t.animIn && t.animIn !== "none" ? `min(1,max(0,(t-${num(t.start)})/${D}))` : null;
       const pout = t.animOut && t.animOut !== "none" ? `min(1,max(0,(${num(end)}-t)/${D}))` : null;
       const ease = (p        ) => `(${p}*(2-${p}))`;
@@ -304,7 +304,7 @@ export function planRender(input                 )             {
       });
       const a = parts(pin, t.animIn, 1), b = parts(pout, t.animOut, -1);
       const alpha = [pin, pout].filter(Boolean).join("*");
-      return { dx: a.dx + b.dx, dy: a.dy + b.dy, alpha: alpha || null, fadeIn: pin ? num(t.start) : null, fadeOut: pout ? num(end) : null, D };
+      return { dx: a.dx + b.dx, dy: a.dy + b.dy, alpha: alpha || null, fadeIn: pin ? t.start : null, fadeOut: pout ? end : null, seconds };
     };
     const drawText = (t                         , file        , where                          , alpha               , withWindow         ) => {
       const fontSize = Math.max(8, Math.round(H * t.size));
@@ -335,7 +335,7 @@ export function planRender(input                 )             {
       const file = check(t); if (!file) return;
       const m = motion(t, String(W), String(H));
       // A turned title is drawn on its own transparent canvas the size of the frame, turned about its centre, then laid over the picture.
-      const fades = (m.fadeIn !== null ? `,fade=t=in:st=${m.fadeIn}:d=${num(m.D)}:alpha=1` : "") + (m.fadeOut !== null ? `,fade=t=out:st=${num(Number(m.fadeOut) - m.D)}:d=${num(m.D)}:alpha=1` : "");
+      const fades = (m.fadeIn !== null ? `,fade=t=in:st=${num(m.fadeIn)}:d=${num(m.seconds)}:alpha=1` : "") + (m.fadeOut !== null ? `,fade=t=out:st=${num(m.fadeOut - m.seconds)}:d=${num(m.seconds)}:alpha=1` : "");
       const next = k === turned.length - 1 ? target : `vt${k + 1}`;
       rotatedFilters.push(`color=c=black@0:s=${W}x${H}:r=${fps}:d=${num(total)},format=rgba,${drawText(t, file, { x: "(w-text_w)/2", y: "(h-text_h)/2" }, null, false)}${turn(t.rotation)}${fades}[tx${k}]`);
       rotatedFilters.push(`[${cur}][tx${k}]overlay=x='${num(t.x)}*${W}-w/2${m.dx}':y='${num(t.y)}*${H}-h/2${m.dy}':enable=between(t\\,${num(t.start)}\\,${num(t.start + t.duration)})[${next}]`);
