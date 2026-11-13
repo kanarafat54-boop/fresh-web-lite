@@ -28,6 +28,15 @@ class FreshEvalLeakageTests(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertEqual(result["answerOverlapCount"], 1)
 
+    def test_recall_answer_in_validation_fails(self):
+        result = audit_rows(
+            [{"id": "train-1", "input": "Question A", "target": "Train answer."}],
+            [{"id": "eval-2", "input": "Question B", "reference": "Held-out reference."}],
+            [{"id": "val-1", "input": "Question C", "target": "Held-out reference."}],
+        )
+        self.assertFalse(result["passed"])
+        self.assertEqual(result["validationAnswerOverlapCount"], 1)
+
     def test_same_question_with_different_answer_fails(self):
         result = audit_rows(
             [{"id": "train-1", "input": "Same question", "target": "Train answer."}],
