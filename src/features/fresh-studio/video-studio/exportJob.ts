@@ -72,7 +72,7 @@ export class ExportCancelled extends Error {
 }
 
 export const POLL_INTERVAL_MS = 1500;
-export const MAX_POLL_SECONDS = 20 * 60;
+export const MAX_POLL_SECONDS = 62 * 60; // a little longer than the worker's own longest allowed render (60 min)
 
 const mb = (n: number) => `${(n / 1048576).toFixed(n < 10 * 1048576 ? 1 : 0)} MB`;
 
