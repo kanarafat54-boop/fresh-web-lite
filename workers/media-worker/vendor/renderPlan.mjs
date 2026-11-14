@@ -27,7 +27,8 @@ export const UNAVAILABLE_PRESETS                                                
   { id: "4K", reason: "Not verified on the render backend yet." },
 ];
 
-export const PLANNER_MAX_SECONDS = 300;
+/** The most the planner will plan (20 minutes). What a given worker accepts is set by FRESH_RENDER_MAX_SECONDS on that worker. */
+export const PLANNER_MAX_SECONDS = 1200;
 const AUDIO_RATE = 48000;
 const ASPECTS                                   = { "9:16": [9, 16], "16:9": [16, 9], "1:1": [1, 1], "4:5": [4, 5], "21:9": [21, 9] };
 
@@ -167,7 +168,7 @@ export function planRender(input                 )             {
   if (errors.length) return { ok: false, errors };
 
   const duration = round3(Math.max(...[...vClips, ...layerClips.map((l) => l.clip)].map((c) => c.start + clipDuration(c))));
-  if (duration > PLANNER_MAX_SECONDS) return { ok: false, errors: [`Exports are limited to ${PLANNER_MAX_SECONDS} seconds for now.`] };
+  if (duration > PLANNER_MAX_SECONDS) return { ok: false, errors: [`Exports are limited to ${Math.round(PLANNER_MAX_SECONDS / 60)} minutes.`] };
 
   const music = doc.tracks.filter((t) => t.kind === "music" && !t.muted).flatMap((t) => trackClips(doc, t.id));
 

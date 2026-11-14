@@ -641,7 +641,7 @@ function ExportPanel({ ed, projectId, aspect, signedIn, notify }: { ed: Ed; proj
           <label className="fs-field"><span>Quality</span><select value={preset} disabled={running} onChange={(e) => setPreset(e.target.value as ExportPresetId)}>{opts.presets.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
           <p className="fs-muted">Shape: <b>{aspect}</b>{opts.aspectRatios.includes(aspect) ? "" : " (not available on this worker)"}. Change it with the ratio menu under the preview.</p>
           {(ed.doc.texts ?? []).length > 0 && !caps.text && <p className="fs-warn" role="alert">This render worker cannot export text yet.</p>}
-          <p className="fs-muted">Up to {caps.maxSeconds} seconds per export. 1440p and 4K are not offered because they are not verified yet.</p>
+          <p className="fs-muted">Up to {caps.maxSeconds >= 120 ? `${Math.floor(caps.maxSeconds / 60)} min${caps.maxSeconds % 60 ? ` ${caps.maxSeconds % 60} s` : ""}` : `${caps.maxSeconds} seconds`} per export. 1440p and 4K are not offered because they are not verified yet.</p>
         </>
       )}
       <div className="fs-row">
