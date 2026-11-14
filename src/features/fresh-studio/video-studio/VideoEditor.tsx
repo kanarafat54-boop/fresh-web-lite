@@ -299,7 +299,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
               {panel === "media" && <MediaPanel ed={ed} onImport={openImport} onOverlay={(id) => addOverlayLayer("image", id)} onLayer={addAsLayer} />}
               {panel === "text" && <TextPanel ed={ed} onAdd={addTextLayer} />}
               {panel === "overlays" && <OverlaysPanel ed={ed} onAdd={addOverlayLayer} onImport={openImport} />}
-              {panel === "scenes" && <ScenesPanel ed={ed} clip={selectedClip} ownerId={signedIn ? project.ownerId : null} />}
+              {panel === "scenes" && <ScenesPanel ed={ed} clip={selectedClip} ownerId={signedIn ? project.ownerId : null} thumbs={thumbs} onPick={(c) => { setPlaying(false); ed.setSelected(c.id); ed.setPlayhead(c.start); }} />}
               {panel === "captions" && <CaptionsPanel ed={ed} />}
               {panel === "smart" && <SmartPanel ed={ed} clip={selectedClip} />}
               {panel === "export" && <ExportPanel ed={ed} projectId={project.id} aspect={aspectValid} signedIn={signedIn} notify={notify} />}
@@ -561,9 +561,17 @@ function SmartPanel({ ed, clip }: { ed: Ed; clip: T.TimelineClip | null }) {
   const [noiseDb, setNoiseDb] = useState(-35);
   const [minSilence, setMinSilence] = useState(0.5);
   const [result, setResult] = useState("");
+  const [every, setEvery] = useState(1);
+  const [beatResult, setBeatResult] = useState("");
   const entry = clip ? ed.media[clip.assetId] : null;
   return (
     <div>
+      <h3>Cut to the beat</h3>
+      <p className="fs-muted">Select your music clip. Fresh finds its beat on this device and cuts the main video track on the beat, so your shots change with the music. Undo restores it.</p>
+      <label className="fs-field"><span>Cut on</span><select value={every} onChange={(e) => setEvery(Number(e.target.value))}><option value={1}>every beat</option><option value={2}>every 2nd beat</option><option value={4}>every 4th beat (each bar)</option><option value={8}>every 8th beat</option></select></label>
+      <button type="button" className="fs-btn fs-btn-primary" disabled={!clip || !entry?.samples} onClick={() => clip && setBeatResult(ed.cutToBeat(clip.id, every))}>Cut video to the beat of selected clip</button>
+      {!clip && <p className="fs-muted">Select a clip on the timeline first.</p>}
+      {beatResult && <p role="status">{beatResult}</p>}
       <h3>Remove silences</h3>
       <p className="fs-muted">Finds quiet gaps in the selected clip using audio analysed on this device, then cuts them out and closes the gaps. Undo restores everything.</p>
       <label className="fs-field"><span>Counts as silence below {noiseDb} dB</span><input type="range" min={-60} max={-15} value={noiseDb} onChange={(e) => setNoiseDb(Number(e.target.value))} /></label>
