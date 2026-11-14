@@ -512,6 +512,17 @@
 .fs-scene .fs-bin { margin: 0; }
 .fs-linked { font-size: 13px; color: var(--k-sound, #2dd4bf); overflow-wrap: anywhere; }
 
+/* Grade preview layers sit over the video and under text and overlays */
+.fs-editor .fs-grade { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: soft-light; }
+.fs-editor .fs-grade-vignette { mix-blend-mode: normal; }
+
+/* Stickers: a grid of symbols */
+.fs-editor .fs-stickers { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 8px; }
+.fs-editor .fs-sticker { aspect-ratio: 1; display: grid; place-items: center; font-size: 26px; line-height: 1; font-family: "DejaVu Sans", system-ui, sans-serif; background: rgba(255,255,255,.05); border: 1px solid var(--fs-line); border-radius: 12px; cursor: pointer; }
+.fs-editor .fs-sticker:hover { border-color: var(--fs-primary); background: rgba(255,255,255,.09); }
+.fs-editor .fs-sticker:focus-visible { outline: 2px solid var(--fs-primary); outline-offset: 2px; }
+/* Show symbols as single-colour text glyphs like the export does, not as colour emoji (where the browser supports it) */
+.fs-editor .fs-overlay-text, .fs-editor .fs-sticker { font-variant-emoji: text; }
 /* Storyboard: shots as frames, scene by scene */
 .fs-editor .fs-board { display: grid; gap: 14px; margin: 14px 0 4px; padding: 12px; border: 1px solid var(--fs-line); border-radius: 14px; background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02)); min-width: 0; }
 .fs-editor .fs-board-scene { display: grid; gap: 8px; min-width: 0; }

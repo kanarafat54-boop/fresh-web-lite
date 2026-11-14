@@ -60,14 +60,18 @@ export function ClipInspector({ doc, clip, edit, playhead = 0 }: { doc: T.Timeli
           <>
             <div className="fs-chips" role="group" aria-label="Look presets">
               {T.LOOK_PRESETS.map((p) => {
-                const on = Math.abs(look.brightness - p.look.brightness) < 1e-6 && Math.abs(look.contrast - p.look.contrast) < 1e-6 && Math.abs(look.saturation - p.look.saturation) < 1e-6;
+                const on = (Object.keys(p.look) as (keyof T.ClipLook)[]).concat("warmth", "split", "vignette", "grain").every((k) => Math.abs((look[k] ?? (k === "contrast" || k === "saturation" ? 1 : 0)) - (p.look[k] ?? (k === "contrast" || k === "saturation" ? 1 : 0))) < 1e-6);
                 return <button key={p.id} type="button" className={`fs-chip${on ? " is-active" : ""}`} aria-pressed={on} onClick={() => setLook(p.id === "none" ? null : p.look)}>{p.name}</button>;
               })}
             </div>
             <Slider label="Brightness" value={look.brightness} min={-0.5} max={0.5} step={0.02} format={(v) => (v > 0 ? "+" : "") + Math.round(v * 100)} onCommit={(v) => setLook({ ...look, brightness: v })} />
             <Slider label="Contrast" value={look.contrast} min={0.5} max={1.8} step={0.02} format={(v) => `${Math.round(v * 100)}%`} onCommit={(v) => setLook({ ...look, contrast: v })} />
             <Slider label="Saturation" value={look.saturation} min={0} max={2} step={0.02} format={(v) => `${Math.round(v * 100)}%`} onCommit={(v) => setLook({ ...look, saturation: v })} />
-            <p className="fs-muted">The preview is an approximation. The exported video uses exact values.</p>
+            <Slider label="Warmth" value={look.warmth ?? 0} min={-1} max={1} step={0.05} format={(v) => (v > 0 ? "Warm " : v < 0 ? "Cool " : "") + Math.round(Math.abs(v) * 100)} onCommit={(v) => setLook({ ...look, warmth: v })} />
+            <Slider label="Teal and orange" value={look.split ?? 0} min={0} max={1} step={0.05} format={(v) => `${Math.round(v * 100)}%`} onCommit={(v) => setLook({ ...look, split: v })} />
+            <Slider label="Vignette" value={look.vignette ?? 0} min={0} max={1} step={0.05} format={(v) => `${Math.round(v * 100)}%`} onCommit={(v) => setLook({ ...look, vignette: v })} />
+            <Slider label="Film grain" value={look.grain ?? 0} min={0} max={1} step={0.05} format={(v) => `${Math.round(v * 100)}%`} onCommit={(v) => setLook({ ...look, grain: v })} />
+            <p className="fs-muted">The preview is an approximation, and film grain only shows in the exported video. The export uses exact values.</p>
           </>
         )}
         {active === "motion" && <MotionPanel clip={clip} edit={edit} playhead={playhead} />}
@@ -200,7 +204,7 @@ export function OverlayInspector({ layer, assetName, edit, duration }: { layer: 
   );
 }
 
-type TextSection = "text" | "style" | "place";
+type TextSection = "text" | "style" | "animate" | "place";
 export function TextInspector({ layer, edit, duration }: { layer: T.TextLayer; edit: EditFn; duration: number }) {
   const [section, setSection] = useState<TextSection>("text");
   const up = (patch: Partial<Omit<T.TextLayer, "id">>) => edit((d) => T.updateText(d, layer.id, patch));
@@ -208,7 +212,7 @@ export function TextInspector({ layer, edit, duration }: { layer: T.TextLayer; e
     <>
       <h2>Text</h2>
       <div className="fs-seg" role="tablist" aria-label="Text settings">
-        {([["text", "Text"], ["style", "Style"], ["place", "Place"]] as const).map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={section === id} className={section === id ? "is-active" : ""} onClick={() => setSection(id)}>{label}</button>)}
+        {([["text", "Text"], ["style", "Style"], ["animate", "Animate"], ["place", "Place"]] as const).map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={section === id} className={section === id ? "is-active" : ""} onClick={() => setSection(id)}>{label}</button>)}
       </div>
       <div className="fs-inspector-body">
         {section === "text" && (
@@ -229,7 +233,25 @@ export function TextInspector({ layer, edit, duration }: { layer: T.TextLayer; e
               <button type="button" className={`fs-chip${layer.bold ? " is-active" : ""}`} aria-pressed={layer.bold} onClick={() => up({ bold: !layer.bold })}>Bold</button>
               <button type="button" className={`fs-chip${layer.box ? " is-active" : ""}`} aria-pressed={layer.box} onClick={() => up({ box: !layer.box })}>Background</button>
             </div>
+            <Slider label="Turn" value={layer.rotation ?? 0} min={-T.MAX_ROTATION} max={T.MAX_ROTATION} step={1} format={(v) => `${Math.round(v)}°`} onCommit={(v) => up({ rotation: v })} />
             <p className="fs-muted">Exports use the DejaVu Sans font.</p>
+          </>
+        )}
+        {section === "animate" && (
+          <>
+            {(["animIn", "animOut"] as const).map((key) => (
+              <div key={key}>
+                <div className="fs-label">{key === "animIn" ? "How it arrives" : "How it leaves"}</div>
+                <div className="fs-chips" role="group" aria-label={key === "animIn" ? "Arrival animation" : "Exit animation"}>
+                  {([["none", "None"], ["fade", "Fade"], ["rise", "Rise"], ["slide", "Slide"]] as const).map(([id, label]) => {
+                    const on = (layer[key] ?? "none") === id;
+                    return <button key={id} type="button" className={`fs-chip${on ? " is-active" : ""}`} aria-pressed={on} onClick={() => up({ [key]: id })}>{label}</button>;
+                  })}
+                </div>
+              </div>
+            ))}
+            {(layer.animIn || layer.animOut) && <Slider label="Takes" value={layer.animSeconds ?? T.DEFAULT_ANIM_SECONDS} min={T.MIN_ANIM_SECONDS} max={Math.min(T.MAX_ANIM_SECONDS, layer.duration)} step={0.1} format={(v) => `${v.toFixed(1)} s`} onCommit={(v) => up({ animSeconds: v })} />}
+            <p className="fs-muted">Every animation also fades. Rise moves up into place; slide comes in from the left and leaves to the right.</p>
           </>
         )}
         {section === "place" && (

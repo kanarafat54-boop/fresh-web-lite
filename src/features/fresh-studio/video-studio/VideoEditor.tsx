@@ -7,6 +7,7 @@ import { createBrowserExportPorts } from "./renderClient.ts";
 import type { ExportPresetId } from "./renderPlan.ts";
 import { Icon, type IconName } from "./icons.tsx";
 import { useLayerDrag } from "./useLayerDrag.ts";
+import { STICKERS, stickerLayer } from "./stickers.ts";
 import { ClipInspector, OverlayInspector, TextInspector } from "./Inspector.tsx";
 import { ANALYSIS_SAMPLE_RATE } from "./audioAnalysis.ts";
 import { computePeaks, extractFilmstrip, filmstripCount, type Filmstrip } from "./mediaVisuals.ts";
@@ -61,6 +62,20 @@ function motionTransform(c: T.TimelineClip | null, t: number): string | undefine
   const m = T.motionAt(c.motion, (t - c.start) / Math.max(0.001, T.clipDuration(c)));
   return `translate(${(-m.x * (m.zoom - 1) * 50).toFixed(3)}%, ${(-m.y * (m.zoom - 1) * 50).toFixed(3)}%) scale(${m.zoom.toFixed(4)})`;
 }
+/** Approximate preview of warmth, split toning and vignette (the export is exact). */
+function GradeOverlay({ look }: { look: T.ClipLook }) {
+  const warm = look.warmth ?? 0, split = look.split ?? 0, vig = look.vignette ?? 0;
+  if (Math.abs(warm) < 1e-6 && split < 1e-6 && vig < 1e-6) return null;
+  const tint = warm > 0 ? `rgba(255,150,60,${0.55 * warm})` : `rgba(60,130,255,${0.55 * -warm})`;
+  const splitTint = `linear-gradient(rgba(255,150,60,${0.6 * split}), rgba(20,120,170,${0.6 * split}))`;
+  return (
+    <>
+      {(Math.abs(warm) > 1e-6 || split > 1e-6) && <div className="fs-grade" aria-hidden="true" style={{ background: split > 1e-6 ? `${splitTint}${Math.abs(warm) > 1e-6 ? `, linear-gradient(${tint}, ${tint})` : ""}` : tint }} />}
+      {vig > 1e-6 && <div className="fs-grade fs-grade-vignette" aria-hidden="true" style={{ background: `radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,${0.75 * vig}) 100%)` }} />}
+    </>
+  );
+}
+
 const lookFilter = (l: T.ClipLook | undefined) => (l ? `brightness(${1 + l.brightness}) contrast(${l.contrast}) saturate(${l.saturation})` : "none");
 const ratioOf = (a: string) => { const [w, h] = a.split(":").map(Number); return w / h; };
 
@@ -298,6 +313,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
           <div className="fs-frame" ref={frameRef} style={{ aspectRatio: aspectValid.replace(":", " / "), ["--ar" as string]: ratioOf(aspectValid) }} data-aspect={aspectValid}>
             <video ref={videoEl} playsInline preload="auto" aria-label="Video preview"
               style={{ visibility: activeVideo ? "visible" : "hidden", objectFit: activeVideo?.fit === "fill" ? "cover" : "contain", filter: lookFilter(activeVideo?.look), opacity: videoFade, transform: motionTransform(activeVideo, playhead) }} />
+            {activeVideo?.look && <GradeOverlay look={activeVideo.look} />}
             {!activeVideo && (empty
               ? <button type="button" className="fs-empty-cta" onClick={openImport} disabled={!!ed.busy}><Icon name="import" size={30} /><strong>Import video or audio</strong><span>or drop files here</span></button>
               : <p className="fs-muted fs-gap">No video at this point. Gaps render as black.</p>)}
@@ -309,7 +325,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
             </div>
             {visibleTexts.map((t0) => { const t = at(t0); return (
               <div key={t.id} className={`fs-overlay-text${selected === t.id ? " is-selected" : ""}`} data-testid="overlay-text"
-                style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`, fontSize: `${t.size * 100}cqh`, color: t.color, fontWeight: t.bold ? 700 : 400, background: t.box ? "rgba(0,0,0,.55)" : "transparent", padding: t.box ? "0.25em" : 0, textShadow: t.box ? "none" : "0.05em 0.05em 0.05em rgba(0,0,0,.6)" }}
+                style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`, fontSize: `${t.size * 100}cqh`, color: t.color, fontWeight: t.bold ? 700 : 400, background: t.box ? "rgba(0,0,0,.55)" : "transparent", padding: t.box ? "0.25em" : 0, textShadow: t.box ? "none" : "0.05em 0.05em 0.05em rgba(0,0,0,.6)", ...(t.rotation || t.animIn || t.animOut ? (() => { const a = T.textAnimationAt(t, playhead); return { opacity: a.opacity, transform: `translate(-50%, -50%) translate(${a.dx * 100}cqw, ${a.dy * 100}cqh)${t.rotation ? ` rotate(${t.rotation}deg)` : ""}` }; })() : {}) }}
                 onPointerDown={(e) => drag.begin(e, t.id, "text")} onPointerMove={drag.move} onPointerUp={drag.end} onPointerCancel={drag.end}>{t.text}</div>
             ); })}
             {visibleOverlays.map((o0) => {
@@ -447,6 +463,11 @@ function TextPanel({ ed, onAdd }: { ed: Ed; onAdd: (patch?: Partial<Omit<T.TextL
       <div className="fs-styles">
         {TEXT_STYLES.map((st) => <button key={st.name} type="button" className="fs-style" onClick={() => onAdd(st.patch)}><strong>{st.name}</strong><span>{st.hint}</span></button>)}
       </div>
+      <h3>Stickers</h3>
+      <div className="fs-stickers" role="group" aria-label="Stickers">
+        {STICKERS.map((st) => <button key={st.name} type="button" className="fs-sticker" aria-label={`Add ${st.name} sticker`} title={st.name} style={{ color: st.color }} onClick={() => onAdd(stickerLayer(st))}>{st.glyph}</button>)}
+      </div>
+      <p className="fs-muted">Single-colour symbols that you can move, resize, turn and recolour like text. Colour emoji and animated sticker packs are not available.</p>
       <h3>Text on this video</h3>
       <ul className="fs-bin">
         {texts.length === 0 && <li className="fs-muted">No text yet.</li>}

@@ -108,6 +108,18 @@ function pictureChain(clip: TimelineClip, W: number, H: number, fps: number, fad
   }
   const l = clip.look;
   if (l && (Math.abs(l.brightness) > 1e-6 || Math.abs(l.contrast - 1) > 1e-6 || Math.abs(l.saturation - 1) > 1e-6)) parts.push(`eq=brightness=${num(l.brightness)}:contrast=${num(l.contrast)}:saturation=${num(l.saturation)}`);
+  if (l) {
+    const warm = l.warmth ?? 0, split = l.split ?? 0;
+    if (Math.abs(warm) > 1e-6 || split > 1e-6) {
+      // Warmth pushes mids and highlights toward orange (or blue); split toning adds teal to shadows and orange to highlights.
+      const rs = -0.18 * split, bs = 0.18 * split;
+      const rm = 0.2 * warm, bm = -0.2 * warm;
+      const rh = 0.15 * warm + 0.2 * split, bh = -0.15 * warm - 0.2 * split;
+      parts.push(`colorbalance=rs=${num(rs)}:bs=${num(bs)}:rm=${num(rm)}:bm=${num(bm)}:rh=${num(rh)}:bh=${num(bh)}`);
+    }
+    if ((l.vignette ?? 0) > 1e-6) parts.push(`vignette=angle=${num((Math.PI / 2) * (1 - 0.7 * (l.vignette ?? 0)))}:mode=forward`);
+    if ((l.grain ?? 0) > 1e-6) parts.push(`noise=alls=${Math.round((l.grain ?? 0) * 28)}:allf=t`);
+  }
   const d = clipDuration(clip);
   // On an upper layer a fade makes the clip see-through instead of black, so what is below shows through.
   const A = alpha ? ":alpha=1" : "";
@@ -275,22 +287,62 @@ export function planRender(input: RenderPlanInput): RenderPlan {
     });
   }
   if (texts.length) {
-    const drawn: string[] = [];
-    for (const t of [...texts].sort((a, b) => a.start - b.start)) {
-      const file = input.textFiles?.[t.id];
-      if (!file || !input.fonts) { errors.push(`Text "${t.text.slice(0, 20)}" cannot be rendered because its file or font is missing.`); continue; }
-      if (!FFMPEG_COLOR.test(t.color)) { errors.push("A text colour is invalid."); continue; }
+    const target = burn ? "vcat" : "vout";
+    const sorted = [...texts].sort((a, b) => a.start - b.start);
+    const plain = sorted.filter((t) => !t.rotation), turned = sorted.filter((t) => t.rotation);
+    const total = Math.max(timelineDuration(doc), 0.1);
+    // Moves and fades for the way a title arrives and leaves, as ffmpeg expressions of time t.
+    const motion = (t: (typeof sorted)[number], frameW: string, frameH: string) => {
+      const seconds = t.animSeconds ?? 0.5, D = num(seconds), end = t.start + t.duration;
+      const pin = t.animIn && t.animIn !== "none" ? `min(1,max(0,(t-${num(t.start)})/${D}))` : null;
+      const pout = t.animOut && t.animOut !== "none" ? `min(1,max(0,(${num(end)}-t)/${D}))` : null;
+      const ease = (p: string) => `(${p}*(2-${p}))`;
+      const parts = (p: string | null, kind: string | undefined, dir: 1 | -1) => ({
+        dx: p && kind === "slide" ? `${dir === 1 ? "-" : "+"}(1-${ease(p)})*${frameW}*0.18` : "",
+        dy: p && kind === "rise" ? `${dir === 1 ? "+" : "-"}(1-${ease(p)})*${frameH}*0.06` : "",
+      });
+      const a = parts(pin, t.animIn, 1), b = parts(pout, t.animOut, -1);
+      const alpha = [pin, pout].filter(Boolean).join("*");
+      return { dx: a.dx + b.dx, dy: a.dy + b.dy, alpha: alpha || null, fadeIn: pin ? t.start : null, fadeOut: pout ? end : null, seconds };
+    };
+    const drawText = (t: (typeof sorted)[number], file: string, where: { x: string; y: string }, alpha: string | null, withWindow: boolean) => {
       const fontSize = Math.max(8, Math.round(H * t.size));
       const opts = [
-        `fontfile=${escapeFilterPath(t.bold ? input.fonts.bold : input.fonts.regular)}`, `textfile=${escapeFilterPath(file)}`, `expansion=none`, `fontsize=${fontSize}`, `fontcolor=${t.color}`,
-        `x=w*${num(t.x)}-text_w/2`, `y=h*${num(t.y)}-text_h/2`,
+        `fontfile=${escapeFilterPath(t.bold ? input.fonts!.bold : input.fonts!.regular)}`, `textfile=${escapeFilterPath(file)}`, `expansion=none`, `fontsize=${fontSize}`, `fontcolor=${t.color}`,
+        `x='${where.x}'`, `y='${where.y}'`,
         t.box ? `box=1:boxcolor=black@0.55:boxborderw=${Math.round(fontSize * 0.25)}` : "shadowx=2:shadowy=2:shadowcolor=black@0.6",
-        `enable=between(t\\,${num(t.start)}\\,${num(t.start + t.duration)})`,
       ];
-      drawn.push(`drawtext=${opts.join(":")}`);
+      if (alpha) opts.push(`alpha='${alpha}'`);
+      if (withWindow) opts.push(`enable=between(t\\,${num(t.start)}\\,${num(t.start + t.duration)})`);
+      return `drawtext=${opts.join(":")}`;
+    };
+    const check = (t: (typeof sorted)[number]) => {
+      const file = input.textFiles?.[t.id];
+      if (!file || !input.fonts) { errors.push(`Text "${t.text.slice(0, 20)}" cannot be rendered because its file or font is missing.`); return null; }
+      if (!FFMPEG_COLOR.test(t.color)) { errors.push("A text colour is invalid."); return null; }
+      return file;
+    };
+    const drawn: string[] = [];
+    for (const t of plain) {
+      const file = check(t); if (!file) continue;
+      const m = motion(t, "w", "h");
+      drawn.push(drawText(t, file, { x: `w*${num(t.x)}-text_w/2${m.dx}`, y: `h*${num(t.y)}-text_h/2${m.dy}` }, m.alpha, true));
     }
+    const rotatedFilters: string[] = [];
+    let cur = plain.length ? "vtx" : "vraw";
+    turned.forEach((t, k) => {
+      const file = check(t); if (!file) return;
+      const m = motion(t, String(W), String(H));
+      // A turned title is drawn on its own transparent canvas the size of the frame, turned about its centre, then laid over the picture.
+      const fades = (m.fadeIn !== null ? `,fade=t=in:st=${num(m.fadeIn)}:d=${num(m.seconds)}:alpha=1` : "") + (m.fadeOut !== null ? `,fade=t=out:st=${num(m.fadeOut - m.seconds)}:d=${num(m.seconds)}:alpha=1` : "");
+      const next = k === turned.length - 1 ? target : `vt${k + 1}`;
+      rotatedFilters.push(`color=c=black@0:s=${W}x${H}:r=${fps}:d=${num(total)},format=rgba,${drawText(t, file, { x: "(w-text_w)/2", y: "(h-text_h)/2" }, null, false)}${turn(t.rotation)}${fades}[tx${k}]`);
+      rotatedFilters.push(`[${cur}][tx${k}]overlay=x='${num(t.x)}*${W}-w/2${m.dx}':y='${num(t.y)}*${H}-h/2${m.dy}':enable=between(t\\,${num(t.start)}\\,${num(t.start + t.duration)})[${next}]`);
+      cur = next;
+    });
     if (errors.length) return { ok: false, errors };
-    filters.push(`[vraw]${drawn.join(",")}[${burn ? "vcat" : "vout"}]`);
+    if (drawn.length) filters.push(`[vraw]${drawn.join(",")}[${turned.length ? "vtx" : target}]`);
+    filters.push(...rotatedFilters);
   }
   if (burn) {
     const size = Math.max(14, Math.round(H * 0.045));
