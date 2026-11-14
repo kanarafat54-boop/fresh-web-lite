@@ -140,7 +140,7 @@ export default function ProjectDetails({ projectId, startOpen, state, notify, go
   if (editing && !trashed && base.meta.kind === "video") {
     // Flush any pending detail edits first so the editor starts from the newest saved version.
     return <VideoEditor key={base.id} project={baseRef.current ?? base} service={service} signedIn={state.source === "account"} notify={notify}
-      onSaved={(p) => { baseRef.current = p; setBase(p); state.applyUpdate(p); }} onClose={() => setEditing(false)} initialPanel={startOpen?.panel} />;
+      onSaved={(p) => { baseRef.current = p; setBase(p); state.applyUpdate(p); }} onClose={() => setEditing(false)} initialPanel={startOpen?.panel} onOpenShorts={() => navigateRoute("creator")} />;
   }
   const fields = settingFieldsFor(base.meta.kind);
   const saveLabel = saveState === "saved" ? "All changes saved" : saveState === "saving" ? "Saving…" : saveState === "conflict" ? "Changed elsewhere" : "Not saved";

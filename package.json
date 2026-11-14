@@ -50,6 +50,7 @@
     "test:fresh-studio-multitrack": "node --no-warnings scripts/verify-fresh-studio-multitrack.mjs",
     "test:fresh-studio-film": "node --no-warnings scripts/verify-fresh-studio-film.mjs",
     "test:fresh-studio-beats": "node --no-warnings scripts/verify-fresh-studio-beats.mjs",
+    "test:fresh-studio-handoff": "node --no-warnings scripts/verify-fresh-studio-handoff.mjs",
     "sync:studio-worker": "node --no-warnings scripts/sync-studio-worker.mjs",
     "test:fresh-unified-training": "node scripts/verify-fresh-unified-training.mjs",
     "test:fresh-unified-curriculum": "node scripts/verify-fresh-unified-training-curriculum.mjs",

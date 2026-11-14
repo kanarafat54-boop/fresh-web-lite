@@ -14,6 +14,7 @@ import {
   type FreshFlowCreateIntent,
 } from "./core/createIntent";
 import CreatorProductionPanels from "./CreatorProductionPanels";
+import { STUDIO_HANDOFF_ACTION, takeStudioExport } from "./core/studioHandoff";
 
 type Draft = {
   id: string;
@@ -139,6 +140,7 @@ export default function CreatorStudioDashboard() {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const thumbnailRef = useRef<HTMLInputElement | null>(null);
   const intentConsumedRef = useRef(false);
+  const studioHandoffRef = useRef(false);
 
   useEffect(() => {
     if (intentConsumedRef.current) return;
@@ -164,6 +166,41 @@ export default function CreatorStudioDashboard() {
       requestAnimationFrame(() => editorRef.current?.focus());
     }
   }, []);
+
+  // A video sent over from Fresh Studio is attached exactly as if it had been picked from the file chooser.
+  useEffect(() => {
+    if (intentMeta?.action !== STUDIO_HANDOFF_ACTION || studioHandoffRef.current) return;
+    studioHandoffRef.current = true;
+    const file = takeStudioExport();
+    if (file) void attachFile(file);
+    else setMessage("The video from Fresh Studio is no longer here. Save it from Studio and choose it with Add media.");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intentMeta]);
+
+  async function attachFile(file: File) {
+    try {
+      setError(null);
+      if (!user) {
+        const isVideo = file.type.startsWith("video/");
+        const url = URL.createObjectURL(file);
+        setMedia({ url, kind: isVideo ? "video" : "image" });
+        setMessage("Media attached on this device. Sign in to upload for publish.");
+        return;
+      }
+      const resumableLongVideo = intentMeta?.action === "long-video" && file.type.startsWith("video/");
+      setUploadingMedia(true);
+      setUploadProgress(0);
+      const uploaded = await uploadMedia(user.id, file, resumableLongVideo ? setUploadProgress : undefined, resumableLongVideo);
+      setMedia(uploaded);
+      setMessage(resumableLongVideo
+        ? "Long Video uploaded with resumable transfer. If the connection drops, select the same file again to resume."
+        : "Media uploaded.");
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "Upload failed.");
+    } finally {
+      setUploadingMedia(false);
+    }
+  }
 
   async function load() {
     if (!user) {
@@ -589,32 +626,10 @@ export default function CreatorStudioDashboard() {
                     ? "video/mp4,video/webm,video/quicktime"
                     : "image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
                 }
-                onChange={async (e) => {
+                onChange={(e) => {
                   const file = e.target.files?.[0];
                   e.currentTarget.value = "";
-                  if (!file) return;
-                  try {
-                    setError(null);
-                    if (!user) {
-                      const isVideo = file.type.startsWith("video/");
-                      const url = URL.createObjectURL(file);
-                      setMedia({ url, kind: isVideo ? "video" : "image" });
-                      setMessage("Media attached on this device. Sign in to upload for publish.");
-                      return;
-                    }
-                    const resumableLongVideo = intentMeta?.action === "long-video" && file.type.startsWith("video/");
-                    setUploadingMedia(true);
-                    setUploadProgress(0);
-                    const uploaded = await uploadMedia(user.id, file, resumableLongVideo ? setUploadProgress : undefined, resumableLongVideo);
-                    setMedia(uploaded);
-                    setMessage(resumableLongVideo
-                      ? "Long Video uploaded with resumable transfer. If the connection drops, select the same file again to resume."
-                      : "Media uploaded.");
-                  } catch (reason: unknown) {
-                    setError(reason instanceof Error ? reason.message : "Upload failed.");
-                  } finally {
-                    setUploadingMedia(false);
-                  }
+                  if (file) void attachFile(file);
                 }}
               />
               {uploadingMedia && <div className="creator-upload-progress" role="status" aria-live="polite">

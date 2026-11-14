@@ -15,8 +15,9 @@ import Timeline, { formatClock } from "./Timeline.tsx";
 import { ScenesPanel } from "./ScenesPanel.tsx";
 import * as T from "./timeline.ts";
 import { useVideoEditor } from "./useVideoEditor.ts";
+import { STUDIO_HANDOFF_ACTION, stageStudioExport } from "../../creator/core/studioHandoff.ts";
 
-type Props = { project: StudioProject; service: StudioProjectService | null; onSaved: (p: StudioProject) => void; notify: (kind: "info" | "error", text: string) => void; onClose: () => void; signedIn: boolean; initialPanel?: Tab };
+type Props = { project: StudioProject; service: StudioProjectService | null; onSaved: (p: StudioProject) => void; notify: (kind: "info" | "error", text: string) => void; onClose: () => void; signedIn: boolean; initialPanel?: Tab; onOpenShorts?: () => void };
 type Tab = "media" | "text" | "overlays" | "scenes" | "captions" | "smart" | "export";
 
 function download(blob: Blob, name: string) {
@@ -89,7 +90,7 @@ const PANELS: Array<{ id: Tab; label: string; icon: IconName }> = [
   { id: "export", label: "Export", icon: "export" },
 ];
 
-export default function VideoEditor({ project, service, onSaved, notify, onClose, signedIn, initialPanel }: Props) {
+export default function VideoEditor({ project, service, onSaved, notify, onClose, signedIn, initialPanel, onOpenShorts }: Props) {
   const ed = useVideoEditor(project, service, onSaved, notify);
   const { doc, selected, playhead, duration, media } = ed;
   const [panel, setPanel] = useState<Tab | null>(() => initialPanel ?? (typeof window !== "undefined" && window.matchMedia?.("(min-width: 900px)").matches ? "media" : null));
@@ -302,7 +303,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
               {panel === "scenes" && <ScenesPanel ed={ed} clip={selectedClip} ownerId={signedIn ? project.ownerId : null} thumbs={thumbs} onPick={(c) => { setPlaying(false); ed.setSelected(c.id); ed.setPlayhead(c.start); }} />}
               {panel === "captions" && <CaptionsPanel ed={ed} />}
               {panel === "smart" && <SmartPanel ed={ed} clip={selectedClip} />}
-              {panel === "export" && <ExportPanel ed={ed} projectId={project.id} aspect={aspectValid} signedIn={signedIn} notify={notify} />}
+              {panel === "export" && <ExportPanel ed={ed} projectId={project.id} aspect={aspectValid} signedIn={signedIn} notify={notify} onOpenShorts={onOpenShorts} />}
             </div>
           </>
         )}
@@ -593,7 +594,7 @@ function SmartPanel({ ed, clip }: { ed: Ed; clip: T.TimelineClip | null }) {
   );
 }
 
-function ExportPanel({ ed, projectId, aspect, signedIn, notify }: { ed: Ed; projectId: string; aspect: string; signedIn: boolean; notify: Props["notify"] }) {
+function ExportPanel({ ed, projectId, aspect, signedIn, notify, onOpenShorts }: { ed: Ed; projectId: string; aspect: string; signedIn: boolean; notify: Props["notify"]; onOpenShorts?: () => void }) {
   const [caps, setCaps] = useState<WorkerCapabilities | null>(null);
   const [capsError, setCapsError] = useState<string | null>(null);
   const [preset, setPreset] = useState<ExportPresetId>("720p");
@@ -653,6 +654,12 @@ function ExportPanel({ ed, projectId, aspect, signedIn, notify }: { ed: Ed; proj
       )}
       {error && <p className="fs-warn" role="alert">{error}</p>}
       {result && <button type="button" className="fs-btn fs-btn-primary" onClick={() => download(result, "fresh-studio-export.mp4")}>Save video ({(result.size / 1048576).toFixed(1)} MB)</button>}
+      {result && onOpenShorts && (
+        <div className="fs-shorts-send">
+          <button type="button" className="fs-btn" disabled={aspect !== "9:16"} onClick={() => { stageStudioExport(new File([result], "fresh-studio-export.mp4", { type: "video/mp4" })); try { sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: STUDIO_HANDOFF_ACTION, requestedAt: new Date().toISOString() })); } catch { /* the creator screen then opens without the video and says so */ } onOpenShorts(); }}>Send to Fresh Shorts</button>
+          <p className="fs-muted">{aspect === "9:16" ? "Opens the Shorts publish screen with this video attached. You add the caption and publish there; nothing is posted until you do." : "Shorts are vertical. Set the shape to 9:16 under the preview and export again to send this video."}</p>
+        </div>
+      )}
     </div>
   );
 }
