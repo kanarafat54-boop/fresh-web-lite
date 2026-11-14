@@ -591,6 +591,23 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    if ((signInError || !data.user) && !signInError?.message.toLowerCase().includes("email not confirmed") && email.includes("@")) {
+      // The person may have typed their Fresh Mail address. The server tells us nothing unless it signs them in.
+      try {
+        const response = await fetch("/api/mail?identity=1", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "login", address: email, password }) });
+        if (response.ok) {
+          const payload = (await response.json()) as { session?: { access_token?: string; refresh_token?: string } };
+          if (payload.session?.access_token && payload.session.refresh_token) {
+            const restored = await supabase.auth.setSession({ access_token: payload.session.access_token, refresh_token: payload.session.refresh_token });
+            if (!restored.error && restored.data.user) {
+              await loadUserProfile(restored.data.user);
+              return;
+            }
+          }
+        }
+      } catch { /* fall through to the usual message */ }
+    }
+
     if (signInError || !data.user) {
       setError(signInError?.message.toLowerCase().includes("email not confirmed") ? "Please confirm your email before logging in. Check your inbox for the link." : "Incorrect email or password.");
       setLoading(false);
@@ -761,6 +778,10 @@ export function FreshIdProvider({ children }: { children: ReactNode }) {
       setError("We couldn't reach the password-reset service. Check your connection and try again.");
       setLoading(false);
       return;
+    }
+    // A Fresh Mail address is also accepted; the server sends the link to the account's own email and says nothing either way.
+    if (email.includes("@")) {
+      try { await fetch("/api/mail?identity=1", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "recover", address: email }) }); } catch { /* the usual notice below still applies */ }
     }
     if (resetError) {
       setError("Something went wrong sending the reset email. Please try again.");

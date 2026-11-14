@@ -61,7 +61,8 @@ required.push(["Account and membership policies avoid recursive RLS checks", acc
 
 const adminApi = fs.readFileSync(path.join(root, "api/admin/users.ts"), "utf8");
 const adminPanel = fs.readFileSync(path.join(root, "src/features/admin/AdminPanel.tsx"), "utf8");
-required.push(["Platform security roles are only user/admin, not account modes", freshUserTypes.includes('UserRole = "user" | "admin"') && adminApi.includes('["user", "admin"].includes(body.role)') && !adminApi.includes('["user", "creator", "developer", "business", "admin"].includes(body.role)')]);
+const adminAccess = fs.readFileSync(path.join(root, "src/server/adminAccess.ts"), "utf8");
+required.push(["Platform security roles are only user/admin/owner, not account modes; the owner role is never assignable through the API", freshUserTypes.includes('UserRole = "user" | "admin" | "owner"') && adminAccess.includes('ASSIGNABLE_ROLES = ["user", "admin"]') && adminApi.includes("checkRoleChange") && !adminApi.includes('["user", "creator", "developer", "business", "admin"].includes(body.role)')]);
 required.push(["Admin UI does not expose workspace modes as platform roles", adminPanel.includes('<option value="user">user</option><option value="admin">admin</option>') && !adminPanel.includes('<option value="creator">creator</option>')]);
 
 required.push(["Passkey copy describes available authenticators without requiring a fingerprint sensor", fs.readFileSync(path.join(root, "src/features/fresh-id/components/AuthForm.tsx"), "utf8").includes("device PIN or screen lock") && !fs.readFileSync(path.join(root, "src/features/fresh-id/components/AuthForm.tsx"), "utf8").includes("Sign in with biometrics")]);

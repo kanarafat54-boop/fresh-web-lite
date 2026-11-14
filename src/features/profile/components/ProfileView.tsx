@@ -273,6 +273,7 @@ export function ProfileView({ userId, onClose }: { userId: string; onClose: () =
                   <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                     <h1 style={{ margin: 0, fontSize: 28 }}>{profile.fullName}</h1>
                     {profile.verified && <span className="fresh-id-tier">Verified</span>}
+                    {profile.role === "owner" && <span className="fresh-id-tier">Owner</span>}
                     {profile.role === "admin" && <span className="fresh-id-tier">Admin</span>}
                   </div>
                   <div className="post-username" style={{ fontSize: 15 }}>@{profile.username}</div>

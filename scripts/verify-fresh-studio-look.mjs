@@ -45,6 +45,13 @@ const mk = () => T.addClip(T.addAsset(T.addAsset(T.createTimeline(30), asset("a"
   assert.throws(() => T.setClipFit(d, "c1", "stretch"), /framing/);
   assert.equal(T.setClipFit(d, "c1", "fill").clips[0].fit, "fill");
   assert.throws(() => T.setAspect(d, "5:3"), /aspect/); assert.equal(T.setAspect(d, "9:16").aspect, "9:16");
+  // grades: optional extras validate, store only when used, and old looks stay valid
+  const g = T.setClipLook(d, "c1", { brightness: 0, contrast: 1, saturation: 1, warmth: 0.5, vignette: 0, grain: 0.2 });
+  assert.equal(g.clips[0].look.warmth, 0.5); assert.ok(!("vignette" in g.clips[0].look), "zero extras are not stored"); assert.equal(T.validateTimeline(g).length, 0);
+  for (const bad of [{ warmth: 1.5 }, { warmth: -2 }, { split: -0.1 }, { vignette: 2 }, { grain: NaN }]) assert.throws(() => T.setClipLook(d, "c1", { brightness: 0, contrast: 1, saturation: 1, ...bad }), /out of range/);
+  const sneaky = { ...g, clips: g.clips.map((c) => ({ ...c, look: { ...c.look, grain: 9 } })) };
+  assert.ok(T.validateTimeline(sneaky).some((e) => /invalid colour/.test(e)));
+  assert.ok(T.LOOK_PRESETS.every((p) => T.lookExtrasValid(p.look)) && T.LOOK_PRESETS.length >= 11);
   // locked tracks refuse look/audio edits
   const locked = T.setTrackFlags(d, "v1", { locked: true });
   assert.throws(() => T.setClipLook(locked, "c1", T.LOOK_PRESETS[2].look), /locked/);
@@ -86,7 +93,9 @@ const A = path.join(dir, "a.mp4"), B = path.join(dir, "b.mp4"), DARK = path.join
 ff("-f", "lavfi", "-i", "testsrc=duration=6:size=640x360:rate=30", "-f", "lavfi", "-i", "sine=frequency=440:duration=6", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", A);
 ff("-f", "lavfi", "-i", "testsrc2=duration=4:size=320x240:rate=25", "-c:v", "libx264", "-pix_fmt", "yuv420p", B);
 ff("-f", "lavfi", "-i", "color=c=0x202020:s=640x360:d=6:r=30", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-t", "6", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", DARK);
-const sources = { a: A, b: B, dark: DARK };
+const GRAY = path.join(dir, "gray.mp4");
+ff("-f", "lavfi", "-i", "color=c=0x808080:s=640x360:d=6:r=30", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-t", "6", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", GRAY);
+const sources = { a: A, b: B, dark: DARK, gray: GRAY };
 
 const render = (doc, extra = {}, preset = "360p", aspect = "16:9") => {
   const out = path.join(dir, `o-${Math.random().toString(36).slice(2)}.mp4`);
@@ -167,6 +176,68 @@ const near = (a, e, tol, label) => assert.ok(Math.abs(a - e) <= tol, `${label}: 
   // position: moved to the top, the centre is empty
   const top = T.updateText(d, "t1", { y: 0.12 });
   near(stat(render(top, { textFiles: files, fonts: FONTS }), "YAVG", { at: 1.5, vf: centre }), baseLuma, 3, "moving the text moves it");
+  // turning, fading and moving titles
+  {
+    const lay = (patch, text = "WWWWWWWW", id = "t9") => {
+      write(id, text);
+      let x = T.addText(dark(), { start: 1, duration: 3, id, text }); x = T.updateText(x, id, { size: 0.12, ...patch }); return x;
+    };
+    const rend = (x) => render(x, { textFiles: files, fonts: FONTS });
+    const flat = baseLuma;
+    // model rules
+    assert.throws(() => T.updateText(lay({}), "t9", { rotation: 200 }), /at most 180/);
+    assert.throws(() => T.updateText(lay({}), "t9", { animIn: "spin" }), /Unknown/);
+    assert.throws(() => T.updateText(lay({}), "t9", { animIn: "fade", animSeconds: 5 }), /between/);
+    assert.throws(() => T.updateText(lay({}), "t9", { animIn: "fade", animOut: "fade", animSeconds: 2, duration: 3 }), /too short/);
+    const tidy = T.updateText(T.updateText(lay({ rotation: 30, animIn: "rise" }), "t9", { rotation: 0, animIn: "none" }), "t9", {});
+    assert.ok(!("rotation" in tidy.texts[0]) && !("animIn" in tidy.texts[0]) && !("animSeconds" in tidy.texts[0]), "cleared options leave nothing behind");
+    // rotation: a wide word turned a quarter turn becomes tall
+    const wide = rend(lay({}));
+    const turned = rend(lay({ rotation: 90 }));
+    const leftBand = "crop=60:40:140:160", topBand = "crop=40:60:300:60";
+    assert.ok(stat(wide, "YAVG", { at: 2, vf: leftBand }) > flat + 15, "plain text reaches the left");
+    assert.ok(stat(turned, "YAVG", { at: 2, vf: leftBand }) < flat + 4, "turned text no longer reaches the left");
+    assert.ok(stat(turned, "YAVG", { at: 2, vf: topBand }) > flat + 15, "turned text reaches the top");
+    assert.ok(stat(wide, "YAVG", { at: 2, vf: topBand }) < flat + 4, "plain text does not");
+    assert.ok(stat(turned, "YAVG", { at: 0.4, vf: topBand }) < flat + 2 && stat(turned, "YAVG", { at: 4.5, vf: topBand }) < flat + 2, "turned text keeps its time window");
+    // fade in and out
+    const faded = rend(lay({ animIn: "fade", animOut: "fade", animSeconds: 1 }));
+    const mid = "crop=200:60:220:150";
+    assert.ok(stat(faded, "YAVG", { at: 1.1, vf: mid }) < stat(faded, "YAVG", { at: 2.5, vf: mid }) - 10, "fades in");
+    assert.ok(stat(faded, "YAVG", { at: 3.9, vf: mid }) < stat(faded, "YAVG", { at: 2.5, vf: mid }) - 10, "fades out");
+    const fadedTurned = rend(lay({ rotation: 15, animIn: "fade", animOut: "fade", animSeconds: 1 }));
+    assert.ok(stat(fadedTurned, "YAVG", { at: 1.1, vf: mid }) < stat(fadedTurned, "YAVG", { at: 2.5, vf: mid }) - 6, "a turned title fades in too");
+    // slide comes from the left; rise comes from below
+    const slide = rend(lay({ animIn: "slide", animSeconds: 1 })), still = rend(lay({ animIn: "fade", animSeconds: 1 }));
+    const leftHalf = "crop=100:60:170:150", rightHalf = "crop=40:60:456:150";
+        assert.ok(stat(slide, "YAVG", { at: 1.5, vf: rightHalf }) < stat(still, "YAVG", { at: 1.5, vf: rightHalf }) - 4, "so the right is emptier than a plain fade");
+    const rise = rend(lay({ animIn: "rise", animSeconds: 0.3 })), fade = rend(lay({ animIn: "fade", animSeconds: 0.3 }));
+    const below = "crop=300:20:170:197";
+    assert.ok(stat(rise, "YMAX", { at: 1.1, vf: below }) > stat(fade, "YMAX", { at: 1.1, vf: below }) + 15, "rise starts lower than a plain fade");
+    // after the animation everything matches an unanimated title
+    near(stat(rise, "YAVG", { at: 2.5, vf: mid }), stat(wide, "YAVG", { at: 2.5, vf: mid }), 2, "settled position and colour are unchanged");
+    // old-style text still plans the same filters
+    assert.ok(!/fade=t=|overlay=x='/.test(R.planRender({ doc: lay({}), preset: "360p", aspectRatio: "16:9", sources, outputPath: "o.mp4", textFiles: files, fonts: FONTS }).filterGraph), "plain text adds no new filters");
+  }
+  // stickers are ordinary titles that the model accepts and the export can draw
+  {
+    const St = await import("../src/features/fresh-studio/video-studio/stickers.ts");
+    assert.ok(St.STICKERS.length >= 20 && new Set(St.STICKERS.map((x) => x.glyph)).size === St.STICKERS.length && new Set(St.STICKERS.map((x) => x.name)).size === St.STICKERS.length, "unique stickers");
+    for (const st of St.STICKERS) {
+      let x = T.addText(dark(), { start: 1, duration: 3, id: "s1" });
+      x = T.updateText(x, "s1", St.stickerLayer(st));
+      assert.equal(T.validateTimeline(x).length, 0, `${st.name} is valid`);
+    }
+    const star = St.STICKERS[0];
+    write("s1", star.glyph);
+    let x = T.addText(dark(), { start: 1, duration: 3, id: "s1" }); x = T.updateText(x, "s1", St.stickerLayer(star));
+    const out = render(x, { textFiles: files, fonts: FONTS });
+    assert.ok(stat(out, "YAVG", { at: 2.5, vf: centre }) > baseLuma + 3, "the sticker is drawn");
+    near(stat(out, "YAVG", { at: 0.3, vf: centre }), baseLuma, 2, "and only in its time window");
+    // a turned sticker renders too
+    const spun = T.updateText(x, "s1", { rotation: 40 });
+    assert.ok(stat(render(spun, { textFiles: files, fonts: FONTS }), "YAVG", { at: 2.5, vf: centre }) > baseLuma + 3, "a turned sticker is drawn");
+  }
   // hostile text renders literally and cannot break out of the filter graph
   const nasty = "It's 100%: a, b; [c] \\ {d} %{pts} $(x) '";
   let n = T.addText(dark(), { start: 0.5, duration: 3, id: "t2", text: nasty }); n = T.updateText(n, "t2", { size: 0.15, bold: false, box: true });
@@ -204,6 +275,28 @@ const near = (a, e, tol, label) => assert.ok(Math.abs(a - e) <= tol, `${label}: 
   assert.match(R.planRender({ doc: d, preset: "360p", aspectRatio: "16:9", sources, outputPath: "o.mp4", fonts: FONTS }).errors[0], /missing/);
   const badColour = { ...d, texts: [{ ...d.texts[0], color: "red;rm" }] };
   assert.equal(R.planRender({ doc: badColour, preset: "360p", aspectRatio: "16:9", sources, outputPath: "o.mp4", textFiles: files, fonts: FONTS }).ok, false);
+}
+// grades render: warmth, cool, vignette and grain change the picture the way they say
+{
+  const U = (f) => stat(f, "UAVG", { at: 2 }), V = (f) => stat(f, "VAVG", { at: 2 });
+  const withLook = (look) => render(T.setClipLook(mk(), "c1", { brightness: 0, contrast: 1, saturation: 1, ...look }));
+  const plain = render(mk());
+  const warm = withLook({ warmth: 0.8 }), cool = withLook({ warmth: -0.8 });
+  assert.ok(V(warm) > V(plain) + 3 && U(warm) < U(plain) - 3, "warm adds red and removes blue");
+  assert.ok(V(cool) < V(plain) - 3 && U(cool) > U(plain) + 3, "cool adds blue and removes red");
+  const grayDoc = (look) => T.setClipLook(T.addClip(T.addAsset(T.createTimeline(30), asset("gray", 6, "video", true)), { trackId: "v1", assetId: "gray", id: "c1" }), "c1", { brightness: 0, contrast: 1, saturation: 1, ...look });
+  const flat = render(grayDoc({})), vig = render(grayDoc({ vignette: 1 }));
+  const corner = (f) => stat(f, "YAVG", { at: 2, vf: "crop=60:40:0:0" }), centre = (f) => stat(f, "YAVG", { at: 2, vf: "crop=60:40:290:160" });
+  assert.ok(corner(vig) < corner(flat) - 15, "vignette darkens the corners");
+  assert.ok(Math.abs(centre(vig) - centre(flat)) < 6, "and leaves the centre alone");
+  const split = withLook({ split: 1 });
+  assert.notEqual(Math.round(U(split)), Math.round(U(plain)), "teal and orange changes the colour balance");
+  // grain: a still picture should shimmer from frame to frame
+  const still = (look) => { const d = T.setClipLook(T.addClip(T.addAsset(T.createTimeline(30), asset("dark", 6, "video", true)), { trackId: "v1", assetId: "dark", id: "c1" }), "c1", { brightness: 0, contrast: 1, saturation: 1, ...look }); return render(d); };
+  const ydif = (f) => { const r = spawnSync("ffmpeg", ["-hide_banner", "-ss", "1", "-i", f, "-frames:v", "4", "-vf", "signalstats,metadata=print:file=-", "-f", "null", "-"], { encoding: "utf8" }); const all = [...(r.stdout + r.stderr).matchAll(/YDIF=([\d.]+)/g)]; return Number(all[all.length - 1][1]); };
+  assert.ok(ydif(still({ grain: 1 })) > ydif(still({})) + 0.5, "grain shimmers");
+  // every preset renders
+  for (const p of T.LOOK_PRESETS) render(T.setClipLook(mk(), "c1", p.look));
 }
 // existing behaviour is untouched: an old-style clip renders the same graph as before
 {

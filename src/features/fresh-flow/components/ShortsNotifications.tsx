@@ -7,6 +7,9 @@ import { withoutBlockedAuthors } from "../core/userBlocks";
 import { requestOpenShort } from "../core/shortsExplore";
 import { NOTIFICATION_CATEGORIES, applyState, clearAll, markAllRead, markRead, setCategoryEnabled, unreadCount, EMPTY_STATE, type NotificationState } from "../core/notificationState";
 import { loadNotificationState, saveNotificationState, type StateSource } from "../core/notificationStateStore";
+import ShortsAppealSheet from "./ShortsAppealSheet";
+import { deliveryStatus, readEnabled } from "../core/notificationDelivery";
+import { devicePermission, disableDeviceNotifications, enableDeviceNotifications } from "../core/notificationDeliveryRunner";
 import "./ShortsNotifications.css";
 
 const ICON: Record<ActivityKind, string> = { like: "❤", comment: "💬", reply: "↩", reaction: "✦", mention: "@", moderation: "⚑", "creator-update": "▶", repost: "🔁", remix: "✂", follow: "＋", gift: "🎁", system: "🔔" };
@@ -24,6 +27,9 @@ export default function ShortsNotifications({ onClose, onOpenCreator }: Props) {
   const [source, setSource] = useState<StateSource>("device");
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [stateReady, setStateReady] = useState(false);
+  const [deviceEnabled, setDeviceEnabled] = useState(() => { try { return readEnabled(localStorage); } catch { return false; } });
+  const [devicePerm, setDevicePerm] = useState(() => devicePermission());
+  const [appealing, setAppealing] = useState<NonNullable<ActivityItem["appeal"]> | null>(null);
 
   useEffect(() => {
     if (!user || isGuest) { setItems([]); return; }
@@ -72,6 +78,17 @@ export default function ShortsNotifications({ onClose, onOpenCreator }: Props) {
               {ACTIVITY_TABS.find((t) => t.id === category)?.label}
             </label>
           ))}
+          {(() => {
+            const status = deliveryStatus(devicePerm, deviceEnabled);
+            return (
+              <div>
+                <strong>Device notifications</strong>
+                <p className="shorts-notify-note">{status.label}</p>
+                {status.canEnable ? <button type="button" onClick={() => { void enableDeviceNotifications().then((result) => { setDevicePerm(result); setDeviceEnabled(result === "granted"); }); }}>Turn on</button> : null}
+                {status.canDisable ? <button type="button" onClick={() => { disableDeviceNotifications(); setDeviceEnabled(false); }}>Turn off</button> : null}
+              </div>
+            );
+          })()}
           <p className="shorts-notify-note">{source === "account" ? "Saved to your account." : "Saved on this device only for now. It will not follow you to another device until Fresh finishes setting up notification storage."}</p>
         </section>
       ) : null}
@@ -96,11 +113,13 @@ export default function ShortsNotifications({ onClose, onOpenCreator }: Props) {
                     <small>{timeAgo(item.at)}</small>
                   </span>
                 </button>
+                {item.appeal ? <button type="button" className="shorts-notify-link" onClick={() => setAppealing(item.appeal ?? null)}>Appeal this decision</button> : null}
               </li>
             );
           })}
         </ul>
       </div>
+      {appealing ? <ShortsAppealSheet targetType={appealing.targetType} targetId={appealing.targetId} what={appealing.targetType === "short" ? "Short" : "comment"} onClose={() => setAppealing(null)} /> : null}
     </div>
   );
 }

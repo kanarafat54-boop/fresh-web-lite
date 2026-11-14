@@ -44,7 +44,7 @@ check(/revoke insert, update, delete/.test(m2), "grants migration must remove wr
 const api = read("api/ai/feedback.ts");
 for (const s of ["fresh_ai_preference_pairs", "safety_checked: false", "trainingConsent", "__fresh_corrections", "listCorrections", "reviewCorrection", "createVercelNodeHandler({ GET, POST })"]) check(api.includes(s), `feedback.ts must contain ${s}`);
 const review = read("src/server/freshAICorrectionReview.ts");
-check(review.includes('role !== "admin"'), "review API must require the admin role");
+check(review.includes("!hasStaffAccess(actor.data.role)"), "review API must require admin or owner staff access");
 check(review.includes("review_fresh_ai_correction"), "review API must use the review function");
 check(!/user_id/.test(review), "review API must never expose the submitter");
 check(!/openai|anthropic|gemini/i.test(review), "no outside AI provider in the review path");
