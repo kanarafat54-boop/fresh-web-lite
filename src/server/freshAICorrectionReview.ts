@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { hasStaffAccess } from "./adminAccess.js";
 import { screenSubmission } from "../core/fresh-ai/FreshAICorrectionScreening.js";
 
 /**
@@ -34,7 +35,7 @@ async function requireAdmin(req: Request): Promise<Admin | Response> {
   if (error || !data.user) return json({ error: "Invalid authentication session" }, 401);
   const actor = await c.admin.from("users").select("id, role").eq("id", data.user.id).maybeSingle();
   if (actor.error) return json({ error: "Unable to verify administrator access" }, 500);
-  if (!actor.data || actor.data.role !== "admin") return json({ error: "Administrator access required" }, 403);
+  if (!actor.data || !hasStaffAccess(actor.data.role)) return json({ error: "Administrator access required" }, 403);
   return { admin: c.admin, userId: data.user.id };
 }
 

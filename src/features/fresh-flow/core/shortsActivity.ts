@@ -15,11 +15,13 @@ const rowsOf = <T,>(result: unknown): T[] => ((result as { data?: T[] | null } |
  * readable by everyone except `notifications`, which is limited to its owner.
  */
 export async function loadShortsActivity(userId: string): Promise<ActivityItem[]> {
-  const [mineShorts, myCommentRows, meRow, followingRows] = await Promise.all([
+  const [mineShorts, myCommentRows, meRow, followingRows, hiddenShortRows] = await Promise.all([
     supabase.from("shorts").select("id, caption").eq("author_id", userId).limit(200),
     supabase.from("short_comments").select("id, short_id, content, moderation_state, moderation_reason, moderated_at").eq("author_id", userId).order("created_at", { ascending: false }).limit(200),
     supabase.from("user_public_profiles").select("username").eq("id", userId).maybeSingle(),
     supabase.from("follows").select("followed_id").eq("follower_id", userId).limit(200),
+    // Hidden Shorts need the moderation update; before it exists this query errors and simply returns none.
+    supabase.from("shorts").select("id, caption, moderation_reason, moderated_at").eq("author_id", userId).eq("moderation_state", "hidden").limit(50),
   ]);
   const myUsername = ((meRow as { data?: { username?: string | null } | null }).data?.username ?? "").trim() || null;
   const followedIds = rowsOf<{ followed_id: string }>(followingRows).map((row) => row.followed_id);
@@ -51,6 +53,7 @@ export async function loadShortsActivity(userId: string): Promise<ActivityItem[]
     captions: new Map(myShorts.map((short) => [short.id, short.caption ?? ""])),
     myComments: new Map(myComments.map((comment) => [comment.id, { short_id: comment.short_id, content: comment.content, moderation_state: comment.moderation_state, moderation_reason: comment.moderation_reason, moderated_at: comment.moderated_at }])),
     names: new Map(),
+    hiddenShorts: rowsOf(hiddenShortRows),
     myUsername,
     shortAuthors: new Map(),
     mentions: rowsOf(mentions),

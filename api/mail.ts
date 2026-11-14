@@ -1,6 +1,7 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { createVercelNodeHandler } from "../src/server/vercelNodeAdapter.js";
+import { GENERIC_LOGIN_ERROR, GENERIC_RECOVERY_NOTICE, parseIdentityRequest } from "../src/server/freshMailIdentity.js";
 
 const json = (body: unknown, status = 200) =>
   Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
@@ -545,10 +546,44 @@ async function sendOutbound(req: Request): Promise<Response> {
 
 
 
+/**
+ * Sign in or start password recovery with a Fresh Mail address. Needs no session, so it never reveals whether an
+ * address exists: every failure looks the same. The reset link goes to the account's own email.
+ */
+async function identityRequest(req: Request): Promise<Response> {
+  const configured = clients();
+  if (!configured) return json({ error: "Fresh Mail server configuration is incomplete" }, 503);
+  const parsed = parseIdentityRequest(await req.json().catch(() => null));
+  if (!parsed) return json({ error: "Enter a valid Fresh Mail address." }, 400);
+
+  const fail = () => (parsed.action === "login" ? json({ error: GENERIC_LOGIN_ERROR }, 401) : json({ ok: true, message: GENERIC_RECOVERY_NOTICE }));
+  const { data: row, error } = await configured.admin
+    .from("fresh_mail_addresses")
+    .select("owner_id")
+    .eq("email_address", parsed.address)
+    .eq("status", "active")
+    .maybeSingle();
+  if (error || !row) return fail();
+  const { data: owner, error: ownerError } = await configured.admin.auth.admin.getUserById(row.owner_id as string);
+  const accountEmail = owner?.user?.email;
+  if (ownerError || !accountEmail) return fail();
+
+  if (parsed.action === "recover") {
+    const redirectTo = new URL("/auth/sign-in", new URL(req.url).origin).toString();
+    await configured.auth.auth.resetPasswordForEmail(accountEmail, { redirectTo }).catch(() => null);
+    return json({ ok: true, message: GENERIC_RECOVERY_NOTICE });
+  }
+
+  const { data: signedIn, error: signInError } = await configured.auth.auth.signInWithPassword({ email: accountEmail, password: parsed.password });
+  if (signInError || !signedIn.session) return fail();
+  return json({ ok: true, session: { access_token: signedIn.session.access_token, refresh_token: signedIn.session.refresh_token } });
+}
+
 export async function POST(req: Request): Promise<Response> {
   const params = new URL(req.url).searchParams;
   if (params.get("webhook") === "1") return handleWebhook(req);
   if (params.get("provision") === "1") return provisionMailbox(req);
+  if (params.get("identity") === "1") return identityRequest(req);
   return sendOutbound(req);
 }
 

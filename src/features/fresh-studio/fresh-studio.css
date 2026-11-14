@@ -512,6 +512,17 @@
 .fs-scene .fs-bin { margin: 0; }
 .fs-linked { font-size: 13px; color: var(--k-sound, #2dd4bf); overflow-wrap: anywhere; }
 
+/* Grade preview layers sit over the video and under text and overlays */
+.fs-editor .fs-grade { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: soft-light; }
+.fs-editor .fs-grade-vignette { mix-blend-mode: normal; }
+
+/* Stickers: a grid of symbols */
+.fs-editor .fs-stickers { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 8px; }
+.fs-editor .fs-sticker { aspect-ratio: 1; display: grid; place-items: center; font-size: 26px; line-height: 1; font-family: "DejaVu Sans", system-ui, sans-serif; background: rgba(255,255,255,.05); border: 1px solid var(--fs-line); border-radius: 12px; cursor: pointer; }
+.fs-editor .fs-sticker:hover { border-color: var(--fs-primary); background: rgba(255,255,255,.09); }
+.fs-editor .fs-sticker:focus-visible { outline: 2px solid var(--fs-primary); outline-offset: 2px; }
+/* Show symbols as single-colour text glyphs like the export does, not as colour emoji (where the browser supports it) */
+.fs-editor .fs-overlay-text, .fs-editor .fs-sticker { font-variant-emoji: text; }
 /* Storyboard: shots as frames, scene by scene */
 .fs-editor .fs-board { display: grid; gap: 14px; margin: 14px 0 4px; padding: 12px; border: 1px solid var(--fs-line); border-radius: 14px; background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02)); min-width: 0; }
 .fs-editor .fs-board-scene { display: grid; gap: 8px; min-width: 0; }
@@ -530,3 +541,29 @@
 .fs-editor .fs-board-cap .fs-muted { overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: no-preference) { .fs-editor .fs-shotframe { transition: border-color .15s; } }
 .fs-editor .fs-shorts-send { display: grid; gap: 6px; margin-top: 10px; }
+/* Suite look for the home and project screens: same tokens as the editor, scoped so nothing else changes */
+.fs-app { --fs-gold: #f5c542; --fs-glass: rgba(18, 18, 26, 0.72); }
+.fs-app .fs-topbar { background: var(--fs-glass); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); }
+.fs-app .fs-welcome { position: relative; overflow: hidden; gap: 10px; padding: clamp(20px, 3.2vw, 36px); border-radius: 20px; border-color: rgba(165, 161, 255, 0.22); background: radial-gradient(900px 260px at 12% -10%, rgba(99, 91, 255, 0.28), transparent 60%), radial-gradient(600px 220px at 100% 0%, rgba(245, 197, 66, 0.10), transparent 60%), linear-gradient(180deg, #171526, var(--fs-panel)); }
+.fs-app .fs-welcome h1 { font-size: clamp(1.6rem, 3.4vw, 2.3rem); line-height: 1.15; letter-spacing: -0.01em; }
+.fs-app .fs-welcome > p { color: var(--fs-muted); }
+.fs-app .fs-quick { gap: 12px; margin: 14px 0 6px; }
+.fs-app .fs-quick-tile { position: relative; gap: 8px; min-height: 148px; padding: 18px 10px 14px; border-radius: 16px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02)); transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease; }
+.fs-app .fs-quick-tile:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--fs-gold); box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35); }
+.fs-app .fs-quick-tile:focus-visible { outline-offset: 3px; }
+.fs-app .fs-quick-tile strong { font-size: 1rem; }
+.fs-app .fs-quick-shape { height: 64px; }
+.fs-app .fs-quick-shape i { transform: scale(1.7); }
+.fs-app .fs-quick-shape i { border: 0; border-radius: 6px; background: linear-gradient(145deg, #8f88ff, #4f46e5 70%); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35), 0 6px 16px rgba(79, 70, 229, 0.4); }
+.fs-app .fs-quick-tile:hover:not(:disabled) .fs-quick-shape i { background: linear-gradient(145deg, #ffe08a, #f5c542 70%); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.5), 0 6px 16px rgba(245, 197, 66, 0.35); }
+.fs-app .fs-actions .fs-link { padding: 6px 2px; }
+.fs-app .fs-nav-item { position: relative; }
+.fs-app .fs-nav-item.is-active { background: rgba(99, 91, 255, 0.16); }
+@media (min-width: 900px) { .fs-app .fs-nav-item.is-active::before { content: ""; position: absolute; left: -8px; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--fs-gold); } }
+.fs-app .fs-section-head h2 { font-size: 1.15rem; letter-spacing: -0.005em; }
+.fs-app .fs-card { border-radius: 16px; transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease; }
+.fs-app .fs-card:hover { border-color: rgba(165, 161, 255, 0.4); box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3); }
+.fs-app .fs-card-thumb { border-radius: 16px 16px 0 0; }
+.fs-app .fs-empty-start { display: grid; gap: 4px; margin-top: 24px; padding: 20px; border-radius: 16px; border: 1px dashed rgba(165, 161, 255, 0.35); color: var(--fs-muted); }
+.fs-app .fs-empty-start strong { color: var(--fs-text); }
+@media (prefers-reduced-motion: reduce) { .fs-app .fs-quick-tile, .fs-app .fs-card { transition: none; } .fs-app .fs-quick-tile:hover:not(:disabled) { transform: none; } }

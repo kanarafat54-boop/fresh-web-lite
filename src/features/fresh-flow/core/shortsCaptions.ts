@@ -1,9 +1,9 @@
 /**
  * Captions for Fresh Shorts (specification 2.2 and Part 14).
  *
- * Captions come from the creator: a WebVTT or SRT file they upload for their own Short. Nothing here
- * generates captions; automatic captions need a speech-to-text service that does not exist yet, so the
- * player only shows captions that are real, stored and marked ready.
+ * Captions come from the creator: a WebVTT or SRT file they upload, or a transcript they type that is timed
+ * by length (cuesFromTranscript). Nothing here transcribes speech; automatic speech-to-text needs a model or
+ * service that Fresh does not run yet, so the player only shows captions that are real, stored and marked ready.
  *
  * Stored shape in `short_captions.segments`: [{ start, end, text }] with start and end in seconds.
  */
@@ -115,4 +115,54 @@ export function readCaptionsOn(): boolean {
 }
 export function writeCaptionsOn(on: boolean): void {
   try { localStorage.setItem(CAPTIONS_PREF_KEY, on ? "1" : "0"); } catch { /* device storage unavailable */ }
+}
+
+/** Longest line of caption text before it is wrapped into the next cue. */
+export const CUE_WRAP = 80;
+const MIN_CUE_SECONDS = 0.8;
+
+/**
+ * Turns a typed transcript into timed cues spread across the video by text length. This is an estimate, not
+ * speech recognition: the creator should watch it and shift the timing, or upload a .vtt file for exact timing.
+ */
+export function cuesFromTranscript(text: string, durationSeconds: number): { cues: CaptionCue[]; error: string | null } {
+  if (!Number.isFinite(durationSeconds) || durationSeconds < 1) return { cues: [], error: "Fresh does not know how long this video is yet. Play it for a moment and try again." };
+  const pieces: string[] = [];
+  for (const line of text.replace(/\r/g, "").split("\n")) {
+    for (const sentence of line.trim().split(/(?<=[.!?\u2026])\s+/)) {
+      let rest = sentence.replace(/\s+/g, " ").trim();
+      while (rest.length > CUE_WRAP) {
+        const cut = rest.lastIndexOf(" ", CUE_WRAP);
+        const at = cut > 20 ? cut : CUE_WRAP;
+        pieces.push(rest.slice(0, at).trim());
+        rest = rest.slice(at).trim();
+      }
+      if (rest) pieces.push(rest);
+    }
+  }
+  if (pieces.length === 0) return { cues: [], error: "Write what is said in the video first." };
+  if (pieces.length > MAX_CAPTION_CUES) return { cues: [], error: "That transcript is too long for one Short." };
+  const weights = pieces.map((piece) => piece.length + 8);
+  const total = weights.reduce((a, b) => a + b, 0);
+  const floor = Math.min(MIN_CUE_SECONDS, durationSeconds / pieces.length);
+  const spare = Math.max(0, durationSeconds - floor * pieces.length);
+  let cursor = 0;
+  const cues = pieces.map((piece, index) => {
+    const length = floor + (spare * weights[index]) / total;
+    const start = cursor;
+    cursor = index === pieces.length - 1 ? durationSeconds : cursor + length;
+    return { start: Math.round(start * 1000) / 1000, end: Math.round(cursor * 1000) / 1000, text: piece.slice(0, MAX_CUE_TEXT) };
+  });
+  return { cues, error: null };
+}
+
+/** Shifts every cue by `delta` seconds, keeping all of them inside the video. Cues pushed entirely outside are dropped. */
+export function shiftCues(cues: CaptionCue[], delta: number, durationSeconds: number): CaptionCue[] {
+  const out: CaptionCue[] = [];
+  for (const cue of cues) {
+    const start = Math.max(0, cue.start + delta);
+    const end = Math.min(durationSeconds, cue.end + delta);
+    if (end - start >= 0.2) out.push({ start: Math.round(start * 1000) / 1000, end: Math.round(end * 1000) / 1000, text: cue.text });
+  }
+  return out;
 }

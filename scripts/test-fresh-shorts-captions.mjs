@@ -64,3 +64,31 @@ assert.equal(pickTrack(tracks, "de")?.language, "en", "falls back to English");
 assert.equal(pickTrack([{ language: "fr", cues: [] }], "de")?.language, "fr", "then to whatever exists");
 assert.equal(pickTrack([], "en"), null);
 console.log("Fresh Shorts caption tests passed.");
+
+// Typed transcript -> timed cues (an estimate, not speech recognition).
+{
+  const { cuesFromTranscript, shiftCues, CUE_WRAP, activeCue: ac } = await import("../src/features/fresh-flow/core/shortsCaptions.ts");
+  const text = "Hello and welcome. This is the second sentence!\nAnd a third line, on its own.";
+  const { cues, error } = cuesFromTranscript(text, 20);
+  assert.equal(error, null);
+  assert.equal(cues.length, 3);
+  assert.equal(cues[0].start, 0);
+  assert.equal(cues.at(-1).end, 20, "covers the whole video");
+  for (let i = 1; i < cues.length; i++) assert.equal(cues[i].start, cues[i - 1].end, "contiguous");
+  assert.ok(cues.every((c) => c.end > c.start && c.text.length > 0));
+  assert.equal(ac(cues, 0.1)?.text, "Hello and welcome.");
+  const long = cuesFromTranscript("word ".repeat(60), 30);
+  assert.ok(long.cues.length >= 3 && long.cues.every((c) => c.text.length <= CUE_WRAP), "long text wraps");
+  assert.ok(cuesFromTranscript("  \n ", 10).error);
+  assert.ok(cuesFromTranscript("Hi there", 0).error);
+  assert.ok(cuesFromTranscript("Hi there", NaN).error);
+  const tiny = cuesFromTranscript("a. b. c. d. e. f.", 3);
+  assert.equal(tiny.cues.length, 6);
+  assert.ok(tiny.cues.every((c) => c.end - c.start > 0.2) && tiny.cues.at(-1).end === 3, "short videos still fit every cue");
+  const shifted = shiftCues(cues, 1.5, 20);
+  assert.equal(shifted[0].start, 1.5);
+  assert.equal(shifted.at(-1).end, 20, "never past the end");
+  const back = shiftCues(cues, -1, 20);
+  assert.equal(back[0].start, 0, "never before zero");
+  assert.equal(shiftCues(cues, 100, 20).length, 0);
+}
