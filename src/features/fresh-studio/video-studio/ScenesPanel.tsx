@@ -5,12 +5,51 @@ import { Icon } from "./icons.tsx";
 import { formatClock } from "./Timeline.tsx";
 import { useState } from "react";
 import { loadDirectorProduction } from "./directorSource.ts";
+import type { Filmstrip } from "./mediaVisuals.ts";
 import type { useVideoEditor } from "./useVideoEditor.ts";
 
 type Ed = ReturnType<typeof useVideoEditor>;
 
+/** The frame of a clip's source that best shows where the clip starts. */
+function frameOf(doc: T.TimelineDoc, clip: T.TimelineClip, thumbs: Record<string, Filmstrip>): string | null {
+  const film = thumbs[clip.assetId];
+  if (!film || film.urls.length === 0) return null;
+  const length = doc.assets.find((a) => a.id === clip.assetId)?.duration ?? 0;
+  const at = length > 0 ? Math.min(1, Math.max(0, clip.sourceIn / length)) : 0;
+  return film.urls[Math.round(at * (film.urls.length - 1))] ?? null;
+}
+
+/** Every shot as a frame, scene by scene, so the film reads at a glance. Choosing a frame selects its clip and moves the playhead there. */
+function Storyboard({ doc, thumbs, onPick }: { doc: T.TimelineDoc; thumbs: Record<string, Filmstrip>; onPick: (clip: T.TimelineClip) => void }) {
+  const scenes = doc.film?.scenes ?? [];
+  if (!scenes.some((s) => s.shots.length > 0)) return null;
+  return (
+    <div className="fs-board" role="group" aria-label="Storyboard">
+      {scenes.map((s, n) => s.shots.length > 0 && (
+        <div key={s.id} className="fs-board-scene">
+          <div className="fs-board-title"><strong>{n + 1}. {s.title || "Untitled scene"}</strong>{(s.location || s.timeOfDay) && <span className="fs-muted"> {[s.location, s.timeOfDay].filter(Boolean).join(", ")}</span>}</div>
+          <ul className="fs-board-row">
+            {s.shots.map((x, i) => {
+              const c = F.clipOfShot(doc, x);
+              const src = c ? frameOf(doc, c, thumbs) : null;
+              const label = `Shot ${i + 1} of scene ${n + 1}: ${x.title || "Untitled shot"}`;
+              const inner = (
+                <>
+                  <span className={`fs-shotframe${c ? "" : " fs-shotframe-empty"}`}>{src ? <img src={src} alt="" draggable={false} /> : <span>{c ? "No preview" : x.framing}</span>}</span>
+                  <span className="fs-board-cap"><strong>{i + 1}. {x.title || "Untitled shot"}</strong><span className="fs-muted">{x.framing} · {x.movement} · {formatClock(c ? T.clipDuration(c) : x.duration)}</span></span>
+                </>
+              );
+              return <li key={x.id}>{c ? <button type="button" className="fs-board-shot" aria-label={`${label}. Go to its clip`} onClick={() => onPick(c)}>{inner}</button> : <div className="fs-board-shot fs-board-open" aria-label={`${label}. No clip linked yet`}>{inner}</div>}</li>;
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Plan a multi-scene film: scenes, shots, link each shot to a clip, then lay the clips out in film order. */
-export function ScenesPanel({ ed, clip, ownerId }: { ed: Ed; clip: T.TimelineClip | null; /** Signed-in owner, used to find the Director desk plan saved to the account. */ ownerId: string | null }) {
+export function ScenesPanel({ ed, clip, ownerId, thumbs, onPick }: { ed: Ed; clip: T.TimelineClip | null; /** Preview frames per source file. */ thumbs: Record<string, Filmstrip>; /** Select a clip and move the playhead to it. */ onPick: (clip: T.TimelineClip) => void; /** Signed-in owner, used to find the Director desk plan saved to the account. */ ownerId: string | null }) {
   const [importNote, setImportNote] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const doc = ed.doc;
@@ -41,6 +80,7 @@ export function ScenesPanel({ ed, clip, ownerId }: { ed: Ed; clip: T.TimelineCli
           {sum.scenes} {sum.scenes === 1 ? "scene" : "scenes"} · {sum.shots} {sum.shots === 1 ? "shot" : "shots"} · {sum.linked} linked · planned {formatClock(sum.plannedSeconds)} · on the timeline {formatClock(sum.linkedSeconds)}
         </p>
       )}
+      <Storyboard doc={doc} thumbs={thumbs} onPick={onPick} />
       {scenes.length === 0 && <p className="fs-muted">Break your film into scenes and shots, link each shot to a clip, then arrange the clips in film order. Add a scene to begin.</p>}
       {scenes.map((s, n) => (
         <section key={s.id} className="fs-scene" aria-label={`Scene ${n + 1}: ${s.title}`}>

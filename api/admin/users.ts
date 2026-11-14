@@ -1,5 +1,6 @@
 import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 import { createClient } from "@supabase/supabase-js";
+import { can, checkRoleChange, hasStaffAccess, normalizeRole, presentPeople, type PersonRow } from "../../src/server/adminAccess.js";
 
 export const config = { maxDuration: 30 };
 
@@ -47,9 +48,11 @@ export async function POST(req: Request): Promise<Response> {
 
     const { data: actor, error: actorError } = await admin.from("users").select("id, role").eq("id", authData.user.id).maybeSingle();
     if (actorError) return response({ error: actorError.message }, 500);
-    if (!actor || actor.role !== "admin") return response({ error: "Administrator access required" }, 403);
+    if (!actor || !hasStaffAccess(actor.role)) return response({ error: "Administrator access required" }, 403);
+    const actorRole = normalizeRole(actor.role);
 
     if (body.action === "overview") {
+      if (!can(actorRole, "overview")) return response({ error: "Not permitted" }, 403);
       const [users, posts, shorts, interactions, reports, follows, intelligenceClaims] = await Promise.all([
         countRows(admin, "users"),
         countRows(admin, "posts"),
@@ -72,19 +75,28 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     if (body.action === "list") {
+      if (!can(actorRole, "list-people")) return response({ error: "Not permitted" }, 403);
       const { data, error } = await admin.from("users").select("id, full_name, username, email, role, verified, presence, created_at").order("created_at", { ascending: false }).limit(200);
       if (error) return response({ error: error.message }, 500);
-      return response({ users: data ?? [] });
+      return response({ users: presentPeople(actorRole, (data ?? []) as PersonRow[]), viewerRole: actorRole });
     }
 
     if (body.action === "update") {
+      if (!can(actorRole, "edit-people")) return response({ error: "Only the owner can edit people." }, 403);
       if (!body.userId) return response({ error: "userId is required" }, 400);
-      if (body.userId === authData.user.id && body.role && body.role !== "admin") return response({ error: "An administrator cannot remove their own administrator role from this panel" }, 400);
+
+      const { data: target, error: targetError } = await admin.from("users").select("id, role").eq("id", body.userId).maybeSingle();
+      if (targetError) return response({ error: targetError.message }, 500);
+      if (!target) return response({ error: "Person not found" }, 404);
 
       const patch: Record<string, string> = {};
       if (typeof body.fullName === "string" && body.fullName.trim()) patch.full_name = body.fullName.trim();
       if (typeof body.username === "string" && body.username.trim()) patch.username = body.username.trim().toLowerCase();
-      if (typeof body.role === "string" && ["user", "admin"].includes(body.role)) patch.role = body.role;
+      if (typeof body.role === "string" && body.role !== normalizeRole(target.role)) {
+        const check = checkRoleChange(authData.user.id, actorRole, target, body.role);
+        if (!check.ok) return response({ error: check.error }, check.status);
+        patch.role = body.role;
+      }
       if (!Object.keys(patch).length) return response({ error: "No supported fields supplied" }, 400);
 
       const { data, error } = await admin.from("users").update(patch).eq("id", body.userId).select("id, full_name, username, email, role, verified, presence, created_at").maybeSingle();

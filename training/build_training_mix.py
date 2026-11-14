@@ -2,10 +2,10 @@
 
 Every row must pass the corpus authorization registry. Missing optional sources are skipped
 (listed in the manifest); missing required sources are an error. Output is deterministic
-for a given recipe + inputs: train/validation JSONL.gz plus a manifest with hashes and counts.
+for a given recipe + inputs: train/validation JSONL.gz plus a manifest with counts and hashes.
 
-Usage:
-  python3 training/build_training_mix.py --recipe training/mix_recipe_v1.json --out-dir artifacts/fresh-training/mix-v1
+Validation assignment is grouped by normalized target content, not question-row ID. This
+prevents paraphrased questions with the same answer from leaking across train/validation.
 """
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ import gzip
 import hashlib
 import json
 import random
+import unicodedata
 from pathlib import Path
 
 from fresh_corpus_policy import load_authorization_registry, validate_row_authorization
@@ -27,8 +28,22 @@ def read_rows(path: Path):
                 yield line_no, json.loads(line)
 
 
-def is_validation(row_id: str, fraction: float) -> bool:
-    return int(hashlib.sha256(row_id.encode()).hexdigest()[:8], 16) / 0xFFFFFFFF < fraction
+def normalized_target(row: dict) -> str:
+    target = row.get("target")
+    if isinstance(target, str) and target.strip():
+        return " ".join(unicodedata.normalize("NFKC", target).casefold().split())
+    return ""
+
+
+def validation_group_key(row: dict) -> str:
+    target = normalized_target(row)
+    # Rows without a target retain deterministic ID-based splitting.
+    raw = "target:" + target if target else "row:" + str(row["id"])
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def is_validation(group_key: str, fraction: float) -> bool:
+    return int(hashlib.sha256(group_key.encode()).hexdigest()[:8], 16) / 0xFFFFFFFF < fraction
 
 
 def build(recipe: dict, root: Path, registry: dict) -> tuple[list[dict], list[dict], dict]:
@@ -36,6 +51,7 @@ def build(recipe: dict, root: Path, registry: dict) -> tuple[list[dict], list[di
     val: list[dict] = []
     report: dict = {"sources": {}, "skipped": []}
     seen: set[str] = set()
+    split_groups: set[str] = set()
     for src in recipe["sources"]:
         path = root / src["path"]
         if not path.exists():
@@ -52,13 +68,17 @@ def build(recipe: dict, root: Path, registry: dict) -> tuple[list[dict], list[di
                 continue
             seen.add(row["id"])
             kept += 1
-            target = val if is_validation(row["id"], recipe["validationFraction"]) else train
+            group_key = validation_group_key(row)
+            split_groups.add(group_key)
+            target = val if is_validation(group_key, recipe["validationFraction"]) else train
             copies = 1 if target is val else int(src.get("repeat", 1))
             target.extend([row] * copies)
         report["sources"][src["id"]] = {"uniqueRows": kept, "repeat": src.get("repeat", 1)}
     rnd = random.Random(recipe["seed"])
     rnd.shuffle(train)
     rnd.shuffle(val)
+    report["splitGrouping"] = "normalized-target-sha256-v1"
+    report["splitGroupCount"] = len(split_groups)
     return train, val, report
 
 
@@ -84,7 +104,7 @@ def main() -> int:
                 "trainSha256": write_gz(out / "train.jsonl.gz", train),
                 "validationSha256": write_gz(out / "validation.jsonl.gz", val),
                 "productionTrainingEligible": False,
-                "note": "Mix built from authorized, screened sources. Promotion to production training is an explicit owner step."}
+                "note": "Built from authorized sources. Promotion to production training is a separate explicit owner step."}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(manifest, indent=2))
     return 0
