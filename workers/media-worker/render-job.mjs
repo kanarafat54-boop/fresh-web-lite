@@ -24,13 +24,13 @@ export function getRenderLimits(env = process.env) {
     presets: order.slice(0, order.indexOf(max) + 1),
     aspectRatios: ["9:16", "16:9", "1:1", "4:5", "21:9"],
     frameRates: [24, 25, 30, 60],
-    maxSeconds: clamp(Number(env.FRESH_RENDER_MAX_SECONDS) || 120, 5, 300),
+    maxSeconds: clamp(Number(env.FRESH_RENDER_MAX_SECONDS) || 120, 5, 1200),
     maxSources: 8,
     maxCaptionBytes: 200 * 1024,
     text: textSupported(),
     maxActivePerUser: 1,
     maxActiveTotal: clamp(Number(env.FRESH_RENDER_MAX_ACTIVE) || 1, 1, 4),
-    timeoutMs: clamp(Number(env.FRESH_RENDER_TIMEOUT_MS) || 10 * 60 * 1000, 10_000, 30 * 60 * 1000),
+    timeoutMs: clamp(Number(env.FRESH_RENDER_TIMEOUT_MS) || 10 * 60 * 1000, 10_000, 60 * 60 * 1000),
   };
 }
 

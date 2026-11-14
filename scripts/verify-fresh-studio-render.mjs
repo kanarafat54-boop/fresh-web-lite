@@ -130,8 +130,8 @@ assert.deepEqual(UNAVAILABLE_PRESETS.map((p) => p.id), ["1440p", "4K"], "unverif
   assert.equal(ok(twoTracks).ok, true, "a second video track is a picture-in-picture layer");
   assert.match(ok({ ...twoTracks, tracks: [...twoTracks.tracks, { id: "v3", kind: "video", name: "Video 3", muted: false, locked: false }] }).errors.join(" "), /video tracks/i);
   assert.match(ok({ ...withClip, clips: [{ ...withClip.clips[0], sourceOut: 99 }] }).errors.join(" "), /past its media/i);
-  const long = addAsset(createTimeline(), asset("long", 400, "video", true));
-  assert.match(ok(addClip(long, { trackId: "v1", assetId: "long" }), { sources: { long: "x" } }).errors[0], /limited to 300 seconds/i);
+  const long = addAsset(createTimeline(), asset("long", 1300, "video", true));
+  assert.match(ok(addClip(long, { trackId: "v1", assetId: "long" }), { sources: { long: "x" } }).errors[0], /limited to 20 minutes/i);
 }
 
 fs.rmSync(dir, { recursive: true, force: true });
