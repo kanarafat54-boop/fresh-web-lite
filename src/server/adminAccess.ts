@@ -9,12 +9,12 @@
  * The database also refuses to create or remove the owner role from the API (see guard_owner_role).
  */
 export type PlatformRole = "user" | "admin" | "owner";
-export type AdminCapability = "overview" | "list-people" | "see-emails" | "edit-people" | "change-roles" | "review" | "owner-settings";
+export type AdminCapability = "overview" | "list-people" | "see-emails" | "edit-people" | "change-roles" | "review" | "owner-settings" | "machine-access";
 
 const CAPABILITIES: Record<PlatformRole, readonly AdminCapability[]> = {
   user: [],
   admin: ["overview", "list-people", "review"],
-  owner: ["overview", "list-people", "see-emails", "edit-people", "change-roles", "review", "owner-settings"],
+  owner: ["overview", "list-people", "see-emails", "edit-people", "change-roles", "review", "owner-settings", "machine-access"],
 };
 
 export function normalizeRole(value: unknown): PlatformRole {

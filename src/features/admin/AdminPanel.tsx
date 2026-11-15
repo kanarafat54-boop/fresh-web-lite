@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { MachineAccessPanel } from "./MachineAccessPanel";
 import { useFreshId } from "../fresh-id/context/FreshIdContext";
 
 type AdminUser = { id: string; full_name: string; username: string; email: string | null; role: string; verified: boolean; presence: string; created_at: string };
 type OverviewMetric = { label: string; value: number };
-type AdminPayload = { users?: AdminUser[]; user?: AdminUser; metrics?: OverviewMetric[]; generatedAt?: string; error?: string };
+type AdminPayload = { [key: string]: unknown; users?: AdminUser[]; user?: AdminUser; metrics?: OverviewMetric[]; generatedAt?: string; error?: string };
 
 export function AdminPanel() {
   const { user } = useFreshId();
@@ -94,6 +95,7 @@ export function AdminPanel() {
           );
         })}
       </div>
+      {isOwner ? <MachineAccessPanel call={callAdmin} /> : null}
     </div>
   );
 }

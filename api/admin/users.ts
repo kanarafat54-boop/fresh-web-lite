@@ -1,11 +1,21 @@
 import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 import { createClient } from "@supabase/supabase-js";
+import { generateToken } from "../../src/server/machine/machineGateway.js";
+import { checkIssueRequest, planIssue, presentMachines, type CredentialRow, type PrincipalRow } from "../../src/server/machine/machineAdmin.js";
 import { can, checkRoleChange, hasStaffAccess, normalizeRole, presentPeople, type PersonRow } from "../../src/server/adminAccess.js";
 
 export const config = { maxDuration: 30 };
 
 type AdminRequest = {
-  action?: "list" | "update" | "overview";
+  action?: "list" | "update" | "overview" | "machine-list" | "machine-issue" | "machine-revoke" | "machine-disable";
+  credentialId?: string;
+  principalId?: string;
+  disable?: boolean;
+  name?: string;
+  purpose?: string;
+  scopes?: unknown;
+  days?: number;
+  rate?: number;
   userId?: string;
   fullName?: string;
   username?: string;
@@ -102,6 +112,47 @@ export async function POST(req: Request): Promise<Response> {
       const { data, error } = await admin.from("users").update(patch).eq("id", body.userId).select("id, full_name, username, email, role, verified, presence, created_at").maybeSingle();
       if (error) return response({ error: error.message }, 400);
       return response({ user: data });
+    }
+
+    if (body.action && body.action.startsWith("machine-")) {
+      if (!can(actorRole, "machine-access")) return response({ error: "Only the owner can manage machine access." }, 403);
+
+      if (body.action === "machine-list") {
+        const [p, c] = await Promise.all([
+          admin.from("machine_principals").select("id, name, purpose, disabled_at, created_at").order("created_at", { ascending: false }).limit(100),
+          admin.from("machine_credentials").select("id, principal_id, token_prefix, scopes, rate_limit_per_minute, expires_at, revoked_at, last_used_at, created_at").order("created_at", { ascending: false }).limit(500),
+        ]);
+        if (p.error || c.error) return response({ error: (p.error ?? c.error)!.message }, 500);
+        return response({ machines: presentMachines((p.data ?? []) as PrincipalRow[], (c.data ?? []) as CredentialRow[]) });
+      }
+
+      if (body.action === "machine-issue") {
+        const check = checkIssueRequest(body as Record<string, unknown>);
+        if (!check.ok) return response({ error: check.error }, 400);
+        const plan = planIssue(authData.user.id, check.value, generateToken);
+        const created = await admin.from("machine_principals").insert(plan.principal).select("id").single();
+        if (created.error || !created.data) return response({ error: created.error?.message ?? "Could not create the machine" }, 400);
+        const cred = await admin.from("machine_credentials").insert(plan.credential(created.data.id)).select("id, expires_at").single();
+        if (cred.error || !cred.data) {
+          await admin.from("machine_principals").delete().eq("id", created.data.id);
+          return response({ error: cred.error?.message ?? "Could not create the credential" }, 400);
+        }
+        return response({ principalId: created.data.id, credentialId: cred.data.id, expiresAt: cred.data.expires_at, token: plan.token, note: "Shown once. Store it now; it cannot be recovered." });
+      }
+
+      if (body.action === "machine-revoke") {
+        if (!body.credentialId) return response({ error: "credentialId is required" }, 400);
+        const { error } = await admin.from("machine_credentials").update({ revoked_at: new Date().toISOString() }).eq("id", body.credentialId).is("revoked_at", null);
+        if (error) return response({ error: error.message }, 400);
+        return response({ ok: true });
+      }
+
+      if (body.action === "machine-disable") {
+        if (!body.principalId) return response({ error: "principalId is required" }, 400);
+        const { error } = await admin.from("machine_principals").update({ disabled_at: body.disable === false ? null : new Date().toISOString() }).eq("id", body.principalId);
+        if (error) return response({ error: error.message }, 400);
+        return response({ ok: true });
+      }
     }
 
     return response({ error: "Unsupported admin action" }, 400);
