@@ -1,5 +1,4 @@
 /** Turns sticker art and emoji into transparent PNG files in the browser, so they can be added as picture overlays. */
-import { escapeXml } from "./stickerArt.ts";
 
 const canvasToPng = (canvas: HTMLCanvasElement): Promise<Blob> =>
   new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("This browser could not make the sticker picture."))), "image/png"));

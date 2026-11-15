@@ -27,7 +27,7 @@ export function escapeXml(s: string): string {
 }
 /** Keeps pill text short, single-line and free of control characters. */
 export function cleanLabel(raw: string | undefined, fallback: string, max: number): string {
-  const t = (raw ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
+  const t = Array.from(raw ?? "", (ch) => { const c = ch.codePointAt(0)!; return c < 32 || c === 127 ? " " : ch; }).join("").replace(/\s+/g, " ").trim().slice(0, max);
   return t || fallback;
 }
 
