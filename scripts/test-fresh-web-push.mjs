@@ -132,3 +132,13 @@ assert.equal((await handlePushDispatch(post({ "x-fresh-push-secret": "s" }), { F
 assert.equal((await handlePushDispatch(new Request("https://x/?__fresh_push=1"), { FRESH_PUSH_SECRET: "s" })).status, 405);
 assert.equal((await handlePushDispatch(post({ "x-fresh-push-secret": "s" }), {})).status, 401, "no secret configured means nobody gets in");
 console.log("push dispatch ok");
+
+// Deep links.
+import { parseShortDeepLink, withoutShortParam } from "../src/features/fresh-flow/core/shortDeepLink.ts";
+const sid = "3f2b8c1e-5d4a-4e6f-9a7b-1c2d3e4f5a6b";
+assert.equal(parseShortDeepLink(`?short=${sid}`), sid);
+assert.equal(parseShortDeepLink(`?x=1&short=${sid.toUpperCase()}`), sid);
+for (const bad of ["", "?short=", "?short=abc", `?short=${sid}x`, "?short=../../etc", "?short=<script>", `?other=${sid}`]) assert.equal(parseShortDeepLink(bad), null, bad);
+assert.equal(withoutShortParam("/", `?short=${sid}`, ""), "/");
+assert.equal(withoutShortParam("/x", `?a=1&short=${sid}`, "#h"), "/x?a=1#h");
+console.log("deep link ok");

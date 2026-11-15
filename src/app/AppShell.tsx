@@ -7,6 +7,9 @@ import "../index.css";
 import "../core/design/primitives.css";
 import { useProfileNav } from "../features/profile/context/ProfileNavContext";
 import { ProfileView } from "../features/profile/components/ProfileView";
+import { useEffect } from "react";
+import { parseShortDeepLink, withoutShortParam } from "../features/fresh-flow/core/shortDeepLink";
+import { requestOpenShort } from "../features/fresh-flow/core/shortsExplore";
 
 function GlobalFreshAIEntry() {
   const { activeRoute } = useLayout();
@@ -15,6 +18,23 @@ function GlobalFreshAIEntry() {
     (typeof window !== "undefined" && ["/ai", "/fresh-ai"].includes(window.location.pathname.replace(/\/+$/, "").toLowerCase()));
   if (isAI) return null;
   return <FreshAIUnified />;
+}
+
+/** A link like /?short=<id> (from a push notification) opens that Short in the Shorts feed. */
+function ShortDeepLinkHandler() {
+  const { setActiveRoute } = useLayout();
+  useEffect(() => {
+    try {
+      const id = parseShortDeepLink(window.location.search);
+      if (!id) return;
+      requestOpenShort(id);
+      setActiveRoute("fresh-flow-shorts");
+      window.history.replaceState(null, "", withoutShortParam(window.location.pathname, window.location.search, window.location.hash));
+    } catch { /* a bad link just opens the app normally */ }
+    // Runs once, when the app opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
 }
 
 function GlobalProfileOverlay() {
@@ -43,6 +63,7 @@ export default function AppShell() {
       <LayoutProvider>
         <div className="app-shell-root">
           <AppRouter />
+          <ShortDeepLinkHandler />
           <GlobalProfileOverlay />
           <GlobalFreshAIEntry />
         </div>
