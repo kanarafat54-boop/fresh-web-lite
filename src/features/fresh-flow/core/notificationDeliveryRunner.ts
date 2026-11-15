@@ -3,6 +3,8 @@ import { loadNotificationState } from "./notificationStateStore";
 import { loadPrivacy } from "./shortsPrivacyService";
 import { CHECK_INTERVAL_MS, DEVICE_NOTIFY_KEY, LAST_CHECK_KEY, buildDelivery, newItems, readEnabled, readLastCheck } from "./notificationDelivery";
 import { requestOpenShort } from "./shortsExplore";
+import { supabase } from "../../../lib/supabase";
+import { pushSupport, subscriptionToRow, urlBase64ToUint8Array } from "./pushSubscription";
 
 export function devicePermission(): NotificationPermission | "unsupported" {
   return typeof Notification === "undefined" ? "unsupported" : Notification.permission;
@@ -48,4 +50,43 @@ export function startDeviceNotifications(userId: string): () => void {
   const timer = window.setInterval(() => { void check(); }, CHECK_INTERVAL_MS);
   const first = window.setTimeout(() => { void check(); }, 15_000);
   return () => { stopped = true; window.clearInterval(timer); window.clearTimeout(first); };
+}
+
+const VAPID_KEY = (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_VAPID_PUBLIC_KEY;
+
+export function pushAvailable(): boolean {
+  const support = pushSupport({ hasServiceWorker: typeof navigator !== "undefined" && "serviceWorker" in navigator, hasPushManager: typeof window !== "undefined" && "PushManager" in window, vapidKey: VAPID_KEY });
+  return support.supported && support.configured;
+}
+
+/** Subscribes this browser to Web Push and stores the subscription. Returns true when push is on. Never throws. */
+export async function enablePush(userId: string): Promise<boolean> {
+  if (!pushAvailable() || !VAPID_KEY || devicePermission() !== "granted") return false;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_KEY) }));
+    const row = subscriptionToRow(userId, sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } }, navigator.userAgent);
+    if (!row) return false;
+    const { error } = await supabase.from("push_subscriptions").upsert(row, { onConflict: "endpoint" });
+    return !error;
+  } catch { return false; }
+}
+
+export async function disablePush(): Promise<void> {
+  try {
+    if (!pushAvailable()) return;
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) return;
+    await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+    await sub.unsubscribe();
+  } catch { /* nothing more to clean up */ }
+}
+
+/** True when this browser already holds a push subscription. */
+export async function pushIsOn(): Promise<boolean> {
+  try {
+    if (!pushAvailable() || devicePermission() !== "granted") return false;
+    return Boolean(await (await navigator.serviceWorker.ready).pushManager.getSubscription());
+  } catch { return false; }
 }
