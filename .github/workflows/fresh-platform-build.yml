@@ -81,6 +81,7 @@ jobs:
           npm run test:fresh-studio-film
           npm run test:fresh-studio-beats
           npm run test:fresh-studio-stickers
+          npm run test:fresh-studio-speech
           npm run test:fresh-studio-handoff
       - name: Phases 15-22 certification
         run: npm run test:fresh-phases-15-22

@@ -7,6 +7,8 @@ import { detectSilenceFromSamples, ANALYSIS_SAMPLE_RATE } from "./audioAnalysis.
 import type { Cue } from "./captions.ts";
 import { importMediaFile, loadStoredMedia, removeStoredMedia, type MediaEntry } from "./mediaImport.ts";
 import * as T from "./timeline.ts";
+import { decodeForSpeech, MAX_SPEECH_SECONDS, transcribeSamples, type SpeechModelId, type SpeechProgress } from "./speechEngine.ts";
+import { describeFillers, fillerRanges, findFillers, wordsOnTimeline, wordsToCues, type Word } from "./speech.ts";
 
 export type EditorSave = "saved" | "saving" | "conflict" | "error";
 const AUTOSAVE_MS = 900;
@@ -165,6 +167,56 @@ export function useVideoEditor(project: StudioProject, service: StudioProjectSer
     return message;
   }, [edit]);
 
+  /** Words the speech engine heard, by asset and model, in the source file's own seconds. Kept for this session only. */
+  const speechRef = useRef(new Map<string, Word[]>());
+  const [speechStatus, setSpeechStatus] = useState<SpeechProgress | null>(null);
+  const speechAbort = useRef<AbortController | null>(null);
+  const hearAsset = useCallback(async (assetId: string, model: SpeechModelId, language?: string): Promise<Word[]> => {
+    const key = `${assetId}|${model}`;
+    const cached = speechRef.current.get(key);
+    if (cached) return cached;
+    const entry = mediaRef.current[assetId];
+    if (!entry?.blob) throw new Error(entry?.missing ? "This file is not stored on this device." : "That file is not loaded.");
+    setSpeechStatus({ stage: "listen", fraction: 0, note: "Reading the audio…" });
+    const samples = await decodeForSpeech(entry.blob);
+    if (!samples) throw new Error(`This file has no audio the speech engine can read (limit ${MAX_SPEECH_SECONDS / 60} minutes).`);
+    speechAbort.current = new AbortController();
+    const words = await transcribeSamples(samples, { model, language, signal: speechAbort.current.signal, onProgress: setSpeechStatus });
+    speechRef.current.set(key, words);
+    return words;
+  }, []);
+  const stopSpeech = useCallback(() => speechAbort.current?.abort(), []);
+
+  /** Writes captions for every main-track clip of the selected clip's file, placed where the speech sits on the timeline. */
+  const autoCaption = useCallback(async (clipId: string, model: SpeechModelId, language?: string): Promise<string> => {
+    const clip = docRef.current.clips.find((c) => c.id === clipId);
+    if (!clip) return "Select a clip first.";
+    try {
+      const words = await hearAsset(clip.assetId, model, language);
+      const placed = docRef.current.clips.filter((c) => c.assetId === clip.assetId && c.trackId === clip.trackId).flatMap((c) => wordsOnTimeline(words, c));
+      const cues = wordsToCues(placed, {}, () => T.newId("cue"));
+      if (cues.length === 0) return "No speech was found in this clip.";
+      setCaptions(cues);
+      return `Wrote ${cues.length} caption${cues.length === 1 ? "" : "s"} from ${placed.length} words. Check the text; speech recognition makes mistakes.`;
+    } catch (error) { return error instanceof Error ? error.message : "Speech recognition failed."; }
+    finally { setSpeechStatus(null); }
+  }, [hearAsset, setCaptions]);
+
+  /** Cuts the filler sounds the speech engine heard out of the selected clip. */
+  const cutFillers = useCallback(async (clipId: string, model: SpeechModelId, language?: string): Promise<string> => {
+    const clip = docRef.current.clips.find((c) => c.id === clipId);
+    if (!clip) return "Select a clip first.";
+    try {
+      const words = await hearAsset(clip.assetId, model, language);
+      const fillers = findFillers(words).filter((w) => w.start >= clip.sourceIn && w.end <= clip.sourceOut);
+      if (fillers.length === 0) return "No filler words were found. The speech engine often leaves them out of what it writes down.";
+      let message = "";
+      edit((d) => { const r = removeSilences(d, clipId, fillerRanges(fillers), { minSilence: 0, padding: 0, minRemove: 0.1 }); message = r.cuts === 0 ? "Nothing could be cut." : `${describeFillers(fillers)} Cut ${r.cuts} of them, ${r.removedSeconds.toFixed(1)} s in all. Undo restores it. Captions made before this no longer line up; write them again.`; return r.cuts === 0 ? d : r.doc; });
+      return message;
+    } catch (error) { return error instanceof Error ? error.message : "Speech recognition failed."; }
+    finally { setSpeechStatus(null); }
+  }, [hearAsset, edit]);
+
   /** Finds the beat of one clip's audio and cuts the main video track on every Nth beat. */
   const cutToBeat = useCallback((clipId: string, every: number) => {
     const clip = docRef.current.clips.find((c) => c.id === clipId);
@@ -193,5 +245,5 @@ export function useVideoEditor(project: StudioProject, service: StudioProjectSer
     setCaptionsState(fresh.meta.captions.map((c) => ({ ...c }))); dirty.current = false; blocked.current = false; setSaveState("saved");
   }, [service, project.id, onSaved]);
 
-  return { notify, doc, history, captions, setCaptions, selected, setSelected, playhead, setPlayhead, duration, media, saveState, busy, edit, undo, redo, canUndo: T.canUndo(history), canRedo: T.canRedo(history), importFiles, addPicture, removeAsset, trimSilence, cutToBeat, reloadLatest, flushNow: () => flushRef.current() };
+  return { notify, doc, history, captions, setCaptions, selected, setSelected, playhead, setPlayhead, duration, media, saveState, busy, edit, undo, redo, canUndo: T.canUndo(history), canRedo: T.canRedo(history), importFiles, addPicture, removeAsset, trimSilence, cutToBeat, autoCaption, cutFillers, stopSpeech, speechStatus, reloadLatest, flushNow: () => flushRef.current() };
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { StudioProject } from "../shared/types.ts";
 import type { StudioProjectService } from "../projects/projectService.ts";
-import { getTranscriptionStatus, normalizeCues, parseCaptions, serializeSrt, serializeVtt, validateCues, type Cue } from "./captions.ts";
+import { normalizeCues, parseCaptions, serializeSrt, serializeVtt, validateCues, type Cue } from "./captions.ts";
 import { ExportCancelled, ExportError, availableExportOptions, runExport, type ExportStage, type WorkerCapabilities } from "./exportJob.ts";
 import { createBrowserExportPorts } from "./renderClient.ts";
 import type { ExportPresetId } from "./renderPlan.ts";
@@ -9,6 +9,7 @@ import { Icon, type IconName } from "./icons.tsx";
 import { useLayerDrag } from "./useLayerDrag.ts";
 import { STICKERS, stickerLayer } from "./stickers.ts";
 import { STICKER_ART, STICKER_GROUPS, cleanLabel } from "./stickerArt.ts";
+import { SPEECH_MODELS, type SpeechModelId } from "./speechEngine.ts";
 import { EMOJI_GROUPS } from "./stickerEmoji.ts";
 import { emojiToPng, svgToPng } from "./stickerRaster.ts";
 import { ClipInspector, OverlayInspector, TextInspector } from "./Inspector.tsx";
@@ -564,7 +565,6 @@ function OverlaysPanel({ ed, onAdd, onImport }: { ed: Ed; onAdd: (kind: "image" 
 }
 
 function CaptionsPanel({ ed }: { ed: Ed }) {
-  const status = getTranscriptionStatus();
   const file = useRef<HTMLInputElement>(null);
   const issues = useMemo(() => validateCues(ed.captions), [ed.captions]);
   const update = (id: string, patch: Partial<Cue>) => ed.setCaptions(ed.captions.map((c) => (c.id === id ? { ...c, ...patch } : c)));
@@ -575,9 +575,27 @@ function CaptionsPanel({ ed }: { ed: Ed }) {
     ed.setCaptions(cues);
     if (skipped) ed.notify("info", `${skipped} entr${skipped === 1 ? "y was" : "ies were"} skipped because they could not be read.`);
   };
+  const clip = ed.doc.clips.find((c) => c.id === ed.selected) ?? T.trackClips(ed.doc, "v1")[0] ?? null;
+  const [model, setModel] = useState<SpeechModelId>("Xenova/whisper-tiny.en");
+  const [speechNote, setSpeechNote] = useState("");
+  const running = !!ed.speechStatus;
+  const writeCaptions = async () => {
+    if (!clip) return;
+    if (ed.captions.length && !window.confirm("Replace the captions you have now with new ones from the speech?")) return;
+    setSpeechNote(await ed.autoCaption(clip.id, model, undefined));
+  };
   return (
     <div>
-      <p className="fs-muted" role="note">{status.available ? "Automatic captions are available." : status.reason}</p>
+      <h3>Write captions from speech</h3>
+      <p className="fs-muted">Fresh listens to the selected clip on this device with a Whisper speech model; the audio is not uploaded. The first time, your browser downloads the model and needs internet.</p>
+      <label className="fs-field"><span>Speech model</span><select value={model} disabled={running} onChange={(e) => setModel(e.target.value as SpeechModelId)}>{SPEECH_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}</select></label>
+      <div className="fs-row">
+        <button type="button" className="fs-btn fs-btn-primary" disabled={!clip || running || !ed.media[clip.assetId]?.blob} onClick={() => void writeCaptions()}>{running ? "Working…" : "Write captions"}</button>
+        {running && <button type="button" className="fs-btn" onClick={ed.stopSpeech}>Stop</button>}
+      </div>
+      {ed.speechStatus && <div role="status"><progress max={1} value={ed.speechStatus.stage === "download" ? ed.speechStatus.fraction : undefined} aria-label={ed.speechStatus.note} /><p className="fs-muted">{ed.speechStatus.note}</p></div>}
+      {speechNote && !running && <p role="status">{speechNote}</p>}
+      {!clip && <p className="fs-muted">Add a video or audio clip first.</p>}
       <div className="fs-row">
         <input ref={file} type="file" accept=".srt,.vtt,text/vtt,text/plain" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void importFile(f); }} />
         <button type="button" className="fs-btn" onClick={() => file.current?.click()}>Import SRT/VTT</button>
@@ -617,6 +635,7 @@ function SmartPanel({ ed, clip }: { ed: Ed; clip: T.TimelineClip | null }) {
   const [result, setResult] = useState("");
   const [every, setEvery] = useState(1);
   const [beatResult, setBeatResult] = useState("");
+  const [fillerResult, setFillerResult] = useState("");
   const entry = clip ? ed.media[clip.assetId] : null;
   return (
     <div>
@@ -634,8 +653,13 @@ function SmartPanel({ ed, clip }: { ed: Ed; clip: T.TimelineClip | null }) {
       {!clip && <p className="fs-muted">Select a clip on the timeline first.</p>}
       {clip && entry && !entry.samples && <p className="fs-warn">{entry.missing ? "This file is not stored on this device." : "This clip has no audio that can be analysed here."}</p>}
       {result && <p role="status">{result}</p>}
+      <h3>Cut filler words</h3>
+      <p className="fs-muted">Listens to the selected clip with the on-device speech model (see the Captions tab) and cuts out hesitation sounds like um, uh, er and hmm. Whisper often leaves these out of what it writes, so it finds the ones it wrote down, not all of them. Undo restores everything.</p>
+      <button type="button" className="fs-btn fs-btn-primary" disabled={!clip || !entry?.blob || !!ed.speechStatus} onClick={async () => { if (clip) setFillerResult(await ed.cutFillers(clip.id, "Xenova/whisper-tiny.en")); }}>{ed.speechStatus ? "Working…" : "Cut filler words from selected clip"}</button>
+      {ed.speechStatus && <div role="status"><progress max={1} value={ed.speechStatus.stage === "download" ? ed.speechStatus.fraction : undefined} aria-label={ed.speechStatus.note} /><p className="fs-muted">{ed.speechStatus.note}</p></div>}
+      {fillerResult && !ed.speechStatus && <p role="status">{fillerResult}</p>}
       <h3>Not available yet</h3>
-      <ul className="fs-muted"><li>Automatic captions, background removal and AI scene editing need AI services that are not connected.</li></ul>
+      <ul className="fs-muted"><li>Background removal and AI scene editing need AI services that are not connected.</li></ul>
     </div>
   );
 }
