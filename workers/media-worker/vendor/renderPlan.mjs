@@ -133,6 +133,27 @@ function pictureChain(clip              , W        , H        , fps        , fad
 
 const FFMPEG_COLOR = /^#[0-9a-fA-F]{6}$/;
 
+/** Moves, fades and pop-in size for the way a layer arrives and leaves, as ffmpeg expressions of time t. */
+function layerMotion(t                                                                                              , frameW        , frameH        ) {
+  const seconds = t.animSeconds ?? 0.5, D = num(seconds), end = t.start + t.duration;
+  const pin = t.animIn && t.animIn !== "none" ? `min(1,max(0,(t-${num(t.start)})/${D}))` : null;
+  const pout = t.animOut && t.animOut !== "none" ? `min(1,max(0,(${num(end)}-t)/${D}))` : null;
+  const ease = (p        ) => `(${p}*(2-${p}))`;
+  const parts = (p               , kind                    , dir        ) => ({
+    dx: p && kind === "slide" ? `${dir === 1 ? "-" : "+"}(1-${ease(p)})*${frameW}*0.18` : "",
+    dy: p && kind === "rise" ? `${dir === 1 ? "+" : "-"}(1-${ease(p)})*${frameH}*0.06` : "",
+    pop: p && kind === "pop" ? `(0.5+0.5*${ease(p)})` : "",
+  });
+  const a = parts(pin, t.animIn, 1), b = parts(pout, t.animOut, -1);
+  const alpha = [pin, pout].filter(Boolean).join("*");
+  const pop = [a.pop, b.pop].filter(Boolean).join("*");
+  return { dx: a.dx + b.dx, dy: a.dy + b.dy, alpha: alpha || null, fadeIn: pin ? t.start : null, fadeOut: pout ? end : null, seconds, pop: pop || null };
+}
+/** ffmpeg fade filters (on the alpha channel) for a layer whose stream starts at time 0. */
+function layerFades(m                                )         {
+  return (m.fadeIn !== null ? `,fade=t=in:st=${num(m.fadeIn)}:d=${num(m.seconds)}:alpha=1` : "") + (m.fadeOut !== null ? `,fade=t=out:st=${num(m.fadeOut - m.seconds)}:d=${num(m.seconds)}:alpha=1` : "");
+}
+
 /** ASS style overrides for each caption look, scaled to the frame height. Classic is exactly what exports looked like before styles existed. */
 export function captionForceStyle(style                    , H        )         {
   const px = (f        ) => Math.max(14, Math.round(H * f));
@@ -284,19 +305,22 @@ export function planRender(input                 )             {
   const turn = (deg         ) => (deg ? `,rotate=a=${num(deg)}*PI/180:ow=rotw(${num(deg)}*PI/180):oh=roth(${num(deg)}*PI/180):c=none` : "");
   if (overlays.length) {
     let cur = "vbase";
+    const motionOf = (o                           ) => layerMotion(o, String(W), String(H));
+    // Pop grows the layer from half size (after any turn, so the turned size stays fixed); every animation also fades.
+    const animate = (o                           ) => { const m = motionOf(o); return (m.pop ? `,scale=w='trunc(iw*${m.pop}/2)*2':h=-2:eval=frame` : "") + layerFades(m); };
     [...overlays].sort((a, b) => a.start - b.start).forEach((o, k) => {
       const next = k === overlays.length - 1 ? afterOverlays : `vo${k}`;
       const when = `enable=between(t\\,${num(o.start)}\\,${num(o.start + o.duration)})`;
       if (o.kind === "rect") {
         const w = even(W * o.width), h = even(H * o.height);
         // drawbox ignores transparency on this pixel format, so the rectangle is its own tinted layer instead.
-        filters.push(`color=c=0x${o.color.slice(1)}@${num(o.opacity)}:s=${w}x${h}:r=${fps},format=rgba${turn(o.rotation)}[ov${k}]`);
-        filters.push(`[${cur}][ov${k}]overlay=x=${num(o.x)}*${W}-w/2:y=${num(o.y)}*${H}-h/2:${when}[${next}]`);
+        filters.push(`color=c=0x${o.color.slice(1)}@${num(o.opacity)}:s=${w}x${h}:r=${fps},format=rgba${turn(o.rotation)}${animate(o)}[ov${k}]`);
+        filters.push(`[${cur}][ov${k}]overlay=x='${num(o.x)}*${W}-w/2${motionOf(o).dx}':y='${num(o.y)}*${H}-h/2${motionOf(o).dy}':${when}[${next}]`);
       } else {
         const wpx = even(W * o.width);
         // A single decoded picture is repeated for as long as the video runs; the overlay is only visible inside its time window.
-        filters.push(`[${overlayInput.get(o.id)}:v]loop=loop=-1:size=1,setpts=N/${fps}/TB,scale=${wpx}:-2,format=rgba,colorchannelmixer=aa=${num(o.opacity)}${turn(o.rotation)}[ov${k}]`);
-        filters.push(`[${cur}][ov${k}]overlay=x=${num(o.x)}*${W}-w/2:y=${num(o.y)}*${H}-h/2:${when}[${next}]`);
+        filters.push(`[${overlayInput.get(o.id)}:v]loop=loop=-1:size=1,setpts=N/${fps}/TB,scale=${wpx}:-2,format=rgba,colorchannelmixer=aa=${num(o.opacity)}${turn(o.rotation)}${animate(o)}[ov${k}]`);
+        filters.push(`[${cur}][ov${k}]overlay=x='${num(o.x)}*${W}-w/2${motionOf(o).dx}':y='${num(o.y)}*${H}-h/2${motionOf(o).dy}':${when}[${next}]`);
       }
       cur = next;
     });
@@ -306,20 +330,7 @@ export function planRender(input                 )             {
     const sorted = [...texts].sort((a, b) => a.start - b.start);
     const plain = sorted.filter((t) => !t.rotation), turned = sorted.filter((t) => t.rotation);
     const total = Math.max(timelineDuration(doc), 0.1);
-    // Moves and fades for the way a title arrives and leaves, as ffmpeg expressions of time t.
-    const motion = (t                         , frameW        , frameH        ) => {
-      const seconds = t.animSeconds ?? 0.5, D = num(seconds), end = t.start + t.duration;
-      const pin = t.animIn && t.animIn !== "none" ? `min(1,max(0,(t-${num(t.start)})/${D}))` : null;
-      const pout = t.animOut && t.animOut !== "none" ? `min(1,max(0,(${num(end)}-t)/${D}))` : null;
-      const ease = (p        ) => `(${p}*(2-${p}))`;
-      const parts = (p               , kind                    , dir        ) => ({
-        dx: p && kind === "slide" ? `${dir === 1 ? "-" : "+"}(1-${ease(p)})*${frameW}*0.18` : "",
-        dy: p && kind === "rise" ? `${dir === 1 ? "+" : "-"}(1-${ease(p)})*${frameH}*0.06` : "",
-      });
-      const a = parts(pin, t.animIn, 1), b = parts(pout, t.animOut, -1);
-      const alpha = [pin, pout].filter(Boolean).join("*");
-      return { dx: a.dx + b.dx, dy: a.dy + b.dy, alpha: alpha || null, fadeIn: pin ? t.start : null, fadeOut: pout ? end : null, seconds };
-    };
+    const motion = layerMotion;
     const drawText = (t                         , file        , where                          , alpha               , withWindow         ) => {
       const fontSize = Math.max(8, Math.round(H * t.size));
       const opts = [
@@ -349,7 +360,7 @@ export function planRender(input                 )             {
       const file = check(t); if (!file) return;
       const m = motion(t, String(W), String(H));
       // A turned title is drawn on its own transparent canvas the size of the frame, turned about its centre, then laid over the picture.
-      const fades = (m.fadeIn !== null ? `,fade=t=in:st=${num(m.fadeIn)}:d=${num(m.seconds)}:alpha=1` : "") + (m.fadeOut !== null ? `,fade=t=out:st=${num(m.fadeOut - m.seconds)}:d=${num(m.seconds)}:alpha=1` : "");
+      const fades = layerFades(m);
       const next = k === turned.length - 1 ? target : `vt${k + 1}`;
       rotatedFilters.push(`color=c=black@0:s=${W}x${H}:r=${fps}:d=${num(total)},format=rgba,${drawText(t, file, { x: "(w-text_w)/2", y: "(h-text_h)/2" }, null, false)}${turn(t.rotation)}${fades}[tx${k}]`);
       rotatedFilters.push(`[${cur}][tx${k}]overlay=x='${num(t.x)}*${W}-w/2${m.dx}':y='${num(t.y)}*${H}-h/2${m.dy}':enable=between(t\\,${num(t.start)}\\,${num(t.start + t.duration)})[${next}]`);
