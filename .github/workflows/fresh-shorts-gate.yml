@@ -43,6 +43,7 @@ jobs:
           npm run test:fresh-machine-access
           npm run test:fresh-admin-access
           npm run test:fresh-web-push
+          npm run test:fresh-smoke-answer-check
           npm run test:fresh-mail-identity
           npm run test:fresh-moderation-review
           npm run test:fresh-provenance
