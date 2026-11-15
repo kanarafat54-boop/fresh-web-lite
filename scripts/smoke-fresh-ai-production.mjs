@@ -1,3 +1,5 @@
+import { judgeFreshFlowAnswer } from "./lib/fresh-flow-answer-check.mjs";
+
 const endpoint = process.env.FRESH_AI_SMOKE_URL || "https://fresh-web-lite.vercel.app/api/ai/ask";
 const goal = "Explain Fresh Flow and list the media formats available in it.";
 
@@ -29,9 +31,9 @@ if (payload.status !== "completed") {
 }
 
 const answer = typeof payload.answer === "string" ? payload.answer.trim() : "";
-const normalized = answer.toLowerCase();
-if (!answer || !normalized.includes("short") || !(normalized.includes("podcasts") || normalized.includes("music"))) {
-  throw new Error(`Fresh AI did not return grounded Fresh Flow knowledge. Answer was: ${answer || "(empty)"}`);
+const verdict = judgeFreshFlowAnswer(answer);
+if (!verdict.ok) {
+  throw new Error(`Fresh AI did not return grounded Fresh Flow knowledge (${verdict.reason}). Answer was: ${answer || "(empty)"}`);
 }
 
 console.log("Fresh AI production smoke test: PASS");
