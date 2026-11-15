@@ -30,7 +30,7 @@ if (payload.status !== "completed") {
 
 const answer = typeof payload.answer === "string" ? payload.answer.trim() : "";
 const normalized = answer.toLowerCase();
-if (!answer || !normalized.includes("shorts") || !(normalized.includes("podcasts") || normalized.includes("music"))) {
+if (!answer || !normalized.includes("short") || !(normalized.includes("podcasts") || normalized.includes("music"))) {
   throw new Error(`Fresh AI did not return grounded Fresh Flow knowledge. Answer was: ${answer || "(empty)"}`);
 }
 

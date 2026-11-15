@@ -12,7 +12,7 @@ Status: implemented, **not live** until the owner applies `supabase/migrations/2
 ## What it does not do
 - No writes of any kind. Any non-GET answers 405.
 - No physical-machine control. Planned capabilities are listed as `planned` and return 404.
-- No credential self-service: the owner issues credentials with `scripts/machine-issue-credential.mjs`.
+- No credential self-service for machines. Only the owner issues, revokes and disables credentials: in the Admin screen (Machine access section, owner only, served by `api/admin/users` actions `machine-*`) or with `scripts/machine-issue-credential.mjs`. A new token is shown once.
 
 ## Function limit
 The route is a rewrite to `api/ai/ask.ts` (`__fresh_machine` marker), so the API directory stays at 12 function files.
