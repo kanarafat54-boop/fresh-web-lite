@@ -67,7 +67,7 @@ export async function enablePush(userId: string): Promise<boolean> {
     const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_KEY) }));
     const row = subscriptionToRow(userId, sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } }, navigator.userAgent);
     if (!row) return false;
-    const { error } = await supabase.from("push_subscriptions").upsert(row, { onConflict: "endpoint" });
+    const { error } = await supabase.from("push_subscriptions").upsert(row, { onConflict: "endpoint", ignoreDuplicates: true });
     return !error;
   } catch { return false; }
 }
