@@ -118,6 +118,7 @@
     "test:fresh-user-blocks": "node --experimental-strip-types --no-warnings scripts/test-fresh-user-blocks.mjs",
     "test:fresh-predictions": "node --experimental-strip-types --no-warnings scripts/test-fresh-predictions.mjs",
     "test:fresh-machine-access": "node --experimental-strip-types --no-warnings scripts/test-fresh-machine-access.mjs",
+    "test:fresh-web-push": "node --experimental-strip-types --no-warnings scripts/test-fresh-web-push.mjs",
     "test:fresh-smoke-answer-check": "node scripts/test-fresh-smoke-answer-check.mjs",
     "test:fresh-admin-access": "node --experimental-strip-types --no-warnings scripts/test-fresh-admin-access.mjs",
     "test:fresh-mail-identity": "node --experimental-strip-types --no-warnings scripts/test-fresh-mail-identity.mjs",

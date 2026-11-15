@@ -28,9 +28,10 @@ export function buildDelivery(items: ActivityItem[], privacy: ShortsPrivacySetti
 }
 
 /** Plain-language status for the settings line. */
-export function deliveryStatus(permission: NotificationPermission | "unsupported", enabled: boolean): { label: string; canEnable: boolean; canDisable: boolean } {
+export function deliveryStatus(permission: NotificationPermission | "unsupported", enabled: boolean, pushOn = false): { label: string; canEnable: boolean; canDisable: boolean } {
   if (permission === "unsupported") return { label: "This browser cannot show device notifications.", canEnable: false, canDisable: false };
   if (permission === "denied") return { label: "Blocked in your browser settings. Allow notifications for Fresh there to turn this on.", canEnable: false, canDisable: false };
+  if (permission === "granted" && enabled && pushOn) return { label: "On. Notifications can reach this device even when Fresh is closed, once Fresh sends them.", canEnable: false, canDisable: true };
   if (permission === "granted" && enabled) return { label: "On. Shown while Fresh is open, including in other tabs. Not shown after you close Fresh.", canEnable: false, canDisable: true };
   return { label: "Off.", canEnable: true, canDisable: false };
 }

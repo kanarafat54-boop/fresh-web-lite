@@ -9,7 +9,7 @@ import { NOTIFICATION_CATEGORIES, applyState, clearAll, markAllRead, markRead, s
 import { loadNotificationState, saveNotificationState, type StateSource } from "../core/notificationStateStore";
 import ShortsAppealSheet from "./ShortsAppealSheet";
 import { deliveryStatus, readEnabled } from "../core/notificationDelivery";
-import { devicePermission, disableDeviceNotifications, enableDeviceNotifications } from "../core/notificationDeliveryRunner";
+import { devicePermission, disableDeviceNotifications, disablePush, enableDeviceNotifications, enablePush, pushIsOn } from "../core/notificationDeliveryRunner";
 import "./ShortsNotifications.css";
 
 const ICON: Record<ActivityKind, string> = { like: "❤", comment: "💬", reply: "↩", reaction: "✦", mention: "@", moderation: "⚑", "creator-update": "▶", repost: "🔁", remix: "✂", follow: "＋", gift: "🎁", system: "🔔" };
@@ -29,6 +29,9 @@ export default function ShortsNotifications({ onClose, onOpenCreator }: Props) {
   const [stateReady, setStateReady] = useState(false);
   const [deviceEnabled, setDeviceEnabled] = useState(() => { try { return readEnabled(localStorage); } catch { return false; } });
   const [devicePerm, setDevicePerm] = useState(() => devicePermission());
+  const [pushOn, setPushOn] = useState(false);
+  const userId = user?.id;
+  useEffect(() => { let alive = true; void pushIsOn().then((on) => { if (alive) setPushOn(on); }); return () => { alive = false; }; }, []);
   const [appealing, setAppealing] = useState<NonNullable<ActivityItem["appeal"]> | null>(null);
 
   useEffect(() => {
@@ -79,13 +82,13 @@ export default function ShortsNotifications({ onClose, onOpenCreator }: Props) {
             </label>
           ))}
           {(() => {
-            const status = deliveryStatus(devicePerm, deviceEnabled);
+            const status = deliveryStatus(devicePerm, deviceEnabled, pushOn);
             return (
               <div>
                 <strong>Device notifications</strong>
                 <p className="shorts-notify-note">{status.label}</p>
-                {status.canEnable ? <button type="button" onClick={() => { void enableDeviceNotifications().then((result) => { setDevicePerm(result); setDeviceEnabled(result === "granted"); }); }}>Turn on</button> : null}
-                {status.canDisable ? <button type="button" onClick={() => { disableDeviceNotifications(); setDeviceEnabled(false); }}>Turn off</button> : null}
+                {status.canEnable ? <button type="button" onClick={() => { void enableDeviceNotifications().then(async (result) => { setDevicePerm(result); setDeviceEnabled(result === "granted"); if (result === "granted" && userId) setPushOn(await enablePush(userId)); }); }}>Turn on</button> : null}
+                {status.canDisable ? <button type="button" onClick={() => { disableDeviceNotifications(); setDeviceEnabled(false); setPushOn(false); void disablePush(); }}>Turn off</button> : null}
               </div>
             );
           })()}
