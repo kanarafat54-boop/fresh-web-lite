@@ -567,3 +567,13 @@
 .fs-app .fs-empty-start { display: grid; gap: 4px; margin-top: 24px; padding: 20px; border-radius: 16px; border: 1px dashed rgba(165, 161, 255, 0.35); color: var(--fs-muted); }
 .fs-app .fs-empty-start strong { color: var(--fs-text); }
 @media (prefers-reduced-motion: reduce) { .fs-app .fs-quick-tile, .fs-app .fs-card { transition: none; } .fs-app .fs-quick-tile:hover:not(:disabled) { transform: none; } }
+
+/* Coloured stickers and emoji */
+.fs-editor .fs-sticker-art { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; margin-top: 8px; }
+.fs-editor .fs-art { display: flex; flex-direction: column; gap: 4px; }
+.fs-editor .fs-art-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border-radius: 12px; border: 1px solid var(--fs-line, rgba(255,255,255,.14)); background: rgba(255,255,255,.04); color: inherit; cursor: pointer; font-size: 12px; }
+.fs-editor .fs-art-btn img { width: 100%; height: 56px; object-fit: contain; }
+.fs-editor .fs-art-btn:hover:not(:disabled) { background: rgba(255,255,255,.1); }
+.fs-editor .fs-art-btn:disabled, .fs-editor .fs-emoji:disabled { opacity: .5; cursor: progress; }
+.fs-editor .fs-emoji { font-size: 30px; line-height: 1; padding: 8px 0; border-radius: 12px; border: 1px solid transparent; background: rgba(255,255,255,.04); cursor: pointer; font-variant-emoji: emoji; }
+.fs-editor .fs-emoji:hover:not(:disabled) { background: rgba(255,255,255,.12); }

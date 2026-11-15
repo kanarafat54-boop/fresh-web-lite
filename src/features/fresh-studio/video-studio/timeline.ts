@@ -185,7 +185,13 @@ export type OverlayLayer = {
   rotation?: number;
   /** #rrggbb, rectangles only. */
   color: string;
+  /** How the layer arrives and leaves. Every animation also fades; "pop" also grows from half size. Optional so older projects stay valid. */
+  animIn?: OverlayAnimation;
+  animOut?: OverlayAnimation;
+  animSeconds?: number;
 };
+export const OVERLAY_ANIMATIONS = ["none", "fade", "rise", "slide", "pop"] as const;
+export type OverlayAnimation = (typeof OVERLAY_ANIMATIONS)[number];
 export const MAX_ROTATION = 180;
 
 export type TimelineDoc = {
@@ -687,22 +693,29 @@ export function setCaptionStyle(doc: TimelineDoc, style: CaptionStyleId): Timeli
   if (style === "classic") { const { captionStyle: _drop, ...rest } = doc; return rest as TimelineDoc; }
   return doc.captionStyle === style ? doc : { ...doc, captionStyle: style };
 }
-/** Opacity and offset (fractions of frame width and height) of a title at `time`; mirrors what the export does. */
-export function textAnimationAt(t: TextLayer, time: number): { opacity: number; dx: number; dy: number } {
+/** Opacity, offset (fractions of frame width and height) and size factor of an animated layer at `time`; mirrors what the export does. */
+export function layerAnimationAt(t: { start: number; duration: number; animIn?: string; animOut?: string; animSeconds?: number }, time: number): { opacity: number; dx: number; dy: number; scale: number } {
   const d = t.animSeconds ?? DEFAULT_ANIM_SECONDS;
   const ease = (p: number) => p * (2 - p);
   const clamp = (v: number) => Math.min(1, Math.max(0, v));
-  let opacity = 1, dx = 0, dy = 0;
+  let opacity = 1, dx = 0, dy = 0, scale = 1;
   if (t.animIn && t.animIn !== "none") {
     const p = clamp((time - t.start) / d); opacity *= p;
     if (t.animIn === "slide") dx -= (1 - ease(p)) * 0.18;
     if (t.animIn === "rise") dy += (1 - ease(p)) * 0.06;
+    if (t.animIn === "pop") scale *= 0.5 + 0.5 * ease(p);
   }
   if (t.animOut && t.animOut !== "none") {
     const p = clamp((t.start + t.duration - time) / d); opacity *= p;
     if (t.animOut === "slide") dx += (1 - ease(p)) * 0.18;
     if (t.animOut === "rise") dy -= (1 - ease(p)) * 0.06;
+    if (t.animOut === "pop") scale *= 0.5 + 0.5 * ease(p);
   }
+  return { opacity, dx, dy, scale };
+}
+/** Same as layerAnimationAt, for titles (which cannot pop). */
+export function textAnimationAt(t: TextLayer, time: number): { opacity: number; dx: number; dy: number } {
+  const { opacity, dx, dy } = layerAnimationAt(t, time);
   return { opacity, dx, dy };
 }
 export const textsAt = (doc: TimelineDoc, time: number) => (doc.texts ?? []).filter((t) => time >= t.start - 1e-6 && time < t.start + t.duration - 1e-6);
@@ -720,6 +733,10 @@ export function validateOverlay(o: OverlayLayer, doc?: TimelineDoc): string | nu
   if (o.opacity < 0.05 || o.opacity > 1) return "Overlay opacity must be between 5% and 100%.";
   if (o.rotation !== undefined && (typeof o.rotation !== "number" || !Number.isFinite(o.rotation) || Math.abs(o.rotation) > MAX_ROTATION)) return "Overlay rotation must be between −180° and 180°.";
   if (o.kind === "rect" && !HEX.test(o.color)) return "Overlay colour is invalid.";
+  for (const a of [o.animIn, o.animOut]) if (a !== undefined && !OVERLAY_ANIMATIONS.includes(a)) return "Unknown overlay animation.";
+  if (o.animSeconds !== undefined && !(Number.isFinite(o.animSeconds) && o.animSeconds >= MIN_ANIM_SECONDS && o.animSeconds <= MAX_ANIM_SECONDS)) return `Animations take between ${MIN_ANIM_SECONDS} and ${MAX_ANIM_SECONDS} seconds.`;
+  const used = (o.animIn && o.animIn !== "none" ? 1 : 0) + (o.animOut && o.animOut !== "none" ? 1 : 0);
+  if (used > 0 && (o.animSeconds ?? DEFAULT_ANIM_SECONDS) * used > o.duration + 1e-6) return "The layer is too short for its animation. Show it longer or shorten the animation.";
   if (o.kind === "image") {
     if (typeof o.assetId !== "string") return "Overlay picture is missing.";
     if (doc && doc.assets.find((a) => a.id === o.assetId)?.kind !== "image") return "Overlay picture is not in this project.";
@@ -731,12 +748,18 @@ const findOverlay = (doc: TimelineDoc, id: string) => {
   if (!o) throw new TimelineError("That overlay no longer exists.");
   return o;
 };
+function tidyOverlayAnimation(o: OverlayLayer) {
+  if (o.animIn === "none") delete o.animIn;
+  if (o.animOut === "none") delete o.animOut;
+  if (!o.animIn && !o.animOut) delete o.animSeconds;
+}
 export function addOverlay(doc: TimelineDoc, input: { kind: "image" | "rect"; assetId?: string; start: number; duration?: number; id?: string; patch?: Partial<Omit<OverlayLayer, "id" | "kind" | "assetId">> }): TimelineDoc {
   if ((doc.overlays?.length ?? 0) >= MAX_OVERLAYS) throw new TimelineError(`A timeline can have at most ${MAX_OVERLAYS} overlays.`);
   const layer: OverlayLayer = {
     id: input.id ?? newId("overlay"), kind: input.kind, ...(input.kind === "image" ? { assetId: input.assetId } : {}),
     start: round3(Math.max(0, input.start)), duration: round3(input.duration ?? 3), x: 0.5, y: 0.5, width: input.kind === "image" ? 0.4 : 0.5, height: input.kind === "image" ? 0.4 : 0.15, opacity: 1, color: "#000000", ...input.patch,
   };
+  tidyOverlayAnimation(layer);
   const problem = validateOverlay(layer, doc);
   if (problem) throw new TimelineError(problem);
   return { ...doc, overlays: [...(doc.overlays ?? []), layer] };
@@ -744,6 +767,7 @@ export function addOverlay(doc: TimelineDoc, input: { kind: "image" | "rect"; as
 export function updateOverlay(doc: TimelineDoc, id: string, patch: Partial<Omit<OverlayLayer, "id" | "kind" | "assetId">>): TimelineDoc {
   const next: OverlayLayer = { ...findOverlay(doc, id), ...patch };
   next.start = round3(next.start); next.duration = round3(next.duration);
+  tidyOverlayAnimation(next);
   const problem = validateOverlay(next, doc);
   if (problem) throw new TimelineError(problem);
   return { ...doc, overlays: (doc.overlays ?? []).map((o) => (o.id === id ? next : o)) };

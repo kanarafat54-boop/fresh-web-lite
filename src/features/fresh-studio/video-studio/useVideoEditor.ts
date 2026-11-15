@@ -122,6 +122,26 @@ export function useVideoEditor(project: StudioProject, service: StudioProjectSer
     setBusy(null);
   }, [edit, notify, project.id]);
 
+  /** Adds a generated picture (a sticker) and puts it on the video in one undoable step. A picture with the same name is reused. */
+  const addPicture = useCallback(async (file: File, opts: { start: number; size: number; duration: number; animIn: T.OverlayAnimation; animSeconds: number }): Promise<string | null> => {
+    setBusy("Adding sticker…");
+    try {
+      const existing = docRef.current.assets.find((a) => a.kind === "image" && a.name === file.name && mediaRef.current[a.id] && !mediaRef.current[a.id].missing);
+      const entry = existing ? mediaRef.current[existing.id] : await importMediaFile(file, project.id);
+      if (!existing) setMedia((m) => ({ ...m, [entry.asset.id]: entry }));
+      const id = T.newId("overlay");
+      const aspect = entry.asset.width && entry.asset.height ? entry.asset.height / entry.asset.width : 1;
+      const ok = edit((d) => {
+        const withAsset = existing ? d : T.addAsset(d, entry.asset);
+        return T.addOverlay(withAsset, { kind: "image", assetId: entry.asset.id, start: opts.start, duration: opts.duration, id, patch: { width: opts.size, height: Math.min(1, opts.size * aspect), animIn: opts.animIn, animSeconds: opts.animSeconds } });
+      });
+      return ok ? id : null;
+    } catch (error) {
+      notify("error", error instanceof Error ? error.message : "Could not add that sticker.");
+      return null;
+    } finally { setBusy(null); }
+  }, [edit, notify, project.id]);
+
   const removeAsset = useCallback(async (assetId: string) => {
     const used = docRef.current.clips.some((c) => c.assetId === assetId) || T.overlayAssetIds(docRef.current).includes(assetId);
     if (used) { notify("error", "This file is used on the timeline. Delete its clips or overlays first."); return; }
@@ -173,5 +193,5 @@ export function useVideoEditor(project: StudioProject, service: StudioProjectSer
     setCaptionsState(fresh.meta.captions.map((c) => ({ ...c }))); dirty.current = false; blocked.current = false; setSaveState("saved");
   }, [service, project.id, onSaved]);
 
-  return { notify, doc, history, captions, setCaptions, selected, setSelected, playhead, setPlayhead, duration, media, saveState, busy, edit, undo, redo, canUndo: T.canUndo(history), canRedo: T.canRedo(history), importFiles, removeAsset, trimSilence, cutToBeat, reloadLatest, flushNow: () => flushRef.current() };
+  return { notify, doc, history, captions, setCaptions, selected, setSelected, playhead, setPlayhead, duration, media, saveState, busy, edit, undo, redo, canUndo: T.canUndo(history), canRedo: T.canRedo(history), importFiles, addPicture, removeAsset, trimSilence, cutToBeat, reloadLatest, flushNow: () => flushRef.current() };
 }

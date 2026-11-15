@@ -198,6 +198,15 @@ export function OverlayInspector({ layer, assetName, edit, duration }: { layer: 
             </div>
           </>
         )}
+        <div className="fs-label">How it arrives</div>
+        <div className="fs-chips" role="group" aria-label="Arrival animation">
+          {T.OVERLAY_ANIMATIONS.map((id) => { const on = (layer.animIn ?? "none") === id; return <button key={id} type="button" className={`fs-chip${on ? " is-active" : ""}`} aria-pressed={on} onClick={() => up({ animIn: id })}>{id === "none" ? "None" : id[0].toUpperCase() + id.slice(1)}</button>; })}
+        </div>
+        <div className="fs-label">How it leaves</div>
+        <div className="fs-chips" role="group" aria-label="Exit animation">
+          {T.OVERLAY_ANIMATIONS.map((id) => { const on = (layer.animOut ?? "none") === id; return <button key={id} type="button" className={`fs-chip${on ? " is-active" : ""}`} aria-pressed={on} onClick={() => up({ animOut: id })}>{id === "none" ? "None" : id[0].toUpperCase() + id.slice(1)}</button>; })}
+        </div>
+        {(layer.animIn || layer.animOut) && <Slider label="Takes" value={layer.animSeconds ?? T.DEFAULT_ANIM_SECONDS} min={T.MIN_ANIM_SECONDS} max={Math.min(T.MAX_ANIM_SECONDS, layer.duration)} step={0.1} format={(v) => `${v.toFixed(1)} s`} onCommit={(v) => up({ animSeconds: v })} />}
         <p className="fs-muted">Drag it in the preview to move it, or the white dot to resize. Drag its block on the timeline to retime it. Overlays sit above the video and below text.</p>
       </div>
     </>

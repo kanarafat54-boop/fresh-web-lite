@@ -157,6 +157,37 @@ assert.ok(blue(stat(render(start()), 2, centre)));
   assert.ok(plan.ok, plan.errors?.join("; ")); ff(...plan.args);
   assert.ok(Math.abs(duration(out) - T.timelineDuration(d)) < 0.2, "combined render keeps its length");
 }
+// ---------- animated layers ----------
+{
+  let d = start();
+  assert.throws(() => T.addOverlay(d, { kind: "rect", start: 0, patch: { animIn: "spin" } }), /Unknown overlay animation/);
+  assert.throws(() => T.addOverlay(d, { kind: "rect", start: 0, duration: 0.6, patch: { animIn: "pop", animOut: "fade", animSeconds: 0.5 } }), /too short/);
+  assert.equal(T.addOverlay(d, { kind: "rect", start: 0, patch: { animIn: "none" } }).overlays[0].animIn, undefined, "none is stored as nothing");
+  const a = T.layerAnimationAt({ start: 1, duration: 3, animIn: "pop", animOut: "fade", animSeconds: 0.5 }, 1);
+  assert.equal(a.opacity, 0); assert.equal(a.scale, 0.5);
+  const m = T.layerAnimationAt({ start: 1, duration: 3, animIn: "pop", animOut: "fade", animSeconds: 0.5 }, 2.5);
+  assert.deepEqual(m, { opacity: 1, dx: 0, dy: 0, scale: 1 });
+  assert.ok(T.layerAnimationAt({ start: 0, duration: 3, animIn: "slide" }, 0.1).dx < 0, "slides in from the left");
+  // a green bar that fades in: the centre is still mostly video just after it starts, fully green once settled; gone after it ends
+  d = T.addOverlay(d, { kind: "rect", start: 1, duration: 2, patch: { color: "#00ff00", animIn: "fade", animSeconds: 0.6 } });
+  const o = render(d);
+  const early = stat(o, 1.05, centre);
+  assert.ok(blue(early) || early.u > 150, `still the video at the start of the fade (${JSON.stringify(early)})`);
+  assert.ok(green(stat(o, 2, centre)), "fully there once settled");
+  assert.ok(blue(stat(o, 3.5, centre)), "gone after it ends");
+  // pop: a bar that grows from half size - at the start its far edge is not yet covered, settled it is
+  let p = T.addOverlay(start(), { kind: "rect", start: 1, duration: 2, patch: { color: "#00ff00", width: 0.5, height: 0.5, animIn: "pop", animSeconds: 1 } });
+  const po = render(p);
+  const edge = `crop=iw/32:ih/32:iw*0.72:ih*0.5`; // inside the full-size bar (right edge 0.75), outside the half-size one (0.625)
+  assert.ok(blue(stat(po, 1.1, edge)), "pop starts small");
+  assert.ok(green(stat(po, 2.5, edge)), "pop settles at full size");
+  // slide: a picture arriving from the left is left of its spot early on
+  let s = T.addOverlay(start(), { kind: "image", assetId: "logo", start: 0.5, duration: 3, patch: { width: 0.2, animIn: "slide", animSeconds: 1 } });
+  const so = render(s);
+  const spot = (fx) => `crop=iw/40:ih/40:iw*${fx}-iw/80:ih*0.5-ih/80`;
+  assert.ok(red(stat(so, 2, spot(0.5))), "settled in the middle");
+  assert.ok(blue(stat(so, 0.6, spot(0.5))), "not in the middle at the start");
+}
 // a missing picture file is reported, not silently skipped
 {
   const d = T.addOverlay(start(), { kind: "image", assetId: "logo", start: 0 });

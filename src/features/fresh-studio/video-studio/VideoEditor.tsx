@@ -8,6 +8,9 @@ import type { ExportPresetId } from "./renderPlan.ts";
 import { Icon, type IconName } from "./icons.tsx";
 import { useLayerDrag } from "./useLayerDrag.ts";
 import { STICKERS, stickerLayer } from "./stickers.ts";
+import { STICKER_ART, STICKER_GROUPS, cleanLabel } from "./stickerArt.ts";
+import { EMOJI_GROUPS } from "./stickerEmoji.ts";
+import { emojiToPng, svgToPng } from "./stickerRaster.ts";
 import { ClipInspector, OverlayInspector, TextInspector } from "./Inspector.tsx";
 import { ANALYSIS_SAMPLE_RATE } from "./audioAnalysis.ts";
 import { computePeaks, extractFilmstrip, filmstripCount, type Filmstrip } from "./mediaVisuals.ts";
@@ -18,7 +21,7 @@ import { useVideoEditor } from "./useVideoEditor.ts";
 import { STUDIO_HANDOFF_ACTION, stageStudioExport } from "../../creator/core/studioHandoff.ts";
 
 type Props = { project: StudioProject; service: StudioProjectService | null; onSaved: (p: StudioProject) => void; notify: (kind: "info" | "error", text: string) => void; onClose: () => void; signedIn: boolean; initialPanel?: Tab; onOpenShorts?: () => void };
-type Tab = "media" | "text" | "overlays" | "scenes" | "captions" | "smart" | "export";
+type Tab = "media" | "text" | "stickers" | "overlays" | "scenes" | "captions" | "smart" | "export";
 
 function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -83,6 +86,7 @@ const ratioOf = (a: string) => { const [w, h] = a.split(":").map(Number); return
 const PANELS: Array<{ id: Tab; label: string; icon: IconName }> = [
   { id: "media", label: "Media", icon: "media" },
   { id: "text", label: "Text", icon: "type" },
+  { id: "stickers", label: "Stickers", icon: "sparkles" },
   { id: "overlays", label: "Overlays", icon: "image" },
   { id: "scenes", label: "Scenes", icon: "scenes" },
   { id: "captions", label: "Captions", icon: "captions" },
@@ -299,6 +303,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
             <div className="fs-tabpanel">
               {panel === "media" && <MediaPanel ed={ed} onImport={openImport} onOverlay={(id) => addOverlayLayer("image", id)} onLayer={addAsLayer} />}
               {panel === "text" && <TextPanel ed={ed} onAdd={addTextLayer} />}
+              {panel === "stickers" && <StickersPanel ed={ed} playhead={playhead} onAdded={(id) => { ed.setSelected(id); }} />}
               {panel === "overlays" && <OverlaysPanel ed={ed} onAdd={addOverlayLayer} onImport={openImport} />}
               {panel === "scenes" && <ScenesPanel ed={ed} clip={selectedClip} ownerId={signedIn ? project.ownerId : null} thumbs={thumbs} onPick={(c) => { setPlaying(false); ed.setSelected(c.id); ed.setPlayhead(c.start); }} />}
               {panel === "captions" && <CaptionsPanel ed={ed} />}
@@ -334,7 +339,7 @@ export default function VideoEditor({ project, service, onSaved, notify, onClose
               const url = o.kind === "image" ? ed.media[o.assetId!]?.url : null;
               return (
                 <div key={o.id} className={`fs-overlay-item${selected === o.id ? " is-selected" : ""}`} data-testid={o.kind === "rect" ? "overlay-shape" : "overlay-picture"}
-                  style={{ left: `${o.x * 100}%`, top: `${o.y * 100}%`, width: `${o.width * 100}%`, ...(o.kind === "rect" ? { height: `${o.height * 100}%` } : {}), ...(o.rotation ? { transform: `translate(-50%, -50%) rotate(${o.rotation}deg)` } : {}) }}
+                  style={{ left: `${o.x * 100}%`, top: `${o.y * 100}%`, width: `${o.width * 100}%`, ...(o.kind === "rect" ? { height: `${o.height * 100}%` } : {}), ...(o.rotation || o.animIn || o.animOut ? (() => { const a = T.layerAnimationAt(o, playhead); return { opacity: a.opacity, transform: `translate(-50%, -50%) translate(${a.dx * 100}cqw, ${a.dy * 100}cqh)${a.scale !== 1 ? ` scale(${a.scale})` : ""}${o.rotation ? ` rotate(${o.rotation}deg)` : ""}` }; })() : {}) }}
                   onPointerDown={(e) => drag.begin(e, o.id, "overlay")} onPointerMove={drag.move} onPointerUp={drag.end} onPointerCancel={drag.end}>
                   {o.kind === "rect"
                     ? <div className="fs-overlay-fill" style={{ background: o.color, opacity: o.opacity }} />
@@ -468,7 +473,7 @@ function TextPanel({ ed, onAdd }: { ed: Ed; onAdd: (patch?: Partial<Omit<T.TextL
       <div className="fs-stickers" role="group" aria-label="Stickers">
         {STICKERS.map((st) => <button key={st.name} type="button" className="fs-sticker" aria-label={`Add ${st.name} sticker`} title={st.name} style={{ color: st.color }} onClick={() => onAdd(stickerLayer(st))}>{st.glyph}</button>)}
       </div>
-      <p className="fs-muted">Single-colour symbols that you can move, resize, turn and recolour like text. Colour emoji and animated sticker packs are not available.</p>
+      <p className="fs-muted">Single-colour symbols that you can recolour like text. For coloured stickers and emoji, open the Stickers tab.</p>
       <h3>Text on this video</h3>
       <ul className="fs-bin">
         {texts.length === 0 && <li className="fs-muted">No text yet.</li>}
@@ -480,6 +485,47 @@ function TextPanel({ ed, onAdd }: { ed: Ed; onAdd: (patch?: Partial<Omit<T.TextL
         ))}
       </ul>
       <p className="fs-muted">Text is drawn on the final video with the DejaVu Sans font. Pick a layer to restyle it; drag its block on the timeline to retime it.</p>
+    </div>
+  );
+}
+
+function StickersPanel({ ed, playhead, onAdded }: { ed: Ed; playhead: number; onAdded: (id: string) => void }) {
+  const [group, setGroup] = useState<string>("art:reactions");
+  const [words, setWords] = useState<Record<string, string>>({});
+  const [working, setWorking] = useState<string | null>(null);
+  const isEmoji = group.startsWith("emoji:");
+  const gid = group.slice(group.indexOf(":") + 1);
+  const art = STICKER_ART.filter((s) => s.group === gid);
+  const emoji = EMOJI_GROUPS.find((g) => g.id === gid);
+  const add = async (key: string, make: () => Promise<{ blob: Blob; width: number; height: number }>, label: string, size: number) => {
+    setWorking(key);
+    try {
+      const r = await make();
+      const id = await ed.addPicture(new File([r.blob], `${label}.png`, { type: "image/png" }), { start: playhead, size, animIn: "pop", animSeconds: 0.4, duration: 3 });
+      if (id) onAdded(id);
+    } catch (error) { ed.notify("error", error instanceof Error ? error.message : "Could not add that sticker."); }
+    finally { setWorking(null); }
+  };
+  return (
+    <div>
+      <div className="fs-chips" role="tablist" aria-label="Sticker groups">
+        {STICKER_GROUPS.map((g) => <button key={g.id} type="button" role="tab" aria-selected={group === `art:${g.id}`} className={`fs-chip${group === `art:${g.id}` ? " is-active" : ""}`} onClick={() => setGroup(`art:${g.id}`)}>{g.label}</button>)}
+        {EMOJI_GROUPS.map((g) => <button key={g.id} type="button" role="tab" aria-selected={group === `emoji:${g.id}`} className={`fs-chip${group === `emoji:${g.id}` ? " is-active" : ""}`} onClick={() => setGroup(`emoji:${g.id}`)}>{g.label}</button>)}
+      </div>
+      {!isEmoji && <p className="fs-muted">{STICKER_GROUPS.find((g) => g.id === gid)?.hint}</p>}
+      <div className="fs-sticker-art" role="group" aria-label="Coloured stickers">
+        {isEmoji && emoji?.items.map((e) => <button key={e} type="button" className="fs-emoji" aria-label={`Add ${e}`} disabled={!!working} onClick={() => void add(e, () => emojiToPng(e), `emoji-${Array.from(e, (c) => c.codePointAt(0)!.toString(16)).join("-")}`, 0.2)}>{e}</button>)}
+        {!isEmoji && art.map((s) => (
+          <div key={s.id} className="fs-art">
+            <button type="button" className="fs-art-btn" aria-label={`Add ${s.name} sticker`} disabled={!!working} onClick={() => { const label = s.text ? cleanLabel(words[s.id], s.text.fallback, s.text.max) : undefined; void add(s.id, () => svgToPng(s.build(label)), `sticker-${s.id}${label ? `-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 24)}` : ""}`, s.text ? 0.45 : 0.26); }}>
+              <img alt="" src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(s.build(words[s.id] ? cleanLabel(words[s.id], s.text?.fallback ?? "", s.text?.max ?? 12) : undefined))}`} draggable={false} />
+              <span>{s.name}</span>
+            </button>
+            {s.text && <input className="fs-input" aria-label={`${s.name} ${s.text.label.toLowerCase()}`} placeholder={s.text.fallback} maxLength={s.text.max} value={words[s.id] ?? ""} onChange={(e) => setWords((w) => ({ ...w, [s.id]: e.target.value }))} />}
+          </div>
+        ))}
+      </div>
+      <p className="fs-muted">Stickers are drawn as pictures and pop in when they appear. Move, resize, turn and retime them like any overlay. Emoji use your device&apos;s emoji font, so they look like they do on your phone or computer.</p>
     </div>
   );
 }
