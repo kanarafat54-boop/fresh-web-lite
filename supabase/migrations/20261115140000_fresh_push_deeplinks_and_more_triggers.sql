@@ -74,8 +74,15 @@ end;
 $$;
 revoke all on function public.push_on_short_like(), public.push_on_short_comment(), public.push_on_short_repost(), public.push_on_short_remix(), public.push_on_short_gift() from public, anon, authenticated;
 
-drop trigger if exists push_short_repost on public.short_reposts;
-create trigger push_short_repost after insert on public.short_reposts for each row execute function public.push_on_short_repost();
+-- short_reposts exists in production but is not created by any earlier migration, so attach the trigger only where it exists.
+do $$
+begin
+  if to_regclass('public.short_reposts') is not null then
+    drop trigger if exists push_short_repost on public.short_reposts;
+    create trigger push_short_repost after insert on public.short_reposts for each row execute function public.push_on_short_repost();
+  end if;
+end;
+$$;
 drop trigger if exists push_short_remix on public.shorts;
 create trigger push_short_remix after insert on public.shorts for each row when (new.remix_of_short_id is not null or new.duet_of_short_id is not null) execute function public.push_on_short_remix();
 drop trigger if exists push_short_gift on public.short_gifts;
