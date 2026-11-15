@@ -39,8 +39,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "create",
     label: "Create & work",
     items: [
-      { id: "studio", label: "Create", hint: "Publish shorts, posts and drafts", icon: "＋" },
-      { id: "creator", label: "Creator dashboard", hint: "Your content and audience", icon: "◈" },
+      { id: "studio", label: "Studio", hint: "Create, publish and grow, all in one place", icon: "＋", aliases: ["creator"] },
       { id: "work", label: "Work", hint: "Projects, tasks and business", icon: "▦" },
     ],
   },
@@ -90,7 +89,7 @@ export function isNavItemActive(item: NavItem, activeRoute?: string): boolean {
   return false;
 }
 
-/** The "creator" dashboard is part of the Create group for the mobile bar highlight. */
+/** The old "creator" route now lives inside Studio, so it highlights the Studio item (and the mobile bar). */
 export function isMobilePrimaryRoute(activeRoute?: string): boolean {
   const route = activeRoute ?? "";
   return ALL_NAV_ITEMS.filter((item) => (MOBILE_PRIMARY_IDS as readonly string[]).includes(item.id)).some((item) => isNavItemActive(item, route));

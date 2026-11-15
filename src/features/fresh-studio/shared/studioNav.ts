@@ -1,17 +1,25 @@
 /** Studio navigation (spec §4). */
 export const STUDIO_SECTIONS = [
-  { id: "home", label: "Home", icon: "⌂", ready: true },
-  { id: "projects", label: "Projects", icon: "▤", ready: true },
+  { id: "home", label: "Dashboard", icon: "⌂", ready: true },
+  { id: "projects", label: "Content", icon: "▤", ready: true },
   { id: "create", label: "Create", icon: "＋", ready: true },
+  { id: "publish", label: "Publish", icon: "↗", ready: true },
+  { id: "analytics", label: "Analytics", icon: "▲", ready: true },
+  { id: "audio", label: "Audio", icon: "♪", ready: true },
+  { id: "design", label: "Design", icon: "✎", ready: true },
+  { id: "distribute", label: "Distribute", icon: "⇄", ready: true },
+  { id: "earn", label: "Earn", icon: "◈", ready: true },
+  { id: "settings", label: "Settings", icon: "⚙", ready: true },
   { id: "ai", label: "AI Creation", icon: "✦", ready: false },
   { id: "assets", label: "Assets", icon: "▦", ready: false },
   { id: "templates", label: "Templates", icon: "❏", ready: false },
   { id: "brand", label: "Brand Kit", icon: "◐", ready: false },
-  { id: "publishing", label: "Publishing", icon: "↗", ready: false },
-  { id: "analytics", label: "Analytics", icon: "▲", ready: false },
   { id: "team", label: "Team", icon: "☺", ready: false },
-  { id: "settings", label: "Settings", icon: "⚙", ready: true },
 ] as const;
+
+/** Sections that show a page of the Creator dashboard inside Studio (the same publisher, analytics and tools as before). */
+export const CREATOR_TAB_SECTIONS = { publish: "publish", analytics: "analytics", audio: "audio", design: "design", distribute: "distribute", earn: "monetize" } as const;
+export type CreatorTabSection = keyof typeof CREATOR_TAB_SECTIONS;
 
 export type StudioSectionId = (typeof STUDIO_SECTIONS)[number]["id"];
 

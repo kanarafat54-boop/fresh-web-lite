@@ -543,6 +543,10 @@
 .fs-editor .fs-shorts-send { display: grid; gap: 6px; margin-top: 10px; }
 /* Suite look for the home and project screens: same tokens as the editor, scoped so nothing else changes */
 .fs-app { --fs-gold: #f5c542; --fs-glass: rgba(18, 18, 26, 0.72); }
+/* The embedded creator pages were drawn for a light page; give them Studio colours */
+.fs-app .fs-main { --surface: var(--fs-panel-2); --border-color: var(--fs-line); }
+.fs-app .fs-main .creator-studio-hero button, .fs-app .fs-main .creator-editor-actions button, .fs-app .fs-main .draft-row button, .fs-app .fs-main .creator-auth-banner button { background: var(--fs-panel-2); color: var(--fs-text); }
+.fs-app .fs-main .creator-mode-tabs button.active { background: var(--fs-panel-2); }
 .fs-app .fs-topbar { background: var(--fs-glass); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); }
 .fs-app .fs-welcome { position: relative; overflow: hidden; gap: 10px; padding: clamp(20px, 3.2vw, 36px); border-radius: 20px; border-color: rgba(165, 161, 255, 0.22); background: radial-gradient(900px 260px at 12% -10%, rgba(99, 91, 255, 0.28), transparent 60%), radial-gradient(600px 220px at 100% 0%, rgba(245, 197, 66, 0.10), transparent 60%), linear-gradient(180deg, #171526, var(--fs-panel)); }
 .fs-app .fs-welcome h1 { font-size: clamp(1.6rem, 3.4vw, 2.3rem); line-height: 1.15; letter-spacing: -0.01em; }
@@ -577,3 +581,9 @@
 .fs-editor .fs-art-btn:disabled, .fs-editor .fs-emoji:disabled { opacity: .5; cursor: progress; }
 .fs-editor .fs-emoji { font-size: 30px; line-height: 1; padding: 8px 0; border-radius: 12px; border: 1px solid transparent; background: rgba(255,255,255,.04); cursor: pointer; font-variant-emoji: emoji; }
 .fs-editor .fs-emoji:hover:not(:disabled) { background: rgba(255,255,255,.12); }
+
+.fs-app .fs-hub { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.fs-app .fs-hub-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; border-radius: 14px; border: 1px solid var(--fs-line); background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); color: var(--fs-text); text-align: left; cursor: pointer; transition: border-color .16s ease, transform .16s ease; }
+.fs-app .fs-hub-tile:hover { border-color: var(--fs-gold); transform: translateY(-2px); }
+.fs-app .fs-hub-tile span { font-size: 20px; color: var(--fs-gold); }
+.fs-app .fs-hub-tile small { color: var(--fs-muted); }

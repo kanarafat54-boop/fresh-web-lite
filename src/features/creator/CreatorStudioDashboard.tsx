@@ -39,7 +39,7 @@ type MediaItem = {
   scheduledAt?: string | null;
 };
 
-type StudioTab = "publish" | "analytics" | "distribute" | "design" | "audio" | "monetize";
+export type StudioTab = "publish" | "analytics" | "distribute" | "design" | "audio" | "monetize";
 
 const TABS: { id: StudioTab; label: string }[] = [
   { id: "publish", label: "Publish" },
@@ -111,10 +111,11 @@ async function uploadMedia(
   return { url: data.publicUrl, kind: isVideo ? "video" : "image" };
 }
 
-export default function CreatorStudioDashboard() {
+/** `fixedTab` shows one page of the dashboard (used inside Fresh Studio, which provides the navigation). */
+export default function CreatorStudioDashboard({ fixedTab, title, onOpenStudio }: { fixedTab?: StudioTab; title?: string; onOpenStudio?: () => void } = {}) {
   const { user } = useFreshId();
   const { setActiveRoute } = useLayout();
-  const [tab, setTab] = useState<StudioTab>(initialStudioTab);
+  const [tab, setTab] = useState<StudioTab>(() => fixedTab ?? initialStudioTab());
   const [mode, setMode] = useState<"post" | "short">("post");
   const [content, setContent] = useState("");
   const [longVideoTitle, setLongVideoTitle] = useState("");
@@ -449,11 +450,13 @@ export default function CreatorStudioDashboard() {
       <header className="creator-studio-hero">
         <div>
           <span className="workspace-eyebrow">CREATOR PRODUCTION</span>
-          <h1>Creator Studio</h1>
-          <p>
-            Publish for real. Analytics, distribution, brand, audio, and monetization start here — Studio holds the NLE
-            timeline.
-          </p>
+          <h1>{fixedTab ? (title ?? TABS.find((t) => t.id === fixedTab)?.label ?? "Studio") : "Creator Studio"}</h1>
+          {!fixedTab && (
+            <p>
+              Publish for real. Analytics, distribution, brand, audio, and monetization start here — Studio holds the NLE
+              timeline.
+            </p>
+          )}
           {intentMeta?.action && (
             <p className="creator-note">
               Opened from Fresh Flow{intentMeta.action !== "create" ? ` · ${intentMeta.action}` : ""}.
@@ -461,12 +464,16 @@ export default function CreatorStudioDashboard() {
           )}
         </div>
         <div className="creator-hero-actions">
-          <button type="button" onClick={() => setActiveRoute("studio")}>
-            Open Studio NLE
-          </button>
-          <button type="button" onClick={() => setActiveRoute("fresh-flow")}>
-            Fresh Flow
-          </button>
+          {!fixedTab && (
+            <>
+              <button type="button" onClick={() => setActiveRoute("studio")}>
+                Open Studio NLE
+              </button>
+              <button type="button" onClick={() => setActiveRoute("fresh-flow")}>
+                Fresh Flow
+              </button>
+            </>
+          )}
           <button type="button" onClick={() => void load()}>
             Refresh data
           </button>
@@ -497,7 +504,7 @@ export default function CreatorStudioDashboard() {
         ))}
       </div>
 
-      <nav className="creator-mode-tabs" aria-label="Creator sections">
+      {!fixedTab && <nav className="creator-mode-tabs" aria-label="Creator sections">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -509,7 +516,7 @@ export default function CreatorStudioDashboard() {
             {t.label}
           </button>
         ))}
-      </nav>
+      </nav>}
 
       {tab === "publish" && (
         <>
@@ -742,7 +749,7 @@ export default function CreatorStudioDashboard() {
           caption={content}
           hasMedia={!!media}
           isShort={mode === "short"}
-          onOpenStudio={() => setActiveRoute("studio")}
+          onOpenStudio={() => (onOpenStudio ? onOpenStudio() : setActiveRoute("studio"))}
           onApplyCaption={(text) => {
             setContent(text);
             setTab("publish");
