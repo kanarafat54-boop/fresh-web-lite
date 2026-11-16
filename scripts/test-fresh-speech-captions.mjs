@@ -1,36 +1,6 @@
 import assert from "node:assert/strict";
-import { downmixToMono, resample, normalizePeak, isSilent, prepareForSpeech, SPEECH_SAMPLE_RATE } from "../src/features/fresh-flow/core/speechAudio.ts";
-import { cleanSegmentText, wrapLines, cuesFromSpeech, segmentsFromWhisper } from "../src/features/fresh-flow/core/speechCues.ts";
-
-// Audio preparation.
-assert.deepEqual([...downmixToMono([new Float32Array([1, 0, 1]), new Float32Array([0, 1, 1])])], [0.5, 0.5, 1]);
-assert.equal(downmixToMono([]).length, 0);
-const mono = new Float32Array([0.1, 0.2]);
-assert.equal(downmixToMono([mono]), mono);
-const sine = (rate, seconds, hz) => Float32Array.from({ length: Math.floor(rate * seconds) }, (_, i) => Math.sin((2 * Math.PI * hz * i) / rate) * 0.5);
-const down = resample(sine(48000, 1, 440), 48000, 16000);
-assert.equal(down.length, 16000);
-let peak = 0; for (const v of down) peak = Math.max(peak, Math.abs(v));
-assert.ok(peak > 0.45 && peak < 0.51, `a 440 Hz tone survives downsampling, peak ${peak}`);
-const dc = resample(new Float32Array(44100).fill(0.25), 44100, 16000);
-assert.ok(dc.every((v) => Math.abs(v - 0.25) < 1e-6), "constant signal stays constant (no edge artefacts)");
-assert.equal(resample(mono, 16000, 16000), mono);
-assert.equal(resample(new Float32Array(0), 44100, 16000).length, 0);
-assert.throws(() => resample(mono, 0, 16000));
-// High frequencies the lower rate cannot hold are attenuated, not folded into the speech band.
-const hiss = resample(sine(48000, 1, 20000), 48000, 16000);
-let hissPeak = 0; for (const v of hiss) hissPeak = Math.max(hissPeak, Math.abs(v));
-assert.ok(hissPeak < 0.25, `ultrasonic content is attenuated (${hissPeak})`);
-assert.equal(normalizePeak(new Float32Array(4)).every((v) => v === 0), true);
-const quiet = normalizePeak(new Float32Array([0.01, -0.02]));
-assert.ok(Math.abs(quiet[1] + 0.16) < 1e-6, "gain capped at 8x");
-const loud = new Float32Array([0.95]); assert.equal(normalizePeak(loud), loud);
-assert.equal(isSilent(new Float32Array(1000)), true);
-assert.equal(isSilent(new Float32Array(0)), true);
-assert.equal(isSilent(sine(16000, 1, 200)), false);
-const prepared = prepareForSpeech([sine(48000, 2, 300), sine(48000, 2, 300)], 48000);
-assert.equal(prepared.samples.length, 2 * SPEECH_SAMPLE_RATE);
-assert.ok(Math.abs(prepared.seconds - 2) < 1e-6);
+import { wordsToCues } from "../src/features/fresh-studio/video-studio/speech.ts";
+import { cleanSegmentText, wrapLines, cuesFromSpeech, modelForLanguage, languageName } from "../src/features/fresh-flow/core/speechCues.ts";
 
 // Cleaning.
 for (const noise of ["[BLANK_AUDIO]", "(music)", " [Music] ", "♪", "♪ ♪", "*applause*", "", "   ", "...", "Thanks for watching!", "Thank you for watching.", "Subtitles by the Amara.org community"]) assert.equal(cleanSegmentText(noise), "", JSON.stringify(noise));
@@ -67,10 +37,15 @@ assert.deepEqual(cuesFromSpeech([{ text: "[Music]", start: 0, end: 5 }], 10), []
 // Unknown duration (0) does not clamp to nothing.
 assert.equal(cuesFromSpeech([{ text: "Hello.", start: 0, end: 2 }], 0).length, 1);
 
-// Model output.
-const out = { text: "hi there you", chunks: [{ text: " hi there", timestamp: [0, 1.5] }, { text: " you", timestamp: [1.5, null] }, { text: " junk", timestamp: ["x", 3] }] };
-assert.deepEqual(segmentsFromWhisper(out, 4), [{ text: " hi there", start: 0, end: 1.5 }, { text: " you", start: 1.5, end: 4 }]);
-assert.deepEqual(segmentsFromWhisper({ text: "just text" }, 5), [{ text: "just text", start: 0, end: 5 }]);
-assert.deepEqual(segmentsFromWhisper(null, 5), []);
-assert.deepEqual(segmentsFromWhisper({ chunks: [{ text: "a", timestamp: [2, null] }, { text: "b", timestamp: [3, null] }] }, 9), [{ text: "a", start: 2, end: 3 }, { text: "b", start: 3, end: 9 }]);
+// Model choice for Studio's shared engine.
+assert.equal(modelForLanguage("en", false), "Xenova/whisper-tiny.en");
+assert.equal(modelForLanguage("en", true), "Xenova/whisper-base.en");
+assert.equal(modelForLanguage("sw", true), "Xenova/whisper-tiny");
+assert.equal(modelForLanguage("", false), "Xenova/whisper-tiny");
+assert.equal(languageName("sw"), "swahili");
+assert.equal(languageName(""), undefined);
+// Studio words become Shorts cues through the shared grouping.
+const words = [{ text: "Hello", start: 0, end: 0.4 }, { text: "everyone.", start: 0.4, end: 1 }, { text: "Today", start: 2.5, end: 3 }, { text: "we", start: 3, end: 3.2 }, { text: "test", start: 3.2, end: 3.6 }];
+cues = cuesFromSpeech(wordsToCues(words).map((c) => ({ text: c.text, start: c.start, end: c.end })), 5);
+assert.deepEqual(cues.map((c) => c.text), ["Hello everyone.", "Today we test"]);
 console.log("speech captions ok");

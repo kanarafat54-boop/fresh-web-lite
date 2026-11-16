@@ -95,26 +95,19 @@ export function cuesFromSpeech(segments: SpeechSegment[], durationSeconds: numbe
 
 const round = (n: number) => Math.round(n * 100) / 100;
 
-/** Shape of what the on-device Whisper pipeline returns with timestamps on. A missing end means "until the next one starts". */
-export function segmentsFromWhisper(output: unknown, totalSeconds: number): SpeechSegment[] {
-  const chunks = (output as { chunks?: unknown } | null)?.chunks;
-  if (!Array.isArray(chunks)) {
-    const text = (output as { text?: unknown } | null)?.text;
-    return typeof text === "string" && text.trim() && totalSeconds > 0 ? [{ text: text.trim(), start: 0, end: totalSeconds }] : [];
-  }
-  const raw: Array<{ text: string; start: number; end: number | null }> = [];
-  for (const chunk of chunks) {
-    const c = chunk as { text?: unknown; timestamp?: unknown };
-    const ts = Array.isArray(c.timestamp) ? c.timestamp : [];
-    if (typeof c.text !== "string" || typeof ts[0] !== "number" || !Number.isFinite(ts[0])) continue;
-    raw.push({ text: c.text, start: ts[0], end: typeof ts[1] === "number" && Number.isFinite(ts[1]) ? ts[1] : null });
-  }
-  return raw.map((r, i) => ({ text: r.text, start: r.start, end: r.end ?? raw[i + 1]?.start ?? totalSeconds }));
-}
-
 export const SPEECH_LANGUAGES: Array<{ code: string; name: string }> = [
   { code: "en", name: "english" }, { code: "es", name: "spanish" }, { code: "fr", name: "french" }, { code: "de", name: "german" },
   { code: "pt", name: "portuguese" }, { code: "it", name: "italian" }, { code: "ar", name: "arabic" }, { code: "sw", name: "swahili" },
   { code: "hi", name: "hindi" }, { code: "tr", name: "turkish" }, { code: "ru", name: "russian" }, { code: "id", name: "indonesian" },
   { code: "ja", name: "japanese" }, { code: "ko", name: "korean" }, { code: "zh", name: "chinese" }, { code: "nl", name: "dutch" },
 ];
+
+/** Studio's shared speech engine takes English models for English and the multilingual model otherwise. */
+export function modelForLanguage(code: string, accurate: boolean): "Xenova/whisper-tiny.en" | "Xenova/whisper-base.en" | "Xenova/whisper-tiny" {
+  if (code === "en") return accurate ? "Xenova/whisper-base.en" : "Xenova/whisper-tiny.en";
+  return "Xenova/whisper-tiny";
+}
+
+export function languageName(code: string): string | undefined {
+  return SPEECH_LANGUAGES.find((l) => l.code === code)?.name;
+}
