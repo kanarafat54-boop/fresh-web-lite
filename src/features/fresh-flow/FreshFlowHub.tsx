@@ -91,7 +91,7 @@ export default function FreshFlowHub() {
   const systemRoutePrefix = "fresh-flow-system-";
   const independentSystem = section.startsWith(systemRoutePrefix) ? getFreshFlowSystem(section.slice(systemRoutePrefix.length)) : undefined;
   /** Creator Studio is the Shorts creator surface, so it keeps the Fresh Shorts header and controls. */
-  const shortsHeader = isShortsRoute || independentSystem?.id === "fresh-studio";
+  const shortsHeader = isShortsRoute;
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
