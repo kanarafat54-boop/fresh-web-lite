@@ -27,6 +27,8 @@ const checks = [
   ["Topbar keeps only useful global actions", "src/app/components/TopBar.tsx", ["Search anything across Fresh", "Open Fresh AI", "Notifications", "Open profile"]]
 ];
 
+const topBar = fs.readFileSync(path.join(root, "src/app/components/TopBar.tsx"), "utf8");
+if (topBar.includes('aria-label="Create"') || topBar.includes("openCreate")) throw new Error("Global top bar must not expose a separate Create shortcut");
 const desktopSidebar = fs.readFileSync(path.join(root, "src/app/components/DesktopSidebar.tsx"), "utf8");
 if (desktopSidebar.includes("fresh-sidebar-create") || desktopSidebar.includes('go("studio")')) throw new Error("Desktop navigation must not expose a separate global Create shortcut");
 const globalBottomNav = fs.readFileSync(path.join(root, "src/app/components/BottomNav.tsx"), "utf8");
