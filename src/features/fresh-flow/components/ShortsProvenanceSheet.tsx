@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { NOTE_MAX, ORIGINS, PROVENANCE_NOTICE, originLabel, type Declaration, type Origin } from "../core/provenance";
 import { checkAuthorChain, declareProvenance, loadProvenance } from "../core/provenanceService";
+import { fileCheckFor, verdictFor, VERIFICATION_NOTICE, type FileCheck } from "../core/originVerification";
+import { loadFingerprint, lookupFile, registerFingerprint, type FingerprintState } from "../core/originVerificationService";
 import "./shortsContextPanel.css";
 
 type Props = { shortId: string; authorId: string; authorName: string; onClose: () => void };
@@ -22,6 +24,9 @@ export default function ShortsProvenanceSheet({ shortId, authorId, authorName, o
   const [acknowledged, setAcknowledged] = useState(false);
   const [integrity, setIntegrity] = useState<string | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
+  const [fp, setFp] = useState<FingerprintState | null>(null);
+  const [fileCheck, setFileCheck] = useState<FileCheck | string | null>(null);
+  const [registering, setRegistering] = useState(false);
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -38,6 +43,23 @@ export default function ShortsProvenanceSheet({ shortId, authorId, authorName, o
     } catch { setError("Fresh could not load the origin. Check your connection and try again."); }
   }
   useEffect(() => { void refresh(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [shortId, authorId]);
+  useEffect(() => { void loadFingerprint(shortId).then(setFp); }, [shortId]);
+
+  async function registerNow() {
+    setRegistering(true);
+    await registerFingerprint(shortId);
+    setFp(await loadFingerprint(shortId));
+    setRegistering(false);
+  }
+
+  async function checkFile(file: File | undefined) {
+    if (!file) return;
+    setFileCheck("Reading the file on your device…");
+    try {
+      const { sha256, matches } = await lookupFile(file, (f) => setFileCheck(`Reading the file on your device… ${Math.round(f * 100)}%`));
+      setFileCheck(fileCheckFor(shortId, sha256, fp?.own ?? null, matches));
+    } catch { setFileCheck("Fresh could not read that file."); }
+  }
 
   async function declare() {
     if (busy) return;
@@ -68,6 +90,27 @@ export default function ShortsProvenanceSheet({ shortId, authorId, authorName, o
         {!available ? <p className="shorts-why-note">Origin declarations are not available yet.</p> : null}
         {available && declarations === null && !error ? <p>Loading…</p> : null}
         {available && declarations && !current ? <p>{authorName} has not declared where this Short comes from. That is not a sign it is good or bad; there is simply no declaration.</p> : null}
+        {fp?.available ? (() => {
+          const verdict = verdictFor(shortId, authorId, current?.origin ?? null, fp.own, fp.matches);
+          return (
+            <section className="shorts-context-section" aria-label="File fingerprint">
+              <h4>File fingerprint</h4>
+              {verdict.kind === "unregistered" ? <p>This Short's file has not been fingerprinted yet, so its origin cannot be checked against other copies.</p> : (
+                <>
+                  <p><strong>{verdict.headline}.</strong> {verdict.detail}</p>
+                  {verdict.kind === "earlier-copy" && verdict.conflict ? <p role="alert" className="shorts-why-note">Fresh is showing this because the declaration and the fingerprint disagree. It is not a ruling on who is right.</p> : null}
+                  {fp.own ? <p className="shorts-why-note">SHA-256 {fp.own.sha256.slice(0, 16)}… · {(fp.own.sizeBytes / 1048576).toFixed(1)} MB{fp.own.proofHash ? ` · seal ${fp.own.proofHash.slice(0, 12)}` : ""}</p> : null}
+                </>
+              )}
+              {isAuthor && verdict.kind === "unregistered" ? <div className="shorts-history-confirm"><button type="button" disabled={registering} onClick={() => void registerNow()}>{registering ? "Registering…" : "Register this file now"}</button></div> : null}
+              <label>Check a file you have against Fresh's records
+                <input type="file" accept="video/*,audio/*,image/*" onChange={(e) => void checkFile(e.target.files?.[0])} />
+              </label>
+              {typeof fileCheck === "string" ? <p role="status" className="shorts-why-note">{fileCheck}</p> : fileCheck ? <p role="status"><strong>{fileCheck.kind === "this-short" ? "Match." : fileCheck.kind === "registered-elsewhere" ? "Different origin." : "No record."}</strong> {fileCheck.detail}</p> : null}
+              <ul className="shorts-why-list">{VERIFICATION_NOTICE.map((line) => <li key={line}>{line}</li>)}</ul>
+            </section>
+          );
+        })() : null}
         {current ? (
           <section className="shorts-context-section">
             <h4>{originLabel(current.origin)} · declared by {authorName}</h4>

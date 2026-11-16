@@ -65,5 +65,7 @@ export async function publishFreshShort(input: PublishShortInput): Promise<Publi
 
   if (error) throw new Error(error.message || "Could not publish Short.");
   if (!data?.id) throw new Error("Publish succeeded but no Short id was returned.");
+  // Fingerprint the published file so its origin can be checked later. Best effort: a failure never blocks publishing.
+  void import("../../fresh-flow/core/originVerificationService").then((m) => m.registerFingerprint(String(data.id))).catch(() => undefined);
   return data as PublishShortResult;
 }
