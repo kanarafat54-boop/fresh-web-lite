@@ -65,7 +65,7 @@ if (home.includes("fresh-flow-home-shortcuts") || hub.includes(">Flow Home</butt
 for (const token of ["@media(max-width:720px)", "prefers-reduced-motion", "focus-visible"]) {
   if (!homeStyles.includes(token)) throw new Error(`Fresh Flow landing page missing responsive/accessibility support: ${token}`);
 }
-for (const token of ["system.label", "system.description", "system.capabilities", "LiveWorkspace", "MusicWorkspace", "Discover live", "Safety & controls", "Create playlist", "fresh-music-playlists"]) {
+for (const token of ["system.label", "system.description", "system.capabilities", "LiveWorkspace", "MusicWorkspace", "Discover live", "Safety & controls", "Create playlist", "fresh-music-playlists", "FreshStudioApp", "onOpenDeviceEditor"]) {
   if (!systemExperience.includes(token)) throw new Error(`Independent system experience missing system-specific contract or feature: ${token}`);
 }
 // The honesty label is user-facing copy ("Service connection needed"); match it
