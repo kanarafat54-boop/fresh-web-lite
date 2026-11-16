@@ -221,4 +221,7 @@ console.log("Fresh Studio foundation contract passed.");
   for (const keep of ["feed", "fresh-flow", "saved"]) assert.ok(ALL_NAV_ITEMS.some((i) => i.id === keep), `${keep} stays in the menu`);
 }
 
+const { isShortCreateAction } = await import("../src/features/creator/core/createIntent.ts");
+assert.ok(isShortCreateAction("upload"), "video upload intent must open the Short video publishing mode");
+
 console.log("Fresh Studio integration contract passed.");
