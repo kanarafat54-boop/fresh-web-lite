@@ -157,7 +157,7 @@ export function rowToProject(row: FreshProjectRow): StudioProject | null {
 /** Merge Studio meta into existing metadata, preserving legacy category and other feature keys. */
 export function metaToMetadata(existing: unknown, meta: StudioProjectMeta): Record<string, unknown> {
   const base = isRecord(existing) ? existing : {};
-  return { ...base, studio: meta, category: base.category ?? (meta.kind === "animation3d" ? "3d" : meta.kind) };
+  return { ...base, studio: meta, category: meta.kind === "animation3d" ? "3d" : meta.kind };
 }
 
 export function rowToVersion(row: StudioVersionRow): StudioProjectVersion | null {
