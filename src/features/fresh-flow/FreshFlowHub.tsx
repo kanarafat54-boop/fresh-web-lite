@@ -93,6 +93,7 @@ export default function FreshFlowHub() {
   /** Shorts keeps its capture header; Creator Studio uses the standard Fresh Flow media header. */
   const shortsHeader = isShortsRoute;
 
+  const [studioSourceSystemId, setStudioSourceSystemId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [shortsNotificationsOpen, setShortsNotificationsOpen] = useState(false);
@@ -281,7 +282,8 @@ export default function FreshFlowHub() {
           <FreshFlowSystemExperience
             system={independentSystem}
             onBack={() => setActiveRoute("fresh-flow")}
-            onOpenStudio={() => setActiveRoute("fresh-flow-system-fresh-studio")}
+            onOpenStudio={(systemId) => { setStudioSourceSystemId(systemId ?? null); setActiveRoute("fresh-flow-system-fresh-studio"); }}
+            initialSystemId={studioSourceSystemId}
             onNavigateRoute={(route) => setActiveRoute(route === "creator" ? "fresh-flow-system-fresh-studio" : route)}
             onOpenDeviceEditor={() => setActiveRoute("studio-device-editor")}
           />
