@@ -9,6 +9,8 @@ export type OpenOptions = { editor?: boolean; panel?: "media" | "text" | "captio
 /** What every Studio screen needs; passed as one prop so screens stay decoupled from the app shell. */
 export type StudioScreenProps = {
   state: StudioProjectsState;
+  /** Fresh Flow domain that launched this creation session, if any. */
+  sourceSystemId?: string;
   actions: ProjectActions;
   notify: Notify;
   goto: (section: StudioSectionId) => void;
