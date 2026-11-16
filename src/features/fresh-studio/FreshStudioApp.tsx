@@ -20,6 +20,8 @@ type Props = {
   onNavigateRoute: (route: string) => void;
   /** Open the existing on-device editor (video/photo import, trim, export). */
   onOpenDeviceEditor: () => void;
+  /** Reuse Fresh Flow chrome and its bottom navigation when embedded. */
+  embeddedInFlow?: boolean;
 };
 
 type Notice = { id: number; kind: "info" | "error"; text: string };
@@ -28,7 +30,7 @@ const ShortsStudio = lazy(() => import("../fresh-flow/components/ShortsStudio"))
 
 type View = { section: StudioSectionId; projectId: string | null; open?: OpenOptions };
 
-export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEditor }: Props) {
+export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEditor, embeddedInFlow = false }: Props) {
   const state = useStudioProjects();
   const [view, setView] = useState<View>(() => ({ section: readCreateIntent() ? "publish" : "home", projectId: null }));
   const [dashboardInstance, setDashboardInstance] = useState(0);
@@ -99,12 +101,12 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
   );
 
   return (
-    <div className="fs-app" data-source={state.source}>
+    <div className={`fs-app${embeddedInFlow ? " fs-app-embedded" : ""}`} data-source={state.source}>
       <header className="fs-topbar">
         <button type="button" className="fs-icon-btn fs-only-mobile" aria-label="Open Studio menu" aria-expanded={drawerOpen} onClick={() => setDrawerOpen((v) => !v)}>☰</button>
         <button type="button" className="fs-wordmark" onClick={() => goto("home")} aria-label="Fresh Studio home">Fresh <b>Studio</b></button>
         <div className="fs-topbar-spacer" />
-        <button type="button" className="fs-icon-btn" aria-label="Search projects" title="Search projects" onClick={() => goto("projects")}>⌕</button>
+        {!embeddedInFlow && <button type="button" className="fs-icon-btn" aria-label="Search projects" title="Search projects" onClick={() => goto("projects")}>⌕</button>}
         <div className="fs-menu-wrap">
           <button type="button" className="fs-icon-btn" aria-label="Notifications" title="Notifications" aria-expanded={bellOpen} onClick={() => { setBellOpen((v) => !v); setHelpOpen(false); }}>🔔{history.some((h) => h.kind === "error") && <span className="fs-dot" aria-hidden="true" />}</button>
           {bellOpen && (
@@ -122,7 +124,7 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
             </div>
           )}
         </div>
-        <button type="button" className="fs-icon-btn" aria-label="Your profile" title="Your profile" onClick={() => onNavigateRoute("profile")}>☺</button>
+        {!embeddedInFlow && <button type="button" className="fs-icon-btn" aria-label="Your profile" title="Your profile" onClick={() => onNavigateRoute("profile")}>☺</button>}
         <button type="button" className="fs-btn fs-btn-primary fs-hide-mobile" onClick={() => goto("create")}>＋ Create</button>
         <button type="button" className="fs-btn fs-hide-mobile" onClick={onBack}>Exit Studio</button>
       </header>
@@ -150,7 +152,7 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
         <main className="fs-main" ref={mainRef} tabIndex={-1}>{content}</main>
       </div>
 
-      <nav className="fs-bottombar" aria-label="Studio quick navigation">
+      {!embeddedInFlow && <nav className="fs-bottombar" aria-label="Studio quick navigation">
         {MOBILE_PRIMARY_SECTIONS.map((id) => {
           const s = STUDIO_SECTIONS.find((x) => x.id === id)!;
           return navItem(s.id, s.label, s.icon);
