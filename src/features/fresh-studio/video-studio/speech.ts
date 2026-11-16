@@ -90,3 +90,39 @@ export function describeFillers(fillers: readonly Word[]): string {
 
 /** Whisper-style models mark non-speech as [MUSIC] or (laughs); these are not captions. */
 export const isNonSpeech = (t: string) => /^[[(*♪].*[\])*♪]$/.test(t.trim()) || /^[♪\s]*$/.test(t);
+
+/**
+ * Whisper often leaves hesitation sounds out of its transcript. They still leave a trace: a stretch of speech-level
+ * sound in a gap between written words. This finds those stretches. It is a guess, so callers show it separately.
+ * Gaps are trimmed 0.1 s each side first because the model's word times are loose; a gap that is quiet, or whose sound
+ * is much quieter than the speech, is ignored. Music or noise under the speech at speech level will look like a hesitation.
+ */
+export function voicedGaps(words: readonly Word[], samples: Float32Array, rate: number, options: { minSeconds?: number; maxSeconds?: number; slack?: number } = {}): Word[] {
+  const minSeconds = options.minSeconds ?? 0.2, maxSeconds = options.maxSeconds ?? 1.5, slack = options.slack ?? 0.1;
+  const ws = cleanWords(words);
+  if (ws.length === 0) return [];
+  const frame = Math.max(1, Math.round(rate * 0.02)), frames = Math.floor(samples.length / frame);
+  const rms = new Float32Array(frames);
+  for (let f = 0; f < frames; f++) { let e = 0; for (let i = f * frame; i < (f + 1) * frame; i++) e += samples[i] * samples[i]; rms[f] = Math.sqrt(e / frame); }
+  const inWords: number[] = [];
+  for (const w of ws) for (let f = Math.floor(w.start / 0.02); f <= Math.min(frames - 1, Math.floor(w.end / 0.02)); f++) inWords.push(rms[f]);
+  if (inWords.length === 0) return [];
+  inWords.sort((a, b) => a - b);
+  const threshold = Math.max(inWords[Math.floor(inWords.length / 2)] * 0.35, 0.004);
+  const out: Word[] = [];
+  const gaps: Array<[number, number]> = [[0, ws[0].start]];
+  for (let i = 0; i + 1 < ws.length; i++) gaps.push([ws[i].end, ws[i + 1].start]);
+  for (const [g0, g1] of gaps) {
+    const a = Math.floor((g0 + slack) / 0.02), b = Math.min(frames, Math.floor((g1 - slack) / 0.02));
+    let runStart = -1, best: [number, number] | null = null;
+    for (let f = a; f <= b; f++) {
+      const loud = f < b && rms[f] >= threshold;
+      if (loud && runStart < 0) runStart = f;
+      if (!loud && runStart >= 0) { if (!best || f - runStart > best[1] - best[0]) best = [runStart, f]; runStart = -1; }
+    }
+    if (!best) continue;
+    const len = (best[1] - best[0]) * 0.02;
+    if (len >= minSeconds && len <= maxSeconds) out.push({ text: "(hesitation)", start: round3(best[0] * 0.02), end: round3(best[1] * 0.02) });
+  }
+  return out;
+}

@@ -7,8 +7,8 @@ import { detectSilenceFromSamples, ANALYSIS_SAMPLE_RATE } from "./audioAnalysis.
 import type { Cue } from "./captions.ts";
 import { importMediaFile, loadStoredMedia, removeStoredMedia, type MediaEntry } from "./mediaImport.ts";
 import * as T from "./timeline.ts";
-import { decodeForSpeech, MAX_SPEECH_SECONDS, transcribeSamples, type SpeechModelId, type SpeechProgress } from "./speechEngine.ts";
-import { describeFillers, fillerRanges, findFillers, wordsOnTimeline, wordsToCues, type Word } from "./speech.ts";
+import { decodeForSpeech, MAX_SPEECH_SECONDS, SPEECH_RATE, transcribeSamples, type SpeechModelId, type SpeechProgress } from "./speechEngine.ts";
+import { describeFillers, fillerRanges, findFillers, voicedGaps, wordsOnTimeline, wordsToCues, type Word } from "./speech.ts";
 
 export type EditorSave = "saved" | "saving" | "conflict" | "error";
 const AUTOSAVE_MS = 900;
@@ -169,6 +169,7 @@ export function useVideoEditor(project: StudioProject, service: StudioProjectSer
 
   /** Words the speech engine heard, by asset and model, in the source file's own seconds. Kept for this session only. */
   const speechRef = useRef(new Map<string, Word[]>());
+  const gapsRef = useRef(new Map<string, Word[]>());
   const [speechStatus, setSpeechStatus] = useState<SpeechProgress | null>(null);
   const speechAbort = useRef<AbortController | null>(null);
   const hearAsset = useCallback(async (assetId: string, model: SpeechModelId, language?: string): Promise<Word[]> => {
@@ -183,6 +184,7 @@ export function useVideoEditor(project: StudioProject, service: StudioProjectSer
     speechAbort.current = new AbortController();
     const words = await transcribeSamples(samples, { model, language, signal: speechAbort.current.signal, onProgress: setSpeechStatus });
     speechRef.current.set(key, words);
+    gapsRef.current.set(key, voicedGaps(words, samples, SPEECH_RATE));
     return words;
   }, []);
   const stopSpeech = useCallback(() => speechAbort.current?.abort(), []);
@@ -203,15 +205,18 @@ export function useVideoEditor(project: StudioProject, service: StudioProjectSer
   }, [hearAsset, setCaptions]);
 
   /** Cuts the filler sounds the speech engine heard out of the selected clip. */
-  const cutFillers = useCallback(async (clipId: string, model: SpeechModelId, language?: string): Promise<string> => {
+  const cutFillers = useCallback(async (clipId: string, model: SpeechModelId, options: { includeGaps?: boolean; language?: string } = {}): Promise<string> => {
     const clip = docRef.current.clips.find((c) => c.id === clipId);
     if (!clip) return "Select a clip first.";
     try {
-      const words = await hearAsset(clip.assetId, model, language);
-      const fillers = findFillers(words).filter((w) => w.start >= clip.sourceIn && w.end <= clip.sourceOut);
-      if (fillers.length === 0) return "No filler words were found. The speech engine often leaves them out of what it writes down.";
+      const words = await hearAsset(clip.assetId, model, options.language);
+      const inClip = (w: Word) => w.start >= clip.sourceIn && w.end <= clip.sourceOut;
+      const written = findFillers(words).filter(inClip);
+      const unwritten = options.includeGaps ? (gapsRef.current.get(`${clip.assetId}|${model}`) ?? []).filter(inClip) : [];
+      const fillers = [...written, ...unwritten];
+      if (fillers.length === 0) return options.includeGaps ? "No filler words or hesitation sounds were found." : "No written filler words were found. Whisper often leaves them out; tick the box to look for hesitation sounds it did not write down.";
       let message = "";
-      edit((d) => { const r = removeSilences(d, clipId, fillerRanges(fillers), { minSilence: 0, padding: 0, minRemove: 0.1 }); message = r.cuts === 0 ? "Nothing could be cut." : `${describeFillers(fillers)} Cut ${r.cuts} of them, ${r.removedSeconds.toFixed(1)} s in all. Undo restores it. Captions made before this no longer line up; write them again.`; return r.cuts === 0 ? d : r.doc; });
+      edit((d) => { const r = removeSilences(d, clipId, fillerRanges(fillers), { minSilence: 0, padding: 0, minRemove: 0.1 }); message = r.cuts === 0 ? "Nothing could be cut." : `${describeFillers(written)}${unwritten.length ? ` Plus ${unwritten.length} hesitation sound${unwritten.length === 1 ? "" : "s"} the model did not write down.` : ""} Cut ${r.cuts} of them, ${r.removedSeconds.toFixed(1)} s in all. Undo restores it. Captions made before this no longer line up; write them again.`; return r.cuts === 0 ? d : r.doc; });
       return message;
     } catch (error) { return error instanceof Error ? error.message : "Speech recognition failed."; }
     finally { setSpeechStatus(null); }

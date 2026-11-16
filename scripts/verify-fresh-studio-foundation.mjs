@@ -168,7 +168,9 @@ console.log("Fresh Studio foundation contract passed.");
 {
   const { STUDIO_SECTIONS, MOBILE_PRIMARY_SECTIONS } = await import(base + "shared/studioNav.ts");
   const { STUDIO_CAPABILITIES, CAPABILITY_STATUSES } = await import(base + "shared/studioCapabilities.ts");
-  assert.deepEqual(STUDIO_SECTIONS.map((s) => s.label), ["Home", "Projects", "Create", "AI Creation", "Assets", "Templates", "Brand Kit", "Publishing", "Analytics", "Team", "Settings"]);
+  assert.deepEqual(STUDIO_SECTIONS.map((s) => s.label), ["Dashboard", "Content", "Create", "Publish", "Analytics", "Audio", "Design", "Distribute", "Earn", "Settings", "AI Creation", "Assets", "Templates", "Brand Kit", "Team"]);
+  const { CREATOR_TAB_SECTIONS } = await import(base + "shared/studioNav.ts");
+  for (const id of Object.keys(CREATOR_TAB_SECTIONS)) assert.ok(STUDIO_SECTIONS.some((s) => s.id === id && s.ready), `${id} is a ready Studio section`);
   assert.ok(MOBILE_PRIMARY_SECTIONS.length <= 4, "mobile bottom bar must not be crowded");
   for (const c of STUDIO_CAPABILITIES) {
     assert.ok(CAPABILITY_STATUSES.includes(c.status));
@@ -190,6 +192,13 @@ console.log("Fresh Studio foundation contract passed.");
 
   const nav = fs.readFileSync(new URL("../src/app/navigation/navModel.ts", import.meta.url), "utf8");
   assert.doesNotMatch(nav, /fresh-studio/, "Fresh Flow navigation stays untouched");
+  // one creator entry: the old Creator dashboard now lives inside Studio and still highlights it
+  const { ALL_NAV_ITEMS, isNavItemActive } = await import("../src/app/navigation/navModel.ts");
+  assert.equal(ALL_NAV_ITEMS.filter((i) => i.id === "studio").length, 1);
+  assert.equal(ALL_NAV_ITEMS.some((i) => i.id === "creator"), false, "no second creator entry in the menu");
+  const studioItem = ALL_NAV_ITEMS.find((i) => i.id === "studio");
+  assert.ok(isNavItemActive(studioItem, "studio") && isNavItemActive(studioItem, "creator"), "the creator route highlights Studio");
+  for (const keep of ["feed", "fresh-flow", "saved"]) assert.ok(ALL_NAV_ITEMS.some((i) => i.id === keep), `${keep} stays in the menu`);
 }
 
 console.log("Fresh Studio integration contract passed.");

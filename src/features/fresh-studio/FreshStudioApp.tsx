@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./fresh-studio.css";
-import { COMING_SOON_SECTIONS, MOBILE_PRIMARY_SECTIONS, READY_SECTIONS, STUDIO_SECTIONS, type StudioSectionId } from "./shared/studioNav.ts";
+import { CREATOR_TAB_SECTIONS, COMING_SOON_SECTIONS, MOBILE_PRIMARY_SECTIONS, READY_SECTIONS, STUDIO_SECTIONS, type StudioSectionId } from "./shared/studioNav.ts";
 import type { StudioProject } from "./shared/types.ts";
 import type { OpenOptions, StudioScreenProps } from "./shared/context.ts";
 import { useStudioProjects } from "./projects/useStudioProjects.ts";
@@ -22,6 +22,8 @@ type Props = {
 };
 
 type Notice = { id: number; kind: "info" | "error"; text: string };
+const CreatorStudioDashboard = lazy(() => import("../creator/CreatorStudioDashboard"));
+
 type View = { section: StudioSectionId; projectId: string | null; open?: OpenOptions };
 
 export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEditor }: Props) {
@@ -70,10 +72,12 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
       content = <InfoSection title="Templates" summary="Ready-made starting points." capabilityIds={["design-studio"]} />; break;
     case "brand":
       content = <InfoSection title="Brand Kit" summary="Logos, fonts and brand styles." capabilityIds={["design-studio"]} />; break;
-    case "publishing":
-      content = <InfoSection title="Publishing" summary="Send finished work to Fresh destinations." capabilityIds={["publishing", "export-presets"]} actions={[{ label: "Open Fresh Flow", onClick: () => onNavigateRoute("fresh-flow") }]} />; break;
-    case "analytics":
-      content = <InfoSection title="Analytics" summary="Performance from real recorded events only." capabilityIds={["analytics"]} actions={[{ label: "Open Creator dashboard", onClick: () => onNavigateRoute("creator") }]} />; break;
+    case "publish": case "analytics": case "audio": case "design": case "distribute": case "earn":
+      content = (
+        <Suspense fallback={<p className="fs-muted" role="status">Loading…</p>}>
+          <CreatorStudioDashboard key={view.section} fixedTab={CREATOR_TAB_SECTIONS[view.section]} title={STUDIO_SECTIONS.find((s) => s.id === view.section)?.label} onOpenStudio={() => goto("create")} />
+        </Suspense>
+      ); break;
     case "team":
       content = <InfoSection title="Team" summary="Collaboration, reviews and approvals." capabilityIds={["collaboration"]} />; break;
     case "settings": content = <StudioSettings />; break;
