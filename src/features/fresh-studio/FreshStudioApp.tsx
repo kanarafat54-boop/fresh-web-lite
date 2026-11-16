@@ -12,6 +12,7 @@ import CreateProject from "./projects/CreateProject.tsx";
 import ProjectDetails from "./projects/ProjectDetails.tsx";
 import StudioSettings from "./settings/StudioSettings.tsx";
 import InfoSection from "./shared/InfoSection.tsx";
+import { readCreateIntent } from "../creator/core/createIntent";
 
 type Props = {
   onBack: () => void;
@@ -29,7 +30,8 @@ type View = { section: StudioSectionId; projectId: string | null; open?: OpenOpt
 
 export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEditor }: Props) {
   const state = useStudioProjects();
-  const [view, setView] = useState<View>({ section: "home", projectId: null });
+  const [view, setView] = useState<View>(() => ({ section: readCreateIntent() ? "publish" : "home", projectId: null }));
+  const [dashboardInstance, setDashboardInstance] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [notices, setNotices] = useState<Notice[]>([]);
@@ -47,6 +49,11 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
   }, []);
 
   const goto = useCallback((section: StudioSectionId) => { setView({ section, projectId: null }); setDrawerOpen(false); }, []);
+  useEffect(() => {
+    const openPublish = () => { setView({ section: "publish", projectId: null }); setDashboardInstance((value) => value + 1); setDrawerOpen(false); };
+    window.addEventListener("fresh-studio-open-publish", openPublish);
+    return () => window.removeEventListener("fresh-studio-open-publish", openPublish);
+  }, []);
   const openProject = useCallback((project: StudioProject, opts?: OpenOptions) => { setView({ section: "projects", projectId: project.id, open: opts }); setDrawerOpen(false); }, []);
 
   const actions = useProjectActions(state, notify);
@@ -77,7 +84,7 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
     case "publish": case "analytics": case "audio": case "design": case "distribute": case "earn":
       content = (
         <Suspense fallback={<p className="fs-muted" role="status">Loading…</p>}>
-          <CreatorStudioDashboard key={view.section} fixedTab={CREATOR_TAB_SECTIONS[view.section]} title={STUDIO_SECTIONS.find((s) => s.id === view.section)?.label} onOpenStudio={() => goto("create")} />
+          <CreatorStudioDashboard key={`${view.section}-${dashboardInstance}`} fixedTab={CREATOR_TAB_SECTIONS[view.section]} title={STUDIO_SECTIONS.find((s) => s.id === view.section)?.label} onOpenStudio={() => goto("create")} />
         </Suspense>
       ); break;
     case "team":
