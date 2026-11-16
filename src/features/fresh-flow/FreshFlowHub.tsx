@@ -286,7 +286,6 @@ export default function FreshFlowHub() {
             onOpenStudio={(systemId) => { setStudioSourceSystemId(systemId ?? null); setActiveRoute("fresh-flow-system-fresh-studio"); }}
             initialSystemId={studioSourceSystemId}
             onNavigateRoute={(route) => setActiveRoute(route === "creator" ? "fresh-flow-system-fresh-studio" : route)}
-            onOpenDeviceEditor={() => setActiveRoute("studio-device-editor")}
           />
         ) : section === "fresh-flow-long-videos" ? (
           <FreshFlowLongVideos />

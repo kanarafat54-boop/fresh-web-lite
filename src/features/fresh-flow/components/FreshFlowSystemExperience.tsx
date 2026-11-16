@@ -11,7 +11,8 @@ type Props = {
   onOpenStudio: (systemId?: string) => void;
   initialSystemId?: string | null;
   onNavigateRoute: (route: string) => void;
-  onOpenDeviceEditor: () => void;
+  /** Optional and unused: device tools open inside Creator Studio. */
+  onOpenDeviceEditor?: () => void;
 };
 
 const ICONS: Record<string, string> = {
@@ -116,7 +117,7 @@ function MusicWorkspace() {
   );
 }
 
-export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio, initialSystemId = null, onNavigateRoute, onOpenDeviceEditor }: Props) {
+export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio, initialSystemId = null, onNavigateRoute, onOpenDeviceEditor: _legacyDeviceEditor }: Props) {
   const isStudio = system.id === "fresh-studio";
   const isLive = system.id === "live-creation";
   const isMusic = system.id === "fresh-music";
@@ -124,7 +125,7 @@ export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio
   const secondaryActions = system.capabilities.slice(3);
   return (
     <div className={`fresh-flow-system-page system-${system.id}`}>
-      {isStudio ? <Suspense fallback={<p className="fresh-flow-system-note" role="status">Loading Creator Studio…</p>}><FreshStudioApp onBack={onBack} onNavigateRoute={onNavigateRoute} onOpenDeviceEditor={onOpenDeviceEditor} embeddedInFlow initialSystemId={initialSystemId} /></Suspense> : (<>
+      {isStudio ? <Suspense fallback={<p className="fresh-flow-system-note" role="status">Loading Creator Studio…</p>}><FreshStudioApp onBack={onBack} onNavigateRoute={onNavigateRoute} embeddedInFlow initialSystemId={initialSystemId} /></Suspense> : (<>
       <header className="fresh-flow-system-header">
         <button type="button" onClick={onBack} className="fresh-flow-system-back" aria-label="Back to Fresh Flow Home">‹ <span>Fresh Flow</span></button>
         <span className="fresh-flow-system-status">{isLive ? "Live production workspace" : isMusic ? "Music workspace" : "Independent system · implementation in progress"}</span>

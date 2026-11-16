@@ -63,7 +63,8 @@ function isLiveObjectUrl(url?: string | null): boolean {
   return !!url && url.startsWith("blob:");
 }
 
-export default function StudioWorkspace() {
+/** `embedded` is set when Creator Studio shows these tools inside itself, so the page does not offer a second Studio. */
+export default function StudioWorkspace({ embedded = false }: { embedded?: boolean } = {}) {
   const { setActiveRoute } = useLayout();
   const capabilities = getComputeCapabilities();
   const [mode, setMode] = useState<StudioMode>("start");
@@ -644,17 +645,17 @@ export default function StudioWorkspace() {
   return (
     <section className={`workspace-page studio-workspace${mode === "start" ? " studio-workspace-start" : ""}`} aria-label="Fresh Studio">
       <header className="workspace-hero studio-hero-compact">
-        <span className="workspace-eyebrow">Creation</span>
-        <h1>Fresh Studio</h1>
-        <p>Choose what you want to make. Start simple; advanced tools are available when you need them.</p>
+        <span className="workspace-eyebrow">{embedded ? "Device tools" : "Creation"}</span>
+        {embedded ? <h2>Camera, photo, video and film planning</h2> : <h1>Fresh Studio</h1>}
+        <p>{embedded ? "These tools work on files on this device and are part of Creator Studio." : "Choose what you want to make. Start simple; advanced tools are available when you need them."}</p>
         <div className="studio-hero-actions">
           {mode !== "start" && mode !== "camera" && (
             <>
               <button type="button" className="studio-btn-primary" onClick={() => (mode === "photo" ? photoFileRef.current?.click() : fileRef.current?.click())}>{mode === "photo" ? "Choose another photo" : "Import video"}</button>
               <button type="button" onClick={persist}>Save project</button>
               <button type="button" onClick={newProject}>New project</button>
-              <button type="button" onClick={openCreator}>Open Creator</button>
-              <button type="button" onClick={() => setActiveRoute("fresh-flow")}>Fresh Flow</button>
+              {!embedded && <button type="button" onClick={openCreator}>Open Creator</button>}
+              {!embedded && <button type="button" onClick={() => setActiveRoute("fresh-flow")}>Fresh Flow</button>}
             </>
           )}
         </div>
@@ -693,12 +694,12 @@ export default function StudioWorkspace() {
             <p>Pick one starting point. You can explore advanced controls later.</p>
           </div>
           <div className="studio-start-grid">
-            <button type="button" className="studio-start-card studio-start-card-primary" onClick={() => setMode("studio")}>
+            {!embedded && <button type="button" className="studio-start-card studio-start-card-primary" onClick={() => setActiveRoute("fresh-flow-system-fresh-studio")}>
               <span className="studio-start-icon" aria-hidden="true">▤</span>
               <strong>Studio dashboard</strong>
               <small>Projects, autosave and version history for every kind of creation.</small>
               <span className="studio-start-link">Open Studio →</span>
-            </button>
+            </button>}
             <button type="button" className="studio-start-card studio-start-card-primary" onClick={() => photoFileRef.current?.click()}>
               <span className="studio-start-icon" aria-hidden="true">▧</span>
               <strong>Edit a photo</strong>
@@ -723,12 +724,12 @@ export default function StudioWorkspace() {
               <small>Use your phone camera, switch between front and rear, and capture a high-resolution photo.</small>
               <span className="studio-start-link">Start camera →</span>
             </button>
-            <button type="button" className="studio-start-card" onClick={() => setActiveRoute("creator")}>
+            {!embedded && <button type="button" className="studio-start-card" onClick={() => setActiveRoute("creator")}>
               <span className="studio-start-icon" aria-hidden="true">▧</span>
               <strong>Design a post</strong>
               <small>Open Creator to compose and prepare content.</small>
               <span className="studio-start-link">Open Creator →</span>
-            </button>
+            </button>}
             <button type="button" className="studio-start-card" onClick={() => setMode("pipeline")}>
               <span className="studio-start-icon" aria-hidden="true">⚙</span>
               <strong>Advanced tools</strong>

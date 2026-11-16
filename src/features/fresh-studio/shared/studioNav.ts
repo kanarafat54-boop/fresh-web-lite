@@ -4,6 +4,7 @@ export const STUDIO_SECTIONS = [
   { id: "shorts", label: "Shorts", icon: "▶", ready: true },
   { id: "projects", label: "Content", icon: "▤", ready: true },
   { id: "create", label: "Create", icon: "＋", ready: true },
+  { id: "tools", label: "Device tools", icon: "◉", ready: true },
   { id: "publish", label: "Publish", icon: "↗", ready: true },
   { id: "analytics", label: "Analytics", icon: "▲", ready: true },
   { id: "audio", label: "Audio", icon: "♪", ready: true },

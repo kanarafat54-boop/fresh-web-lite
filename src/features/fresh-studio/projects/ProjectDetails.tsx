@@ -202,9 +202,9 @@ export default function ProjectDetails({ projectId, startOpen, state, notify, go
       {base.meta.kind !== "video" && (
         <section className="fs-panel" aria-label="Open in an editor">
           <h2>Editing</h2>
-          <p className="fs-muted">A Studio editor for this kind of project is not built yet. You can use the existing tools; they are not linked to this project&apos;s files.</p>
+          <p className="fs-muted">A full Studio editor for this kind of project is not built yet. Camera, photo, video and film-planning tools open inside Studio; they are not linked to this project&apos;s files.</p>
           <div className="fs-actions">
-            <button type="button" className="fs-btn" onClick={openDeviceEditor}>Open device editor</button>
+            <button type="button" className="fs-btn" onClick={openDeviceEditor}>Open device tools</button>
             <button type="button" className="fs-btn" onClick={() => navigateRoute("ai")}>Open Fresh AI</button>
           </div>
         </section>

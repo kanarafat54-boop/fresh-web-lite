@@ -185,7 +185,7 @@ console.log("Fresh Studio foundation contract passed.");
 {
   const { STUDIO_SECTIONS, MOBILE_PRIMARY_SECTIONS } = await import(base + "shared/studioNav.ts");
   const { STUDIO_CAPABILITIES, CAPABILITY_STATUSES } = await import(base + "shared/studioCapabilities.ts");
-  assert.deepEqual(STUDIO_SECTIONS.map((s) => s.label), ["Dashboard", "Shorts", "Content", "Create", "Publish", "Analytics", "Audio", "Design", "Distribute", "Earn", "Settings", "AI Creation", "Assets", "Templates", "Brand Kit", "Team"]);
+  assert.deepEqual(STUDIO_SECTIONS.map((s) => s.label), ["Dashboard", "Shorts", "Content", "Create", "Device tools", "Publish", "Analytics", "Audio", "Design", "Distribute", "Earn", "Settings", "AI Creation", "Assets", "Templates", "Brand Kit", "Team"]);
   const { CREATOR_TAB_SECTIONS } = await import(base + "shared/studioNav.ts");
   for (const id of Object.keys(CREATOR_TAB_SECTIONS)) assert.ok(STUDIO_SECTIONS.some((s) => s.id === id && s.ready), `${id} is a ready Studio section`);
   assert.ok(MOBILE_PRIMARY_SECTIONS.length <= 4, "mobile bottom bar must not be crowded");
@@ -223,11 +223,13 @@ console.log("Fresh Studio foundation contract passed.");
   assert.match(registry, /id: "studio".*searchable: false/);
   assert.match(registry, /id: "creator".*searchable: false/);
   const flowHub = fs.readFileSync(new URL("../src/features/fresh-flow/FreshFlowHub.tsx", import.meta.url), "utf8");
-  assert.match(flowHub, /onOpenDeviceEditor=\{\(\) => setActiveRoute\("studio-device-editor"\)\}/, "Quick edit still opens the original device editor");
+  assert.doesNotMatch(flowHub, /setActiveRoute\("studio-device-editor"\)/, "Quick edit no longer leaves Studio for a second workspace");
   const unifiedExperience = fs.readFileSync(new URL("../src/features/fresh-flow/components/FreshFlowSystemExperience.tsx", import.meta.url), "utf8");
   const studioApp = fs.readFileSync(new URL("../src/features/fresh-studio/FreshStudioApp.tsx", import.meta.url), "utf8");
   assert.match(unifiedExperience, /FreshStudioApp onBack=\{onBack\}/, "Fresh Flow Creator Studio loads the unified Studio shell");
   assert.match(studioApp, /ShortsStudio embedded/, "Shorts insights remain available inside unified Studio");
+  assert.match(studioApp, /DeviceTools embedded/, "camera, photo, video and Director tools open inside unified Studio");
+  assert.match(studioApp, /openDeviceEditor: openTools/, "Quick edit and Create-from-import open the in-Studio tools");
   for (const keep of ["feed", "fresh-flow", "saved"]) assert.ok(ALL_NAV_ITEMS.some((i) => i.id === keep), `${keep} stays in the menu`);
 }
 

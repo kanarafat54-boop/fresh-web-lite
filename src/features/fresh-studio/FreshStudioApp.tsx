@@ -19,7 +19,8 @@ type Props = {
   /** Navigate to another Fresh Web Lite route id such as "ai", "creator" or "fresh-flow". */
   onNavigateRoute: (route: string) => void;
   /** Open the existing on-device editor (video/photo import, trim, export). */
-  onOpenDeviceEditor: () => void;
+  /** Kept for older callers. Device tools now open inside Studio, so this is no longer used. */
+  onOpenDeviceEditor?: () => void;
   /** Reuse Fresh Flow chrome and its bottom navigation when embedded. */
   embeddedInFlow?: boolean;
   /** Fresh Flow media domain that opened Studio's Create workflow. */
@@ -28,11 +29,12 @@ type Props = {
 
 type Notice = { id: number; kind: "info" | "error"; text: string };
 const CreatorStudioDashboard = lazy(() => import("../creator/CreatorStudioDashboard"));
+const DeviceTools = lazy(() => import("../workspaces/StudioWorkspace"));
 const ShortsStudio = lazy(() => import("../fresh-flow/components/ShortsStudio"));
 
 type View = { section: StudioSectionId; projectId: string | null; open?: OpenOptions };
 
-export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEditor, embeddedInFlow = false, initialSystemId = null }: Props) {
+export default function FreshStudioApp({ onBack, onNavigateRoute, embeddedInFlow = false, initialSystemId = null }: Props) {
   const state = useStudioProjects();
   const [view, setView] = useState<View>(() => ({ section: readCreateIntent() ? "publish" : "home", projectId: null }));
   const [dashboardInstance, setDashboardInstance] = useState(0);
@@ -60,6 +62,7 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
   }, []);
   const openProject = useCallback((project: StudioProject, opts?: OpenOptions) => { setView({ section: "projects", projectId: project.id, open: opts }); setDrawerOpen(false); }, []);
 
+  const openTools = useCallback(() => goto("tools"), [goto]);
   const actions = useProjectActions(state, notify);
   const { handle: onCardAction, dialogs } = useCardActions(actions, notify, openProject);
 
@@ -69,19 +72,20 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
   const screen: StudioScreenProps = useMemo(() => ({
     state, actions, notify, goto, openProject, onCardAction,
     sourceSystemId: initialSystemId ?? undefined,
-    navigateRoute: onNavigateRoute, openDeviceEditor: onOpenDeviceEditor,
-  }), [state, actions, notify, goto, openProject, onCardAction, initialSystemId, onNavigateRoute, onOpenDeviceEditor]);
+    navigateRoute: onNavigateRoute, openDeviceEditor: openTools,
+  }), [state, actions, notify, goto, openProject, onCardAction, initialSystemId, onNavigateRoute, openTools]);
 
   let content;
   switch (view.section) {
     case "home": content = <StudioHome {...screen} />; break;
+    case "tools": content = <Suspense fallback={<p className="fs-muted" role="status">Loading tools…</p>}><DeviceTools embedded /></Suspense>; break;
     case "shorts": content = <Suspense fallback={<p className="fs-muted" role="status">Loading Shorts insights…</p>}><ShortsStudio embedded /></Suspense>; break;
     case "projects": content = view.projectId ? <ProjectDetails key={view.projectId} projectId={view.projectId} startOpen={view.open} {...screen} /> : <ProjectsView {...screen} />; break;
     case "create": content = <CreateProject {...screen} />; break;
     case "ai":
       content = <InfoSection title="AI Creation" summary="Generate and transform media with Fresh AI." capabilityIds={["ai-creation"]} actions={[{ label: "Open Fresh AI", onClick: () => onNavigateRoute("ai") }]} />; break;
     case "assets":
-      content = <InfoSection title="Assets" summary="Your media library." capabilityIds={["asset-library"]} actions={[{ label: "Import in the device editor", onClick: onOpenDeviceEditor }]} />; break;
+      content = <InfoSection title="Assets" summary="Your media library." capabilityIds={["asset-library"]} actions={[{ label: "Import in the device editor", onClick: openTools }]} />; break;
     case "templates":
       content = <InfoSection title="Templates" summary="Ready-made starting points." capabilityIds={["design-studio"]} />; break;
     case "brand":
