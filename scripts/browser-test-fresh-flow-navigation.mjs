@@ -238,6 +238,25 @@ for (const width of WIDTHS) {
   check(await page.locator(".fresh-long-player").getAttribute("aria-label") === "The Long Journey — Chapter One", `${tag} shared video deep link opens the correct cinema player`);
   await page.locator(".fresh-long-player-bar button[aria-label='Close cinema player']").click();
 
+  // Direct legacy /studio URLs resolve to the canonical in-Flow Creator Studio.
+  await page.evaluate(() => {
+    window.history.replaceState({ freshRoute: "studio" }, "", "/studio");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await page.waitForSelector(".fs-app-embedded", { timeout: 10000 });
+  check(await page.locator("nav.fresh-flow-bottom-nav:visible").count() === 1, `${tag} legacy /studio URL opens the unified Studio inside Fresh Flow`);
+  // The old on-device editor remains available through its own internal route.
+  await page.getByRole("button", { name: "Open Studio menu" }).click();
+  await page.locator('nav[aria-label="Studio sections"]').getByRole("button", { name: "Dashboard", exact: true }).click();
+  await page.getByRole("button", { name: "Quick edit a file on this device" }).click();
+  await page.waitForSelector(".studio-workspace", { timeout: 10000 });
+  check(new URL(page.url()).pathname === "/studio-editor", `${tag} Quick edit still opens the legacy device editor, not the Creator Studio alias`);
+  await page.evaluate(() => {
+    window.history.replaceState({ freshRoute: "fresh-flow-long-videos" }, "", "/fresh-flow-long-videos");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await page.waitForSelector(".fresh-long", { timeout: 10000 });
+
   // The Long Videos upload handoff must open Creator Studio in video-only mode.
   await page.evaluate(() => {
     sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: "long-video", requestedAt: new Date().toISOString() }));
@@ -245,6 +264,8 @@ for (const width of WIDTHS) {
     window.history.replaceState({ freshRoute: "creator" }, "", "/creation");
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
+  await page.waitForSelector(".fs-app-embedded", { timeout: 10000 });
+  check(await page.locator(".creator-studio-dashboard").count() === 1, `${tag} legacy /creation URL opens the unified Studio shell and retains the existing publisher`);
   await page.waitForSelector(".creator-studio-dashboard", { timeout: 10000 });
   const longVideoMode = page.locator(".creator-mode-switch button", { hasText: "Long Video" });
   await longVideoMode.waitFor({ state: "visible", timeout: 10000 });
