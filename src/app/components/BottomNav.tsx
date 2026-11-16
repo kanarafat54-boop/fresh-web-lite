@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { HomeIcon, FeedIcon, AIIcon, PlusIcon, MoreIcon } from "../../components/Icons";
+import { HomeIcon, FeedIcon, AIIcon, MoreIcon } from "../../components/Icons";
 import { useLayout } from "../contexts/useLayout";
 import { ALL_NAV_ITEMS, isMobilePrimaryRoute, isNavItemActive } from "../navigation/navModel";
 import MoreSheet from "./MoreSheet";
 import * as ShortsIcons from "../../features/fresh-flow/components/shortsIcons";
 import "./BottomNav.css";
 
-/** Mobile bar: Home · Flow · Create · AI · More. "More" opens every other workspace, grouped by purpose. */
+/** Mobile bar: Home · Flow · AI · More. Creator Studio lives inside Fresh Flow. */
 type BottomDestination = { id: string; label: string; icon: typeof HomeIcon };
 const primaryDestinations: BottomDestination[] = [
   { id: "feed", label: "Home", icon: HomeIcon },
   { id: "fresh-flow", label: "Flow", icon: FeedIcon },
-  { id: "studio", label: "Create", icon: PlusIcon },
   { id: "ai", label: "AI", icon: AIIcon },
 ];
 
