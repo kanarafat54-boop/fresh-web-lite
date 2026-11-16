@@ -7,7 +7,7 @@ const MAX_CUE_SECONDS = 6;
 const MIN_CUE_SECONDS = 0.8;
 
 // Things speech models print for silence, music or noise. They are not words anyone said.
-const NOISE_TAG = /^[\s♪♫🎵]*[\[(*][^\])*]{0,40}[\])*][\s♪♫🎵]*$/;
+const NOISE_TAG = /^[\s♪♫\u{1F3B5}]*[[(*][^\])*]{0,40}[\])*][\s♪♫\u{1F3B5}]*$/u;
 const HALLUCINATIONS = [/^thanks? for watching[.!]*$/i, /^thank you for watching[.!]*$/i, /^please subscribe[.!]*$/i, /^subtitles? by .*/i, /^amara\.org.*/i];
 
 export function cleanSegmentText(raw: string): string {
