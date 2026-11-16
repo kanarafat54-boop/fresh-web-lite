@@ -37,3 +37,21 @@ for (const token of ["getFreshFlowStudioProfile", "getFreshFlowStudioProfilesByW
 }
 assert.match(integration, /does not claim that a provider, editor, or publishing destination is live/i);
 console.log("Fresh Flow → Creator Studio domain integration: PASS (24/24 systems)");
+
+const projectService = readFileSync("src/features/fresh-studio/projects/projectService.ts", "utf8");
+const projectMapping = readFileSync("src/features/fresh-studio/projects/projectMapping.ts", "utf8");
+const createProject = readFileSync("src/features/fresh-studio/projects/CreateProject.tsx", "utf8");
+const studioApp = readFileSync("src/features/fresh-studio/FreshStudioApp.tsx", "utf8");
+const systemExperience = readFileSync("src/features/fresh-flow/components/FreshFlowSystemExperience.tsx", "utf8");
+const flowHub = readFileSync("src/features/fresh-flow/FreshFlowHub.tsx", "utf8");
+for (const [source, token, label] of [
+  [projectService, "sourceSystemId", "project creation accepts the source system"],
+  [projectService, "sourceSystemId ?? null", "project creation persists source system metadata"],
+  [projectMapping, "stored?.sourceSystemId", "project loading restores source system metadata"],
+  [createProject, "resolveStudioKindForFreshFlowSystem", "domain entry resolves to a Studio media kind"],
+  [createProject, "sourceSystemId });", "created project retains domain origin"],
+  [studioApp, "initialSystemId", "Studio receives the originating domain"],
+  [systemExperience, "onOpenStudio(system.id)", "each system launches Studio with its own origin"],
+  [flowHub, "setStudioSourceSystemId(systemId ?? null)", "Flow carries domain origin into Studio"],
+]) assert.ok(source.includes(token), label);
+console.log("Fresh Flow → Creator Studio creation-origin handoff: PASS");
