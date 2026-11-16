@@ -1,12 +1,15 @@
-import ShortsStudio from "./ShortsStudio";
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import type { FreshFlowIndependentSystem } from "../core/freshFlowSystemRegistry";
 import "./FreshFlowSystemExperience.css";
+
+const FreshStudioApp = lazy(() => import("../../fresh-studio/FreshStudioApp"));
 
 type Props = {
   system: FreshFlowIndependentSystem;
   onBack: () => void;
   onOpenStudio: () => void;
+  onNavigateRoute: (route: string) => void;
+  onOpenDeviceEditor: () => void;
 };
 
 const ICONS: Record<string, string> = {
@@ -111,7 +114,7 @@ function MusicWorkspace() {
   );
 }
 
-export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio }: Props) {
+export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio, onNavigateRoute, onOpenDeviceEditor }: Props) {
   const isStudio = system.id === "fresh-studio";
   const isLive = system.id === "live-creation";
   const isMusic = system.id === "fresh-music";
@@ -119,7 +122,7 @@ export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio
   const secondaryActions = system.capabilities.slice(3);
   return (
     <div className={`fresh-flow-system-page system-${system.id}`}>
-      {isStudio ? <ShortsStudio /> : (<>
+      {isStudio ? <Suspense fallback={<p className="fresh-flow-system-note" role="status">Loading Creator Studio…</p>}><FreshStudioApp onBack={onBack} onNavigateRoute={onNavigateRoute} onOpenDeviceEditor={onOpenDeviceEditor} /></Suspense> : (<>
       <header className="fresh-flow-system-header">
         <button type="button" onClick={onBack} className="fresh-flow-system-back" aria-label="Back to Fresh Flow Home">‹ <span>Fresh Flow</span></button>
         <span className="fresh-flow-system-status">{isLive ? "Live production workspace" : isMusic ? "Music workspace" : "Independent system · implementation in progress"}</span>
@@ -143,7 +146,7 @@ export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio
           {secondaryActions.map((capability) => <article className="fresh-flow-system-capability" key={capability}><span className="fresh-flow-system-capability-icon" aria-hidden="true">{ICONS[capability] ?? "✦"}</span><h3>{capability.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())}</h3><p>System-specific capability with its own contract, data flow and verification.</p><span className="fresh-flow-system-planned">Service connection needed</span></article>)}
         </div>
       </section>}
-      <footer className="fresh-flow-system-footer"><span>Independent product experience · shared Fresh Flow identity and safety services.</span><button type="button" onClick={onBack}>Back to Fresh Flow</button></footer>
+      {!isStudio && <footer className="fresh-flow-system-footer"><span>Independent product experience · shared Fresh Flow identity and safety services.</span><button type="button" onClick={onBack}>Back to Fresh Flow</button></footer>}
     </div>
   );
 }
