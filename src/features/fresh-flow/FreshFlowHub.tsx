@@ -99,7 +99,7 @@ export default function FreshFlowHub() {
   const [shortsNotificationsOpen, setShortsNotificationsOpen] = useState(false);
   const [shortsCreateMode, setShortsCreateMode] = useState<"create" | "camera" | null>(null);
   const [createSound, setCreateSound] = useState<SoundSource | null>(null);
-  useEffect(() => { if (section !== "fresh-flow-system-fresh-studio") setStudioSourceSystemId(null); }, [section]);
+  useEffect(() => { if (String(section) !== `${systemRoutePrefix}fresh-studio`) setStudioSourceSystemId(null); }, [section]);
   useEffect(() => {
     const open = (sound: SoundSource | null) => { if (!sound) return; setCreateSound(sound); setShortsCreateMode("camera"); };
     open(takeUseSound());
