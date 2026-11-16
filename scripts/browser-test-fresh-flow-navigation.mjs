@@ -265,8 +265,8 @@ for (const width of WIDTHS) {
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
   await page.waitForSelector(".fs-app-embedded", { timeout: 10000 });
-  check(await page.locator(".creator-studio-dashboard").count() === 1, `${tag} legacy /creation URL opens the unified Studio shell and retains the existing publisher`);
   await page.waitForSelector(".creator-studio-dashboard", { timeout: 10000 });
+  check(await page.locator(".creator-studio-dashboard").count() === 1, `${tag} legacy /creation URL opens the unified Studio shell and retains the existing publisher`);
   const longVideoMode = page.locator(".creator-mode-switch button", { hasText: "Long Video" });
   await longVideoMode.waitFor({ state: "visible", timeout: 10000 });
   await page.waitForFunction(() => document.querySelector(".creator-mode-switch button.active")?.textContent?.trim() === "Long Video", { timeout: 10000 });
