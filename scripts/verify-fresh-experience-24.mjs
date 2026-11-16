@@ -27,6 +27,11 @@ const checks = [
   ["Topbar keeps only useful global actions", "src/app/components/TopBar.tsx", ["Search anything across Fresh", "Open Fresh AI", "Notifications", "Open profile"]]
 ];
 
+const globalBottomNav = fs.readFileSync(path.join(root, "src/app/components/BottomNav.tsx"), "utf8");
+const homeDashboard = fs.readFileSync(path.join(root, "src/features/home/HomeDashboard.tsx"), "utf8");
+if (globalBottomNav.includes('{ id: "studio"') || globalBottomNav.includes('id: "studio", label: "Create"')) throw new Error("Global navigation must not expose a separate Studio/Create destination");
+if (homeDashboard.includes('label: "Create", description: "Make a post, video or project."') || homeDashboard.includes('route: "studio"')) throw new Error("Home must not expose a separate Creator Studio shortcut");
+
 for (const [name, file, tokens] of checks) {
   const content = fs.readFileSync(path.join(root, file), "utf8");
   for (const token of tokens) {
