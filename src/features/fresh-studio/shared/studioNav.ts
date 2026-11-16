@@ -1,6 +1,7 @@
 /** Studio navigation (spec §4). */
 export const STUDIO_SECTIONS = [
   { id: "home", label: "Dashboard", icon: "⌂", ready: true },
+  { id: "shorts", label: "Shorts", icon: "▶", ready: true },
   { id: "projects", label: "Content", icon: "▤", ready: true },
   { id: "create", label: "Create", icon: "＋", ready: true },
   { id: "publish", label: "Publish", icon: "↗", ready: true },
