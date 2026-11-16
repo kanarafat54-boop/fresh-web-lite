@@ -107,6 +107,7 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
         <button type="button" className="fs-wordmark" onClick={() => goto("home")} aria-label="Fresh Studio home">Fresh <b>Studio</b></button>
         <div className="fs-topbar-spacer" />
         {!embeddedInFlow && <button type="button" className="fs-icon-btn" aria-label="Search projects" title="Search projects" onClick={() => goto("projects")}>⌕</button>}
+        {!embeddedInFlow && (
         <div className="fs-menu-wrap">
           <button type="button" className="fs-icon-btn" aria-label="Notifications" title="Notifications" aria-expanded={bellOpen} onClick={() => { setBellOpen((v) => !v); setHelpOpen(false); }}>🔔{history.some((h) => h.kind === "error") && <span className="fs-dot" aria-hidden="true" />}</button>
           {bellOpen && (
@@ -115,6 +116,8 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
             </div>
           )}
         </div>
+        )}
+        {!embeddedInFlow && (
         <div className="fs-menu-wrap">
           <button type="button" className="fs-icon-btn" aria-label="Help" title="Help" aria-expanded={helpOpen} onClick={() => { setHelpOpen((v) => !v); setBellOpen(false); }}>?</button>
           {helpOpen && (
@@ -124,9 +127,10 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
             </div>
           )}
         </div>
+        )}
         {!embeddedInFlow && <button type="button" className="fs-icon-btn" aria-label="Your profile" title="Your profile" onClick={() => onNavigateRoute("profile")}>☺</button>}
         <button type="button" className="fs-btn fs-btn-primary fs-hide-mobile" onClick={() => goto("create")}>＋ Create</button>
-        <button type="button" className="fs-btn fs-hide-mobile" onClick={onBack}>Exit Studio</button>
+        <button type="button" className="fs-btn fs-hide-mobile" onClick={onBack}>{embeddedInFlow ? "Back to Flow" : "Exit Studio"}</button>
       </header>
 
       {state.source === "device" && !state.loading && (
@@ -145,7 +149,7 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
               {COMING_SOON_SECTIONS.map((s) => navItem(s.id, s.label, s.icon))}
             </div>
           </div>
-          <button type="button" className="fs-nav-item fs-only-mobile" onClick={onBack}><span aria-hidden="true">←</span><span>Exit Studio</span></button>
+          <button type="button" className="fs-nav-item fs-only-mobile" onClick={onBack}><span aria-hidden="true">←</span><span>{embeddedInFlow ? "Back to Flow" : "Exit Studio"}</span></button>
         </nav>
         {drawerOpen && <div className="fs-scrim" aria-hidden="true" onClick={() => setDrawerOpen(false)} />}
 
@@ -158,7 +162,7 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
           return navItem(s.id, s.label, s.icon);
         })}
         <button type="button" className="fs-nav-item" aria-expanded={drawerOpen} onClick={() => setDrawerOpen((v) => !v)}><span aria-hidden="true">⋯</span><span>More</span></button>
-      </nav>
+      </nav>}
 
       <div className="fs-toasts" aria-live="polite">
         {notices.map((n) => <div key={n.id} className={`fs-toast${n.kind === "error" ? " is-error" : ""}`} role={n.kind === "error" ? "alert" : "status"}>{n.text}</div>)}
