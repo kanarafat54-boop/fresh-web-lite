@@ -22,6 +22,8 @@ type Props = {
   onOpenDeviceEditor: () => void;
   /** Reuse Fresh Flow chrome and its bottom navigation when embedded. */
   embeddedInFlow?: boolean;
+  /** Fresh Flow media domain that opened Studio's Create workflow. */
+  initialSystemId?: string | null;
 };
 
 type Notice = { id: number; kind: "info" | "error"; text: string };
@@ -30,7 +32,7 @@ const ShortsStudio = lazy(() => import("../fresh-flow/components/ShortsStudio"))
 
 type View = { section: StudioSectionId; projectId: string | null; open?: OpenOptions };
 
-export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEditor, embeddedInFlow = false }: Props) {
+export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEditor, embeddedInFlow = false, initialSystemId = null }: Props) {
   const state = useStudioProjects();
   const [view, setView] = useState<View>(() => ({ section: readCreateIntent() ? "publish" : "home", projectId: null }));
   const [dashboardInstance, setDashboardInstance] = useState(0);
@@ -66,8 +68,9 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
 
   const screen: StudioScreenProps = useMemo(() => ({
     state, actions, notify, goto, openProject, onCardAction,
+    sourceSystemId: initialSystemId ?? undefined,
     navigateRoute: onNavigateRoute, openDeviceEditor: onOpenDeviceEditor,
-  }), [state, actions, notify, goto, openProject, onCardAction, onNavigateRoute, onOpenDeviceEditor]);
+  }), [state, actions, notify, goto, openProject, onCardAction, initialSystemId, onNavigateRoute, onOpenDeviceEditor]);
 
   let content;
   switch (view.section) {
