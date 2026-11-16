@@ -277,7 +277,7 @@ for (const width of WIDTHS) {
   await page.reload();
   await page.waitForSelector(".fs-app-embedded", { timeout: 10000 });
   await studioNav("Content");
-  await page.getByText("E2E picture").first().click();
+  await page.getByRole("button", { name: "Open E2E picture" }).first().click();
   await page.waitForSelector('[aria-label="Photo editor"], [aria-label="Photo editor entry"]', { timeout: 10000 });
   if (await page.locator('[aria-label="Photo editor"]').count() === 0) await page.getByRole("button", { name: "Open photo editor" }).click();
   await page.waitForSelector('[aria-label="Photo editor"] input[type=range]', { timeout: 10000 });
