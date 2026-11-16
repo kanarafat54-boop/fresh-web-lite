@@ -135,7 +135,7 @@ export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio
         <h1>{system.label}</h1>
         <p>{system.description}</p>
         <div className="fresh-flow-system-hero-actions">
-          <button type="button" className="primary" onClick={isMusic ? () => document.getElementById("fresh-music-search")?.focus() : isLive ? onOpenStudio : () => onOpenStudio(system.id)}>{isMusic ? "Search music" : isLive ? "Open Creator Studio" : "Create or contribute"} <span aria-hidden="true">↗</span></button>
+          <button type="button" className="primary" onClick={() => onOpenStudio(system.id)}>{isMusic ? "Create music" : isLive ? "Open Creator Studio" : "Create or contribute"} <span aria-hidden="true">↗</span></button>
           <button type="button" className="secondary" onClick={onBack}>Explore Fresh Flow</button>
         </div>
       </section>
