@@ -142,7 +142,7 @@ assert.equal(legacyProject.meta.kind, "animation3d", "legacy 3D projects map to 
 assert.equal(legacyProject.meta.status, "in_production", "legacy status values map to the Studio status model");
 assert.equal(legacyProject.meta.workspace, "animation");
 assert.deepEqual(legacyFlowRow.metadata.directorProduction, { title: "Existing Director project" }, "legacy Director data remains untouched");
-const studioMeta = parseStudioMeta({ studio: { kind: "image", status: "editing", settings: { canvasWidth: 800, evil: { nested: 1 } } } });
+const meta = parseStudioMeta({ studio: { kind: "image", status: "editing", settings: { canvasWidth: 800, evil: { nested: 1 } } } });
 assert.equal(meta.kind, "image");
 assert.equal(meta.workspace, "image");
 assert.equal(meta.settings.canvasWidth, 800);
