@@ -2,7 +2,7 @@
  * Captions for Fresh Shorts (specification 2.2 and Part 14).
  *
  * Captions come from the creator: a WebVTT or SRT file they upload, a transcript they type that is timed by
- * length (cuesFromTranscript), or speech recognised on their own device (speechEngine.ts, reviewed by the creator
+ * length (cuesFromTranscript), or speech recognised on their own device (Creator Studio's shared speech engine, reviewed by the creator
  * before saving). Nothing here transcribes speech itself; the player only shows captions that are real, stored and
  * marked ready.
  *

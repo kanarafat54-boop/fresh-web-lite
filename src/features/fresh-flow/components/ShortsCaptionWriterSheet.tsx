@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cuesFromTranscript, shiftCues, type CaptionCue } from "../core/shortsCaptions";
-import { decodeMediaAudio } from "../core/speechAudio";
-import { cuesFromSpeech, SPEECH_LANGUAGES } from "../core/speechCues";
-import { SPEECH_MODELS, speechSupported, transcribeOnDevice, type SpeechModel } from "../core/speechEngine";
+import { cuesFromSpeech, languageName, modelForLanguage, SPEECH_LANGUAGES } from "../core/speechCues";
+// Shorts reuses Creator Studio's on-device speech engine (one engine, one live CI check), not a second copy.
+import { decodeForSpeech, transcribeSamples, MAX_SPEECH_SECONDS, SPEECH_RATE } from "../../fresh-studio/video-studio/speechEngine";
+import { wordsToCues } from "../../fresh-studio/video-studio/speech";
 import "./shortsContextPanel.css";
 import "./shortsModeration.css";
 
@@ -27,12 +28,12 @@ export default function ShortsCaptionWriterSheet({ durationSeconds, mediaUrl, on
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const deviceLanguage = (typeof navigator !== "undefined" ? navigator.language : "en").toLowerCase().split("-")[0];
   const [language, setLanguage] = useState(SPEECH_LANGUAGES.some((l) => l.code === deviceLanguage) ? deviceLanguage : "");
-  const [model, setModel] = useState<SpeechModel>("tiny");
+  const [accurate, setAccurate] = useState(false);
   const [autoStatus, setAutoStatus] = useState<string | null>(null);
   const [autoCues, setAutoCues] = useState<CaptionCue[] | null>(null);
   const [working, setWorking] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
-  const canAuto = Boolean(mediaUrl) && speechSupported();
+  const canAuto = Boolean(mediaUrl) && typeof Worker !== "undefined";
 
   async function generate() {
     if (working || !mediaUrl) return;
@@ -40,12 +41,16 @@ export default function ShortsCaptionWriterSheet({ durationSeconds, mediaUrl, on
     abortRef.current = controller;
     setWorking(true); setError(null); setAutoCues(null); setAutoStatus("Reading the video's audio on your device…");
     try {
-      const audio = await decodeMediaAudio(mediaUrl);
-      const segments = await transcribeOnDevice(audio.samples, {
-        language: language || null, model, durationSeconds: audio.seconds, signal: controller.signal,
-        onProgress: (p) => setAutoStatus(p.phase === "model" ? `Getting the speech model (first time only)${p.fraction !== null ? ` ${Math.round(p.fraction * 100)}%` : "…"}` : "Listening and writing captions… this can take a minute."),
+      const response = await fetch(mediaUrl);
+      if (!response.ok) throw new Error("Fresh could not read the video's audio.");
+      const samples = await decodeForSpeech(await response.blob());
+      if (!samples) throw new Error(`Fresh could not read audio from this video, or it is longer than ${MAX_SPEECH_SECONDS / 60} minutes.`);
+      const seconds = samples.length / SPEECH_RATE;
+      const words = await transcribeSamples(samples, {
+        model: modelForLanguage(language, accurate && language === "en"), language: languageName(language), signal: controller.signal,
+        onProgress: (p) => setAutoStatus(p.stage === "download" ? `Getting the speech model (first time only) ${Math.round(p.fraction * 100)}%` : "Listening and writing captions… this can take a minute."),
       });
-      const cues = cuesFromSpeech(segments, audio.seconds);
+      const cues = cuesFromSpeech(wordsToCues(words).map((c) => ({ text: c.text, start: c.start, end: c.end })), seconds);
       if (cues.length === 0) throw new Error("Fresh did not hear clear speech to caption. You can type the captions instead.");
       setAutoCues(cues); setAutoStatus(null);
     } catch (cause) {
@@ -104,11 +109,7 @@ export default function ShortsCaptionWriterSheet({ durationSeconds, mediaUrl, on
                 {SPEECH_LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.name.charAt(0).toUpperCase() + l.name.slice(1)}</option>)}
               </select>
             </label>
-            <label>Quality
-              <select value={model} onChange={(e) => setModel(e.target.value as SpeechModel)} disabled={working}>
-                {SPEECH_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-              </select>
-            </label>
+            {language === "en" ? <label className="shorts-check"><input type="checkbox" checked={accurate} disabled={working} onChange={(e) => setAccurate(e.target.checked)} /> More accurate (bigger download, slower)</label> : null}
             <div className="shorts-history-confirm">
               <button type="button" disabled={working} onClick={() => void generate()}>{working ? "Working…" : autoCues ? "Generate again" : "Make captions from speech"}</button>
               {working ? <button type="button" onClick={() => abortRef.current?.abort()}>Stop</button> : null}
