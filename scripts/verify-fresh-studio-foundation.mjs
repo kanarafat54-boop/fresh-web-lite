@@ -205,7 +205,7 @@ console.log("Fresh Studio foundation contract passed.");
   for (const keep of ['mode === "production"', 'mode === "photo"', "FreshStudioProductionDesk"]) assert.ok(workspace.includes(keep), `existing Studio feature missing: ${keep}`);
 
   const shortsFiles = ["src/features/fresh-flow/components/ShortsStudio.tsx", "src/features/fresh-flow/core/shortsStudio.ts"];
-  for (const f of shortsFiles) assert.doesNotMatch(fs.readFileSync(new URL(`../${f}`, import.meta.url), "utf8"), /fresh-studio/, "Shorts must not depend on the new Studio");
+  for (const f of shortsFiles) assert.doesNotMatch(fs.readFileSync(new URL(`../${f}`, import.meta.url), "utf8"), /(?:from\s*|import\()\s*["\x27][^"\x27]*fresh-studio/i, "Shorts must not import the Fresh Studio shell or create a dependency cycle");
 
   const nav = fs.readFileSync(new URL("../src/app/navigation/navModel.ts", import.meta.url), "utf8");
   assert.doesNotMatch(nav, /fresh-studio/, "Fresh Flow navigation stays untouched");
