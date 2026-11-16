@@ -12,15 +12,15 @@ export const PROJECT_CATEGORIES = [
 ] as const;
 export type ProjectCategory = (typeof PROJECT_CATEGORIES)[number]["id"];
 
-/** Both legacy hyphenated statuses and Studio's underscore statuses are supported. */
+/** Spec statuses plus the table's existing default ("draft"), so rows created elsewhere stay valid. */
 export const PROJECT_STATUSES = [
-  "draft", "planning", "in-production", "in_production", "editing", "review", "approved", "rendering", "ready-to-publish", "ready_to_publish", "published", "failed", "archived",
+  "draft", "planning", "in-production", "editing", "review", "approved", "rendering", "ready-to-publish", "published", "failed", "archived",
 ] as const;
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 
 export const STATUS_LABELS: Record<ProjectStatus, string> = {
-  draft: "Draft", planning: "Planning", "in-production": "In production", in_production: "In production", editing: "Editing", review: "Review", approved: "Approved",
-  rendering: "Rendering", "ready-to-publish": "Ready to publish", ready_to_publish: "Ready to publish", published: "Published", failed: "Failed", archived: "Archived",
+  draft: "Draft", planning: "Planning", "in-production": "In production", editing: "Editing", review: "Review", approved: "Approved",
+  rendering: "Rendering", "ready-to-publish": "Ready to publish", published: "Published", failed: "Failed", archived: "Archived",
 };
 
 export type StudioProject = {
