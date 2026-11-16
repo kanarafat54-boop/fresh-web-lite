@@ -7,6 +7,7 @@ const FreshStudioApp = lazy(() => import("../../fresh-studio/FreshStudioApp"));
 type Props = {
   system: FreshFlowIndependentSystem;
   onBack: () => void;
+  /** Kept for Live setup actions that open the same Creator Studio route. */
   onOpenStudio: () => void;
   onNavigateRoute: (route: string) => void;
   onOpenDeviceEditor: () => void;
