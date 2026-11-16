@@ -24,6 +24,17 @@ const VIDEO_FIELDS: SettingField[] = [
   ORIENTATION,
 ];
 
+/** Saved by an editor, not typed into the settings form: the photo editor stores its adjustments here so reopening restores the edit. */
+const EDITOR_FIELDS_BY_KIND: Partial<Record<StudioMediaKind, SettingField[]>> = {
+  image: [
+    { key: "brightness", label: "Brightness (%)", type: "number", min: 50, max: 150, default: 100 },
+    { key: "contrast", label: "Contrast (%)", type: "number", min: 50, max: 150, default: 100 },
+    { key: "saturation", label: "Saturation (%)", type: "number", min: 0, max: 180, default: 100 },
+    { key: "rotation", label: "Rotation (degrees)", type: "number", min: 0, max: 270, step: 90, default: 0 },
+  ],
+};
+const allFields = (kind: StudioMediaKind): SettingField[] => [...FIELDS_BY_KIND[kind], ...(EDITOR_FIELDS_BY_KIND[kind] ?? [])];
+
 const FIELDS_BY_KIND: Record<StudioMediaKind, SettingField[]> = {
   video: VIDEO_FIELDS,
   image: [
@@ -54,7 +65,7 @@ export function settingFieldsFor(kind: StudioMediaKind): readonly SettingField[]
 
 export function defaultSettingsFor(kind: StudioMediaKind): StudioSettings {
   const out: StudioSettings = {};
-  for (const field of FIELDS_BY_KIND[kind]) out[field.key] = field.default;
+  for (const field of allFields(kind)) out[field.key] = field.default;
   return out;
 }
 
@@ -64,7 +75,7 @@ export type SettingsValidation = { ok: true; settings: StudioSettings } | { ok: 
 export function validateSettings(kind: StudioMediaKind, input: Record<string, unknown>): SettingsValidation {
   const errors: string[] = [];
   const settings: StudioSettings = {};
-  for (const field of FIELDS_BY_KIND[kind]) {
+  for (const field of allFields(kind)) {
     const raw: unknown = input[field.key] ?? field.default;
     if (field.type === "select") {
       const value = String(raw);

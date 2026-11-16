@@ -254,6 +254,34 @@ for (const width of WIDTHS) {
   check(await page.locator(".studio-workspace h1").count() === 0, `${tag} the tools do not present a second "Fresh Studio" workspace`);
   check(await page.getByRole("button", { name: /Studio dashboard/ }).count() === 0, `${tag} the tools offer no second Studio dashboard`);
   check(new URL(page.url()).pathname !== "/studio-editor", `${tag} Quick edit no longer leaves Studio for the legacy URL`);
+
+  // Image projects: create one, edit a real picture, and get the saved adjustments back after a full reload.
+  const studioNav = async (label) => {
+    await page.getByRole("button", { name: "Open Studio menu" }).click();
+    await page.locator('nav[aria-label="Studio sections"]').getByRole("button", { name: label, exact: true }).click();
+  };
+  await studioNav("Create");
+  await page.locator(".fs-kind", { hasText: "Image / artwork" }).click();
+  await page.getByLabel("Project name").fill("E2E picture");
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Create project" }).click();
+  await page.waitForSelector('[aria-label="Photo editor"] input[type=range]', { timeout: 10000 });
+  check(await page.locator('[aria-label="Photo editor"]').count() >= 1, `${tag} a new image project opens the photo editor`);
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAYAAAC56t6BAAAAEklEQVR4nGP8z8Dwn4EIwDiqEAAbpAIF1GmBXwAAAABJRU5ErkJggg==", "base64");
+  await page.locator('[aria-label="Photo editor"] input[type=file]').setInputFiles({ name: "pic.png", mimeType: "image/png", buffer: png });
+  await page.waitForSelector('img[alt^="Preview of"]', { timeout: 10000 });
+  await page.locator('[aria-label="Photo editor"] input[type=range]').first().fill("130");
+  await page.getByRole("button", { name: "Rotate right" }).click();
+  await page.waitForTimeout(1800);
+  check((await page.locator(".fs-save").first().textContent())?.includes("All changes saved"), `${tag} photo adjustments autosave to the project`);
+  await page.reload();
+  await page.waitForSelector(".fs-app-embedded", { timeout: 10000 });
+  await studioNav("Content");
+  await page.getByText("E2E picture").first().click();
+  await page.waitForSelector('[aria-label="Photo editor"], [aria-label="Photo editor entry"]', { timeout: 10000 });
+  if (await page.locator('[aria-label="Photo editor"]').count() === 0) await page.getByRole("button", { name: "Open photo editor" }).click();
+  await page.waitForSelector('[aria-label="Photo editor"] input[type=range]', { timeout: 10000 });
+  check(await page.locator('[aria-label="Photo editor"] input[type=range]').first().inputValue() === "130", `${tag} the saved brightness comes back after a reload`);
   await page.evaluate(() => {
     window.history.replaceState({ freshRoute: "fresh-flow-long-videos" }, "", "/fresh-flow-long-videos");
     window.dispatchEvent(new PopStateEvent("popstate"));

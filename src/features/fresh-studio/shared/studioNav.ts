@@ -32,8 +32,8 @@ export const MOBILE_PRIMARY_SECTIONS: readonly StudioSectionId[] = ["home", "cre
 export const READY_SECTIONS = STUDIO_SECTIONS.filter((s) => s.ready);
 export const COMING_SOON_SECTIONS = STUDIO_SECTIONS.filter((s) => !s.ready);
 
-/** Only video has an editor inside Studio so far; other kinds create planning projects. */
-export const KINDS_WITH_EDITOR: readonly string[] = ["video"];
+/** Video and image have editors inside Studio; other kinds create planning projects and link to their tools. */
+export const KINDS_WITH_EDITOR: readonly string[] = ["video", "image"];
 export const hasStudioEditor = (kind: string) => KINDS_WITH_EDITOR.includes(kind);
 
 export function isSectionId(value: string): value is StudioSectionId {

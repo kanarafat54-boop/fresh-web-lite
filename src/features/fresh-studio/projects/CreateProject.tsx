@@ -92,14 +92,14 @@ export default function CreateProject({ state, notify, openProject, navigateRout
           </section>
           <section aria-label="Other project types">
             <h2>Other project types</h2>
-            <p className="fs-muted">These create a project record for planning. Their editors are not built yet.</p>
+            <p className="fs-muted">Pictures open a photo editor. The others create a project record for planning; their editors are not built yet.</p>
             <div className="fs-kind-grid">
-              {STUDIO_MEDIA_KINDS.filter((k) => !hasStudioEditor(k)).map((k) => (
+              {STUDIO_MEDIA_KINDS.filter((k) => k !== "video").map((k) => (
                 <button key={k} type="button" className="fs-kind" onClick={() => pickKind(k)}>
                   <span className="fs-kind-glyph" aria-hidden="true">{KIND_GLYPH[k]}</span>
                   <strong>{MEDIA_KIND_LABELS[k]}</strong>
                   <small>{KIND_HINTS[k]}</small>
-                  <span className="fs-tag">Planning only</span>
+                  <span className="fs-tag">{hasStudioEditor(k) ? "Photo editor" : "Planning only"}</span>
                 </button>
               ))}
             </div>
