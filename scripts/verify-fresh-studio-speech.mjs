@@ -40,4 +40,22 @@ assert.ok(Math.abs(before - out.removedSeconds - T.timelineDuration(out.doc)) < 
 assert.equal(T.validateTimeline(out.doc).length, 0);
 const Eng = await import(base + "speechEngine.ts");
 assert.deepEqual(Eng.wordsFromChunks([{ text: " Hello", timestamp: [0, 0.4] }, { text: " [MUSIC]", timestamp: [0.5, 0.9] }, { text: " um", timestamp: [1, null] }], 3), [w("Hello", 0, 0.4), w("um", 1, 1.4)], "engine chunks: non-speech dropped, missing end filled");
+// voiced gaps: a hum the transcript left out is found; silence, room noise, short blips and word-edge slack are not
+{
+  const rate = 8000, mk = (secs) => new Float32Array(Math.round(secs * rate));
+  const tone = (a, from, to, amp = 0.3) => { for (let i = Math.round(from * rate); i < Math.round(to * rate); i++) a[i] = amp * Math.sin((2 * Math.PI * 140 * i) / rate); };
+  const a = mk(10);
+  for (let i = 0; i < a.length; i++) a[i] = (Math.random() - 0.5) * 0.004; // room noise
+  const ws = [w("one", 0.5, 1.0), w("two", 2.6, 3.0), w("three", 4.4, 4.9), w("four", 6.5, 7.0), w("five", 8.4, 8.8)];
+  for (const x of ws) tone(a, x.start, x.end);
+  tone(a, 1.4, 1.9);          // an "um" the transcript dropped (gap 1.0-2.6)
+  tone(a, 3.0, 3.12);         // word-edge slack: the word's own tail
+  tone(a, 5.5, 5.58);         // a short blip, not a hesitation
+  tone(a, 7.2, 7.3, 0.002);   // far quieter than speech
+  const got = S.voicedGaps(ws, a, rate);
+  assert.equal(got.length, 1, JSON.stringify(got));
+  assert.ok(got[0].start >= 1.35 && got[0].start <= 1.45 && got[0].end >= 1.85 && got[0].end <= 1.95, JSON.stringify(got[0]));
+  assert.deepEqual(S.voicedGaps([], a, rate), []);
+  assert.deepEqual(S.voicedGaps(ws, mk(10), rate), [], "silence has no speech level to compare with");
+}
 console.log("Fresh Studio speech contract passed (fillers, cues, mapping and cuts).");

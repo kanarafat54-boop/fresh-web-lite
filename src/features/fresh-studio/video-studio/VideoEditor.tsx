@@ -636,6 +636,7 @@ function SmartPanel({ ed, clip }: { ed: Ed; clip: T.TimelineClip | null }) {
   const [every, setEvery] = useState(1);
   const [beatResult, setBeatResult] = useState("");
   const [fillerResult, setFillerResult] = useState("");
+  const [fillerGaps, setFillerGaps] = useState(false);
   const entry = clip ? ed.media[clip.assetId] : null;
   return (
     <div>
@@ -654,8 +655,9 @@ function SmartPanel({ ed, clip }: { ed: Ed; clip: T.TimelineClip | null }) {
       {clip && entry && !entry.samples && <p className="fs-warn">{entry.missing ? "This file is not stored on this device." : "This clip has no audio that can be analysed here."}</p>}
       {result && <p role="status">{result}</p>}
       <h3>Cut filler words</h3>
-      <p className="fs-muted">Listens to the selected clip with the on-device speech model (see the Captions tab) and cuts out hesitation sounds like um, uh, er and hmm. Whisper often leaves these out of what it writes, so it finds the ones it wrote down, not all of them. Undo restores everything.</p>
-      <button type="button" className="fs-btn fs-btn-primary" disabled={!clip || !entry?.blob || !!ed.speechStatus} onClick={async () => { if (clip) setFillerResult(await ed.cutFillers(clip.id, "Xenova/whisper-tiny.en")); }}>{ed.speechStatus ? "Working…" : "Cut filler words from selected clip"}</button>
+      <p className="fs-muted">Listens to the selected clip with the on-device speech model (see the Captions tab) and cuts out hesitation sounds like um, uh, er and hmm. Whisper often leaves these out of what it writes, so by default it finds only the ones it wrote down. The checkbox adds a second pass that looks for speech-level sound in the gaps between words. Undo restores everything.</p>
+      <label className="fs-field"><span><input type="checkbox" checked={fillerGaps} onChange={(e) => setFillerGaps(e.target.checked)} /> Also cut hesitation sounds the model did not write down (a guess: music or noise under the voice can be mistaken for them)</span></label>
+      <button type="button" className="fs-btn fs-btn-primary" disabled={!clip || !entry?.blob || !!ed.speechStatus} onClick={async () => { if (clip) setFillerResult(await ed.cutFillers(clip.id, "Xenova/whisper-tiny.en", { includeGaps: fillerGaps })); }}>{ed.speechStatus ? "Working…" : "Cut filler words from selected clip"}</button>
       {ed.speechStatus && <div role="status"><progress max={1} value={ed.speechStatus.stage === "download" ? ed.speechStatus.fraction : undefined} aria-label={ed.speechStatus.note} /><p className="fs-muted">{ed.speechStatus.note}</p></div>}
       {fillerResult && !ed.speechStatus && <p role="status">{fillerResult}</p>}
       <h3>Not available yet</h3>
