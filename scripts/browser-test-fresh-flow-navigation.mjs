@@ -264,6 +264,20 @@ for (const width of WIDTHS) {
   });
   await page.waitForSelector(".fresh-long", { timeout: 10000 });
 
+  // Creator Studio opens the unified Studio shell inside Flow, without stacking a second bottom bar.
+  await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Creator Studio" }).click();
+  await page.waitForSelector(".fs-app-embedded", { timeout: 10000 });
+  check(await page.locator(".fs-bottombar").count() === 0, `${tag} embedded Creator Studio does not render a duplicate Studio bottom bar`);
+  check(await page.locator("nav.fresh-flow-bottom-nav:visible").count() === 1, `${tag} Fresh Flow bottom navigation remains visible inside Creator Studio`);
+  check(await page.locator('nav[aria-label="Fresh Flow media"]').count() === 1, `${tag} Fresh Flow media navigation remains available inside Creator Studio`);
+  await page.getByRole("button", { name: "Open Studio menu" }).click();
+  await page.locator('nav[aria-label="Studio sections"]').getByRole("button", { name: "Shorts", exact: true }).click();
+  await page.waitForSelector(".shorts-studio-embedded", { timeout: 10000 });
+  check(await page.locator(".shorts-studio-embedded").isVisible(), `${tag} Shorts metrics and tools remain embedded in unified Studio`);
+  await page.locator(".shorts-studio-tabs button", { hasText: "Create & drafts" }).click();
+  await page.waitForSelector(".creator-studio-dashboard", { timeout: 10000 });
+  check(await page.locator(".creator-studio-dashboard").isVisible(), `${tag} existing Creator drafts and publishing dashboard remains available inside Studio`);
+
   // Bottom Shorts is current on the Shorts route and the top bar then has no current tab.
   await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Shorts" }).click();
   await page.waitForTimeout(300);
