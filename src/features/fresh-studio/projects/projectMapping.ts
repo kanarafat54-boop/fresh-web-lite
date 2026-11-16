@@ -106,6 +106,7 @@ export function parseStudioMeta(metadata: unknown, legacyRowStatus?: unknown): S
 
   return {
     kind,
+    sourceSystemId: typeof stored?.sourceSystemId === "string" ? stored.sourceSystemId : typeof metadata.sourceSystemId === "string" ? metadata.sourceSystemId : null,
     status,
     settings: Object.keys(settings).length ? settings : defaultSettingsFor(kind),
     workspace,
