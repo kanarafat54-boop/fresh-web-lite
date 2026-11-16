@@ -8,6 +8,7 @@ const { createDeviceBackend, MemoryStore } = await import(base + "projects/devic
 const { rowToProject, metaToMetadata, parseStudioMeta, rowToVersion } = await import(base + "projects/projectMapping.ts");
 const { settingFieldsFor, defaultSettingsFor, validateSettings } = await import(base + "shared/projectSettings.ts");
 const { STUDIO_MEDIA_KINDS, STUDIO_STATUSES } = await import(base + "shared/types.ts");
+const { toProject: toFreshFlowProject } = await import("../src/features/fresh-flow/core/studioProjectsLogic.ts");
 
 function fresh() {
   let n = 0;
@@ -130,8 +131,18 @@ assert.equal(pruned.filter((v) => v.kind === "checkpoint").length, 1, "named che
 
 // --- Row mapping: non-Studio fresh_projects rows are ignored; foreign metadata is preserved
 const row = { id: "r1", workspace_id: "w1", owner_id: "u1", name: "N", status: "planning", version: 3, metadata: { other: { keep: true } }, created_at: "2026-11-02T00:00:00Z", updated_at: "2026-11-02T00:00:00Z" };
-assert.equal(rowToProject(row), null);
-const meta = parseStudioMeta({ studio: { kind: "image", status: "editing", settings: { canvasWidth: 800, evil: { nested: 1 } } } });
+assert.equal(rowToProject(row), null, "unrelated fresh_projects rows stay outside Studio");
+const legacyFlowRow = {
+  ...row,
+  status: "in-production",
+  metadata: { category: "3d", directorProduction: { title: "Existing Director project" }, externalFeatureData: { preserve: true } },
+};
+const legacyProject = rowToProject(legacyFlowRow);
+assert.equal(legacyProject.meta.kind, "animation3d", "legacy 3D projects map to the Studio animation workspace");
+assert.equal(legacyProject.meta.status, "in_production", "legacy status values map to the Studio status model");
+assert.equal(legacyProject.meta.workspace, "animation");
+assert.deepEqual(legacyFlowRow.metadata.directorProduction, { title: "Existing Director project" }, "legacy Director data remains untouched");
+const studioMeta = parseStudioMeta({ studio: { kind: "image", status: "editing", settings: { canvasWidth: 800, evil: { nested: 1 } } } });
 assert.equal(meta.kind, "image");
 assert.equal(meta.workspace, "image");
 assert.equal(meta.settings.canvasWidth, 800);
@@ -141,7 +152,13 @@ assert.equal(parseStudioMeta({ studio: { kind: "image", status: "bogus" } }), nu
 const merged = metaToMetadata(row.metadata, meta);
 assert.deepEqual(merged.other, { keep: true });
 assert.equal(merged.studio.kind, "image");
+assert.equal(merged.category, "image", "new Studio metadata keeps a compatible Fresh Flow category");
 assert.equal(rowToProject({ ...row, metadata: merged }).version, 3);
+const studioCreatedRow = { ...row, status: "editing", metadata: metaToMetadata({}, meta) };
+const freshFlowView = toFreshFlowProject(studioCreatedRow);
+assert.equal(freshFlowView.category, "image", "Fresh Flow recognizes projects created by the unified Studio");
+assert.equal(freshFlowView.status, "editing");
+assert.equal(toFreshFlowProject({ ...studioCreatedRow, metadata: { studio: { kind: "animation3d", status: "in_production" } }, status: "in_production" }).category, "3d");
 assert.equal(rowToVersion({ id: "v", project_id: "p", version: 1, label: null, kind: "autosave", snapshot: "bad", created_at: "x" }), null);
 
 // --- Status model matches spec §3.2
