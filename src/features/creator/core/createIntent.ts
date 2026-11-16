@@ -56,5 +56,5 @@ export function consumeFeedRefresh(): { at: string; shortId: string | null } | n
 
 export function isShortCreateAction(action?: string): boolean {
   if (!action) return true;
-  return ["create", "short", "remix", "duet", "quote", "edit", "captions", "effects", "collaborate", "studio-export"].includes(action);
+  return ["create", "short", "upload", "remix", "duet", "quote", "edit", "captions", "effects", "collaborate", "studio-export"].includes(action);
 }
