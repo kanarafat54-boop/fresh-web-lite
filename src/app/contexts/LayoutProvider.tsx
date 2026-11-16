@@ -8,6 +8,10 @@ import { isShortsPath, SHORTS_HOME_PATH } from "../../features/fresh-flow/core/s
 
 function routeFromPath(pathname: string): string {
   const path = pathname.replace(/\/+$/, "") || "/";
+  // Legacy Creator/Studio URLs now enter the canonical Creator Studio inside Fresh Flow.
+  if (path === "/studio" || path === "/creation") return "fresh-flow-system-fresh-studio";
+  // The previous on-device editing workspace remains available to Studio handoffs.
+  if (path === "/studio-editor") return "studio-device-editor";
   if (path === "/welcome") return "welcome";
   if (path === "/onboarding") return "onboarding";
   if (path === "/") return "feed";
@@ -23,6 +27,10 @@ function routeFromPath(pathname: string): string {
 function initialRoute(): string {
   if (typeof window === "undefined") return "feed";
   return routeFromPath(window.location.pathname);
+}
+
+function canonicalRoute(route: string): string {
+  return route === "studio" || route === "creator" ? "fresh-flow-system-fresh-studio" : route;
 }
 
 function pathForRoute(route: string): string {
@@ -55,11 +63,12 @@ export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     toggleSidebar: () => setSidebarOpen((value) => !value),
     openSidebar: () => setSidebarOpen(true),
     closeSidebar: () => setSidebarOpen(false),
-    setActiveRoute: (route) => {
-      if (!route) {
+    setActiveRoute: (requestedRoute) => {
+      if (!requestedRoute) {
         setActiveRouteState("feed");
         return;
       }
+      const route = canonicalRoute(requestedRoute);
       const isKnownFeature = Boolean(FeatureRegistry.getFeature(route));
       const isFreshFlowWorld = route === "fresh-flow" || route.startsWith("fresh-flow-");
       const isJourney = route === "welcome" || route === "onboarding" || route === "auth-signin" || route === "auth-signup";
