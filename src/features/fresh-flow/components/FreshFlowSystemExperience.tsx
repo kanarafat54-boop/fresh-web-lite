@@ -123,7 +123,7 @@ export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio
   const secondaryActions = system.capabilities.slice(3);
   return (
     <div className={`fresh-flow-system-page system-${system.id}`}>
-      {isStudio ? <Suspense fallback={<p className="fresh-flow-system-note" role="status">Loading Creator Studio…</p>}><FreshStudioApp onBack={onBack} onNavigateRoute={onNavigateRoute} onOpenDeviceEditor={onOpenDeviceEditor} /></Suspense> : (<>
+      {isStudio ? <Suspense fallback={<p className="fresh-flow-system-note" role="status">Loading Creator Studio…</p>}><FreshStudioApp onBack={onBack} onNavigateRoute={onNavigateRoute} onOpenDeviceEditor={onOpenDeviceEditor} embeddedInFlow /></Suspense> : (<>
       <header className="fresh-flow-system-header">
         <button type="button" onClick={onBack} className="fresh-flow-system-back" aria-label="Back to Fresh Flow Home">‹ <span>Fresh Flow</span></button>
         <span className="fresh-flow-system-status">{isLive ? "Live production workspace" : isMusic ? "Music workspace" : "Independent system · implementation in progress"}</span>
