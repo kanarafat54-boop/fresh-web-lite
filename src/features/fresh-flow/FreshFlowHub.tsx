@@ -90,7 +90,7 @@ export default function FreshFlowHub() {
   const world = isShortsRoute ? worldByRouteId("fresh-flow") : worldByRouteId(section);
   const systemRoutePrefix = "fresh-flow-system-";
   const independentSystem = section.startsWith(systemRoutePrefix) ? getFreshFlowSystem(section.slice(systemRoutePrefix.length)) : undefined;
-  /** Creator Studio is the Shorts creator surface, so it keeps the Fresh Shorts header and controls. */
+  /** Shorts keeps its capture header; Creator Studio uses the standard Fresh Flow media header. */
   const shortsHeader = isShortsRoute;
 
   const [searchOpen, setSearchOpen] = useState(false);
