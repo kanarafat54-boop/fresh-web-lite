@@ -368,16 +368,20 @@ for (const width of WIDTHS) {
   const aiBox = await page.locator(".global-fresh-ai-trigger").first().boundingBox().catch(() => null);
   if (aiBox) check(aiBox.width <= 48 && aiBox.y < 200 && aiBox.x + aiBox.width >= width - 24, `${tag} Fresh AI button is compact and top-right`);
 
-  // Creator Studio (bottom tab) with its sections; original capability grid is kept.
+  // Creator Studio opens the unified shell inside Flow; Shorts tools remain a dedicated section.
   await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Creator Studio" }).click();
-  await page.locator(".shorts-studio").waitFor({ timeout: 8000 });
+  await page.locator(".fs-app-embedded").waitFor({ timeout: 8000 });
+  check(await page.locator(".fs-bottombar").count() === 0, `${tag} embedded Creator Studio does not add a second bottom navigation`);
+  const studioFlowTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
+  check(JSON.stringify(studioFlowTabs) === JSON.stringify(["Discover", "Videos", "News / Posts", "Live", "VR / AR", "Podcasts", "Music", "Others"]), `${tag} Creator Studio retains the standard Fresh Flow media navigation (got ${studioFlowTabs.join(" · ")})`);
+  check((await page.locator("header .fresh-shorts-brand").count()) === 0, `${tag} Creator Studio uses the Fresh Flow header, not the Shorts-only header`);
+  check(await page.locator(".shorts-studio").count() === 0, `${tag} Shorts dashboard is not duplicated on the Studio home`);
+  await page.getByRole("button", { name: "Open Studio menu" }).click();
+  await page.locator('nav[aria-label="Studio sections"]').getByRole("button", { name: "Shorts", exact: true }).click();
+  await page.locator(".shorts-studio-embedded").waitFor({ timeout: 8000 });
   const sTabs = (await page.locator(".shorts-studio-tabs button").allInnerTexts()).map((t) => t.trim());
-  check(JSON.stringify(sTabs) === JSON.stringify(["Overview", "Projects", "Videos", "Analytics", "Earnings", "Create & drafts"]), `${tag} Studio sections (got ${sTabs.join(" · ")})`);
-  const studioTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
-  check(JSON.stringify(studioTabs) === JSON.stringify(["Live", "VR / AR", "Podcasts", "Music", "Others"]), `${tag} Creator Studio keeps the Shorts top navigation (got ${studioTabs.join(" · ")})`);
-  check((await page.locator("header .fresh-shorts-brand").count()) === 1, `${tag} Creator Studio header is the Fresh Shorts header`);
-  check((await page.locator(".shorts-studio").innerText()).includes("Sign in to see your Studio numbers"), `${tag} Studio shows a sign-in prompt when signed out`);
-  check((await page.locator("#fresh-flow-system-tools").innerText()).includes("All Studio capabilities"), `${tag} existing Studio capability grid is kept`);
+  check(JSON.stringify(sTabs) === JSON.stringify(["Overview", "Projects", "Videos", "Analytics", "Earnings", "Create & drafts"]), `${tag} Shorts tools remain inside Creator Studio (got ${sTabs.join(" · ")})`);
+  check((await page.locator(".shorts-studio-embedded").innerText()).includes("Sign in to see your Studio numbers"), `${tag} Shorts Studio shows a sign-in prompt when signed out`);
   const overflowX = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   check(overflowX <= 1, `${tag} Studio has no horizontal overflow (${overflowX}px)`);
 
