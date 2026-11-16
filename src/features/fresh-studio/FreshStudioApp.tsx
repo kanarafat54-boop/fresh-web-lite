@@ -23,6 +23,7 @@ type Props = {
 
 type Notice = { id: number; kind: "info" | "error"; text: string };
 const CreatorStudioDashboard = lazy(() => import("../creator/CreatorStudioDashboard"));
+const ShortsStudio = lazy(() => import("../fresh-flow/components/ShortsStudio"));
 
 type View = { section: StudioSectionId; projectId: string | null; open?: OpenOptions };
 
@@ -62,6 +63,7 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
   let content;
   switch (view.section) {
     case "home": content = <StudioHome {...screen} />; break;
+    case "shorts": content = <Suspense fallback={<p className="fs-muted" role="status">Loading Shorts insights…</p>}><ShortsStudio embedded /></Suspense>; break;
     case "projects": content = view.projectId ? <ProjectDetails key={view.projectId} projectId={view.projectId} startOpen={view.open} {...screen} /> : <ProjectsView {...screen} />; break;
     case "create": content = <CreateProject {...screen} />; break;
     case "ai":
