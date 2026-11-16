@@ -88,7 +88,14 @@ export const MAX_VOLUME = 2;
   
 
 /** Centre (as a fraction of the frame), width (fraction of the frame; the window has the frame's shape) and opacity. */
-                                                                                 
+                         
+                                                       
+                                                                                                                                              
+                                                 
+  
+export const MIN_CHROMA_SIMILARITY = 0.05;
+export const MAX_CHROMA_SIMILARITY = 0.6;
+export const CHROMA_COLORS                                                             = [{ id: "green", name: "Green screen", color: "#00ff00" }, { id: "blue", name: "Blue screen", color: "#0000ff" }, { id: "white", name: "White", color: "#ffffff" }, { id: "black", name: "Black", color: "#000000" }];
 export const DEFAULT_LAYER            = { x: 0.75, y: 0.25, width: 0.4, opacity: 1 };
 export const MIN_LAYER_WIDTH = 0.1;
 export const MAX_VIDEO_TRACKS = 2;
@@ -195,6 +202,25 @@ export const OVERLAY_ANIMATIONS = ["none", "fade", "rise", "slide", "pop"]      
                                                                    
 export const MAX_ROTATION = 180;
 
+export const LOUDNESS_TARGETS = [{ id: "social", name: "Social video (-14 LUFS)", lufs: -14 }, { id: "podcast", name: "Podcast (-16 LUFS)", lufs: -16 }]         ;
+                                                                     
+/** `noiseFloor` is the measured level (dB) of the steady background noise the clean-up should remove. */
+                                                                                                                
+export const MIN_NOISE_FLOOR = -80, MAX_NOISE_FLOOR = -20;
+/** Switches finishing steps on or off. Steps that are off are removed so the project stays tidy. */
+export function setAudioFinish(doc             , patch                                                                                              )              {
+  const next              = { ...doc.audioFinish };
+  if (patch.cleanup !== undefined) { if (patch.cleanup) next.cleanup = true; else { delete next.cleanup; delete next.noiseFloor; } }
+  if (patch.noiseFloor !== undefined) {
+    if (!Number.isFinite(patch.noiseFloor) || patch.noiseFloor < MIN_NOISE_FLOOR || patch.noiseFloor > MAX_NOISE_FLOOR) throw new TimelineError(`Noise level must be between ${MIN_NOISE_FLOOR} and ${MAX_NOISE_FLOOR} dB.`);
+    if (next.cleanup) next.noiseFloor = Math.round(patch.noiseFloor);
+  }
+  if (patch.duck !== undefined) { if (patch.duck) next.duck = true; else delete next.duck; }
+  if (patch.loudness !== undefined) { if (patch.loudness === null) delete next.loudness; else if (LOUDNESS_TARGETS.some((t) => t.id === patch.loudness)) next.loudness = patch.loudness; else throw new TimelineError("Unknown loudness target."); }
+  const { audioFinish: _drop, ...rest } = doc;
+  return Object.keys(next).length ? { ...rest, audioFinish: next } : (rest               );
+}
+
                            
              
               
@@ -209,6 +235,8 @@ export const MAX_ROTATION = 180;
                             
                                                                      
                   
+                                                                                                   
+                            
                                                                                                              
                   
   
@@ -610,16 +638,22 @@ export function layerProblem(l           )                {
   if (l.x < 0 || l.x > 1 || l.y < 0 || l.y > 1) return "The layer must stay inside the frame.";
   if (l.width < MIN_LAYER_WIDTH - 1e-9 || l.width > 1) return "Layer size is out of range.";
   if (l.opacity < 0.05 || l.opacity > 1) return "Layer opacity must be between 5% and 100%.";
+  if (l.chroma !== undefined) {
+    if (!/^#[0-9a-fA-F]{6}$/.test(l.chroma.color ?? "")) return "The colour to remove is invalid.";
+    if (!(Number.isFinite(l.chroma.similarity) && l.chroma.similarity >= MIN_CHROMA_SIMILARITY - 1e-9 && l.chroma.similarity <= MAX_CHROMA_SIMILARITY + 1e-9)) return `Colour range must be between ${MIN_CHROMA_SIMILARITY} and ${MAX_CHROMA_SIMILARITY}.`;
+  }
   return null;
 }
 /** Changes where a clip on an upper video track sits. */
-export function setClipLayer(doc             , clipId        , patch                    )              {
+export function setClipLayer(doc             , clipId        , patch                                                                              )              {
   const clip = find(doc, clipId);
   unlocked(doc, clip.trackId);
   if (!isLayerTrack(doc, clip.trackId)) throw new TimelineError("Only clips on the upper video track can be placed over the picture.");
-  const next = { ...DEFAULT_LAYER, ...clip.layer, ...patch };
+  const { chroma: chromaPatch, ...rest } = patch;
+  const next = { ...DEFAULT_LAYER, ...clip.layer, ...rest };
   const r = (n        ) => Math.round(n * 1000) / 1000;
-  const layer = { x: r(next.x), y: r(next.y), width: r(next.width), opacity: r(next.opacity) };
+  const chroma = chromaPatch === null ? undefined : chromaPatch ? { color: chromaPatch.color.toLowerCase(), similarity: r(chromaPatch.similarity) } : clip.layer?.chroma;
+  const layer            = { x: r(next.x), y: r(next.y), width: r(next.width), opacity: r(next.opacity), ...(chroma ? { chroma } : {}) };
   const why = layerProblem(layer);
   if (why) throw new TimelineError(why);
   return replace(doc, { ...clip, layer });
@@ -814,6 +848,11 @@ export function validateTimeline(doc         )           {
   }
   errors.push(...validateFilm(d.film));
   if (d.captionStyle !== undefined && !isCaptionStyle(d.captionStyle)) errors.push("Unknown caption style.");
+  if (d.audioFinish !== undefined) {
+    const f = d.audioFinish;
+    if (!f || typeof f !== "object" || (f.loudness !== undefined && !LOUDNESS_TARGETS.some((t) => t.id === f.loudness)) || [f.cleanup, f.duck].some((v) => v !== undefined && typeof v !== "boolean") || (f.noiseFloor !== undefined && !(Number.isFinite(f.noiseFloor) && f.noiseFloor >= MIN_NOISE_FLOOR && f.noiseFloor <= MAX_NOISE_FLOOR))) errors.push("Sound finishing settings are invalid.");
+  }
+  for (const c of d.clips) if (c.layer) { const why = layerProblem(c.layer); if (why) errors.push(`Clip ${c.id}: ${why}`); }
   if (d.texts !== undefined) {
     if (!Array.isArray(d.texts)) errors.push("Text layers are malformed.");
     else {

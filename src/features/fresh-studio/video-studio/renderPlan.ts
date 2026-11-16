@@ -290,12 +290,12 @@ export function planRender(input: RenderPlanInput): RenderPlan {
     let cur = "vlbase";
     layerClips.forEach(({ clip }, k) => {
       const next = k === layerClips.length - 1 ? afterLayers : `vl${k}`;
-      const L = clip.layer ?? { x: 0.75, y: 0.25, width: 0.4, opacity: 1 };
+      const L: NonNullable<typeof clip.layer> = clip.layer ?? { x: 0.75, y: 0.25, width: 0.4, opacity: 1 };
       const bw = even(W * L.width), bh = even(H * L.width);
       const speed = clip.speed === 1 ? "" : `,setpts=(PTS-STARTPTS)/${num(clip.speed)}`;
       const end = round3(clip.start + clipDuration(clip));
       // The window has the frame's shape; its pictures are timed to the clip's place on the timeline so the overlay lines up by timestamp.
-      filters.push(`[${index.get(clip.assetId)}:v]trim=start=${num(clip.sourceIn)}:end=${num(clip.sourceOut)},setpts=PTS-STARTPTS${speed},${pictureChain(clip, bw, bh, fps, effectiveFades(doc, clip, "video"), true)},format=rgba,colorchannelmixer=aa=${num(L.opacity)},setpts=PTS+${num(clip.start)}/TB[pip${k}]`);
+      filters.push(`[${index.get(clip.assetId)}:v]trim=start=${num(clip.sourceIn)}:end=${num(clip.sourceOut)},setpts=PTS-STARTPTS${speed},${pictureChain(clip, bw, bh, fps, effectiveFades(doc, clip, "video"), true)}${L.chroma ? `,chromakey=color=0x${L.chroma.color.slice(1)}:similarity=${num(L.chroma.similarity)}:blend=0.08` : ""},format=rgba,colorchannelmixer=aa=${num(L.opacity)},setpts=PTS+${num(clip.start)}/TB[pip${k}]`);
       filters.push(`[${cur}][pip${k}]overlay=x=${num(L.x)}*${W}-w/2:y=${num(L.y)}*${H}-h/2:eof_action=pass:enable=between(t\\,${num(clip.start)}\\,${num(end)})[${next}]`);
       cur = next;
     });
@@ -372,27 +372,44 @@ export function planRender(input: RenderPlanInput): RenderPlan {
   if (burn) {
     filters.push(`[vcat]subtitles=filename=${escapeFilterPath(input.captionsFile!)}:force_style='${captionForceStyle(doc.captionStyle, H)}'[vout]`);
   }
-  filters.push(`${aLabels.map((l) => `[${l}]`).join("")}concat=n=${aLabels.length}:v=0:a=1[abase]`);
+  const finish = doc.audioFinish ?? {};
+  filters.push(`${aLabels.map((l) => `[${l}]`).join("")}concat=n=${aLabels.length}:v=0:a=1[abase${finish.cleanup ? "raw" : ""}]`);
+  // The noise level is measured from the recording when the box is ticked (afftdn needs it; a wrong guess does little). Noise clean-up works on the main picture's sound only; music is mixed in afterwards.
+  if (finish.cleanup) filters.push(`[abaseraw]afftdn=nr=20:nf=${finish.noiseFloor ?? -50}:nt=w[abase]`);
 
   let audioOut = "abase";
-  const mixClips = [...music, ...layerClips.filter((l) => !l.track.muted).map((l) => l.clip)];
+  const layerAudio = layerClips.filter((l) => !l.track.muted).map((l) => l.clip);
+  const mixClips = [...music, ...layerAudio];
   if (mixClips.length) {
-    const mLabels: string[] = [];
-    mixClips.forEach((clip, k) => {
+    const labelOf = (clip: (typeof mixClips)[number], k: number) => {
       const asset = doc.assets.find((a) => a.id === clip.assetId)!;
-      const base = audioOfClip(`mraw${k}`, index.get(clip.assetId)!, clip, asset.hasAudio, false, effectiveFades(doc, clip, "audio"));
-      filters.push(base);
+      filters.push(audioOfClip(`mraw${k}`, index.get(clip.assetId)!, clip, asset.hasAudio, false, effectiveFades(doc, clip, "audio")));
       const ms = Math.round(clip.start * 1000);
       filters.push(`[mraw${k}]adelay=${ms}|${ms}[m${k}]`);
-      mLabels.push(`[m${k}]`);
-    });
-    filters.push(`[abase]${mLabels.join("")}amix=inputs=${1 + mLabels.length}:duration=first:normalize=0:dropout_transition=0[amix]`);
+      return `[m${k}]`;
+    };
+    const labels = mixClips.map(labelOf);
+    const musicLabels = labels.slice(0, music.length), otherLabels = labels.slice(music.length);
+    if (finish.duck && musicLabels.length) {
+      // The music is turned down while the main sound is speaking: the main sound is the key for a compressor on the music bus.
+      filters.push(`[abase]asplit=2[akey][avoice]`);
+      filters.push(musicLabels.length === 1 ? `${musicLabels[0]}anull[mbus]` : `${musicLabels.join("")}amix=inputs=${musicLabels.length}:duration=longest:normalize=0:dropout_transition=0[mbus]`);
+      filters.push(`[mbus][akey]sidechaincompress=threshold=0.03:ratio=10:attack=15:release=450:makeup=1[mduck]`);
+      filters.push(`[avoice][mduck]${otherLabels.join("")}amix=inputs=${2 + otherLabels.length}:duration=first:normalize=0:dropout_transition=0[amix]`);
+    } else {
+      filters.push(`[abase]${labels.join("")}amix=inputs=${1 + labels.length}:duration=first:normalize=0:dropout_transition=0[amix]`);
+    }
     audioOut = "amix";
   }
 
   if ([...vClips, ...mixClips].some((c) => (c.volume ?? 1) > 1)) {
     filters.push(`[${audioOut}]alimiter=limit=0.97[alim]`);
     audioOut = "alim";
+  }
+  if (finish.loudness) {
+    const lufs = finish.loudness === "podcast" ? -16 : -14;
+    filters.push(`[${audioOut}]loudnorm=I=${lufs}:TP=-1.5:LRA=11[aloud]`);
+    audioOut = "aloud";
   }
 
   const filterGraph = filters.join(";\n");

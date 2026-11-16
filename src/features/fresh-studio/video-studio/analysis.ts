@@ -7,6 +7,23 @@ import { MIN_CLIP_SECONDS, TimelineError, clipEnd, deleteClip, round3, splitClip
 
 export type Range = { start: number; end: number };
 
+/**
+ * Level (dB) of the steady background noise: the quiet end (10th percentile) of 20 ms frames. Null when there is no usable sound.
+ * The samples are band-limited to rate/2 (the editor decodes at 8 kHz) while the clean-up filter works on the full band, so the result is
+ * lifted 6 dB to match; that figure comes from white-noise tests and is an approximation for real rooms.
+ */
+export function estimateNoiseFloorDb(samples: ArrayLike<number>, rate: number): number | null {
+  const frame = Math.max(1, Math.round(rate * 0.02)), levels: number[] = [];
+  for (let f = 0; (f + 1) * frame <= samples.length; f++) {
+    let e = 0; for (let i = f * frame; i < (f + 1) * frame; i++) e += samples[i] * samples[i];
+    const db = 20 * Math.log10(Math.sqrt(e / frame) + 1e-12);
+    if (db > -90) levels.push(db);
+  }
+  if (levels.length < 10) return null;
+  levels.sort((a, b) => a - b);
+  return Math.max(-80, Math.min(-20, Math.round(levels[Math.floor(levels.length * 0.1)] + 6)));
+}
+
 export const DEFAULT_SILENCE = { noiseDb: -35, minSilence: 0.4 } as const;
 export const DEFAULT_SCENE_THRESHOLD = 0.3;
 

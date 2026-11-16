@@ -150,7 +150,8 @@
     "test:fresh-unified-inference-runtime": "node --experimental-strip-types scripts/test-fresh-unified-inference-runtime.mjs",
     "test:fresh-treasury-money-precision": "node --experimental-strip-types scripts/test-fresh-treasury-money-precision.mjs",
     "test:fresh-studio-stickers": "node --no-warnings scripts/verify-fresh-studio-stickers.mjs",
-    "test:fresh-studio-speech": "node --no-warnings scripts/verify-fresh-studio-speech.mjs"
+    "test:fresh-studio-speech": "node --no-warnings scripts/verify-fresh-studio-speech.mjs",
+    "test:fresh-studio-finish": "node --no-warnings scripts/verify-fresh-studio-finish.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
