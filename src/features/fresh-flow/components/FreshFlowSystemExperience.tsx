@@ -138,14 +138,14 @@ export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio
         </div>
       </section>
       </>)}
-      {isLive ? <LiveWorkspace onOpenStudio={onOpenStudio} /> : isMusic ? <MusicWorkspace /> : <section className="fresh-flow-system-content" aria-labelledby="fresh-flow-system-tools">
+      {!isStudio && (isLive ? <LiveWorkspace onOpenStudio={onOpenStudio} /> : isMusic ? <MusicWorkspace /> : <section className="fresh-flow-system-content" aria-labelledby="fresh-flow-system-tools">
         <div className="fresh-flow-system-section-heading"><div><span>YOUR WORKSPACE</span><h2 id="fresh-flow-system-tools">{isStudio ? "All Studio capabilities" : `Explore ${system.label}`}</h2></div><span className="fresh-flow-system-count">{system.capabilities.length} capabilities</span></div>
         <p className="fresh-flow-system-note">This system has a dedicated entry point. Each capability below needs its own data contract and connected service before it can be represented as live.</p>
         <div className="fresh-flow-system-capability-grid">
           {primaryActions.map((capability) => <article className="fresh-flow-system-capability featured" key={capability}><span className="fresh-flow-system-capability-icon" aria-hidden="true">{ICONS[capability] ?? "✦"}</span><h3>{capability.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())}</h3><p>A dedicated area for this {system.label} workflow, with its own navigation and state.</p><span className="fresh-flow-system-planned">Service connection needed</span></article>)}
           {secondaryActions.map((capability) => <article className="fresh-flow-system-capability" key={capability}><span className="fresh-flow-system-capability-icon" aria-hidden="true">{ICONS[capability] ?? "✦"}</span><h3>{capability.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())}</h3><p>System-specific capability with its own contract, data flow and verification.</p><span className="fresh-flow-system-planned">Service connection needed</span></article>)}
         </div>
-      </section>}
+      </section>)}
       {!isStudio && <footer className="fresh-flow-system-footer"><span>Independent product experience · shared Fresh Flow identity and safety services.</span><button type="button" onClick={onBack}>Back to Fresh Flow</button></footer>}
     </div>
   );
