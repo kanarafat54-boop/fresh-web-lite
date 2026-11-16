@@ -37,6 +37,14 @@ export default function StudioHome(props: StudioScreenProps) {
         </div>
       </header>
 
+      <Section title="Everything you make, in one studio" hint="Edit here, then publish, measure and earn without leaving Studio.">
+        <div className="fs-hub" role="group" aria-label="Studio areas">
+          {([["publish", "↗", "Publish", "Shorts, long videos and posts"], ["analytics", "▲", "Analytics", "Views, likes and followers"], ["audio", "♪", "Audio", "Voice, music and sound checks"], ["design", "✎", "Design", "Covers, thumbnails and brand"], ["distribute", "⇄", "Distribute", "Plan where it goes next"], ["earn", "◈", "Earn", "Ways to get paid"]] as const).map(([id, icon, label, hint]) => (
+            <button key={id} type="button" className="fs-hub-tile" onClick={() => goto(id)}><span aria-hidden="true">{icon}</span><strong>{label}</strong><small>{hint}</small></button>
+          ))}
+        </div>
+      </Section>
+
       {state.loading && <p className="fs-muted" role="status">Loading your projects…</p>}
       {state.error && (
         <div className="fs-banner is-error" role="alert">
