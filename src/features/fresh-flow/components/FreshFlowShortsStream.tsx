@@ -593,9 +593,9 @@ export default function FreshFlowShortsStream({
       setCaptionNotice(cause instanceof Error && cause.message ? `Captions could not be saved: ${cause.message}` : "Captions could not be saved.");
     }
   }
-  async function saveTypedCaptions(shortId: string, cues: CaptionCue[]) {
+  async function saveTypedCaptions(shortId: string, cues: CaptionCue[], spokenLanguage?: string) {
     if (!user) throw new Error("Sign in first.");
-    const language = (navigator.language || "en").toLowerCase().split("-")[0];
+    const language = spokenLanguage || (navigator.language || "en").toLowerCase().split("-")[0];
     await saveCreatorCaptions({ shortId, userId: user.id, language, cues });
     setCaptionTracks((all) => ({ ...all, [shortId]: { language, cues } }));
     setCaptionsOn(true); writeCaptionsOn(true);
@@ -1021,7 +1021,7 @@ export default function FreshFlowShortsStream({
         />
       ) : null}
       {savedOpen && user && !isGuest ? <ShortsSavedSheet userId={user.id} onClose={() => setSavedOpen(false)} onUnsaved={(id) => setSavedIds((current) => { const next = new Set(current); next.delete(id); return next; })} /> : null}
-      {captionWriter ? <ShortsCaptionWriterSheet durationSeconds={captionWriter.duration} onSave={(cues) => saveTypedCaptions(captionWriter.shortId, cues)} onClose={() => setCaptionWriter(null)} /> : null}
+      {captionWriter ? <ShortsCaptionWriterSheet durationSeconds={captionWriter.duration} mediaUrl={shorts.find((item) => item.id === captionWriter.shortId)?.videoUrl} onSave={(cues, spokenLanguage) => saveTypedCaptions(captionWriter.shortId, cues, spokenLanguage)} onClose={() => setCaptionWriter(null)} /> : null}
       {reviewOpen && user && isReviewer(user.role) ? <ShortsModerationSheet onClose={() => setReviewOpen(false)} /> : null}
       {privacyOpen && user && !isGuest ? <ShortsPrivacySheet userId={user.id} onClose={() => setPrivacyOpen(false)} onOpenBlocked={() => setBlockSheet({ target: null })} onSaved={setPrivacy} /> : null}
       {quiet.reason && user && !isGuest ? (

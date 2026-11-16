@@ -121,6 +121,7 @@
     "test:fresh-web-push": "node --experimental-strip-types --no-warnings scripts/test-fresh-web-push.mjs",
     "test:fresh-smoke-answer-check": "node scripts/test-fresh-smoke-answer-check.mjs",
     "test:fresh-origin-verification": "node --experimental-strip-types --no-warnings scripts/test-fresh-origin-verification.mjs",
+    "test:fresh-speech-captions": "node --experimental-strip-types --no-warnings scripts/test-fresh-speech-captions.mjs",
     "test:fresh-admin-access": "node --experimental-strip-types --no-warnings scripts/test-fresh-admin-access.mjs",
     "test:fresh-mail-identity": "node --experimental-strip-types --no-warnings scripts/test-fresh-mail-identity.mjs",
     "test:fresh-moderation-review": "node --experimental-strip-types --no-warnings scripts/test-fresh-moderation-review.mjs",
