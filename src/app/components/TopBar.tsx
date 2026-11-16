@@ -39,10 +39,6 @@ export default function TopBar() {
     // On narrow screens the sidebar is hidden, so open the full grouped menu instead.
     if (window.matchMedia("(max-width: 900px)").matches) window.dispatchEvent(new CustomEvent(OPEN_MORE_EVENT));
   }
-  function openCreate() {
-    setActiveRoute("studio");
-  }
-
   return (
     <header className="fresh-universal-topbar" aria-label="Fresh universal navigation">
       <div className="fresh-universal-brand">
@@ -77,9 +73,6 @@ export default function TopBar() {
       <nav className="fresh-universal-actions" aria-label="Quick actions">
         <button className="fresh-mobile-search-action" type="button" onClick={openSearch} aria-label="Search Fresh" title="Search Fresh">
           <SearchIcon size={19} />
-        </button>
-        <button type="button" onClick={openCreate} aria-label="Create" title="Create">
-          <span>＋</span>
         </button>
         <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("fresh-ai-open"))} aria-label="Open Fresh AI" title="Fresh AI">
           <span>✦</span>
