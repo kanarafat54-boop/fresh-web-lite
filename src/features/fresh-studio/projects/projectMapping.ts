@@ -83,6 +83,7 @@ export function parseStudioMeta(metadata: unknown, legacyRowStatus?: unknown): S
   const stored = isRecord(metadata.studio) ? metadata.studio : null;
   const kind = legacyKind(stored?.kind) ?? legacyKind(metadata.category);
   if (!kind) return null;
+  if (stored && !isStudioStatus(stored.status) && !legacyKind(metadata.category)) return null;
 
   const settings: StudioSettings = {};
   const rawSettings = stored?.settings;
