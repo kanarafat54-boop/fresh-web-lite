@@ -237,6 +237,7 @@ export async function DELETE(req: Request): Promise<Response> {
 
 export async function POST(req: Request): Promise<Response> {
   const postUrl = new URL(req.url);
+  if (postUrl.searchParams.has("__fresh_fingerprint")) { const { handleFingerprint } = await import("../../src/server/shortFingerprint.js"); return handleFingerprint(req); }
   if (postUrl.searchParams.has("__fresh_push")) { const { handlePushDispatch } = await import("../../src/server/push/pushDispatch.js"); return handlePushDispatch(req); }
   if (postUrl.searchParams.has("__fresh_media_worker_path")) return handleMediaWorkerProxy(req);
   if (postUrl.searchParams.has("__fresh_blender_worker_path")) return handleBlenderWorkerProxy(req);
