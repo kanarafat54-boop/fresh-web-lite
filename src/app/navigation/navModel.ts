@@ -37,7 +37,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     id: "create",
-    label: "Create & work",
+    label: "Work",
     items: [
       { id: "work", label: "Work", hint: "Projects, tasks and business", icon: "▦" },
     ],
