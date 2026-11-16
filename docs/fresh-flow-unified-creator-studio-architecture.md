@@ -118,3 +118,17 @@ Therefore PR #300 establishes the single-shell/navigation foundation, not comple
 - Keep global Home free of a separate Creators button.
 - Keep Fresh Flow navigation and the embedded Studio usable on small Android screens.
 - Every server operation must enforce authorization independently of UI visibility.
+
+
+## 9. Domain-aware project creation handoff
+
+The implementation now includes `freshFlowStudioIntegration.ts`, a typed profile for each of the 24 independent systems. Each profile declares:
+- The compatible existing Studio media kind and workspace.
+- Creation intents for that domain.
+- Capability dependencies that must be fulfilled by real adapters.
+- Shared Studio services expected by the domain.
+- An explicit implementation state: existing foundation, partial foundation, domain work required, provider required or device required.
+
+When a user enters Creator Studio's Create workflow from an independent Fresh Flow system, the originating system ID is carried through the Flow → Studio handoff. The Create workflow preselects the compatible project kind, and the project service persists the source system ID in Studio project metadata. The project mapper restores it when loading existing records. This adds metadata without a database migration and leaves existing project records unchanged.
+
+The source-system field is routing/context metadata only. It is not authorization, provider availability, publishing permission, or proof that a domain editor is complete.
