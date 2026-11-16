@@ -1,9 +1,10 @@
 /**
  * Captions for Fresh Shorts (specification 2.2 and Part 14).
  *
- * Captions come from the creator: a WebVTT or SRT file they upload, or a transcript they type that is timed
- * by length (cuesFromTranscript). Nothing here transcribes speech; automatic speech-to-text needs a model or
- * service that Fresh does not run yet, so the player only shows captions that are real, stored and marked ready.
+ * Captions come from the creator: a WebVTT or SRT file they upload, a transcript they type that is timed by
+ * length (cuesFromTranscript), or speech recognised on their own device (speechEngine.ts, reviewed by the creator
+ * before saving). Nothing here transcribes speech itself; the player only shows captions that are real, stored and
+ * marked ready.
  *
  * Stored shape in `short_captions.segments`: [{ start, end, text }] with start and end in seconds.
  */
