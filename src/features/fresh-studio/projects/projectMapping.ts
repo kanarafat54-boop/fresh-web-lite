@@ -1,7 +1,10 @@
 /**
- * Maps between public.fresh_projects rows and the Studio domain model.
- * Studio reuses fresh_projects (owner-only RLS, version counter) and keeps its own
- * fields under metadata.studio, so no duplicate project system is introduced (spec §20.3).
+ * Maps public.fresh_projects rows into the Studio domain model.
+ *
+ * The table is shared with Fresh Flow's earlier project service. New Studio
+ * records live under metadata.studio; older Fresh Flow records use
+ * metadata.category. Both formats are read without rewriting or dropping
+ * unrelated metadata, so existing projects remain visible during migration.
  */
 import {
   DEFAULT_WORKSPACE_FOR_KIND,
@@ -46,49 +49,97 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export function parseStudioMeta(metadata: unknown): StudioProjectMeta | null {
-  if (!isRecord(metadata) || !isRecord(metadata.studio)) return null;
-  const s = metadata.studio;
-  if (!isStudioMediaKind(s.kind) || !isStudioStatus(s.status)) return null;
+function legacyKind(value: unknown): StudioProjectMeta["kind"] | null {
+  if (isStudioMediaKind(value)) return value;
+  if (value === "3d") return "animation3d";
+  return null;
+}
+
+function legacyStatus(value: unknown): StudioProjectMeta["status"] {
+  if (isStudioStatus(value)) return value;
+  switch (value) {
+    case "draft": return "planning";
+    case "in-production":
+    case "in_production": return "in_production";
+    case "ready-to-publish":
+    case "ready_to_publish": return "ready_to_publish";
+    case "editing": return "editing";
+    case "review": return "review";
+    case "approved": return "approved";
+    case "rendering": return "rendering";
+    case "published": return "published";
+    case "failed": return "failed";
+    case "archived": return "archived";
+    default: return "planning";
+  }
+}
+
+/**
+ * Reads either metadata.studio or the legacy Fresh Flow metadata.category.
+ * legacyRowStatus is the top-level fresh_projects.status column.
+ */
+export function parseStudioMeta(metadata: unknown, legacyRowStatus?: unknown): StudioProjectMeta | null {
+  if (!isRecord(metadata)) return null;
+  const stored = isRecord(metadata.studio) ? metadata.studio : null;
+  const kind = legacyKind(stored?.kind) ?? legacyKind(metadata.category);
+  if (!kind) return null;
+
   const settings: StudioSettings = {};
-  if (isRecord(s.settings)) {
-    for (const [k, v] of Object.entries(s.settings)) {
-      if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") settings[k] = v;
+  const rawSettings = stored?.settings;
+  if (isRecord(rawSettings)) {
+    for (const [key, value] of Object.entries(rawSettings)) {
+      if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") settings[key] = value;
     }
   }
-  const workspace = WORKSPACES.includes(s.workspace as StudioWorkspaceId) ? (s.workspace as StudioWorkspaceId) : DEFAULT_WORKSPACE_FOR_KIND[s.kind];
-  const startingPoint: StudioStartingPoint = (STARTING_POINTS as readonly unknown[]).includes(s.startingPoint) ? (s.startingPoint as StudioStartingPoint) : "blank";
+
+  const rawWorkspace = stored?.workspace;
+  const workspace = WORKSPACES.includes(rawWorkspace as StudioWorkspaceId)
+    ? rawWorkspace as StudioWorkspaceId
+    : DEFAULT_WORKSPACE_FOR_KIND[kind];
+  const rawStartingPoint = stored?.startingPoint;
+  const startingPoint: StudioStartingPoint = (STARTING_POINTS as readonly unknown[]).includes(rawStartingPoint)
+    ? rawStartingPoint as StudioStartingPoint
+    : "blank";
+  const rawStatus = stored?.status;
+  const status = isStudioStatus(rawStatus) ? rawStatus : legacyStatus(legacyRowStatus ?? metadata.status);
+
   return {
-    kind: s.kind,
-    status: s.status,
-    settings: Object.keys(settings).length ? settings : defaultSettingsFor(s.kind),
+    kind,
+    status,
+    settings: Object.keys(settings).length ? settings : defaultSettingsFor(kind),
     workspace,
     startingPoint,
-    folder: typeof s.folder === "string" && s.folder ? s.folder : null,
-    thumbnailUrl: typeof s.thumbnailUrl === "string" ? s.thumbnailUrl : null,
-    durationSeconds: typeof s.durationSeconds === "number" && Number.isFinite(s.durationSeconds) ? s.durationSeconds : null,
-    deletedAt: typeof s.deletedAt === "string" ? s.deletedAt : null,
-    statusBeforeRemoval: isStudioStatus(s.statusBeforeRemoval) ? s.statusBeforeRemoval : null,
+    folder: typeof stored?.folder === "string" && stored.folder ? stored.folder : null,
+    thumbnailUrl: typeof stored?.thumbnailUrl === "string" ? stored.thumbnailUrl : null,
+    durationSeconds: typeof stored?.durationSeconds === "number" && Number.isFinite(stored.durationSeconds) ? stored.durationSeconds : null,
+    deletedAt: typeof stored?.deletedAt === "string" ? stored.deletedAt : null,
+    statusBeforeRemoval: isStudioStatus(stored?.statusBeforeRemoval) ? stored.statusBeforeRemoval : null,
     // A corrupt stored timeline must never crash the editor: drop it and start empty.
-    timeline: isRecord(s.timeline) && validateTimeline(s.timeline).length === 0 ? s.timeline : null,
-    captions: parseStoredCaptions(s.captions),
+    timeline: isRecord(stored?.timeline) && validateTimeline(stored.timeline).length === 0 ? stored.timeline : null,
+    captions: parseStoredCaptions(stored?.captions),
   };
 }
 
 function parseStoredCaptions(value: unknown): StudioProjectMeta["captions"] {
   if (!Array.isArray(value)) return [];
   const out: StudioProjectMeta["captions"] = [];
-  for (const c of value.slice(0, 5000)) {
-    if (!isRecord(c) || typeof c.id !== "string" || typeof c.text !== "string") continue;
-    if (typeof c.start !== "number" || typeof c.end !== "number" || !Number.isFinite(c.start) || !Number.isFinite(c.end) || c.end <= c.start) continue;
-    out.push({ id: c.id, start: c.start, end: c.end, text: c.text.slice(0, 400), ...(typeof c.speaker === "string" ? { speaker: c.speaker.slice(0, 30) } : {}) });
+  for (const cue of value.slice(0, 5000)) {
+    if (!isRecord(cue) || typeof cue.id !== "string" || typeof cue.text !== "string") continue;
+    if (typeof cue.start !== "number" || typeof cue.end !== "number" || !Number.isFinite(cue.start) || !Number.isFinite(cue.end) || cue.end <= cue.start) continue;
+    out.push({
+      id: cue.id,
+      start: cue.start,
+      end: cue.end,
+      text: cue.text.slice(0, 400),
+      ...(typeof cue.speaker === "string" ? { speaker: cue.speaker.slice(0, 30) } : {}),
+    });
   }
   return out;
 }
 
-/** Returns null for fresh_projects rows that were not created by Studio. */
+/** Returns null only for rows that have no recognized Studio/Fresh Flow project kind. */
 export function rowToProject(row: FreshProjectRow): StudioProject | null {
-  const meta = parseStudioMeta(row.metadata);
+  const meta = parseStudioMeta(row.metadata, row.status);
   if (!meta) return null;
   return {
     id: row.id,
@@ -102,10 +153,10 @@ export function rowToProject(row: FreshProjectRow): StudioProject | null {
   };
 }
 
-/** Merge Studio meta into existing metadata, preserving unrelated keys written by other features. */
+/** Merge Studio meta into existing metadata, preserving legacy category and other feature keys. */
 export function metaToMetadata(existing: unknown, meta: StudioProjectMeta): Record<string, unknown> {
   const base = isRecord(existing) ? existing : {};
-  return { ...base, studio: meta };
+  return { ...base, studio: meta, category: base.category ?? (meta.kind === "animation3d" ? "3d" : meta.kind) };
 }
 
 export function rowToVersion(row: StudioVersionRow): StudioProjectVersion | null {
