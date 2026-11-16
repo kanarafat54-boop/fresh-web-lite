@@ -178,9 +178,19 @@ export default function FreshFlowHub() {
   };
 
   const openCreator = (action: "create" | "camera") => {
+    if (isGuest) { setActiveRoute("auth-signin"); return; }
     if (isShortsRoute) { setShortsCreateMode(action); return; }
+    if (action === "camera") {
+      setShortsCreateMode("camera");
+      setActiveRoute("fresh-flow-shorts");
+      return;
+    }
     try { sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action, requestedAt: new Date().toISOString() })); } catch { /* ignore */ }
-    setActiveRoute(isGuest ? "auth-signin" : "fresh-flow-system-fresh-studio");
+    if (independentSystem?.id === "fresh-studio") {
+      window.dispatchEvent(new CustomEvent("fresh-studio-open-publish"));
+      return;
+    }
+    setActiveRoute("fresh-flow-system-fresh-studio");
   };
 
   const openFreshSearch = () => {
