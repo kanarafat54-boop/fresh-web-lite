@@ -91,10 +91,10 @@ v = verdictFor("s1", "u1", "remix", own, [m("s0", "u9", "ben", "2026-11-01T00:00
 assert.equal(v.conflict, false); assert.match(v.headline, /credited/);
 v = verdictFor("s1", "u1", null, own, [m("s0", "u9", null, "2026-11-01T00:00:00Z")]);
 assert.match(v.detail, /another creator/); assert.equal(v.conflict, false);
-assert.equal(fileCheckFor("s1", own.sha256, own, []).kind, "this-short");
-assert.equal(fileCheckFor("s1", "b".repeat(64), own, [m("s7", "u9", "ben", "2026-11-01T00:00:00Z")]).kind, "registered-elsewhere");
-assert.equal(fileCheckFor("s1", "c".repeat(64), own, []).kind, "not-registered");
-assert.equal(fileCheckFor("s1", "c".repeat(64), null, []).kind, "not-registered");
+assert.equal(fileCheckFor(own.sha256, own, []).kind, "this-short");
+assert.equal(fileCheckFor("b".repeat(64), own, [m("s7", "u9", "ben", "2026-11-01T00:00:00Z")]).kind, "registered-elsewhere");
+assert.equal(fileCheckFor("c".repeat(64), own, []).kind, "not-registered");
+assert.equal(fileCheckFor("c".repeat(64), null, []).kind, "not-registered");
 assert.equal(badgeWithVerification("Original · declared by creator", { kind: "unregistered" }), "Original · declared by creator");
 assert.equal(badgeWithVerification(null, { kind: "first", headline: "", detail: "", conflict: false }), "File registered");
 assert.match(badgeWithVerification("Original · declared by creator", { kind: "earlier-copy", headline: "", detail: "", conflict: true, first: m("s0", "u9", "b", "x") }), /earlier copy exists/);

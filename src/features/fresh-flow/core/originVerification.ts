@@ -40,7 +40,7 @@ export type FileCheck =
   | { kind: "not-registered"; detail: string };
 
 /** What a viewer learns by checking a file they hold against Fresh's fingerprints. */
-export function fileCheckFor(shortId: string, fileSha: string, own: FingerprintInfo | null, matches: FingerprintMatch[]): FileCheck {
+export function fileCheckFor(fileSha: string, own: FingerprintInfo | null, matches: FingerprintMatch[]): FileCheck {
   if (own && own.sha256 === fileSha) return { kind: "this-short", detail: "This file is byte-for-byte the one registered for this Short." };
   const ordered = [...matches].sort((a, b) => Date.parse(a.registeredAt) - Date.parse(b.registeredAt));
   const first = ordered[0];

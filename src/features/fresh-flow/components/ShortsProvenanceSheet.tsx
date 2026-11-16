@@ -57,7 +57,7 @@ export default function ShortsProvenanceSheet({ shortId, authorId, authorName, o
     setFileCheck("Reading the file on your device…");
     try {
       const { sha256, matches } = await lookupFile(file, (f) => setFileCheck(`Reading the file on your device… ${Math.round(f * 100)}%`));
-      setFileCheck(fileCheckFor(shortId, sha256, fp?.own ?? null, matches));
+      setFileCheck(fileCheckFor(sha256, fp?.own ?? null, matches));
     } catch { setFileCheck("Fresh could not read that file."); }
   }
 
