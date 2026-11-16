@@ -87,6 +87,10 @@
   .fs-nav .fs-only-mobile { display: none; }
 }
 
+/* Fresh Flow owns the outer navigation when Studio is embedded there. */
+.fs-app-embedded { min-height: 0; }
+.fs-app-embedded .fs-main { padding-bottom: 24px; }
+
 /* Content blocks */
 .fs-section { display: grid; gap: 12px; margin-top: 24px; }
 .fs-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
