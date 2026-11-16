@@ -99,6 +99,7 @@ export default function FreshFlowHub() {
   const [shortsNotificationsOpen, setShortsNotificationsOpen] = useState(false);
   const [shortsCreateMode, setShortsCreateMode] = useState<"create" | "camera" | null>(null);
   const [createSound, setCreateSound] = useState<SoundSource | null>(null);
+  useEffect(() => { if (section !== "fresh-flow-system-fresh-studio") setStudioSourceSystemId(null); }, [section]);
   useEffect(() => {
     const open = (sound: SoundSource | null) => { if (!sound) return; setCreateSound(sound); setShortsCreateMode("camera"); };
     open(takeUseSound());
@@ -281,7 +282,7 @@ export default function FreshFlowHub() {
         ) : independentSystem ? (
           <FreshFlowSystemExperience
             system={independentSystem}
-            onBack={() => setActiveRoute("fresh-flow")}
+            onBack={() => { setStudioSourceSystemId(null); setActiveRoute("fresh-flow"); }}
             onOpenStudio={(systemId) => { setStudioSourceSystemId(systemId ?? null); setActiveRoute("fresh-flow-system-fresh-studio"); }}
             initialSystemId={studioSourceSystemId}
             onNavigateRoute={(route) => setActiveRoute(route === "creator" ? "fresh-flow-system-fresh-studio" : route)}
