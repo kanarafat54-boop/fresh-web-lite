@@ -8,7 +8,8 @@ type Props = {
   system: FreshFlowIndependentSystem;
   onBack: () => void;
   /** Kept for Live setup actions that open the same Creator Studio route. */
-  onOpenStudio: () => void;
+  onOpenStudio: (systemId?: string) => void;
+  initialSystemId?: string | null;
   onNavigateRoute: (route: string) => void;
   onOpenDeviceEditor: () => void;
 };
@@ -115,7 +116,7 @@ function MusicWorkspace() {
   );
 }
 
-export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio, onNavigateRoute, onOpenDeviceEditor }: Props) {
+export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio, initialSystemId = null, onNavigateRoute, onOpenDeviceEditor }: Props) {
   const isStudio = system.id === "fresh-studio";
   const isLive = system.id === "live-creation";
   const isMusic = system.id === "fresh-music";
@@ -123,7 +124,7 @@ export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio
   const secondaryActions = system.capabilities.slice(3);
   return (
     <div className={`fresh-flow-system-page system-${system.id}`}>
-      {isStudio ? <Suspense fallback={<p className="fresh-flow-system-note" role="status">Loading Creator Studio…</p>}><FreshStudioApp onBack={onBack} onNavigateRoute={onNavigateRoute} onOpenDeviceEditor={onOpenDeviceEditor} embeddedInFlow /></Suspense> : (<>
+      {isStudio ? <Suspense fallback={<p className="fresh-flow-system-note" role="status">Loading Creator Studio…</p>}><FreshStudioApp onBack={onBack} onNavigateRoute={onNavigateRoute} onOpenDeviceEditor={onOpenDeviceEditor} embeddedInFlow initialSystemId={initialSystemId} /></Suspense> : (<>
       <header className="fresh-flow-system-header">
         <button type="button" onClick={onBack} className="fresh-flow-system-back" aria-label="Back to Fresh Flow Home">‹ <span>Fresh Flow</span></button>
         <span className="fresh-flow-system-status">{isLive ? "Live production workspace" : isMusic ? "Music workspace" : "Independent system · implementation in progress"}</span>
@@ -134,12 +135,12 @@ export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio
         <h1>{system.label}</h1>
         <p>{system.description}</p>
         <div className="fresh-flow-system-hero-actions">
-          <button type="button" className="primary" onClick={isMusic ? () => document.getElementById("fresh-music-search")?.focus() : isLive ? onOpenStudio : onOpenStudio}>{isMusic ? "Search music" : isLive ? "Open Creator Studio" : "Create or contribute"} <span aria-hidden="true">↗</span></button>
+          <button type="button" className="primary" onClick={isMusic ? () => document.getElementById("fresh-music-search")?.focus() : isLive ? onOpenStudio : () => onOpenStudio(system.id)}>{isMusic ? "Search music" : isLive ? "Open Creator Studio" : "Create or contribute"} <span aria-hidden="true">↗</span></button>
           <button type="button" className="secondary" onClick={onBack}>Explore Fresh Flow</button>
         </div>
       </section>
       </>)}
-      {!isStudio && (isLive ? <LiveWorkspace onOpenStudio={onOpenStudio} /> : isMusic ? <MusicWorkspace /> : <section className="fresh-flow-system-content" aria-labelledby="fresh-flow-system-tools">
+      {!isStudio && (isLive ? <LiveWorkspace onOpenStudio={() => onOpenStudio(system.id)} /> : isMusic ? <MusicWorkspace /> : <section className="fresh-flow-system-content" aria-labelledby="fresh-flow-system-tools">
         <div className="fresh-flow-system-section-heading"><div><span>YOUR WORKSPACE</span><h2 id="fresh-flow-system-tools">{isStudio ? "All Studio capabilities" : `Explore ${system.label}`}</h2></div><span className="fresh-flow-system-count">{system.capabilities.length} capabilities</span></div>
         <p className="fresh-flow-system-note">This system has a dedicated entry point. Each capability below needs its own data contract and connected service before it can be represented as live.</p>
         <div className="fresh-flow-system-capability-grid">
