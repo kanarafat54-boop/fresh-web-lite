@@ -245,12 +245,15 @@ for (const width of WIDTHS) {
   });
   await page.waitForSelector(".fs-app-embedded", { timeout: 10000 });
   check(await page.locator("nav.fresh-flow-bottom-nav:visible").count() === 1, `${tag} legacy /studio URL opens the unified Studio inside Fresh Flow`);
-  // The old on-device editor remains available through its own internal route.
+  // Device tools open inside the same Studio (no second workspace); the old /studio-editor URL is kept only for old links.
   await page.getByRole("button", { name: "Open Studio menu" }).click();
   await page.locator('nav[aria-label="Studio sections"]').getByRole("button", { name: "Dashboard", exact: true }).click();
   await page.getByRole("button", { name: "Quick edit a file on this device" }).click();
   await page.waitForSelector(".studio-workspace", { timeout: 10000 });
-  check(new URL(page.url()).pathname === "/studio-editor", `${tag} Quick edit still opens the legacy device editor, not the Creator Studio alias`);
+  check(await page.locator(".fs-app-embedded .studio-workspace").count() === 1, `${tag} Quick edit opens the device tools inside Creator Studio`);
+  check(await page.locator(".studio-workspace h1").count() === 0, `${tag} the tools do not present a second "Fresh Studio" workspace`);
+  check(await page.getByRole("button", { name: /Studio dashboard/ }).count() === 0, `${tag} the tools offer no second Studio dashboard`);
+  check(new URL(page.url()).pathname !== "/studio-editor", `${tag} Quick edit no longer leaves Studio for the legacy URL`);
   await page.evaluate(() => {
     window.history.replaceState({ freshRoute: "fresh-flow-long-videos" }, "", "/fresh-flow-long-videos");
     window.dispatchEvent(new PopStateEvent("popstate"));
