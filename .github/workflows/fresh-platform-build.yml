@@ -81,6 +81,7 @@ jobs:
           npm run test:fresh-studio-overlays
           npm run test:fresh-studio-audio
           npm run test:fresh-studio-writing
+          npm run test:fresh-studio-lifecycle
           npm run test:fresh-studio-multitrack
           npm run test:fresh-studio-film
           npm run test:fresh-studio-beats
