@@ -214,6 +214,35 @@ A read-only inspection of the live Treasury and legacy wallet schema shows two g
 
 No financial data was read or changed. These findings came from schema definitions, constraints, RLS policies, view definitions, and function bodies only.
 
+
+## Phase 0C — Fresh ID / profile identity contract
+
+Read-only schema and policy inspection covered `fresh_id_accounts`, `fresh_id_account_memberships`, `fresh_id_devices`, `fresh_id_private_profiles`, `users`, `user_public_profiles`, `profile_details`, and `profile_privacy_settings`.
+
+### Identity invariants
+
+- Fresh ID accounts have UUID identity, an owner user, account type restricted in the creation RPC to `creator`, `business`, `developer`, or `organization`, display name length 2–120, and optional normalized slug. Creation inserts both the account and an active owner membership in one function call.
+- Membership and account reads are scoped to the signed-in member/owner using SECURITY DEFINER membership predicates. Account writes are not granted as generic client table writes; creation is routed through `create_fresh_id_account`.
+- Device records are user-owned and include a device key, device/platform/user-agent metadata, permission-state JSON, first/last seen timestamps, and revocation timestamp. RLS allows the owner to insert, read, and update their devices.
+- `fresh_id_private_profiles` stores date of birth, country, gender, signup-consent version, and consent timestamp. Its current policies allow only the owner to insert, read, and update. This is sensitive identity data and must never become a public profile projection.
+- `users` remains a legacy application profile/role record keyed by UUID and linked to Supabase Auth through existing app behavior. Owner-scoped row policies are paired with server-managed role/subscription hardening; Fresh ID replacement must not let clients self-assign privileged roles.
+- `user_public_profiles` is intentionally public-readable and exposes username, full name, verified flag, presence, and creation timestamp. `profile_details` is readable to anon/authenticated only when visibility is public or the caller owns the row; owner write/delete policies remain.
+- The identity schema currently coexists with Supabase `auth.users` and Auth-managed sessions. Replacing Fresh ID does not mean copying password hashes or silently changing user UUIDs. Token issuance/validation, refresh/revocation, recovery, MFA/OTP, device sessions, and account linking require a separate migration and rollback design.
+
+### Privacy-policy item requiring product confirmation
+
+`profile_privacy_settings` has a SELECT policy targeted to `authenticated` with `USING (true)`, and the table has SELECT grants to authenticated. Therefore any signed-in user can read every user's `analytics_visibility`, `activity_visibility`, and `contact_visibility` values. Anonymous users have a table grant but no matching anon SELECT policy. This may be intentional so other features can respect visibility settings, but the scope should be confirmed and tested before Fresh ID/API replacement. No policy or grant was changed.
+
+### Fresh ID contract tests
+
+1. An authenticated user can create an account and becomes its owner membership; an unauthenticated caller cannot.
+2. Only active members can read membership-scoped accounts; non-members cannot infer private account details.
+3. A user can read/update their own device records but cannot read or mutate another user's device or permission-state metadata.
+4. A user can read/update only their own private identity profile; no anon/authenticated public API exposes date of birth or consent details.
+5. Clients cannot modify server-managed role, owner, verification, subscription, or privileged membership state.
+6. Public profile projections expose only approved fields and honor `profile_details.visibility`.
+7. Decide and encode the intended audience for `profile_privacy_settings` before porting its current broad authenticated SELECT behavior.
+
 ## Important CI / toolchain observation
 
 The repository full-replay workflow installs Supabase CLI with `supabase/setup-cli@v3` and `version: latest`. Supabase CLI v3 is now the current major and its defaults changed: database commands are local unless `--remote` is explicitly specified; hosted mutations require confirmation and unattended hosted mutations require `--yes`. The existing replay workflow is intended to be isolated/local and contains no production credentials. Keep it strictly local. Any future script that intentionally targets a hosted project must use explicit target flags and approval gates. See the official [CLI v3 migration guide](https://supabase.com/docs/guides/local-development/cli/migrating-to-v3) and [Nov 4 breaking-change notice](https://supabase.com/changelog?types=breaking-change).
