@@ -227,3 +227,13 @@ Configure the R2 bucket CORS policy for the exact Fresh preview/production origi
 ### Not yet claimed
 
 The adapter is implemented in an existing API function to respect the Vercel Hobby 12-function limit. The adapter is **not live** until the bucket, scoped token, server environment variables and CORS policy are configured. No real R2 object has been uploaded or downloaded in this phase. A provider connection test, end-to-end upload/resume/download test and cost/usage monitoring are still required before routing production media to R2.
+
+
+### Device-side quota awareness (implemented)
+
+- `src/core/storage/deviceStorage.ts` reads browser-managed storage usage, quota, remaining space and persistence state.
+- `requestFreshDeviceStoragePersistence()` asks for persistent storage only when explicitly invoked by a user action; browser approval is not assumed.
+- The implementation never clears IndexedDB, deletes drafts, or claims that local browser storage can expand beyond the device's real quota.
+- A dedicated contract test verifies supported/unsupported browser behavior and that persistence is requested only when explicitly called.
+
+This is the safe first device-storage layer. Automatic cleanup is deliberately deferred until Fresh can distinguish rebuildable cache entries from user-owned drafts and source media.
