@@ -82,3 +82,18 @@ A second read-only catalog pass captured definitions for the most behavior-sensi
 4. **Intentionally excluded candidate:** Fresh Short Audience Lens remains absent from production and its migration explicitly says not to apply without owner authorization.
 
 This evidence narrows the migration mapping but still does not authorize a replay or production change. Full index, trigger attachment, grants, seed hash, and schema fingerprint comparisons remain open.
+
+
+## Phase 0C seed and schema fingerprint evidence
+
+A metadata-only aggregate check (no user content returned) observed:
+
+- 14 platform-scoped Fresh AI capabilities.
+- 294 platform-scoped Fresh AI knowledge rows (`project_id = 'fresh-web-lite-platform'`, `user_id IS NULL`).
+- 228 Fresh Intelligence source rows.
+- Zero Fresh Communication thread rows at the time of the check.
+- `fresh_ai_knowledge_search_tsv_idx` exists as a GIN index on the generated `search_tsv` column.
+
+The four knowledge-seed migrations target `fresh_ai_capabilities`, `fresh_ai_knowledge`, and `fresh_ai_training_examples`. The first seed uses conflict key `(owner_scope, name, version)`; the master-matrix and outside-AI seed files use CTE-driven insert/upsert patterns; the docs seed file is generated from an allowlisted set of documentation sections and updates changed source text. The live aggregate counts are not proof that each individual seed migration ran or that all rows still match its exact historical payload. The replay manifest must compare stable natural keys and content digests without returning the knowledge text itself.
+
+The communication thread count of zero is an observation at audit time, not evidence that the tables are unused or safe to remove. Preserve schema and access contracts regardless of current row count.
