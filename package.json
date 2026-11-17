@@ -157,7 +157,8 @@
     "test:fresh-studio-stickers": "node --no-warnings scripts/verify-fresh-studio-stickers.mjs",
     "test:fresh-studio-speech": "node --no-warnings scripts/verify-fresh-studio-speech.mjs",
     "test:fresh-studio-image": "node --experimental-strip-types --no-warnings scripts/test-fresh-studio-image.mjs",
-    "test:fresh-infinite-storage": "node scripts/verify-fresh-infinite-storage-foundation.mjs"
+    "test:fresh-infinite-storage": "node scripts/verify-fresh-infinite-storage-foundation.mjs",
+    "test:fresh-r2-storage": "node scripts/verify-fresh-r2-storage-contract.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
