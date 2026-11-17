@@ -51,6 +51,7 @@
     "test:fresh-studio-audio": "node --no-warnings scripts/verify-fresh-studio-audio.mjs",
     "test:fresh-studio-writing": "node --no-warnings scripts/verify-fresh-studio-writing.mjs",
     "test:fresh-studio-lifecycle": "node --no-warnings scripts/verify-fresh-studio-lifecycle.mjs",
+    "test:fresh-studio-publish-post": "node --no-warnings scripts/verify-fresh-studio-publish-post.mjs",
     "test:fresh-studio-multitrack": "node --no-warnings scripts/verify-fresh-studio-multitrack.mjs",
     "test:fresh-studio-film": "node --no-warnings scripts/verify-fresh-studio-film.mjs",
     "test:fresh-studio-beats": "node --no-warnings scripts/verify-fresh-studio-beats.mjs",

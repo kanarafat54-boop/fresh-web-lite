@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { StudioProject } from "../shared/types.ts";
 import type { StudioProjectService } from "../projects/projectService.ts";
 import { getFreshFlowStudioProfile } from "../../fresh-flow/core/freshFlowStudioIntegration.ts";
+import { postText, type PublishOutcome } from "./publishPost.ts";
 import {
   MAX_BODY, MAX_SOURCES, MAX_SOURCES_TEXT, MAX_TITLE, countWords, exportFileName, outline, parseSources, preflight, readDraft,
   readingMinutes, starterFor, toMarkdown, toPlainText, toSettings, type Draft,
@@ -13,6 +14,8 @@ type Props = {
   onSaved: (project: StudioProject) => void;
   notify: (kind: "info" | "error", text: string) => void;
   onClose: () => void;
+  /** Present only for Fresh Posts projects. */
+  posting?: { signedIn: boolean; published: boolean; run: (draft: Draft) => Promise<PublishOutcome> };
 };
 
 function download(text: string, name: string, type: string) {
@@ -26,7 +29,10 @@ function download(text: string, name: string, type: string) {
  * Writing editor for Studio projects of the text kind (posts, news, books, lessons, research, channel pages).
  * The draft is saved on the project. Export is a Markdown or plain-text file; sending it to a Fresh Flow feed is not connected.
  */
-export default function WritingEditor({ project, service, onSaved, notify, onClose }: Props) {
+export default function WritingEditor({ project, service, onSaved, notify, onClose, posting }: Props) {
+  const [confirming, setConfirming] = useState(false);
+  const [posted, setPosted] = useState(false);
+  const [isPosting, setPosting] = useState(false);
   const [draft, setDraft] = useState<Draft>(() => readDraft(project.meta.settings));
   const [save, setSave] = useState<"saved" | "saving" | "error">("saved");
   const baseRef = useRef(project);
@@ -59,6 +65,17 @@ export default function WritingEditor({ project, service, onSaved, notify, onClo
   const parsed = useMemo(() => parseSources(draft.sources), [draft.sources]);
   const starter = starterFor(systemId);
   const ready = checks.every((c) => c.ok);
+  const post = useMemo(() => postText(draft), [draft]);
+  const publish = async () => {
+    if (!posting) return;
+    setPosting(true);
+    if (timer.current) { window.clearTimeout(timer.current); timer.current = null; await persist(); }
+    const outcome = await posting.run(latest.current);
+    setPosting(false); setConfirming(false);
+    if (!outcome.ok) return notify("error", outcome.reason);
+    setPosted(true);
+    notify("info", outcome.statusSaved ? "Published to Fresh Posts." : "Published to Fresh Posts, but the project status could not be updated.");
+  };
 
   return (
     <div className="fs-details" aria-label="Writing editor">
@@ -95,7 +112,26 @@ export default function WritingEditor({ project, service, onSaved, notify, onClo
           <button type="button" className="fs-btn fs-btn-primary" disabled={!ready} onClick={() => download(toMarkdown(draft), exportFileName(draft.title, "md"), "text/markdown")}>Export Markdown</button>
           <button type="button" className="fs-btn" disabled={!ready} onClick={() => download(toPlainText(draft), exportFileName(draft.title, "txt"), "text/plain")}>Export plain text</button>
         </div>
-        <p className="fs-muted">Fresh Studio does not send this to a feed yet. Export the file and post it where it belongs.</p>
+        {posting ? (
+          <div aria-label="Publish to Fresh Posts">
+            <h3>Publish to Fresh Posts</h3>
+            {!posting.signedIn ? <p className="fs-muted">Sign in with Fresh ID to publish. Until then you can still export the file.</p>
+              : !post.ok ? <p className="fs-muted" role="status">{post.reason}</p>
+              : posted ? <p role="status">Published to Fresh Posts. Publishing again would create a second post.</p>
+              : (
+                <>
+                  {posting.published && <p className="fs-muted">This project was already published once. Publishing again creates a second post.</p>}
+                  <p className="fs-muted">The post shows the title, the text without headings or formatting marks, and your sources. It goes live straight away.</p>
+                  {!confirming
+                    ? <button type="button" className="fs-btn fs-btn-primary" onClick={() => setConfirming(true)}>Publish to Fresh Posts</button>
+                    : <div className="fs-actions">
+                        <button type="button" className="fs-btn fs-btn-primary" disabled={isPosting} onClick={() => void publish()}>{isPosting ? "Publishing…" : "Publish now"}</button>
+                        <button type="button" className="fs-btn" disabled={isPosting} onClick={() => setConfirming(false)}>Cancel</button>
+                      </div>}
+                </>
+              )}
+          </div>
+        ) : <p className="fs-muted">Fresh Studio does not send this kind of text to a feed yet. Export the file and post it where it belongs.</p>}
       </section>
     </div>
   );
