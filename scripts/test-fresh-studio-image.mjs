@@ -26,5 +26,5 @@ assert.deepEqual(readAdjust(saved.settings), { brightness: 120, contrast: 100, s
 assert.equal(validateSettings("image", { brightness: 200 }).ok, false, "out of range is rejected, not stored");
 // An old image project's settings (no adjustment keys) still validate.
 assert.equal(validateSettings("image", { canvasWidth: 1080, canvasHeight: 1080, colorSpace: "sRGB", orientation: "square" }).ok, true);
-assert.equal(hasStudioEditor("image") && hasStudioEditor("video") && !hasStudioEditor("audio"), true);
+assert.equal(hasStudioEditor("image") && hasStudioEditor("video") && hasStudioEditor("audio") && !hasStudioEditor("music"), true);
 console.log("studio image ok");
