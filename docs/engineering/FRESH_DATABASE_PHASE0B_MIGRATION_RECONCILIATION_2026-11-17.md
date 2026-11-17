@@ -48,6 +48,25 @@ The following pairs share the same or a close descriptive name. They are candida
 
 Note: the two Studio project-version entries are distinct live migrations and must not be collapsed into one candidate. The repository has a separate least-privilege file; chronology and SQL content must establish which file corresponds to which live entry.
 
+
+## Stored SQL equivalence check — 22 timestamp-shift candidates
+
+The 22 candidate pairs above were compared against the SQL statements stored in the live `supabase_migrations.schema_migrations` ledger. Comparison removed SQL line comments and normalized whitespace/semicolon spacing; it did not rewrite or execute either side.
+
+- **21 of 22 candidates are equivalent** after that normalization.
+- **1 candidate has a substantive SQL difference:** live version `20261113062837` (`owner_fresh_mail_address`) versus repository file `20261113110000_owner_fresh_mail_address.sql`.
+
+For the one difference, production's stored SQL inserts the reserved owner address when no matching email address exists. The repository file adds a second `NOT EXISTS` condition preventing insertion when the same owner already has that address in pending status. That extra condition is absent from the stored production SQL. Therefore this is **not** an exact historical match, even though the migration name is the same. Do not edit the historical repository migration to force a match, and do not rerun it against production. Record the discrepancy as a historical SQL drift item and determine whether the repository file was subsequently amended after production applied the earlier statement.
+
+The other 21 candidate mappings can be treated as verified SQL-equivalent timestamp-shift mappings for this comparison only. This does not prove that the entire migration chain is replayable or that all repository-only migrations have a valid disposition.
+
+## Phase 0B work remaining after this comparison
+
+- [ ] Classify all 39 repository-only migration versions, including files with no corresponding live ledger row.
+- [ ] Investigate the owner Fresh Mail migration discrepancy and preserve both historical forms in the audit trail.
+- [ ] Verify the repository full-replay workflow on a clean isolated stack and inspect its latest run/logs.
+- [ ] Complete schema, authorization, function, trigger, and realtime publication contract inventory.
+
 ## Other live catalog surface observed
 
 A read-only catalog query returned these non-system schemas and object counts:
