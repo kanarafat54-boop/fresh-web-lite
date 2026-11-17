@@ -258,3 +258,30 @@ The current role/authority implementation is a useful starting point, but must b
 Ara6 succeeds by delivering independently useful, dependable technologies—not by names, diagrams or unsupported claims. Each division must produce measurable outputs that can be used by Fresh products and external developers, businesses or industries.
 
 The long-term ambition can remain extraordinarily large. The engineering path must remain testable, safe, financially realistic and honest at every step.
+
+
+## 10. Expanded implementation audit
+
+A second pass inspected the workflow, agent-runtime, governance and verification files on `main`:
+
+| Area | File | Verified behaviour / limitation |
+|---|---|---|
+| Workflow orchestration | `src/core/ara6/orchestrator.ts` | Creates workflows and mirrors task status into the task engine; in-memory arrays, no durable queue, worker leases, dependency scheduler or recovery. |
+| Workflow graph | `src/core/ara6/workflowGraph.ts` | Stores nodes and marks a node complete; does not itself schedule dependencies or execute nodes. |
+| Agent runtime | `src/core/ara6/agents/agentRuntime.ts` | Resolves tools, applies the Fresh AI TRUEMODE evidence gate, calls role authorization, then executes through the tool registry. The runtime and authorization path need broader adversarial and integration testing. |
+| Constitution | `src/core/ara6/aes/constitution.ts` | Declares mandatory rules for duplicate features, permissions, owner approval, security, testing, explainability and learning. A rule declaration alone does not prove every rule is enforced. |
+| World model | `src/core/ara6/world/registerCore.ts` | Registers Fresh Core, Fresh AI, Ara6, Wallet and Feed as world-model nodes; descriptive registration, not a live digital twin. |
+| Core DNA registry | `src/core/ara6/dna/registerCoreDNA.ts` | Registers core ecosystem metadata; not executable biological or self-modifying code. |
+| Agent-role tests | `scripts/verify-fresh-agent-roles.mjs` | Static/runtime checks cover unknown roles, tool scoping, production denial, approvals and audit behaviour. This is useful coverage but not a complete security audit. |
+| Role documentation | `docs/FRESH_AI_AGENT_ROLES.md` | Explicitly records that the durable `fresh_trust_audit` sink is not wired and that some authority ladder levels are not yet used by registered tools. |
+
+### Immediate risks and priorities from this audit
+
+1. **Durable audit is a known gap.** The current role audit trail is in memory; the documented database sink is not wired. Implement a durable adapter with failure-safe behaviour and tests before treating auditability as production-ready.
+2. **The workflow orchestrator is a state coordinator, not a scheduler.** It marks tasks running/completed but does not provide worker execution, dependency ordering, leases, retries across restarts or distributed recovery.
+3. **Authorization coverage needs an end-to-end proof.** Keep authorization before execution, and test all invocation paths, including direct registry calls, explicit tool IDs, retries, concurrent requests, stale approvals and unknown tools.
+4. **Constitution rules need enforcement mapping.** For each mandatory rule, identify its enforcement point and test. Rules with no enforcement point must be labelled policy-only, not implemented controls.
+5. **Tool labels must match behaviour.** The default wallet/feed handlers currently route through a generic analysis response rather than a real financial/social operation. Do not expose them as completed transaction capabilities until real backend contracts and integration tests exist.
+6. **Evolution graph is metadata, not self-improvement.** Any learning/evolution claim requires durable provenance, controlled experiments, independent evaluation and rollback.
+
+This expanded audit is still a source-level review. It does not claim that the repository was cloned, the full test suite was executed, a browser session was validated or a deployment was performed.
