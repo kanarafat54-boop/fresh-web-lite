@@ -52,9 +52,9 @@ async function uploadPart(url: string, chunk: Blob): Promise<string> {
       const etag = response.headers.get("etag");
       if (!etag || !/^"?[a-f0-9]{32}(?:-\d+)?"?$/i.test(etag)) {
         throw new Error("Storage CORS must expose the ETag response header before uploads can complete.");
-      }
+  }
       return etag;
-    } catch (error) {
+  } catch (error) {
       lastError = error;
       if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 700 * (attempt + 1)));
     }
@@ -91,43 +91,39 @@ export async function uploadFreshR2Object(
     writeSession(localKey, session);
   }
 
-  try {
-    const listed = await callApi(accessToken, { action: "list-parts", ...session });
-    const remoteParts = Array.isArray(listed.parts) ? listed.parts as ListedPart[] : [];
-    const completed = new Map(remoteParts.map((part) => [part.partNumber, part]));
-    const partCount = Math.ceil(file.size / PART_BYTES);
-    let uploadedBytes = 0;
-    const parts: Array<{ PartNumber: number; ETag: string }> = [];
+  // Keep the local session if any part fails so a retry can resume completed parts.
+  const listed = await callApi(accessToken, { action: "list-parts", ...session });
+  const remoteParts = Array.isArray(listed.parts) ? listed.parts as ListedPart[] : [];
+  const completed = new Map(remoteParts.map((part) => [part.partNumber, part]));
+  const partCount = Math.ceil(file.size / PART_BYTES);
+  let uploadedBytes = 0;
+  const parts: Array<{ PartNumber: number; ETag: string }> = [];
 
-    for (let partNumber = 1; partNumber <= partCount; partNumber += 1) {
-      const start = (partNumber - 1) * PART_BYTES;
-      const end = Math.min(start + PART_BYTES, file.size);
-      const chunk = file.slice(start, end);
-      const existing = completed.get(partNumber);
-      let etag: string;
+  for (let partNumber = 1; partNumber <= partCount; partNumber += 1) {
+    const start = (partNumber - 1) * PART_BYTES;
+    const end = Math.min(start + PART_BYTES, file.size);
+    const chunk = file.slice(start, end);
+    const existing = completed.get(partNumber);
+    let etag: string;
 
-      if (existing && existing.sizeBytes === chunk.size) {
-        etag = existing.etag;
-      } else {
-        const signed = await callApi(accessToken, { action: "sign-part", ...session, partNumber });
-        if (typeof signed.url !== "string") throw new Error("Storage provider did not return a part upload URL.");
-        etag = await uploadPart(signed.url, chunk);
+    if (existing && existing.sizeBytes === chunk.size) {
+      etag = existing.etag;
+    } else {
+      const signed = await callApi(accessToken, { action: "sign-part", ...session, partNumber });
+      if (typeof signed.url !== "string") throw new Error("Storage provider did not return a part upload URL.");
+      etag = await uploadPart(signed.url, chunk);
       }
-      parts.push({ PartNumber: partNumber, ETag: etag });
-      uploadedBytes += chunk.size;
-      onProgress?.(Math.round((uploadedBytes / file.size) * 100));
+    parts.push({ PartNumber: partNumber, ETag: etag });
+    uploadedBytes += chunk.size;
+    onProgress?.(Math.round((uploadedBytes / file.size) * 100));
     }
 
-    const completedResult = await callApi(accessToken, { action: "complete", ...session, parts, sizeBytes: file.size });
-    if (completedResult.verified !== true || completedResult.sizeBytes !== file.size || typeof completedResult.key !== "string") {
-      throw new Error("Storage provider did not verify the completed object.");
+  const completedResult = await callApi(accessToken, { action: "complete", ...session, parts, sizeBytes: file.size });
+  if (completedResult.verified !== true || completedResult.sizeBytes !== file.size || typeof completedResult.key !== "string") {
+    throw new Error("Storage provider did not verify the completed object.");
     }
-    clearSession(localKey);
-    return completedResult as unknown as FreshR2UploadResult;
-  } catch (error) {
-    // Preserve the session so retrying the same selected file can resume completed parts.
-    throw error;
-  }
+  clearSession(localKey);
+  return completedResult as unknown as FreshR2UploadResult;
 }
 
 export async function createFreshR2DownloadUrl(key: string, accessToken: string): Promise<string> {
