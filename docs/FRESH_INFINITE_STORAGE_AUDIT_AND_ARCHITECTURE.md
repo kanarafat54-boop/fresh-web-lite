@@ -186,3 +186,44 @@ This GitHub-only audit cannot read the connected Supabase project's live dashboa
 - production TUS limits and real upload success above 50 MiB.
 
 No production settings have been changed. No migration has been applied. No existing objects have been moved or deleted.
+
+
+## Phase 1 — Cloudflare R2 adapter (implemented, credentials pending)
+
+Cloudflare R2 is the selected first additional object provider because it exposes an S3-compatible API, supports multipart uploads up to 5 TiB per object, and currently publishes a 10 GB-month Standard storage free allowance, 1 million Class A requests, 10 million Class B requests and no internet egress charge. These allowances are not unlimited storage; usage beyond them is billed at published rates.
+
+### Code added
+
+- `src/server/storage/r2S3Signer.mjs`: server-side AWS Signature Version 4 request signing and short-lived presigned URL generation for the R2 S3 endpoint.
+- `api/storage/r2.ts`: authenticated Vercel API for multipart initiate, list-parts/resume, short-lived part signing, completion, abort and private download URLs.
+- `src/core/storage/r2MultipartUpload.ts`: browser upload client using 64 MiB parts, retry, local resumable-session records and server-side completion verification.
+- `scripts/verify-fresh-r2-storage-contract.mjs`: deterministic signing, expiry, key ownership and secret-exposure contract tests.
+- Platform build workflow includes the R2 contract test.
+
+### Upload behavior and safety
+
+- Browser uploads go directly to R2 using 15-minute, part-specific presigned PUT URLs; the R2 secret key never enters browser code.
+- Files are split into 64 MiB parts; the final part may be smaller. This supports the current Fresh 5,000,000,000-byte product limit without routing multi-gigabyte bodies through Vercel.
+- R2 object keys are generated under the authenticated user's UUID namespace.
+- All management actions re-authenticate the Supabase bearer token and reject keys outside that user's namespace.
+- Objects are private by default. Download links are signed for five minutes.
+- Completion performs a server-side HEAD check for owner metadata and exact expected byte count before returning `verified: true`.
+- Interrupted sessions retain their key/upload ID in user-scoped browser local storage and recover completed parts from R2's ListParts API.
+- Existing Supabase uploads, public URLs, buckets and production paths are unchanged. No automatic provider fallback or cross-provider migration is enabled.
+
+### Required Cloudflare setup (not performed by repository automation)
+
+Create one private R2 bucket, e.g. `fresh-media`, and a bucket-scoped API token with Object Read & Write. Add these server-only Vercel environment variables to the intended preview environment first:
+
+- `R2_ACCOUNT_ID`
+- `R2_BUCKET`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+
+The existing Supabase URL and anon key must also be present for user-token verification. Never use a service-role or secret Supabase key in the browser.
+
+Configure the R2 bucket CORS policy for the exact Fresh preview/production origins, allow `PUT`, `GET`, and `HEAD`, allow the required request headers (at minimum `content-type`), and expose the `ETag` response header. Without exposing ETag, the browser cannot safely complete multipart uploads.
+
+### Not yet claimed
+
+The adapter is implemented but is **not live** until the bucket, scoped token, server environment variables and CORS policy are configured. No real R2 object has been uploaded or downloaded in this phase. A provider connection test, end-to-end upload/resume/download test and cost/usage monitoring are still required before routing production media to R2.
