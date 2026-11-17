@@ -38,7 +38,7 @@ function signingKey(secret, dateStamp) {
 }
 
 function timestamp(date) {
-  return date.toISOString().replace(/[:-]|.\d{3}/g, "");
+  return date.toISOString().replace(/[:-]|\\.\\d{3}/g, "");
 }
 
 function validateConfig(config) {
