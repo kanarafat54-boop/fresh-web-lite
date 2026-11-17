@@ -2,11 +2,16 @@
  * Fresh Live — session control plane (Phase 1).
  *
  * Authenticated create / read / transition endpoints for live_sessions.
- * Does not issue media credentials or mark a session LIVE without a future
- * provider confirmation path. A mock or empty media plane must never set status=live.
+ * Does not issue media credentials or mark a session LIVE without a
+ * configured LiveMediaAdapter. A mock or empty media plane must never set status=live.
  */
 import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getLiveMediaAdapter } from "../../src/core/live/mediaAdapter.js";
+import {
+  canTransition,
+  type LiveSessionStatus,
+} from "../../src/core/live/sessionStateMachine.js";
 
 type Action =
   | "create"
@@ -17,20 +22,6 @@ type Action =
   | "start"
   | "end"
   | "cancel";
-
-const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-  draft: ["ready", "scheduled", "cancelled"],
-  scheduled: ["ready", "cancelled"],
-  ready: ["live", "cancelled", "failed"],
-  live: ["ending", "interrupted", "failed"],
-  interrupted: ["live", "ending", "failed"],
-  ending: ["ended", "failed"],
-  ended: ["processing"],
-  processing: ["replay_ready", "failed"],
-  cancelled: [],
-  failed: [],
-  replay_ready: [],
-};
 
 const json = (body: unknown, status = 200) =>
   Response.json(body, {
@@ -98,6 +89,10 @@ function sanitizeCategory(raw: unknown): string {
   return c || "other";
 }
 
+function asStatus(value: string): LiveSessionStatus {
+  return value as LiveSessionStatus;
+}
+
 export async function POST(req: Request): Promise<Response> {
   const token = getBearer(req);
   if (!token) return json({ error: "Authentication required" }, 401);
@@ -115,6 +110,9 @@ export async function POST(req: Request): Promise<Response> {
     const { authUserId, admin } = clients(token);
     const actorId = await authUserId;
     if (!actorId) return json({ error: "Invalid or expired session" }, 401);
+
+    const media = getLiveMediaAdapter();
+    const mediaConfigured = media.isConfigured();
 
     switch (body.action) {
       case "create": {
@@ -141,7 +139,6 @@ export async function POST(req: Request): Promise<Response> {
 
         if (error) throw error;
 
-        // Record host membership.
         await admin.from("live_participants").insert({
           session_id: data.id,
           user_id: actorId,
@@ -168,7 +165,6 @@ export async function POST(req: Request): Promise<Response> {
         if (error) throw error;
         if (!data) return json({ error: "Session not found" }, 404);
 
-        // Visibility gate (defense in depth; RLS also applies for user-scoped clients).
         if (
           data.creator_id !== actorId &&
           (data.visibility === "private" || data.status === "draft" || data.status === "cancelled")
@@ -194,7 +190,6 @@ export async function POST(req: Request): Promise<Response> {
       }
 
       case "list_discover": {
-        // Only intentionally public, non-draft sessions.
         const { data, error } = await admin
           .from("live_sessions")
           .select(
@@ -210,7 +205,6 @@ export async function POST(req: Request): Promise<Response> {
       }
 
       case "prepare": {
-        // Move draft/scheduled → ready. Does not create media resources yet.
         const id = typeof body.id === "string" ? body.id : null;
         if (!id) return json({ error: "id is required" }, 400);
 
@@ -223,12 +217,12 @@ export async function POST(req: Request): Promise<Response> {
         if (readErr) throw readErr;
         if (!current || current.creator_id !== actorId) return json({ error: "Session not found" }, 404);
 
-        const allowed = ALLOWED_TRANSITIONS[current.status] ?? [];
-        if (!allowed.includes("ready")) {
-          return json(
-            { error: `Cannot prepare from status '${current.status}'` },
-            409,
-          );
+        const decision = canTransition(asStatus(current.status), "ready", {
+          mediaConfigured,
+          isCreator: true,
+        });
+        if (!decision.ok) {
+          return json({ error: decision.reason, code: decision.code }, 409);
         }
 
         const { data, error } = await admin
@@ -248,14 +242,46 @@ export async function POST(req: Request): Promise<Response> {
       }
 
       case "start": {
-        // Intentionally blocked until a media adapter can confirm resources.
-        // This protects the product from false LIVE claims.
+        const id = typeof body.id === "string" ? body.id : null;
+        if (!id) return json({ error: "id is required" }, 400);
+
+        const { data: current, error: readErr } = await admin
+          .from("live_sessions")
+          .select("id, creator_id, status")
+          .eq("id", id)
+          .maybeSingle();
+
+        if (readErr) throw readErr;
+        if (!current || current.creator_id !== actorId) return json({ error: "Session not found" }, 404);
+
+        const decision = canTransition(asStatus(current.status), "live", {
+          mediaConfigured,
+          isCreator: true,
+        });
+
+        if (!decision.ok) {
+          const statusCode = decision.code === "LIVE_MEDIA_NOT_CONFIGURED" ? 503 : 409;
+          return json(
+            {
+              error: decision.reason,
+              code: decision.code,
+              message:
+                decision.code === "LIVE_MEDIA_NOT_CONFIGURED"
+                  ? "Fresh Live control plane can create and prepare sessions, but starting a live broadcast requires an approved media provider adapter and confirmed ingest/playback resources. No paid infrastructure has been activated."
+                  : decision.reason,
+            },
+            statusCode,
+          );
+        }
+
+        // Future path: create media resources, confirm health, then set live + started_at.
+        // Unreachable today because NotConfiguredMediaAdapter.isConfigured() is false.
         return json(
           {
             error: "Media plane not connected",
             code: "LIVE_MEDIA_NOT_CONFIGURED",
             message:
-              "Fresh Live control plane can create and prepare sessions, but starting a live broadcast requires an approved media provider adapter and confirmed ingest/playback resources. No paid infrastructure has been activated.",
+              "Adapter reported configured but no provider implementation is wired. Refusing to mark LIVE.",
           },
           503,
         );
@@ -274,15 +300,37 @@ export async function POST(req: Request): Promise<Response> {
         if (readErr) throw readErr;
         if (!current || current.creator_id !== actorId) return json({ error: "Session not found" }, 404);
 
-        const from = current.status;
-        if (!['live', 'interrupted', 'ready', 'ending'].includes(from)) {
-          return json({ error: `Cannot end from status '${from}'` }, 409);
+        const from = asStatus(current.status);
+        // Allow ending from ready (never went live) or through ending from live/interrupted.
+        let target: LiveSessionStatus = "ended";
+        if (from === "live" || from === "interrupted") {
+          const toEnding = canTransition(from, "ending", { mediaConfigured, isCreator: true });
+          if (!toEnding.ok) return json({ error: toEnding.reason, code: toEnding.code }, 409);
+          target = "ended";
+        } else if (from === "ready" || from === "ending") {
+          // ready → cancelled is preferred; treat end of ready as cancelled-equivalent ended for UX simplicity
+          // Use cancelled for never-live, ended when already live path.
+          if (from === "ready") {
+            const cancel = canTransition("ready", "cancelled", { mediaConfigured, isCreator: true });
+            if (!cancel.ok) return json({ error: cancel.reason, code: cancel.code }, 409);
+            const { data, error } = await admin
+              .from("live_sessions")
+              .update({ status: "cancelled" })
+              .eq("id", id)
+              .eq("creator_id", actorId)
+              .select("id, status, updated_at")
+              .single();
+            if (error) throw error;
+            return json({ ok: true, session: data });
+          }
+        } else {
+          return json({ error: `Cannot end from status '${from}'`, code: "LIVE_INVALID_TRANSITION" }, 409);
         }
 
         const { data, error } = await admin
           .from("live_sessions")
           .update({
-            status: "ended",
+            status: target,
             ended_at: new Date().toISOString(),
           })
           .eq("id", id)
@@ -307,8 +355,12 @@ export async function POST(req: Request): Promise<Response> {
         if (readErr) throw readErr;
         if (!current || current.creator_id !== actorId) return json({ error: "Session not found" }, 404);
 
-        if (!['draft', 'scheduled', 'ready'].includes(current.status)) {
-          return json({ error: `Cannot cancel from status '${current.status}'` }, 409);
+        const decision = canTransition(asStatus(current.status), "cancelled", {
+          mediaConfigured,
+          isCreator: true,
+        });
+        if (!decision.ok) {
+          return json({ error: decision.reason, code: decision.code }, 409);
         }
 
         const { data, error } = await admin
