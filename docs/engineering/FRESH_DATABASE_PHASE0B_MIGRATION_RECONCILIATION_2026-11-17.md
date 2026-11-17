@@ -67,6 +67,45 @@ The other 21 candidate mappings can be treated as verified SQL-equivalent timest
 - [ ] Verify the repository full-replay workflow on a clean isolated stack and inspect its latest run/logs.
 - [ ] Complete schema, authorization, function, trigger, and realtime publication contract inventory.
 
+
+## Expanded classification of all 39 repository-only versions
+
+A second pass classified the 39 repository filenames whose timestamp/version prefix does not exactly occur in the live ledger:
+
+| Classification | Count | Finding |
+|---|---:|---|
+| Verified timestamp-shift SQL match | 21 | SQL equivalent after removing comments and normalizing whitespace |
+| Substantive SQL drift | 1 | `owner_fresh_mail_address`: repository adds a second owner/status guard absent from the live stored SQL |
+| Additional same-name but different SQL | 1 | `20260929_security_hardening.sql` is not equivalent to live `20260808140000_security_hardening`; the repository file hardens views and RPC grants/search paths, while the live stored SQL is a different security-hardening set |
+| Verified SQL match under version/name variation | 1 | `20260926120000_treasury_entries_select_own_rls.sql` is SQL-equivalent to live `20260926084937_treasury_entries_select_own_rls_v2` |
+| Unresolved — no reliable live ledger mapping yet | 15 | Listed below; require schema/object evidence and chronology review |
+
+### Fifteen unresolved repository migrations
+
+These files do not have an exact version match or a sufficiently reliable name/content mapping established in this pass:
+
+1. `20260906090000_fresh_intelligence_foundation.sql`
+2. `20261014140100_seed_fresh_ai_platform_knowledge.sql`
+3. `20261014140200_fresh_ai_master_matrix_knowledge.sql`
+4. `20261014140300_fresh_ai_full_text_search.sql`
+5. `20261014140400_fresh_ai_outside_ai_knowledge.sql`
+6. `20261014193000_fresh_communication_tables_foundation.sql`
+7. `20261014210000_allow_fresh_picks_feed_mode.sql`
+8. `20261016090000_fresh_ai_correction_loop.sql`
+9. `20261019090000_fresh_profile_privacy_settings.sql`
+10. `20261021200000_fresh_ai_platform_docs_knowledge.sql`
+11. `20261027100000_direct_messages_replayable_read_policies.sql`
+12. `20261030213000_fresh_long_video_storage_bucket_provision.sql`
+13. `20261103150000_fresh_short_audience_lens.sql`
+14. `20261115120000_fresh_push_outbox.sql`
+15. `20261115140000_fresh_push_deeplinks_and_more_triggers.sql`
+
+The classification counts sum to all 39 repository-only versions. "Unresolved" does not mean unapplied: an object may have been introduced by another migration, manually provisioned, superseded, or intentionally kept out of production. Each needs object-level and behavior-level evidence. In particular, seed/knowledge migrations must be reviewed for data volume and repeatability, while push/outbox and storage-bucket migrations need explicit object/configuration checks.
+
+### Consequence for clean replay
+
+The migration directory is not yet a proven, single authoritative replay chain. Do not run the full repository directory against a fresh database and treat any resulting failure as permission to modify production history. First determine the intended baseline and disposition of all 15 unresolved files and the two substantive SQL drifts. The historical production ledger and repository source should remain separately auditable.
+
 ## Other live catalog surface observed
 
 A read-only catalog query returned these non-system schemas and object counts:
