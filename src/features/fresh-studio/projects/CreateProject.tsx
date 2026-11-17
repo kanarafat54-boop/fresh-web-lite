@@ -16,7 +16,7 @@ const KIND_HINTS: Record<StudioMediaKind, string> = {
   animation3d: "3D scenes and animation",
   design: "Posters, thumbnails and branding",
   live: "Broadcast production",
-  custom: "Start empty and decide later",
+  custom: "Write a post, article, lesson or notes",
 };
 
 const START_LABELS: Record<StudioStartingPoint, { label: string; available: boolean; note?: string }> = {
@@ -92,7 +92,7 @@ export default function CreateProject({ state, notify, openProject, navigateRout
           </section>
           <section aria-label="Other project types">
             <h2>Other project types</h2>
-            <p className="fs-muted">Pictures open a photo editor and audio and podcasts open an audio editor. The others create a project record for planning; their editors are not built yet.</p>
+            <p className="fs-muted">Pictures open a photo editor, audio and podcasts open an audio editor, and text projects open a writing editor. The others create a project record for planning; their editors are not built yet.</p>
             <div className="fs-kind-grid">
               {STUDIO_MEDIA_KINDS.filter((k) => k !== "video").map((k) => (
                 <button key={k} type="button" className="fs-kind" onClick={() => pickKind(k)}>

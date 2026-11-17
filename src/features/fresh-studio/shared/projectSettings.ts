@@ -37,7 +37,13 @@ const AUDIO_EDITOR_FIELDS: EditorField[] = [
   { key: "normalize", label: "Level the volume", type: "number", min: 0, max: 1, default: 0 },
   { key: "markers", label: "Chapter markers", type: "text", maxLength: 6000, default: "" },
 ];
+const WRITING_EDITOR_FIELDS: EditorField[] = [
+  { key: "draftTitle", label: "Title", type: "text", maxLength: 200, default: "" },
+  { key: "draftBody", label: "Text", type: "text", maxLength: 30_000, default: "" },
+  { key: "draftSources", label: "Sources", type: "text", maxLength: 4_000, default: "" },
+];
 const EDITOR_FIELDS_BY_KIND: Partial<Record<StudioMediaKind, EditorField[]>> = {
+  custom: WRITING_EDITOR_FIELDS,
   audio: AUDIO_EDITOR_FIELDS,
   podcast: AUDIO_EDITOR_FIELDS,
   image: [
