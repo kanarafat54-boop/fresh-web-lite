@@ -17,7 +17,7 @@ function canonicalPath(bucket, key) {
 function canonicalQuery(query) {
   return Object.entries(query)
     .flatMap(([key, value]) => (Array.isArray(value) ? value : [value]).map((item) => [encode(key), encode(item ?? "")]))
-    .sort(([aKey, aValue], [bKey, bValue]) => aKey.localeCompare(bKey) || aValue.localeCompare(bValue))
+    .sort(([aKey, aValue], [bKey, bValue]) => (aKey < bKey ? -1 : aKey > bKey ? 1 : aValue < bValue ? -1 : aValue > bValue ? 1 : 0))
     .map(([key, value]) => `${key}=${value}`)
     .join("&");
 }
@@ -89,7 +89,7 @@ export function signR2Request(config, options) {
   const authorization = `${ALGORITHM} Credential=${config.accessKeyId}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
   return {
     url: `${endpoint(config)}${path}${query ? `?${query}` : ""}`,
-    headers: { ...headers, authorization },
+    headers: { ...Object.fromEntries(Object.entries(headers).filter(([name]) => name !== "host")), authorization },
   };
 }
 
