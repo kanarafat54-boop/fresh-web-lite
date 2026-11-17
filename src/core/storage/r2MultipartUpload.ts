@@ -118,7 +118,7 @@ export async function uploadFreshR2Object(
       onProgress?.(Math.round((uploadedBytes / file.size) * 100));
     }
 
-    const completedResult = await callApi(accessToken, { action: "complete", ...session, parts });
+    const completedResult = await callApi(accessToken, { action: "complete", ...session, parts, sizeBytes: file.size });
     if (completedResult.verified !== true || completedResult.sizeBytes !== file.size || typeof completedResult.key !== "string") {
       throw new Error("Storage provider did not verify the completed object.");
     }
