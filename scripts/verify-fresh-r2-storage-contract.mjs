@@ -32,7 +32,9 @@ assert.throws(() => presignR2Request(config, { method: "GET", key, expiresIn: 60
 
 const signed = signR2Request(config, { method: "POST", key, query: { uploads: "" }, body: "", now });
 assert.match(signed.headers.authorization, /^AWS4-HMAC-SHA256 Credential=TESTACCESSKEY\//);
-assert.equal(signed.headers.host, "0123456789abcdef0123456789abcdef.r2.cloudflarestorage.com");
+assert.equal(new URL(signed.url).hostname, "0123456789abcdef0123456789abcdef.r2.cloudflarestorage.com");
+assert.equal(signed.headers.host, undefined);
+assert.match(signed.headers.authorization, /SignedHeaders=host;x-amz-content-sha256;x-amz-date/);
 assert.equal(signed.url.includes("uploads="), true);
 assert.equal(signed.headers.authorization.includes(config.secretAccessKey), false);
 
