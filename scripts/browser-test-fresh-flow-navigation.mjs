@@ -274,6 +274,9 @@ for (const width of WIDTHS) {
   await page.getByRole("button", { name: "Rotate right" }).click();
   await page.waitForTimeout(1800);
   check((await page.locator(".fs-save").first().textContent())?.includes("All changes saved"), `${tag} photo adjustments autosave to the project`);
+  await page.getByRole("button", { name: "Publish this picture" }).click();
+  await page.waitForSelector(".creator-media-preview img", { timeout: 15000 });
+  check(await page.locator(".creator-media-preview img").isVisible(), `${tag} Publish this picture arrives on the Publish page with the edited picture attached`);
   await page.reload();
   await page.waitForSelector(".fs-app-embedded", { timeout: 10000 });
   await studioNav("Content");
