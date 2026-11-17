@@ -22,8 +22,8 @@ async function callApi(accessToken: string, payload: Record<string, unknown>, ap
   return result;
 }
 
-function sessionKey(file: File): string {
-  return `fresh-r2-upload:${file.name}:${file.size}:${file.lastModified}:${file.type}`;
+function sessionKey(file: File, userId: string): string {
+  return `fresh-r2-upload:${userId}:${file.name}:${file.size}:${file.lastModified}:${file.type}`;
 }
 
 function readSession(key: string): StoredSession | null {
@@ -69,14 +69,15 @@ async function uploadPart(url: string, chunk: Blob): Promise<string> {
 export async function uploadFreshR2Object(
   file: File,
   accessToken: string,
+  userId: string,
   onProgress?: (percent: number) => void,
 ): Promise<FreshR2UploadResult> {
-  if (!accessToken) throw new Error("Sign in with Fresh ID before uploading.");
+  if (!accessToken || !userId) throw new Error("Sign in with Fresh ID before uploading.");
   if (!(file instanceof File) || file.size <= 0 || file.size > 5_000_000_000) {
     throw new Error("Choose a non-empty file no larger than 5 GB.");
   }
 
-  const localKey = sessionKey(file);
+  const localKey = sessionKey(file, userId);
   let session = readSession(localKey);
   if (!session) {
     const extension = file.name.includes(".") ? file.name.split(".").pop() || "bin" : "bin";
