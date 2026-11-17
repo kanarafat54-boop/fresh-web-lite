@@ -86,4 +86,15 @@ await assert.rejects(() => D.discover("learn", "a", dupe), /at least 2 character
 await assert.rejects(() => D.discover("fresh-posts", "abc", dupe), /Unknown system/);
 await assert.rejects(() => D.discover("constructor", "abc", dupe), /Unknown system/);
 assert.ok(seenUrls.every((u) => u.startsWith("https://")), "providers are only called over https");
+
+// wiring: the endpoint lives inside an existing function (Vercel Hobby allows 12) and is routed before the catch-all
+const fs = await import("node:fs");
+assert.equal(fs.existsSync("api/discover.ts"), false, "a new api file would exceed the Hobby function limit");
+const vercel = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
+const at = vercel.routes.findIndex((r) => r.src === "/api/discover");
+assert.ok(at >= 0 && at < vercel.routes.findIndex((r) => r.src === "/api/(.*)"), "route comes before the catch-all");
+assert.equal(vercel.routes[at].dest, "/api/research/search?__fresh_discover=1");
+const searchApi = fs.readFileSync("api/research/search.ts", "utf8");
+assert.match(searchApi, /__fresh_discover/);
+assert.match(searchApi, /isGlobalSystem\(system\)/);
 console.log("Global discovery contract passed (7 providers, 5 systems, failures reported, no invented results).");

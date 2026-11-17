@@ -1,4 +1,5 @@
 import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
+import { discover, isGlobalSystem } from "../../src/core/discovery/globalDiscovery.js";
 import { synthesizeResearch, type ResearchPass } from "../../src/server/research/orchestrator.js";
 import { persistSemanticResearch } from "../../src/server/research/persistSemanticResearchV2.js";
 import { reasonAcrossDimensions } from "../../src/core/fresh-ai/dimensionalIntelligence.js";
@@ -64,8 +65,27 @@ async function runTavily(apiKey: string, query: string, modeConfig: (typeof MODE
 
 function json(data: unknown, status = 200, headers?: Record<string, string>): Response { return Response.json(data, { status, headers }); }
 
-// Return a deliberate method response instead of letting unsupported GET requests crash the function.
-export function GET(): Response {
+/**
+ * GET /api/discover?system=fresh-news&q=flood (routed here by vercel.json to stay inside the Hobby plan's function limit).
+ * Searches open public catalogs for one Fresh Flow system. Free sources, no keys. Cached briefly at the edge because the
+ * catalogs rate-limit and the same searches repeat. Any other GET is still refused.
+ */
+async function discoverGET(url: URL): Promise<Response> {
+  const system = url.searchParams.get("system") ?? "";
+  if (!isGlobalSystem(system)) return json({ error: "This system does not search outside Fresh." }, 400, { "Cache-Control": "no-store" });
+  try {
+    const result = await discover(system, url.searchParams.get("q"), (target, init) => fetch(target, init), { limit: 10 });
+    const allFailed = result.providers.every((p) => !p.ok);
+    return json(result, allFailed ? 502 : 200, { "Cache-Control": allFailed ? "no-store" : "public, s-maxage=300, stale-while-revalidate=600" });
+  } catch (error) {
+    return json({ error: error instanceof Error ? error.message : "Search failed." }, 400, { "Cache-Control": "no-store" });
+  }
+}
+
+// Anything but discovery gets a deliberate method response instead of letting unsupported GET requests crash the function.
+export function GET(req: Request): Response | Promise<Response> {
+  const url = new URL(req.url);
+  if (url.searchParams.get("__fresh_discover") === "1") return discoverGET(url);
   return json({ error: "Method not allowed" }, 405, { Allow: "POST", "Cache-Control": "no-store" });
 }
 

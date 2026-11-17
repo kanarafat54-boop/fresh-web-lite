@@ -147,7 +147,11 @@ export type DiscoveryResult = { systemId: string; query: string; items: Discover
 export type Fetcher = (url: string, init: { signal: AbortSignal; headers: Record<string, string> }) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>;
 
 export function cleanQuery(raw: unknown): string {
-  return typeof raw === "string" ? raw.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, MAX_QUERY) : "";
+  if (typeof raw !== "string") return "";
+  // Control characters become spaces. A character-class regex for them trips the no-control-regex lint rule, so check code points.
+  let text = "";
+  for (const ch of raw) { const code = ch.codePointAt(0) ?? 0; text += code < 32 || code === 127 ? " " : ch; }
+  return text.replace(/\s+/g, " ").trim().slice(0, MAX_QUERY);
 }
 
 /** Asks every provider for the system at once. One slow or broken provider never hides the others, and every failure is reported. */
