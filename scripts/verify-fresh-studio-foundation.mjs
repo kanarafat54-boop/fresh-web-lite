@@ -8,6 +8,7 @@ const { createDeviceBackend, MemoryStore } = await import(base + "projects/devic
 const { rowToProject, metaToMetadata, parseStudioMeta, rowToVersion } = await import(base + "projects/projectMapping.ts");
 const { settingFieldsFor, defaultSettingsFor, validateSettings } = await import(base + "shared/projectSettings.ts");
 const { STUDIO_MEDIA_KINDS, STUDIO_STATUSES } = await import(base + "shared/types.ts");
+const { toProject: toFreshFlowProject } = await import("../src/features/fresh-flow/core/studioProjectsLogic.ts");
 
 function fresh() {
   let n = 0;
@@ -130,7 +131,17 @@ assert.equal(pruned.filter((v) => v.kind === "checkpoint").length, 1, "named che
 
 // --- Row mapping: non-Studio fresh_projects rows are ignored; foreign metadata is preserved
 const row = { id: "r1", workspace_id: "w1", owner_id: "u1", name: "N", status: "planning", version: 3, metadata: { other: { keep: true } }, created_at: "2026-11-02T00:00:00Z", updated_at: "2026-11-02T00:00:00Z" };
-assert.equal(rowToProject(row), null);
+assert.equal(rowToProject(row), null, "unrelated fresh_projects rows stay outside Studio");
+const legacyFlowRow = {
+  ...row,
+  status: "in-production",
+  metadata: { category: "3d", directorProduction: { title: "Existing Director project" }, externalFeatureData: { preserve: true } },
+};
+const legacyProject = rowToProject(legacyFlowRow);
+assert.equal(legacyProject.meta.kind, "animation3d", "legacy 3D projects map to the Studio animation workspace");
+assert.equal(legacyProject.meta.status, "in_production", "legacy status values map to the Studio status model");
+assert.equal(legacyProject.meta.workspace, "animation");
+assert.deepEqual(legacyFlowRow.metadata.directorProduction, { title: "Existing Director project" }, "legacy Director data remains untouched");
 const meta = parseStudioMeta({ studio: { kind: "image", status: "editing", settings: { canvasWidth: 800, evil: { nested: 1 } } } });
 assert.equal(meta.kind, "image");
 assert.equal(meta.workspace, "image");
@@ -141,7 +152,13 @@ assert.equal(parseStudioMeta({ studio: { kind: "image", status: "bogus" } }), nu
 const merged = metaToMetadata(row.metadata, meta);
 assert.deepEqual(merged.other, { keep: true });
 assert.equal(merged.studio.kind, "image");
+assert.equal(merged.category, "image", "new Studio metadata keeps a compatible Fresh Flow category");
 assert.equal(rowToProject({ ...row, metadata: merged }).version, 3);
+const studioCreatedRow = { ...row, status: "editing", metadata: metaToMetadata({}, meta) };
+const freshFlowView = toFreshFlowProject(studioCreatedRow);
+assert.equal(freshFlowView.category, "image", "Fresh Flow recognizes projects created by the unified Studio");
+assert.equal(freshFlowView.status, "editing");
+assert.equal(toFreshFlowProject({ ...studioCreatedRow, metadata: { studio: { kind: "animation3d", status: "in_production" } }, status: "in_production" }).category, "3d");
 assert.equal(rowToVersion({ id: "v", project_id: "p", version: 1, label: null, kind: "autosave", snapshot: "bad", created_at: "x" }), null);
 
 // --- Status model matches spec §3.2
@@ -168,7 +185,7 @@ console.log("Fresh Studio foundation contract passed.");
 {
   const { STUDIO_SECTIONS, MOBILE_PRIMARY_SECTIONS } = await import(base + "shared/studioNav.ts");
   const { STUDIO_CAPABILITIES, CAPABILITY_STATUSES } = await import(base + "shared/studioCapabilities.ts");
-  assert.deepEqual(STUDIO_SECTIONS.map((s) => s.label), ["Dashboard", "Content", "Create", "Publish", "Analytics", "Audio", "Design", "Distribute", "Earn", "Settings", "AI Creation", "Assets", "Templates", "Brand Kit", "Team"]);
+  assert.deepEqual(STUDIO_SECTIONS.map((s) => s.label), ["Dashboard", "Shorts", "Content", "Create", "Device tools", "Publish", "Analytics", "Audio", "Design", "Distribute", "Earn", "Settings", "AI Creation", "Assets", "Templates", "Brand Kit", "Team"]);
   const { CREATOR_TAB_SECTIONS } = await import(base + "shared/studioNav.ts");
   for (const id of Object.keys(CREATOR_TAB_SECTIONS)) assert.ok(STUDIO_SECTIONS.some((s) => s.id === id && s.ready), `${id} is a ready Studio section`);
   assert.ok(MOBILE_PRIMARY_SECTIONS.length <= 4, "mobile bottom bar must not be crowded");
@@ -188,17 +205,35 @@ console.log("Fresh Studio foundation contract passed.");
   for (const keep of ['mode === "production"', 'mode === "photo"', "FreshStudioProductionDesk"]) assert.ok(workspace.includes(keep), `existing Studio feature missing: ${keep}`);
 
   const shortsFiles = ["src/features/fresh-flow/components/ShortsStudio.tsx", "src/features/fresh-flow/core/shortsStudio.ts"];
-  for (const f of shortsFiles) assert.doesNotMatch(fs.readFileSync(new URL(`../${f}`, import.meta.url), "utf8"), /fresh-studio/, "Shorts must not depend on the new Studio");
+  for (const f of shortsFiles) assert.doesNotMatch(fs.readFileSync(new URL(`../${f}`, import.meta.url), "utf8"), /(?:from\s*|import\()\s*["\x27][^"\x27]*fresh-studio/i, "Shorts must not import the Fresh Studio shell or create a dependency cycle");
 
   const nav = fs.readFileSync(new URL("../src/app/navigation/navModel.ts", import.meta.url), "utf8");
   assert.doesNotMatch(nav, /fresh-studio/, "Fresh Flow navigation stays untouched");
-  // one creator entry: the old Creator dashboard now lives inside Studio and still highlights it
-  const { ALL_NAV_ITEMS, isNavItemActive } = await import("../src/app/navigation/navModel.ts");
-  assert.equal(ALL_NAV_ITEMS.filter((i) => i.id === "studio").length, 1);
-  assert.equal(ALL_NAV_ITEMS.some((i) => i.id === "creator"), false, "no second creator entry in the menu");
-  const studioItem = ALL_NAV_ITEMS.find((i) => i.id === "studio");
-  assert.ok(isNavItemActive(studioItem, "studio") && isNavItemActive(studioItem, "creator"), "the creator route highlights Studio");
+  // Studio and Creator remain directly routable for legacy links, but no global navigation entry remains.
+  const { ALL_NAV_ITEMS, isMobilePrimaryRoute } = await import("../src/app/navigation/navModel.ts");
+  assert.equal(ALL_NAV_ITEMS.some((i) => i.id === "studio" || i.id === "creator"), false, "Creator Studio is not duplicated in global navigation");
+  assert.equal(isMobilePrimaryRoute("studio"), false, "legacy Studio route is no longer a primary mobile destination");
+  assert.equal(isMobilePrimaryRoute("creator"), false, "legacy Creator route is no longer a primary mobile destination");
+  const layoutProvider = fs.readFileSync(new URL("../src/app/contexts/LayoutProvider.tsx", import.meta.url), "utf8");
+  assert.match(layoutProvider, /path === "\/studio" \|\| path === "\/creation"\) return "fresh-flow-system-fresh-studio"/, "legacy /studio and /creation URLs open the canonical Flow Studio");
+  assert.match(layoutProvider, /route === "studio" \|\| route === "creator" \? "fresh-flow-system-fresh-studio"/, "legacy route IDs resolve to the canonical Flow Studio");
+  assert.match(layoutProvider, /path === "\/studio-editor"\) return "studio-device-editor"/, "the old device editor keeps a dedicated compatibility route");
+  const registry = fs.readFileSync(new URL("../src/app/registry/FeatureRegistry.ts", import.meta.url), "utf8");
+  assert.match(registry, /id: "studio-device-editor".*StudioWorkspace/s, "device editor remains registered");
+  assert.match(registry, /id: "studio".*searchable: false/);
+  assert.match(registry, /id: "creator".*searchable: false/);
+  const flowHub = fs.readFileSync(new URL("../src/features/fresh-flow/FreshFlowHub.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(flowHub, /setActiveRoute\("studio-device-editor"\)/, "Quick edit no longer leaves Studio for a second workspace");
+  const unifiedExperience = fs.readFileSync(new URL("../src/features/fresh-flow/components/FreshFlowSystemExperience.tsx", import.meta.url), "utf8");
+  const studioApp = fs.readFileSync(new URL("../src/features/fresh-studio/FreshStudioApp.tsx", import.meta.url), "utf8");
+  assert.match(unifiedExperience, /FreshStudioApp onBack=\{onBack\}/, "Fresh Flow Creator Studio loads the unified Studio shell");
+  assert.match(studioApp, /ShortsStudio embedded/, "Shorts insights remain available inside unified Studio");
+  assert.match(studioApp, /DeviceTools embedded/, "camera, photo, video and Director tools open inside unified Studio");
+  assert.match(studioApp, /openDeviceEditor: openTools/, "Quick edit and Create-from-import open the in-Studio tools");
   for (const keep of ["feed", "fresh-flow", "saved"]) assert.ok(ALL_NAV_ITEMS.some((i) => i.id === keep), `${keep} stays in the menu`);
 }
+
+const { isShortCreateAction } = await import("../src/features/creator/core/createIntent.ts");
+assert.ok(isShortCreateAction("upload"), "video upload intent must open the Short video publishing mode");
 
 console.log("Fresh Studio integration contract passed.");

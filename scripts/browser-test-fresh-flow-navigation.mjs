@@ -238,6 +238,56 @@ for (const width of WIDTHS) {
   check(await page.locator(".fresh-long-player").getAttribute("aria-label") === "The Long Journey — Chapter One", `${tag} shared video deep link opens the correct cinema player`);
   await page.locator(".fresh-long-player-bar button[aria-label='Close cinema player']").click();
 
+  // Direct legacy /studio URLs resolve to the canonical in-Flow Creator Studio.
+  await page.evaluate(() => {
+    window.history.replaceState({ freshRoute: "studio" }, "", "/studio");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await page.waitForSelector(".fs-app-embedded", { timeout: 10000 });
+  check(await page.locator("nav.fresh-flow-bottom-nav:visible").count() === 1, `${tag} legacy /studio URL opens the unified Studio inside Fresh Flow`);
+  // Device tools open inside the same Studio (no second workspace); the old /studio-editor URL is kept only for old links.
+  await page.getByRole("button", { name: "Open Studio menu" }).click();
+  await page.locator('nav[aria-label="Studio sections"]').getByRole("button", { name: "Dashboard", exact: true }).click();
+  await page.getByRole("button", { name: "Quick edit a file on this device" }).click();
+  await page.waitForSelector(".studio-workspace", { timeout: 10000 });
+  check(await page.locator(".fs-app-embedded .studio-workspace").count() === 1, `${tag} Quick edit opens the device tools inside Creator Studio`);
+  check(await page.locator(".studio-workspace h1").count() === 0, `${tag} the tools do not present a second "Fresh Studio" workspace`);
+  check(await page.getByRole("button", { name: /Studio dashboard/ }).count() === 0, `${tag} the tools offer no second Studio dashboard`);
+  check(new URL(page.url()).pathname !== "/studio-editor", `${tag} Quick edit no longer leaves Studio for the legacy URL`);
+
+  // Image projects: create one, edit a real picture, and get the saved adjustments back after a full reload.
+  const studioNav = async (label) => {
+    await page.getByRole("button", { name: "Open Studio menu" }).click();
+    await page.locator('nav[aria-label="Studio sections"]').getByRole("button", { name: label, exact: true }).click();
+  };
+  await studioNav("Create");
+  await page.locator(".fs-kind", { hasText: "Image / artwork" }).click();
+  await page.getByLabel("Project name").fill("E2E picture");
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Create project" }).click();
+  await page.waitForSelector('[aria-label="Photo editor"] input[type=range]', { timeout: 10000 });
+  check(await page.locator('[aria-label="Photo editor"]').count() >= 1, `${tag} a new image project opens the photo editor`);
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAYAAAC56t6BAAAAEklEQVR4nGP8z8Dwn4EIwDiqEAAbpAIF1GmBXwAAAABJRU5ErkJggg==", "base64");
+  await page.locator('[aria-label="Photo editor"] input[type=file]').setInputFiles({ name: "pic.png", mimeType: "image/png", buffer: png });
+  await page.waitForSelector('img[alt^="Preview of"]', { timeout: 10000 });
+  await page.locator('[aria-label="Photo editor"] input[type=range]').first().fill("130");
+  await page.getByRole("button", { name: "Rotate right" }).click();
+  await page.waitForTimeout(1800);
+  check((await page.locator(".fs-save").first().textContent())?.includes("All changes saved"), `${tag} photo adjustments autosave to the project`);
+  await page.reload();
+  await page.waitForSelector(".fs-app-embedded", { timeout: 10000 });
+  await studioNav("Content");
+  await page.getByRole("button", { name: "Open E2E picture" }).first().click();
+  await page.waitForSelector('[aria-label="Photo editor"], [aria-label="Photo editor entry"]', { timeout: 10000 });
+  if (await page.locator('[aria-label="Photo editor"]').count() === 0) await page.getByRole("button", { name: "Open photo editor" }).click();
+  await page.waitForSelector('[aria-label="Photo editor"] input[type=range]', { timeout: 10000 });
+  check(await page.locator('[aria-label="Photo editor"] input[type=range]').first().inputValue() === "130", `${tag} the saved brightness comes back after a reload`);
+  await page.evaluate(() => {
+    window.history.replaceState({ freshRoute: "fresh-flow-long-videos" }, "", "/fresh-flow-long-videos");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await page.waitForSelector(".fresh-long", { timeout: 10000 });
+
   // The Long Videos upload handoff must open Creator Studio in video-only mode.
   await page.evaluate(() => {
     sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: "long-video", requestedAt: new Date().toISOString() }));
@@ -245,7 +295,9 @@ for (const width of WIDTHS) {
     window.history.replaceState({ freshRoute: "creator" }, "", "/creation");
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
+  await page.waitForSelector(".fs-app-embedded", { timeout: 10000 });
   await page.waitForSelector(".creator-studio-dashboard", { timeout: 10000 });
+  check(await page.locator(".creator-studio-dashboard").count() === 1, `${tag} legacy /creation URL opens the unified Studio shell and retains the existing publisher`);
   const longVideoMode = page.locator(".creator-mode-switch button", { hasText: "Long Video" });
   await longVideoMode.waitFor({ state: "visible", timeout: 10000 });
   await page.waitForFunction(() => document.querySelector(".creator-mode-switch button.active")?.textContent?.trim() === "Long Video", { timeout: 10000 });
@@ -263,6 +315,20 @@ for (const width of WIDTHS) {
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
   await page.waitForSelector(".fresh-long", { timeout: 10000 });
+
+  // Creator Studio opens the unified Studio shell inside Flow, without stacking a second bottom bar.
+  await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Creator Studio" }).click();
+  await page.waitForSelector(".fs-app-embedded", { timeout: 10000 });
+  check(await page.locator(".fs-bottombar").count() === 0, `${tag} embedded Creator Studio does not render a duplicate Studio bottom bar`);
+  check(await page.locator("nav.fresh-flow-bottom-nav:visible").count() === 1, `${tag} Fresh Flow bottom navigation remains visible inside Creator Studio`);
+  check(await page.locator('nav[aria-label="Fresh Flow media"]').count() === 1, `${tag} Fresh Flow media navigation remains available inside Creator Studio`);
+  await page.getByRole("button", { name: "Open Studio menu" }).click();
+  await page.locator('nav[aria-label="Studio sections"]').getByRole("button", { name: "Shorts", exact: true }).click();
+  await page.waitForSelector(".shorts-studio-embedded", { timeout: 10000 });
+  check(await page.locator(".shorts-studio-embedded").isVisible(), `${tag} Shorts metrics and tools remain embedded in unified Studio`);
+  await page.locator(".shorts-studio-tabs button", { hasText: "Create & drafts" }).click();
+  await page.waitForSelector(".creator-studio-dashboard", { timeout: 10000 });
+  check(await page.locator(".creator-studio-dashboard").isVisible(), `${tag} existing Creator drafts and publishing dashboard remains available inside Studio`);
 
   // Bottom Shorts is current on the Shorts route and the top bar then has no current tab.
   await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Shorts" }).click();

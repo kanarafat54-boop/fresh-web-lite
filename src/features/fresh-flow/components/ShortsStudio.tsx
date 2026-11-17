@@ -25,7 +25,7 @@ function openCreate(action: "create" | "upload") {
 }
 
 /** Shorts Studio (creator tools): real numbers from your own rows; anything without a data source says so. */
-export default function ShortsStudio() {
+export default function ShortsStudio({ embedded = false }: { embedded?: boolean }) {
   const { user, isGuest } = useFreshId();
   const { setActiveRoute } = useLayout();
   const [tab, setTab] = useState<Tab>("overview");
@@ -41,15 +41,15 @@ export default function ShortsStudio() {
     return () => { cancelled = true; };
   }, [user?.id, isGuest]);
 
-  const create = (action: "create" | "upload") => { openCreate(action); setActiveRoute(signedIn ? "creator" : "auth-signin"); };
+  const create = (action: "create" | "upload") => { openCreate(action); if (!signedIn) { setActiveRoute("auth-signin"); return; } if (embedded) { setTab("create"); return; } setActiveRoute("fresh-flow-system-fresh-studio"); };
   const maxDay = Math.max(1, ...(data?.daily.map((d) => d.plays) ?? [1]));
 
   return (
-    <section className="shorts-studio" aria-label="Shorts Studio">
-      <header className="shorts-studio-head">
+    <section className={`shorts-studio${embedded ? " shorts-studio-embedded" : ""}`} aria-label="Shorts Studio">
+      {!embedded && <header className="shorts-studio-head">
         <div><h2>Creator Studio</h2><p>Edit, publish, track.</p></div>
         <button type="button" className="shorts-studio-back" onClick={() => setActiveRoute("fresh-flow-shorts")}>‹ Shorts</button>
-      </header>
+      </header>}
       <nav className="shorts-studio-tabs" aria-label="Studio sections">
         {TABS.map((item) => <button key={item.id} type="button" className={tab === item.id ? "active" : ""} aria-pressed={tab === item.id} onClick={() => setTab(item.id)}>{item.label}</button>)}
       </nav>

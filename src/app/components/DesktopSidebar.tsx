@@ -33,12 +33,6 @@ export default function DesktopSidebar() {
         </div>
       </div>
 
-      <button className="fresh-sidebar-create" type="button" onClick={() => go("studio")}>
-        <span>＋</span>
-        <strong>Create</strong>
-        <kbd>⌘ N</kbd>
-      </button>
-
       <div className="fresh-sidebar-scroll">
         {NAV_GROUPS.map((group) => (
           <div className="fresh-sidebar-group" key={group.id} role="group" aria-label={group.label}>

@@ -8,6 +8,9 @@ export type SettingField =
   | { key: string; label: string; type: "select"; options: ReadonlyArray<{ value: string; label: string }>; default: string }
   | { key: string; label: string; type: "number"; min: number; max: number; step?: number; unit?: string; default: number };
 
+/** Saved by an editor and never shown in the settings form, so it can hold text (the audio editor keeps its chapter markers here). */
+type EditorField = SettingField | { key: string; label: string; type: "text"; maxLength: number; default: string };
+
 const opt = (...values: string[]) => values.map((v) => ({ value: v, label: v }));
 
 const ASPECT = { key: "aspectRatio", label: "Aspect ratio", type: "select", options: opt("9:16", "16:9", "1:1", "4:5", "21:9"), default: "9:16" } as const;
@@ -23,6 +26,28 @@ const VIDEO_FIELDS: SettingField[] = [
   SAMPLE_RATE,
   ORIENTATION,
 ];
+
+/** Saved by an editor, not typed into the settings form: the photo editor stores its adjustments here so reopening restores the edit. */
+const AUDIO_EDITOR_FIELDS: EditorField[] = [
+  { key: "trimStartMs", label: "Trim start (ms)", type: "number", min: 0, max: 1_800_000, default: 0 },
+  { key: "trimEndMs", label: "Trim end (ms)", type: "number", min: 0, max: 1_800_000, default: 0 },
+  { key: "fadeInMs", label: "Fade in (ms)", type: "number", min: 0, max: 10_000, default: 0 },
+  { key: "fadeOutMs", label: "Fade out (ms)", type: "number", min: 0, max: 10_000, default: 0 },
+  { key: "gainDb", label: "Volume change (dB)", type: "number", min: -24, max: 24, default: 0 },
+  { key: "normalize", label: "Level the volume", type: "number", min: 0, max: 1, default: 0 },
+  { key: "markers", label: "Chapter markers", type: "text", maxLength: 6000, default: "" },
+];
+const EDITOR_FIELDS_BY_KIND: Partial<Record<StudioMediaKind, EditorField[]>> = {
+  audio: AUDIO_EDITOR_FIELDS,
+  podcast: AUDIO_EDITOR_FIELDS,
+  image: [
+    { key: "brightness", label: "Brightness (%)", type: "number", min: 50, max: 150, default: 100 },
+    { key: "contrast", label: "Contrast (%)", type: "number", min: 50, max: 150, default: 100 },
+    { key: "saturation", label: "Saturation (%)", type: "number", min: 0, max: 180, default: 100 },
+    { key: "rotation", label: "Rotation (degrees)", type: "number", min: 0, max: 270, step: 90, default: 0 },
+  ],
+};
+const allFields = (kind: StudioMediaKind): EditorField[] => [...FIELDS_BY_KIND[kind], ...(EDITOR_FIELDS_BY_KIND[kind] ?? [])];
 
 const FIELDS_BY_KIND: Record<StudioMediaKind, SettingField[]> = {
   video: VIDEO_FIELDS,
@@ -54,7 +79,7 @@ export function settingFieldsFor(kind: StudioMediaKind): readonly SettingField[]
 
 export function defaultSettingsFor(kind: StudioMediaKind): StudioSettings {
   const out: StudioSettings = {};
-  for (const field of FIELDS_BY_KIND[kind]) out[field.key] = field.default;
+  for (const field of allFields(kind)) out[field.key] = field.default;
   return out;
 }
 
@@ -64,9 +89,13 @@ export type SettingsValidation = { ok: true; settings: StudioSettings } | { ok: 
 export function validateSettings(kind: StudioMediaKind, input: Record<string, unknown>): SettingsValidation {
   const errors: string[] = [];
   const settings: StudioSettings = {};
-  for (const field of FIELDS_BY_KIND[kind]) {
+  for (const field of allFields(kind)) {
     const raw: unknown = input[field.key] ?? field.default;
-    if (field.type === "select") {
+    if (field.type === "text") {
+      const value = typeof raw === "string" ? raw : String(raw);
+      if (value.length > field.maxLength) errors.push(`${field.label} is too long.`);
+      else settings[field.key] = value;
+    } else if (field.type === "select") {
       const value = String(raw);
       if (!field.options.some((o) => o.value === value)) errors.push(`${field.label}: "${value}" is not available.`);
       else settings[field.key] = value;

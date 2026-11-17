@@ -87,6 +87,10 @@
   .fs-nav .fs-only-mobile { display: none; }
 }
 
+/* Fresh Flow owns the outer navigation when Studio is embedded there. */
+.fs-app-embedded { min-height: 0; }
+.fs-app-embedded .fs-main { padding-bottom: 24px; }
+
 /* Content blocks */
 .fs-section { display: grid; gap: 12px; margin-top: 24px; }
 .fs-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
@@ -587,3 +591,6 @@
 .fs-app .fs-hub-tile:hover { border-color: var(--fs-gold); transform: translateY(-2px); }
 .fs-app .fs-hub-tile span { font-size: 20px; color: var(--fs-gold); }
 .fs-app .fs-hub-tile small { color: var(--fs-muted); }
+
+/* Audio editor */
+.fs-app .fs-wave { width: 100%; height: 120px; border-radius: 12px; background: rgba(255,255,255,.04); border: 1px solid var(--fs-line); }

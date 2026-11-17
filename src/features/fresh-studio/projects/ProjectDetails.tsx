@@ -6,6 +6,8 @@ import { StudioConflictError, isTrashed } from "./projectService.ts";
 import { describeError } from "./useProjectActions.ts";
 import type { OpenOptions, StudioScreenProps } from "../shared/context.ts";
 import VideoEditor from "../video-studio/VideoEditor.tsx";
+import ImageEditor from "../image-studio/ImageEditor.tsx";
+import AudioEditor from "../audio-studio/AudioEditor.tsx";
 
 type SaveState = "saved" | "saving" | "conflict" | "error";
 const AUTOSAVE_MS = 800;
@@ -142,6 +144,14 @@ export default function ProjectDetails({ projectId, startOpen, state, notify, go
     return <VideoEditor key={base.id} project={baseRef.current ?? base} service={service} signedIn={state.source === "account"} notify={notify}
       onSaved={(p) => { baseRef.current = p; setBase(p); state.applyUpdate(p); }} onClose={() => setEditing(false)} initialPanel={startOpen?.panel} onOpenShorts={() => goto("publish")} />;
   }
+  if (editing && !trashed && base.meta.kind === "image") {
+    return <ImageEditor key={base.id} project={baseRef.current ?? base} service={service} notify={notify}
+      onSaved={(p) => { baseRef.current = p; setBase(p); setSettings(p.meta.settings); state.applyUpdate(p); }} onClose={() => setEditing(false)} onOpenPublish={() => goto("publish")} />;
+  }
+  if (editing && !trashed && (base.meta.kind === "audio" || base.meta.kind === "podcast")) {
+    return <AudioEditor key={base.id} project={baseRef.current ?? base} service={service} notify={notify}
+      onSaved={(p) => { baseRef.current = p; setBase(p); setSettings(p.meta.settings); state.applyUpdate(p); }} onClose={() => setEditing(false)} />;
+  }
   const fields = settingFieldsFor(base.meta.kind);
   const saveLabel = saveState === "saved" ? "All changes saved" : saveState === "saving" ? "Saving…" : saveState === "conflict" ? "Changed elsewhere" : "Not saved";
 
@@ -199,12 +209,28 @@ export default function ProjectDetails({ projectId, startOpen, state, notify, go
         </div>
       </section>
 
-      {base.meta.kind !== "video" && (
+      {!trashed && base.meta.kind === "image" && (
+        <section className="fs-panel" aria-label="Photo editor entry">
+          <h2>Photo editor</h2>
+          <p className="fs-muted">Adjust light and colour, rotate, then export a PNG or publish it. Your adjustments are saved with this project; the picture stays on this device.</p>
+          <button type="button" className="fs-btn fs-btn-primary" onClick={async () => { if (timer.current) { window.clearTimeout(timer.current); timer.current = null; } await flushRef.current(); setEditing(true); }}>Open photo editor</button>
+        </section>
+      )}
+
+      {!trashed && (base.meta.kind === "audio" || base.meta.kind === "podcast") && (
+        <section className="fs-panel" aria-label="Audio editor entry">
+          <h2>Audio editor</h2>
+          <p className="fs-muted">Record or choose a file, trim, fade, level the volume, mark chapters and export a WAV. Your edits and chapters are saved with this project; the recording stays on this device.</p>
+          <button type="button" className="fs-btn fs-btn-primary" onClick={async () => { if (timer.current) { window.clearTimeout(timer.current); timer.current = null; } await flushRef.current(); setEditing(true); }}>Open audio editor</button>
+        </section>
+      )}
+
+      {base.meta.kind !== "video" && base.meta.kind !== "image" && base.meta.kind !== "audio" && base.meta.kind !== "podcast" && (
         <section className="fs-panel" aria-label="Open in an editor">
           <h2>Editing</h2>
-          <p className="fs-muted">A Studio editor for this kind of project is not built yet. You can use the existing tools; they are not linked to this project&apos;s files.</p>
+          <p className="fs-muted">A full Studio editor for this kind of project is not built yet. Camera, photo, video and film-planning tools open inside Studio; they are not linked to this project&apos;s files.</p>
           <div className="fs-actions">
-            <button type="button" className="fs-btn" onClick={openDeviceEditor}>Open device editor</button>
+            <button type="button" className="fs-btn" onClick={openDeviceEditor}>Open device tools</button>
             <button type="button" className="fs-btn" onClick={() => navigateRoute("ai")}>Open Fresh AI</button>
           </div>
         </section>

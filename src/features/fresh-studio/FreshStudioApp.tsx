@@ -12,23 +12,32 @@ import CreateProject from "./projects/CreateProject.tsx";
 import ProjectDetails from "./projects/ProjectDetails.tsx";
 import StudioSettings from "./settings/StudioSettings.tsx";
 import InfoSection from "./shared/InfoSection.tsx";
+import { readCreateIntent } from "../creator/core/createIntent";
 
 type Props = {
   onBack: () => void;
   /** Navigate to another Fresh Web Lite route id such as "ai", "creator" or "fresh-flow". */
   onNavigateRoute: (route: string) => void;
   /** Open the existing on-device editor (video/photo import, trim, export). */
-  onOpenDeviceEditor: () => void;
+  /** Kept for older callers. Device tools now open inside Studio, so this is no longer used. */
+  onOpenDeviceEditor?: () => void;
+  /** Reuse Fresh Flow chrome and its bottom navigation when embedded. */
+  embeddedInFlow?: boolean;
+  /** Fresh Flow media domain that opened Studio's Create workflow. */
+  initialSystemId?: string | null;
 };
 
 type Notice = { id: number; kind: "info" | "error"; text: string };
 const CreatorStudioDashboard = lazy(() => import("../creator/CreatorStudioDashboard"));
+const DeviceTools = lazy(() => import("../workspaces/StudioWorkspace"));
+const ShortsStudio = lazy(() => import("../fresh-flow/components/ShortsStudio"));
 
 type View = { section: StudioSectionId; projectId: string | null; open?: OpenOptions };
 
-export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEditor }: Props) {
+export default function FreshStudioApp({ onBack, onNavigateRoute, embeddedInFlow = false, initialSystemId = null }: Props) {
   const state = useStudioProjects();
-  const [view, setView] = useState<View>({ section: "home", projectId: null });
+  const [view, setView] = useState<View>(() => ({ section: readCreateIntent() ? "publish" : "home", projectId: null }));
+  const [dashboardInstance, setDashboardInstance] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [notices, setNotices] = useState<Notice[]>([]);
@@ -46,8 +55,14 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
   }, []);
 
   const goto = useCallback((section: StudioSectionId) => { setView({ section, projectId: null }); setDrawerOpen(false); }, []);
+  useEffect(() => {
+    const openPublish = () => { setView({ section: "publish", projectId: null }); setDashboardInstance((value) => value + 1); setDrawerOpen(false); };
+    window.addEventListener("fresh-studio-open-publish", openPublish);
+    return () => window.removeEventListener("fresh-studio-open-publish", openPublish);
+  }, []);
   const openProject = useCallback((project: StudioProject, opts?: OpenOptions) => { setView({ section: "projects", projectId: project.id, open: opts }); setDrawerOpen(false); }, []);
 
+  const openTools = useCallback(() => goto("tools"), [goto]);
   const actions = useProjectActions(state, notify);
   const { handle: onCardAction, dialogs } = useCardActions(actions, notify, openProject);
 
@@ -56,18 +71,21 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
 
   const screen: StudioScreenProps = useMemo(() => ({
     state, actions, notify, goto, openProject, onCardAction,
-    navigateRoute: onNavigateRoute, openDeviceEditor: onOpenDeviceEditor,
-  }), [state, actions, notify, goto, openProject, onCardAction, onNavigateRoute, onOpenDeviceEditor]);
+    sourceSystemId: initialSystemId ?? undefined,
+    navigateRoute: onNavigateRoute, openDeviceEditor: openTools,
+  }), [state, actions, notify, goto, openProject, onCardAction, initialSystemId, onNavigateRoute, openTools]);
 
   let content;
   switch (view.section) {
     case "home": content = <StudioHome {...screen} />; break;
+    case "tools": content = <Suspense fallback={<p className="fs-muted" role="status">Loading tools…</p>}><DeviceTools embedded /></Suspense>; break;
+    case "shorts": content = <Suspense fallback={<p className="fs-muted" role="status">Loading Shorts insights…</p>}><ShortsStudio embedded /></Suspense>; break;
     case "projects": content = view.projectId ? <ProjectDetails key={view.projectId} projectId={view.projectId} startOpen={view.open} {...screen} /> : <ProjectsView {...screen} />; break;
     case "create": content = <CreateProject {...screen} />; break;
     case "ai":
       content = <InfoSection title="AI Creation" summary="Generate and transform media with Fresh AI." capabilityIds={["ai-creation"]} actions={[{ label: "Open Fresh AI", onClick: () => onNavigateRoute("ai") }]} />; break;
     case "assets":
-      content = <InfoSection title="Assets" summary="Your media library." capabilityIds={["asset-library"]} actions={[{ label: "Import in the device editor", onClick: onOpenDeviceEditor }]} />; break;
+      content = <InfoSection title="Assets" summary="Your media library." capabilityIds={["asset-library"]} actions={[{ label: "Import in the device editor", onClick: openTools }]} />; break;
     case "templates":
       content = <InfoSection title="Templates" summary="Ready-made starting points." capabilityIds={["design-studio"]} />; break;
     case "brand":
@@ -75,7 +93,7 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
     case "publish": case "analytics": case "audio": case "design": case "distribute": case "earn":
       content = (
         <Suspense fallback={<p className="fs-muted" role="status">Loading…</p>}>
-          <CreatorStudioDashboard key={view.section} fixedTab={CREATOR_TAB_SECTIONS[view.section]} title={STUDIO_SECTIONS.find((s) => s.id === view.section)?.label} onOpenStudio={() => goto("create")} />
+          <CreatorStudioDashboard key={`${view.section}-${dashboardInstance}`} fixedTab={CREATOR_TAB_SECTIONS[view.section]} title={STUDIO_SECTIONS.find((s) => s.id === view.section)?.label} onOpenStudio={() => goto("create")} />
         </Suspense>
       ); break;
     case "team":
@@ -90,12 +108,13 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
   );
 
   return (
-    <div className="fs-app" data-source={state.source}>
+    <div className={`fs-app${embeddedInFlow ? " fs-app-embedded" : ""}`} data-source={state.source}>
       <header className="fs-topbar">
         <button type="button" className="fs-icon-btn fs-only-mobile" aria-label="Open Studio menu" aria-expanded={drawerOpen} onClick={() => setDrawerOpen((v) => !v)}>☰</button>
         <button type="button" className="fs-wordmark" onClick={() => goto("home")} aria-label="Fresh Studio home">Fresh <b>Studio</b></button>
         <div className="fs-topbar-spacer" />
-        <button type="button" className="fs-icon-btn" aria-label="Search projects" title="Search projects" onClick={() => goto("projects")}>⌕</button>
+        {!embeddedInFlow && <button type="button" className="fs-icon-btn" aria-label="Search projects" title="Search projects" onClick={() => goto("projects")}>⌕</button>}
+        {!embeddedInFlow && (
         <div className="fs-menu-wrap">
           <button type="button" className="fs-icon-btn" aria-label="Notifications" title="Notifications" aria-expanded={bellOpen} onClick={() => { setBellOpen((v) => !v); setHelpOpen(false); }}>🔔{history.some((h) => h.kind === "error") && <span className="fs-dot" aria-hidden="true" />}</button>
           {bellOpen && (
@@ -104,6 +123,8 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
             </div>
           )}
         </div>
+        )}
+        {!embeddedInFlow && (
         <div className="fs-menu-wrap">
           <button type="button" className="fs-icon-btn" aria-label="Help" title="Help" aria-expanded={helpOpen} onClick={() => { setHelpOpen((v) => !v); setBellOpen(false); }}>?</button>
           {helpOpen && (
@@ -113,9 +134,10 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
             </div>
           )}
         </div>
-        <button type="button" className="fs-icon-btn" aria-label="Your profile" title="Your profile" onClick={() => onNavigateRoute("profile")}>☺</button>
+        )}
+        {!embeddedInFlow && <button type="button" className="fs-icon-btn" aria-label="Your profile" title="Your profile" onClick={() => onNavigateRoute("profile")}>☺</button>}
         <button type="button" className="fs-btn fs-btn-primary fs-hide-mobile" onClick={() => goto("create")}>＋ Create</button>
-        <button type="button" className="fs-btn fs-hide-mobile" onClick={onBack}>Exit Studio</button>
+        <button type="button" className="fs-btn fs-hide-mobile" onClick={onBack}>{embeddedInFlow ? "Back to Flow" : "Exit Studio"}</button>
       </header>
 
       {state.source === "device" && !state.loading && (
@@ -134,20 +156,20 @@ export default function FreshStudioApp({ onBack, onNavigateRoute, onOpenDeviceEd
               {COMING_SOON_SECTIONS.map((s) => navItem(s.id, s.label, s.icon))}
             </div>
           </div>
-          <button type="button" className="fs-nav-item fs-only-mobile" onClick={onBack}><span aria-hidden="true">←</span><span>Exit Studio</span></button>
+          <button type="button" className="fs-nav-item fs-only-mobile" onClick={onBack}><span aria-hidden="true">←</span><span>{embeddedInFlow ? "Back to Flow" : "Exit Studio"}</span></button>
         </nav>
         {drawerOpen && <div className="fs-scrim" aria-hidden="true" onClick={() => setDrawerOpen(false)} />}
 
         <main className="fs-main" ref={mainRef} tabIndex={-1}>{content}</main>
       </div>
 
-      <nav className="fs-bottombar" aria-label="Studio quick navigation">
+      {!embeddedInFlow && <nav className="fs-bottombar" aria-label="Studio quick navigation">
         {MOBILE_PRIMARY_SECTIONS.map((id) => {
           const s = STUDIO_SECTIONS.find((x) => x.id === id)!;
           return navItem(s.id, s.label, s.icon);
         })}
         <button type="button" className="fs-nav-item" aria-expanded={drawerOpen} onClick={() => setDrawerOpen((v) => !v)}><span aria-hidden="true">⋯</span><span>More</span></button>
-      </nav>
+      </nav>}
 
       <div className="fs-toasts" aria-live="polite">
         {notices.map((n) => <div key={n.id} className={`fs-toast${n.kind === "error" ? " is-error" : ""}`} role={n.kind === "error" ? "alert" : "status"}>{n.text}</div>)}

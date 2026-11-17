@@ -1,4 +1,4 @@
-import { FilmIcon, SearchIcon, AIIcon, PlusIcon, WalletIcon, ProfileIcon } from "../../components/Icons";
+import { FilmIcon, SearchIcon, AIIcon, WalletIcon, ProfileIcon } from "../../components/Icons";
 import UniversalCommandBar from "./components/UniversalCommandBar";
 import { FeatureRegistry } from "../../app/registry/FeatureRegistry";
 import { useLayout } from "../../app/contexts/useLayout";
@@ -16,7 +16,6 @@ type SearchMode = "instant" | "ai" | "research" | "private";
 // The full ecosystem directory lives in Explore instead of competing with Home.
 const actions = [
   { id: "flow", label: "Fresh Flow", description: "Watch videos, read posts and listen.", icon: FilmIcon, route: "fresh-flow" },
-  { id: "create", label: "Create", description: "Make a post, video or project.", icon: PlusIcon, route: "studio" },
   { id: "work", label: "Work", description: "Open your tasks and workspaces.", icon: AIIcon, route: "work" },
   { id: "explore", label: "Explore", description: "Find tools and connected ecosystems.", icon: SearchIcon, route: "discovery" },
   { id: "wallet", label: "Wallet", description: "View your wallet and payment tools.", icon: WalletIcon, route: "wallet" },
@@ -48,7 +47,7 @@ export default function HomeDashboard() {
 
   const name = user?.fullName || user?.username || null;
   const greeting = isAuthenticated && name ? `Good to see you, ${name}` : isAuthenticated ? "Welcome back" : "Welcome to Fresh";
-  const primaryActions = actions.filter((action) => ["flow", "create", "explore"].includes(action.id));
+  const primaryActions = actions.filter((action) => ["flow", "explore"].includes(action.id));
   const additionalActions = actions.filter((action) => !["flow", "create", "explore"].includes(action.id));
   const visibleActions = experienceMode === "simple" ? primaryActions : actions;
 

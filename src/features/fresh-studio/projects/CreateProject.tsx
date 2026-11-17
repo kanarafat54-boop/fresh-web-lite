@@ -4,7 +4,8 @@ import { defaultSettingsFor, settingFieldsFor, validateSettings } from "../share
 import { KIND_GLYPH } from "../shared/format.ts";
 import { describeError } from "./useProjectActions.ts";
 import QuickStart from "./QuickStart.tsx";
-import { hasStudioEditor } from "../shared/studioNav.ts";
+import { hasStudioEditor, studioEditorLabel } from "../shared/studioNav.ts";
+import { resolveStudioKindForFreshFlowSystem } from "../../fresh-flow/core/freshFlowStudioIntegration.ts";
 import type { StudioScreenProps } from "../shared/context.ts";
 
 const KIND_HINTS: Record<StudioMediaKind, string> = {
@@ -28,9 +29,9 @@ const START_LABELS: Record<StudioStartingPoint, { label: string; available: bool
 
 type Step = 1 | 2 | 3;
 
-export default function CreateProject({ state, notify, openProject, navigateRoute, openDeviceEditor, goto }: StudioScreenProps) {
-  const [step, setStep] = useState<Step>(1);
-  const [kind, setKind] = useState<StudioMediaKind | null>(null);
+export default function CreateProject({ state, notify, openProject, navigateRoute, openDeviceEditor, goto, sourceSystemId }: StudioScreenProps) {
+  const [step, setStep] = useState<Step>(sourceSystemId ? 2 : 1);
+  const [kind, setKind] = useState<StudioMediaKind | null>(() => sourceSystemId ? resolveStudioKindForFreshFlowSystem(sourceSystemId) : null);
   const [name, setName] = useState("");
   const [values, setValues] = useState<Record<string, string | number>>({});
   const [start, setStart] = useState<StudioStartingPoint>("blank");
@@ -56,7 +57,7 @@ export default function CreateProject({ state, notify, openProject, navigateRout
     if (!kind || !state.service || busy) return;
     setBusy(true);
     try {
-      const project = await state.service.create({ name, kind, settings: merged, startingPoint: start });
+      const project = await state.service.create({ name, kind, settings: merged, startingPoint: start, sourceSystemId });
       state.applyUpdate(project);
       notify("info", `“${project.name}” created.`);
       if (start === "ai") navigateRoute("ai");
@@ -91,14 +92,14 @@ export default function CreateProject({ state, notify, openProject, navigateRout
           </section>
           <section aria-label="Other project types">
             <h2>Other project types</h2>
-            <p className="fs-muted">These create a project record for planning. Their editors are not built yet.</p>
+            <p className="fs-muted">Pictures open a photo editor and audio and podcasts open an audio editor. The others create a project record for planning; their editors are not built yet.</p>
             <div className="fs-kind-grid">
-              {STUDIO_MEDIA_KINDS.filter((k) => !hasStudioEditor(k)).map((k) => (
+              {STUDIO_MEDIA_KINDS.filter((k) => k !== "video").map((k) => (
                 <button key={k} type="button" className="fs-kind" onClick={() => pickKind(k)}>
                   <span className="fs-kind-glyph" aria-hidden="true">{KIND_GLYPH[k]}</span>
                   <strong>{MEDIA_KIND_LABELS[k]}</strong>
                   <small>{KIND_HINTS[k]}</small>
-                  <span className="fs-tag">Planning only</span>
+                  <span className="fs-tag">{hasStudioEditor(k) ? studioEditorLabel(k) : "Planning only"}</span>
                 </button>
               ))}
             </div>

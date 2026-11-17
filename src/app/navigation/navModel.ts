@@ -37,9 +37,8 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     id: "create",
-    label: "Create & work",
+    label: "Work",
     items: [
-      { id: "studio", label: "Studio", hint: "Create, publish and grow, all in one place", icon: "＋", aliases: ["creator"] },
       { id: "work", label: "Work", hint: "Projects, tasks and business", icon: "▦" },
     ],
   },
@@ -78,7 +77,7 @@ export const ACCOUNT_ITEMS: NavItem[] = [
 export const ALL_NAV_ITEMS: NavItem[] = [...NAV_GROUPS.flatMap((group) => group.items), ...ACCOUNT_ITEMS];
 
 /** Route ids shown directly in the mobile bar; everything else lives under "More". */
-export const MOBILE_PRIMARY_IDS = ["feed", "fresh-flow", "studio", "ai"] as const;
+export const MOBILE_PRIMARY_IDS = ["feed", "fresh-flow", "ai"] as const;
 
 export function isNavItemActive(item: NavItem, activeRoute?: string): boolean {
   const route = activeRoute ?? "";
@@ -89,7 +88,7 @@ export function isNavItemActive(item: NavItem, activeRoute?: string): boolean {
   return false;
 }
 
-/** The old "creator" route now lives inside Studio, so it highlights the Studio item (and the mobile bar). */
+/** Legacy Studio and Creator routes remain routable, but their entry point is inside Fresh Flow. */
 export function isMobilePrimaryRoute(activeRoute?: string): boolean {
   const route = activeRoute ?? "";
   return ALL_NAV_ITEMS.filter((item) => (MOBILE_PRIMARY_IDS as readonly string[]).includes(item.id)).some((item) => isNavItemActive(item, route));

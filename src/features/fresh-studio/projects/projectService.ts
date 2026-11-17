@@ -72,11 +72,14 @@ export type CreateProjectInput = {
   startingPoint?: StudioStartingPoint;
   folder?: string | null;
   durationSeconds?: number | null;
+  /** Stable Fresh Flow system identifier; stored as project metadata, not an authorization grant. */
+  sourceSystemId?: string;
 };
 
-function blankMeta(kind: StudioMediaKind, settings: StudioSettings, startingPoint: StudioStartingPoint, folder: string | null, durationSeconds: number | null): StudioProjectMeta {
+function blankMeta(kind: StudioMediaKind, settings: StudioSettings, startingPoint: StudioStartingPoint, folder: string | null, durationSeconds: number | null, sourceSystemId: string | null): StudioProjectMeta {
   return {
     kind,
+    sourceSystemId,
     status: "planning",
     settings,
     workspace: DEFAULT_WORKSPACE_FOR_KIND[kind],
@@ -127,7 +130,7 @@ export function createStudioProjectService(backend: StudioBackend, now: () => Da
       if (!validated.ok) throw new StudioValidationError(validated.errors);
       const folder = input.folder?.trim() ? input.folder.trim().slice(0, 80) : null;
       const duration = typeof input.durationSeconds === "number" && input.durationSeconds >= 0 ? input.durationSeconds : null;
-      return backend.insertProject({ name, meta: blankMeta(input.kind, validated.settings, input.startingPoint ?? "blank", folder, duration) });
+      return backend.insertProject({ name, meta: blankMeta(input.kind, validated.settings, input.startingPoint ?? "blank", folder, duration, input.sourceSystemId ?? null) });
     },
 
     rename: (project: StudioProject, name: string) => mutate(project, { name: normalizeName(name) }),

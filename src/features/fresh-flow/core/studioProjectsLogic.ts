@@ -50,14 +50,37 @@ export function isCategory(value: unknown): value is ProjectCategory {
   return typeof value === "string" && PROJECT_CATEGORIES.some((category) => category.id === value);
 }
 
-/** Maps a database row to a project; unknown values fall back safely instead of crashing the list. */
+function categoryFromMetadata(metadata: Record<string, unknown>): ProjectCategory {
+  if (isCategory(metadata.category)) return metadata.category;
+  const studio = metadata.studio && typeof metadata.studio === "object" && !Array.isArray(metadata.studio)
+    ? metadata.studio as Record<string, unknown>
+    : null;
+  const kind = studio?.kind;
+  if (kind === "animation3d") return "3d";
+  if (isCategory(kind)) return kind;
+  return "custom";
+}
+
+function statusFromMetadata(metadata: Record<string, unknown>): ProjectStatus | null {
+  const studio = metadata.studio && typeof metadata.studio === "object" && !Array.isArray(metadata.studio)
+    ? metadata.studio as Record<string, unknown>
+    : null;
+  const status = studio?.status;
+  if (status === "in_production") return "in-production";
+  if (status === "ready_to_publish") return "ready-to-publish";
+  if (isStatus(status)) return status;
+  return null;
+}
+
+/** Maps a database row to a project; old and new Studio metadata are both understood. */
 export function toProject(row: { id: string; name: string; status: unknown; metadata: unknown; version: unknown; updated_at: string; created_at: string }): StudioProject {
-  const metadata = (row.metadata && typeof row.metadata === "object" ? row.metadata : {}) as Record<string, unknown>;
+  const metadata = (row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata) ? row.metadata : {}) as Record<string, unknown>;
+  const status = isStatus(row.status) ? row.status : statusFromMetadata(metadata) ?? "draft";
   return {
     id: row.id,
     name: row.name,
-    status: isStatus(row.status) ? row.status : "draft",
-    category: isCategory(metadata.category) ? metadata.category : "custom",
+    status,
+    category: categoryFromMetadata(metadata),
     version: Number(row.version) > 0 ? Number(row.version) : 1,
     updatedAt: row.updated_at,
     createdAt: row.created_at,

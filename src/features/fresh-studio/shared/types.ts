@@ -80,6 +80,8 @@ export type StudioSettings = Record<string, StudioSettingValue>;
 /** Everything Studio stores in fresh_projects.metadata.studio. */
 export type StudioProjectMeta = {
   kind: StudioMediaKind;
+  /** Originating Fresh Flow system, when this project was created from a media domain. */
+  sourceSystemId?: string | null;
   status: StudioStatus;
   settings: StudioSettings;
   workspace: StudioWorkspaceId;

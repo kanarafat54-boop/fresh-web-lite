@@ -1,8 +1,10 @@
 /** Studio navigation (spec §4). */
 export const STUDIO_SECTIONS = [
   { id: "home", label: "Dashboard", icon: "⌂", ready: true },
+  { id: "shorts", label: "Shorts", icon: "▶", ready: true },
   { id: "projects", label: "Content", icon: "▤", ready: true },
   { id: "create", label: "Create", icon: "＋", ready: true },
+  { id: "tools", label: "Device tools", icon: "◉", ready: true },
   { id: "publish", label: "Publish", icon: "↗", ready: true },
   { id: "analytics", label: "Analytics", icon: "▲", ready: true },
   { id: "audio", label: "Audio", icon: "♪", ready: true },
@@ -30,8 +32,10 @@ export const MOBILE_PRIMARY_SECTIONS: readonly StudioSectionId[] = ["home", "cre
 export const READY_SECTIONS = STUDIO_SECTIONS.filter((s) => s.ready);
 export const COMING_SOON_SECTIONS = STUDIO_SECTIONS.filter((s) => !s.ready);
 
-/** Only video has an editor inside Studio so far; other kinds create planning projects. */
-export const KINDS_WITH_EDITOR: readonly string[] = ["video"];
+/** Video and image have editors inside Studio; other kinds create planning projects and link to their tools. */
+export const KINDS_WITH_EDITOR: readonly string[] = ["video", "image", "audio", "podcast"];
+export const STUDIO_EDITOR_LABELS: Readonly<Record<string, string>> = { video: "Video editor", image: "Photo editor", audio: "Audio editor", podcast: "Audio editor" };
+export const studioEditorLabel = (kind: string) => STUDIO_EDITOR_LABELS[kind] ?? "Editor";
 export const hasStudioEditor = (kind: string) => KINDS_WITH_EDITOR.includes(kind);
 
 export function isSectionId(value: string): value is StudioSectionId {

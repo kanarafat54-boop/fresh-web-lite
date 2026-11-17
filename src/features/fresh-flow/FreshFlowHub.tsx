@@ -90,14 +90,16 @@ export default function FreshFlowHub() {
   const world = isShortsRoute ? worldByRouteId("fresh-flow") : worldByRouteId(section);
   const systemRoutePrefix = "fresh-flow-system-";
   const independentSystem = section.startsWith(systemRoutePrefix) ? getFreshFlowSystem(section.slice(systemRoutePrefix.length)) : undefined;
-  /** Creator Studio is the Shorts creator surface, so it keeps the Fresh Shorts header and controls. */
-  const shortsHeader = isShortsRoute || independentSystem?.id === "fresh-studio";
+  /** Shorts keeps its capture header; Creator Studio uses the standard Fresh Flow media header. */
+  const shortsHeader = isShortsRoute;
 
+  const [studioSourceSystemId, setStudioSourceSystemId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [shortsNotificationsOpen, setShortsNotificationsOpen] = useState(false);
   const [shortsCreateMode, setShortsCreateMode] = useState<"create" | "camera" | null>(null);
   const [createSound, setCreateSound] = useState<SoundSource | null>(null);
+  useEffect(() => { if (String(section) !== `${systemRoutePrefix}fresh-studio`) setStudioSourceSystemId(null); }, [section]);
   useEffect(() => {
     const open = (sound: SoundSource | null) => { if (!sound) return; setCreateSound(sound); setShortsCreateMode("camera"); };
     open(takeUseSound());
@@ -178,9 +180,19 @@ export default function FreshFlowHub() {
   };
 
   const openCreator = (action: "create" | "camera") => {
+    if (isGuest) { setActiveRoute("auth-signin"); return; }
     if (isShortsRoute) { setShortsCreateMode(action); return; }
+    if (action === "camera") {
+      setShortsCreateMode("camera");
+      setActiveRoute("fresh-flow-shorts");
+      return;
+    }
     try { sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action, requestedAt: new Date().toISOString() })); } catch { /* ignore */ }
-    setActiveRoute(isGuest ? "auth-signin" : "creator");
+    if (independentSystem?.id === "fresh-studio") {
+      window.dispatchEvent(new CustomEvent("fresh-studio-open-publish"));
+      return;
+    }
+    setActiveRoute("fresh-flow-system-fresh-studio");
   };
 
   const openFreshSearch = () => {
@@ -270,8 +282,10 @@ export default function FreshFlowHub() {
         ) : independentSystem ? (
           <FreshFlowSystemExperience
             system={independentSystem}
-            onBack={() => setActiveRoute("fresh-flow")}
-            onOpenStudio={() => setActiveRoute("fresh-flow-system-fresh-studio")}
+            onBack={() => { setStudioSourceSystemId(null); setActiveRoute("fresh-flow"); }}
+            onOpenStudio={(systemId) => { setStudioSourceSystemId(systemId ?? null); setActiveRoute("fresh-flow-system-fresh-studio"); }}
+            initialSystemId={studioSourceSystemId}
+            onNavigateRoute={(route) => setActiveRoute(route === "creator" ? "fresh-flow-system-fresh-studio" : route)}
           />
         ) : section === "fresh-flow-long-videos" ? (
           <FreshFlowLongVideos />
@@ -305,7 +319,7 @@ export default function FreshFlowHub() {
           initialMode={shortsCreateMode}
           sound={createSound}
           onClose={() => { setShortsCreateMode(null); setCreateSound(null); }}
-          onOpenTemplates={() => { setShortsCreateMode(null); try { sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: "create", requestedAt: new Date().toISOString() })); } catch { /* ignore */ } setActiveRoute("creator"); }}
+          onOpenTemplates={() => { setShortsCreateMode(null); try { sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: "create", requestedAt: new Date().toISOString() })); } catch { /* ignore */ } setActiveRoute("fresh-flow-system-fresh-studio"); }}
         />
       )}
       {shortsNotificationsOpen && isShortsRoute && (
