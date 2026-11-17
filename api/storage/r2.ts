@@ -135,7 +135,30 @@ export async function POST(request: Request): Promise<Response> {
     if (action === "complete") {
       if (!uploadId) return json({ error: "Upload session is required" }, 400);
       const parts = safeParts(body.parts);
-      if (!parts) return json({ error: "Multipart parts are invalid or incomplete" }, 400);
+      const expectedBytes = Number(body.sizeBytes);
+      if (!parts || !Number.isSafeInteger(expectedBytes) || expectedBytes <= 0 || expectedBytes > MAX_OBJECT_BYTES) {
+        return json({ error: "Multipart parts or expected object size are invalid" }, 400);
+      }
+      const listed = await r2Fetch(r2, { method: "GET", key, query: { uploadId } });
+      const listedXml = await listed.text();
+      if (!listed.ok) return json({ error: "Could not verify uploaded multipart parts" }, 409);
+      const actualParts = [...listedXml.matchAll(/<Part>([\\s\\S]*?)<\\/Part>/g)].map((match) => {
+        const partXml = match[1];
+        return {
+          partNumber: Number(partXml.match(/<PartNumber>(\\d+)<\\/PartNumber>/)?.[1]),
+          etag: partXml.match(/<ETag>([^<]+)<\\/ETag>/)?.[1],
+          sizeBytes: Number(partXml.match(/<Size>(\\d+)<\\/Size>/)?.[1]),
+        };
+      });
+      const actualBytes = actualParts.reduce((sum, part) => sum + (Number.isSafeInteger(part.sizeBytes) ? part.sizeBytes : 0), 0);
+      const partsMatch = actualParts.length === parts.length && parts.every((part, index) =>
+        actualParts[index]?.partNumber === part.PartNumber &&
+        actualParts[index]?.etag === part.ETag &&
+        Number.isSafeInteger(actualParts[index]?.sizeBytes) && actualParts[index].sizeBytes > 0,
+      );
+      if (!partsMatch || actualBytes !== expectedBytes) {
+        return json({ error: "Uploaded parts do not match the expected object size or manifest" }, 409);
+      }
       const xml = `<CompleteMultipartUpload>${parts.map((part) =>
         `<Part><PartNumber>${part.PartNumber}</PartNumber><ETag>${xmlEscape(part.ETag)}</ETag></Part>`,
       ).join("")}</CompleteMultipartUpload>`;
