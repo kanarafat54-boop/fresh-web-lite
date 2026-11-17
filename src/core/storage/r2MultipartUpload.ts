@@ -52,9 +52,9 @@ async function uploadPart(url: string, chunk: Blob): Promise<string> {
       const etag = response.headers.get("etag");
       if (!etag || !/^"?[a-f0-9]{32}(?:-\d+)?"?$/i.test(etag)) {
         throw new Error("Storage CORS must expose the ETag response header before uploads can complete.");
-  }
+      }
       return etag;
-  } catch (error) {
+    } catch (error) {
       lastError = error;
       if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 700 * (attempt + 1)));
     }
@@ -112,16 +112,17 @@ export async function uploadFreshR2Object(
       const signed = await callApi(accessToken, { action: "sign-part", ...session, partNumber });
       if (typeof signed.url !== "string") throw new Error("Storage provider did not return a part upload URL.");
       etag = await uploadPart(signed.url, chunk);
-      }
+    }
+
     parts.push({ PartNumber: partNumber, ETag: etag });
     uploadedBytes += chunk.size;
     onProgress?.(Math.round((uploadedBytes / file.size) * 100));
-    }
+  }
 
   const completedResult = await callApi(accessToken, { action: "complete", ...session, parts, sizeBytes: file.size });
   if (completedResult.verified !== true || completedResult.sizeBytes !== file.size || typeof completedResult.key !== "string") {
     throw new Error("Storage provider did not verify the completed object.");
-    }
+  }
   clearSession(localKey);
   return completedResult as unknown as FreshR2UploadResult;
 }
