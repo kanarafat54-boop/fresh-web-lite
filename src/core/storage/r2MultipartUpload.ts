@@ -8,7 +8,7 @@ type StoredSession = { key: string; uploadId: string };
 type ListedPart = { partNumber: number; etag: string; sizeBytes: number };
 type ApiResponse = Record<string, unknown>;
 
-const API_PATH = "/api/storage/r2";
+const API_PATH = "/api/ai/upload";
 const PART_BYTES = 64 * 1024 * 1024;
 
 async function callApi(accessToken: string, payload: Record<string, unknown>, apiPath = API_PATH): Promise<ApiResponse> {
