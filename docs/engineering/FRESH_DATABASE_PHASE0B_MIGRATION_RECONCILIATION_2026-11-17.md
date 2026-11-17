@@ -146,6 +146,38 @@ Read-only PostgreSQL catalog inspection on the same production project found:
 5. Assert Storage bucket privacy, size, and MIME metadata; move large media to Fresh Infinite Storage only through a separately verified provider-neutral object contract.
 6. Capture all function signatures, SECURITY DEFINER flags, `search_path`, and EXECUTE grants in the schema fingerprint.
 
+
+### Exact no-policy table set observed
+
+`fresh_ai_safety_events`, `fresh_ai_serving_metrics`, `fresh_ai_training_examples`, `fresh_intelligence_evidence_lineage`, `fresh_intelligence_persistence_batches`, `fresh_intelligence_truth_decisions`, `fresh_knowledge_entity_aliases`, `fresh_knowledge_entity_relations`, `fresh_mail_addresses`, `fresh_mail_messages`, `fresh_mail_webhook_events`, `ledger_entries`, `ledger_transactions`, `machine_audit`, `machine_credentials`, `machine_principals`, `machine_rate`, `push_outbox`.
+
+The direct role check in this pass evaluated `SELECT` and `INSERT` only. The full Fresh Database contract capture must also include UPDATE, DELETE, REFERENCES, TRIGGER, sequence, schema, and function privileges.
+
+### Anonymous SECURITY DEFINER helper inventory
+
+| Function | Fixed search path | Observed behavior to preserve/test |
+|---|---|---|
+| `fingerprint_matches(text)` | `public, pg_temp` | Accepts only 64-hex SHA-256 input; returns at most 20 matching short/author/profile rows ordered by registration time |
+| `is_platform_reviewer()` | `public` | Returns true only when `auth.uid()` belongs to a user row with admin/owner role |
+| `short_sound_reuse_allowed(uuid)` | `public` | Reads the target creator's sound-reuse setting; defaults to allowed when no preference row exists |
+| `visible_author_ids(uuid[])` | `public` | Filters the supplied IDs through block relationship logic; current definition allows all IDs when `auth.uid()` is null |
+
+These are existing public callable surfaces, not authorization recommendations. Fresh API must decide whether each should remain anonymous, become authenticated-only, or be replaced by a narrower endpoint after product behavior and abuse implications are tested.
+
+### Existing CI replay boundary inspected
+
+The repository's `supabase-full-migration-replay.yml` is configured for PR path changes under migrations/config/test script and `workflow_dispatch`. It:
+1. Installs Supabase CLI `latest`.
+2. Generates an ephemeral config using `supabase init --force`.
+3. Starts an isolated local Supabase stack.
+4. Runs `supabase db reset --local --no-seed`.
+5. Runs the Long Video TUS/RLS test script.
+6. Stops the local stack.
+
+The workflow comments explicitly state it does not link a remote project and requires no production credentials. It is safe in design as a local replay boundary. This docs-only PR does not trigger that workflow because it changes no watched paths; the available GitHub connection does not expose a workflow-dispatch write action, so no manual dispatch was performed.
+
+The separate Phase 0 PostgreSQL security workflow uses PostgreSQL 15 and a hand-built fixture with only three selected migrations. It is a focused authorization test, not a complete PostgreSQL 17/Supabase replay. The full-replay workflow and its latest successful run still need verification on a migration-changing branch once the unresolved history is classified.
+
 ## Important CI / toolchain observation
 
 The repository full-replay workflow installs Supabase CLI with `supabase/setup-cli@v3` and `version: latest`. Supabase CLI v3 is now the current major and its defaults changed: database commands are local unless `--remote` is explicitly specified; hosted mutations require confirmation and unattended hosted mutations require `--yes`. The existing replay workflow is intended to be isolated/local and contains no production credentials. Keep it strictly local. Any future script that intentionally targets a hosted project must use explicit target flags and approval gates. See the official [CLI v3 migration guide](https://supabase.com/docs/guides/local-development/cli/migrating-to-v3) and [Nov 4 breaking-change notice](https://supabase.com/changelog?types=breaking-change).
