@@ -178,6 +178,42 @@ The workflow comments explicitly state it does not link a remote project and req
 
 The separate Phase 0 PostgreSQL security workflow uses PostgreSQL 15 and a hand-built fixture with only three selected migrations. It is a focused authorization test, not a complete PostgreSQL 17/Supabase replay. The full-replay workflow and its latest successful run still need verification on a migration-changing branch once the unresolved history is classified.
 
+
+## Phase 0C — Treasury / wallet domain contract
+
+A read-only inspection of the live Treasury and legacy wallet schema shows two generations of financial persistence coexisting. This is a critical migration boundary; Fresh Database must not merge or replace them until data and API semantics are reconciled.
+
+### Current financial storage domains
+
+| Domain | Tables | Current contract |
+|---|---|---|
+| Double-entry Treasury | `treasury_accounts`, `treasury_transactions`, `treasury_entries` | UUID accounts/transactions; entries use positive `bigint amount_minor` plus `debit`/`credit`; account balance is derived from entries in security-invoker views |
+| Payment instruments / rails | `treasury_payment_instruments`, `treasury_rail_requests` | Owner-scoped instruments and deposit/withdrawal requests with explicit lifecycle statuses |
+| Ledger foundation | `ledger_transactions`, `ledger_entries` | Separate server-only ledger tables; no client SELECT/INSERT grants and no RLS policies |
+| Legacy wallet | `wallets`, `wallet_balances`, `wallet_transactions` | Separate older balance/transaction model using numeric(12,2) and integer amounts |
+
+### Invariants that Fresh Database must preserve
+
+- Treasury account scope is `user`, `platform`, or `owner`; user-scope accounts require a non-null owner. Asset kinds include `fiat`, `crypto`, `fresh-coin`, and `token`.
+- Treasury entries require positive amounts and direction in `debit`/`credit`; account and transaction foreign keys use RESTRICT deletion.
+- Treasury transactions have unique `reference` and unique `idempotency_key`. The separate legacy `ledger_transactions` table has unique `reference`, but its nullable `idempotency_key` has no corresponding unique constraint in the inspected constraints.
+- Payment instrument families are constrained to the existing enumerated set; currency codes must be uppercase.
+- Rail requests require positive amounts, uppercase currency codes, direction `deposit` or `withdrawal`, and status in `pending`, `awaiting_user`, `processing`, `settled`, `failed`, or `cancelled`.
+- Rail-request client INSERT is constrained to the authenticated owner, initial `pending` status, and null ledger transaction; clients can read only their own requests.
+- Payment instruments have owner-scoped SELECT/INSERT/UPDATE/DELETE policies. Treasury accounts and ledger reads are owner-scoped through RLS and security-invoker views; ledger base tables remain server-only.
+- The live `treasury_accounts` table has two permissive SELECT policies with identical predicates. Preserve behavior in the compatibility contract, but evaluate deduplication only in a separate reviewed migration—not during this platform audit.
+- `treasury_account_balances`, `treasury_my_balances`, `my_treasury_balances`, and `treasury_my_transactions` are security-invoker views. The balance calculation uses account-kind-aware debit/credit accounting. These views are part of the existing API contract.
+
+### High-risk behavior to test before migration
+
+1. Internal transfers lock source/destination accounts in deterministic ID order, require same asset and user-owned accounts, check available balance, and use a unique idempotency key. Duplicate requests by the same actor return the prior transaction.
+2. Double-entry writes must balance debits and credits exactly; preserve the positive minor-unit representation and account-kind balance formula.
+3. The sandbox rail settlement function checks request ownership/status, creates a deterministic idempotency key, locks accounts, and returns an existing transaction on retry.
+4. **Potential transactional defect to verify in an isolated regression test:** the sandbox withdrawal path updates the rail request to `failed` on insufficient funds and then raises an exception in the same function. With no local exception handler, the exception aborts the statement and rolls back that status update. A test should confirm the observed behavior and a separately reviewed fix should persist failure state safely if that is the intended contract.
+5. Legacy `send_tip` mutates `wallet_balances` and `wallet_transactions` separately from the newer Treasury ledger. Fresh Database must preserve both paths until all callers, balances, historical records, and reconciliation rules are understood.
+
+No financial data was read or changed. These findings came from schema definitions, constraints, RLS policies, view definitions, and function bodies only.
+
 ## Important CI / toolchain observation
 
 The repository full-replay workflow installs Supabase CLI with `supabase/setup-cli@v3` and `version: latest`. Supabase CLI v3 is now the current major and its defaults changed: database commands are local unless `--remote` is explicitly specified; hosted mutations require confirmation and unattended hosted mutations require `--yes`. The existing replay workflow is intended to be isolated/local and contains no production credentials. Keep it strictly local. Any future script that intentionally targets a hosted project must use explicit target flags and approval gates. See the official [CLI v3 migration guide](https://supabase.com/docs/guides/local-development/cli/migrating-to-v3) and [Nov 4 breaking-change notice](https://supabase.com/changelog?types=breaking-change).
