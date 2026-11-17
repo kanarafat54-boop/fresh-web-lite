@@ -159,7 +159,8 @@
     "test:fresh-studio-image": "node --experimental-strip-types --no-warnings scripts/test-fresh-studio-image.mjs",
     "test:fresh-infinite-storage": "node scripts/verify-fresh-infinite-storage-foundation.mjs",
     "test:fresh-r2-storage": "node scripts/verify-fresh-r2-storage-contract.mjs",
-    "typecheck:fresh-r2-api": "tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck --esModuleInterop --types node api/ai/upload.ts"
+    "typecheck:fresh-r2-api": "tsc --noEmit --target ES2022 --lib ES2022,DOM --module ESNext --moduleResolution Bundler --strict --skipLibCheck --esModuleInterop --types node api/ai/upload.ts",
+    "test:fresh-device-storage": "node --experimental-strip-types scripts/verify-fresh-device-storage-contract.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
