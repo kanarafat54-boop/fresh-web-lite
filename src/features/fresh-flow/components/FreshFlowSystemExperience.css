@@ -25,3 +25,14 @@
 .fresh-flow-product-workspace button:focus-visible,.fresh-flow-product-workspace input:focus-visible,.fresh-flow-product-workspace select:focus-visible{outline:3px solid #a5a1ff;outline-offset:3px}
 @media(max-width:480px){.fresh-flow-product-workspace{width:calc(100% - 20px);padding-top:12px}.fresh-flow-feature-row{flex-direction:column;gap:5px}.fresh-flow-feature-row strong{max-width:100%;text-align:left}.fresh-flow-playlist-form button{width:100%}}
 @media(prefers-reduced-motion:reduce){.fresh-flow-product-workspace *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+.fresh-flow-discovery { margin: 16px 0; }
+.fresh-flow-discovery-row { display: flex; gap: 8px; }
+.fresh-flow-discovery-row input { flex: 1; min-width: 0; }
+.fresh-flow-discovery-list { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 10px; }
+.fresh-flow-discovery-card { display: flex; gap: 12px; padding: 12px; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; }
+.fresh-flow-discovery-card img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; flex: none; }
+.fresh-flow-discovery-card h3 { margin: 0 0 4px; font-size: 1rem; overflow-wrap: anywhere; }
+.fresh-flow-discovery-card a { color: inherit; }
+.fresh-flow-discovery-card audio { width: 100%; max-width: 320px; margin-top: 6px; }
+.fresh-flow-discovery-meta, .fresh-flow-discovery-access, .fresh-flow-discovery-credit { font-size: .82rem; opacity: .75; margin: 2px 0; }
