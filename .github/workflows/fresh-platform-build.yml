@@ -65,6 +65,8 @@ jobs:
         run: npm run test:fresh-r2-storage
       - name: Fresh R2 API TypeScript check
         run: npm run typecheck:fresh-r2-api
+      - name: Fresh device storage quota contract
+        run: npm run test:fresh-device-storage
       - name: Fresh Blender 3D render worker contract and scene validation
         run: npm run test:fresh-blender-render-worker
       - name: Media publishing bridge contract
