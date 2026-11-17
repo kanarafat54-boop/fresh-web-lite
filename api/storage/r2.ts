@@ -11,7 +11,6 @@ export const config = { maxDuration: 30 };
 
 const MAX_OBJECT_BYTES = 5_000_000_000;
 const PART_BYTES = 64 * 1024 * 1024;
-const MIN_PART_BYTES = 5 * 1024 * 1024;
 const json = (data: unknown, status = 200) =>
   Response.json(data, { status, headers: { "cache-control": "no-store" } });
 
