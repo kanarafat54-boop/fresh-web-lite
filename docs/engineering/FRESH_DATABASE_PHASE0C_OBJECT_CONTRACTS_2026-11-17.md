@@ -57,3 +57,28 @@ This narrows the remaining work but does not close the 15-migration reconciliati
 ## Exit criteria
 
 Phase 0C is not complete until each unresolved migration has one evidence-backed disposition: exact equivalent, timestamp-shift equivalent, superseded with a documented replacement, intentionally excluded, or genuine missing migration. No migration is to be applied to production as part of this phase.
+
+
+## Phase 0C follow-up — exact access/function/storage contracts
+
+A second read-only catalog pass captured definitions for the most behavior-sensitive objects.
+
+### Exact current contracts observed
+
+- `fresh_ai_knowledge.search_tsv` is a stored generated `tsvector` built from English title (weight A) and content (weight B). `search_fresh_platform_knowledge(text, integer)` is SECURITY INVOKER, has an empty search_path, searches only platform-scoped rows (`project_id = 'fresh-web-lite-platform'`, `user_id IS NULL`), and clamps the requested limit to 1–10 (default 4). The generated column exists; the exact GIN index name/definition still needs confirmation.
+- `approve_fresh_ai_correction(uuid)` is SECURITY INVOKER, has an empty search_path, and delegates to `review_fresh_ai_correction(..., 'approve', ...)`. EXECUTE is granted only to postgres and service_role in the observed ACL.
+- Push queue functions are SECURITY DEFINER, have explicit search paths, and observed EXECUTE ACLs only for postgres/service_role. `push_enqueue` checks recipient subscription, self-notification, user restrictions, quiet mode, and category preferences; it truncates title/body and inserts into `push_outbox`. Its catch-all exception handler suppresses failures, so silent delivery loss is an existing behavior that needs explicit reliability tests and a deliberate future decision.
+- Push trigger handlers cover follows, Short likes, comments/replies/mentions, reposts, remixes/duets, and gifts. Trigger handlers also catch exceptions and return the triggering row, preserving the originating write even if notification enqueue fails.
+- Direct-message policies: SELECT is limited to sender or recipient; UPDATE is limited to recipient and checks recipient ownership; INSERT requires the current user as sender plus an accepted connection to the recipient.
+- Profile privacy policies currently allow authenticated SELECT with `USING (true)`, authenticated owner INSERT, and owner UPDATE with both USING and WITH CHECK. This is not equivalent to an owner-only SELECT policy. It may be intentional because the table stores visibility preferences rather than private content, but application read-model behavior must be checked before carrying it forward.
+- Storage `post-videos`: public SELECT for that bucket; authenticated owner-folder INSERT; owner-folder DELETE. Bucket is public, limit 52,428,800 bytes, MIME allowlist MP4/WebM/QuickTime. No UPDATE policy appeared in the targeted policy snapshot.
+- The live feed-mode constraint currently excludes `fresh-picks`, confirming a real behavior mismatch with the 20261014210000 file's stated purpose.
+
+### Updated risk classification
+
+1. **Behavior drift requiring product decision:** profile privacy SELECT predicate; feed-mode allowed values.
+2. **Reliability behavior requiring tests:** push enqueue/trigger exception swallowing and outbox kick path.
+3. **Security invariants to preserve:** service-role-only push function execution, participant-scoped direct messages, owner-folder storage writes/deletes, and SECURITY INVOKER for knowledge search/correction approval.
+4. **Intentionally excluded candidate:** Fresh Short Audience Lens remains absent from production and its migration explicitly says not to apply without owner authorization.
+
+This evidence narrows the migration mapping but still does not authorize a replay or production change. Full index, trigger attachment, grants, seed hash, and schema fingerprint comparisons remain open.
