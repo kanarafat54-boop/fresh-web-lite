@@ -1,15 +1,15 @@
-import { useRef, useState, type FormEvent } from "react";
-import type { DiscoveryItem, DiscoveryResult } from "../../../core/discovery/globalDiscovery.ts";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { isBrowsable, type DiscoveryItem, type DiscoveryResult } from "../../../core/discovery/globalDiscovery.ts";
 
 const COPY: Record<string, { label: string; placeholder: string; heading: string; sources: string }> = {
-  "fresh-news": { label: "Search news from around the world", placeholder: "A topic, place or event", heading: "News from across the web", sources: "GDELT, an open index of news publishers worldwide" },
+  "fresh-news": { label: "Search news from around the world", placeholder: "A topic, place or event", heading: "News from across the web", sources: "the public feeds of news publishers (BBC, Al Jazeera, DW, France 24, NPR, The Guardian, allAfrica) and the GDELT news index. Searching the feeds only covers recent stories; GDELT reaches further back" },
   "fresh-music": { label: "Find songs and artists from any catalog", placeholder: "A song, artist or album", heading: "Music from the wider catalog", sources: "the Apple music catalog" },
-  "books-reading": { label: "Find books from public libraries", placeholder: "A title, author or subject", heading: "Books beyond Fresh", sources: "Open Library and Project Gutenberg" },
+  "books-reading": { label: "Find books from public libraries", placeholder: "A title, author or subject", heading: "Books beyond Fresh", sources: "Open Library and the Internet Archive" },
   learn: { label: "Find free lessons and textbooks", placeholder: "A subject you want to learn", heading: "Learning resources from open projects", sources: "Wikiversity and Wikibooks" },
   "research-knowledge": { label: "Search papers and encyclopedic knowledge", placeholder: "A research question or topic", heading: "Research and knowledge from open sources", sources: "OpenAlex and Wikipedia" },
 };
 
-type State = { phase: "idle" } | { phase: "loading" } | { phase: "error"; message: string } | { phase: "done"; result: DiscoveryResult };
+type State = { phase: "idle" } | { phase: "loading"; headlines: boolean } | { phase: "error"; message: string } | { phase: "done"; result: DiscoveryResult };
 
 function when(value?: string): string {
   if (!value) return "";
@@ -32,20 +32,20 @@ function Card({ item }: { item: DiscoveryItem }) {
   );
 }
 
-/** Search for a Fresh Flow system across open public catalogs. Always links to the original source; failures are shown, never hidden. */
+/**
+ * Search for a Fresh Flow system across open public catalogs. Always links to the original source; failures are shown, never hidden.
+ * News also shows the latest headlines before anything is typed.
+ */
 export default function GlobalDiscoveryPanel({ systemId }: { systemId: string }) {
   const copy = COPY[systemId];
+  const browsable = isBrowsable(systemId);
   const [query, setQuery] = useState("");
   const [state, setState] = useState<State>({ phase: "idle" });
   const run = useRef(0);
-  if (!copy) return null;
 
-  async function search(event: FormEvent) {
-    event.preventDefault();
-    const q = query.trim();
-    if (q.length < 2) return setState({ phase: "error", message: "Type at least 2 characters to search." });
+  const load = useCallback(async (q: string) => {
     const mine = ++run.current;
-    setState({ phase: "loading" });
+    setState({ phase: "loading", headlines: q === "" });
     try {
       const res = await fetch(`/api/discover?system=${encodeURIComponent(systemId)}&q=${encodeURIComponent(q)}`);
       const body = await res.json().catch(() => null) as (DiscoveryResult & { error?: string }) | null;
@@ -56,7 +56,26 @@ export default function GlobalDiscoveryPanel({ systemId }: { systemId: string })
     } catch {
       if (mine === run.current) setState({ phase: "error", message: "Search could not be reached. Check your connection and try again." });
     }
+  }, [systemId]);
+
+  useEffect(() => {
+    if (browsable) void load("");
+    return () => { run.current += 1; };
+  }, [browsable, load]);
+
+  if (!copy) return null;
+
+  function search(event: FormEvent) {
+    event.preventDefault();
+    const q = query.trim();
+    if (q.length === 0 && browsable) return void load("");
+    if (q.length < 2) return setState({ phase: "error", message: "Type at least 2 characters to search." });
+    void load(q);
   }
+
+  const loading = state.phase === "loading";
+  const result = state.phase === "done" ? state.result : null;
+  const missing = result ? result.providers.filter((p) => !p.ok) : [];
 
   return (
     <section className="fresh-flow-discovery" aria-label={copy.heading}>
@@ -65,18 +84,21 @@ export default function GlobalDiscoveryPanel({ systemId }: { systemId: string })
         <label className="fresh-flow-field-label" htmlFor={`discover-${systemId}`}>{copy.label}</label>
         <div className="fresh-flow-discovery-row">
           <input id={`discover-${systemId}`} value={query} maxLength={120} onChange={(e) => setQuery(e.target.value)} placeholder={copy.placeholder} />
-          <button type="submit" className="fresh-flow-feature-primary" disabled={state.phase === "loading"}>{state.phase === "loading" ? "Searching…" : "Search"}</button>
+          <button type="submit" className="fresh-flow-feature-primary" disabled={loading}>{loading ? "Searching…" : "Search"}</button>
         </div>
       </form>
       {state.phase === "idle" && <p className="fresh-flow-system-note">Results come from {copy.sources}. They are not limited to what is posted on Fresh. Each result opens at its original source.</p>}
+      {state.phase === "loading" && state.headlines && <p className="fresh-flow-system-note" role="status">Loading the latest headlines…</p>}
       {state.phase === "error" && <p className="fresh-flow-inline-confirmation" role="alert">{state.message}</p>}
-      {state.phase === "done" && (
+      {result && (
         <>
-          {state.result.providers.filter((p) => !p.ok).map((p) => <p key={p.id} className="fresh-flow-inline-confirmation" role="status">{p.error} Showing the other sources.</p>)}
-          {state.result.items.length === 0
-            ? <p className="fresh-flow-system-note" role="status">No results for “{state.result.query}”. Try different words.</p>
-            : <ul className="fresh-flow-discovery-list">{state.result.items.map((item) => <Card key={item.id} item={item} />)}</ul>}
-          <p className="fresh-flow-discovery-credit">Sources that answered: {state.result.providers.filter((p) => p.ok).map((p) => p.label).join(", ")}. Fresh links to the original and does not host or copy it.</p>
+          <h3 className="fresh-flow-discovery-heading">{result.query ? `Results for “${result.query}”` : "Latest headlines"}</h3>
+          {missing.map((p) => <p key={p.id} className="fresh-flow-inline-confirmation" role="status">{p.error}{result.items.length > 0 ? " Showing the other sources." : ""}</p>)}
+          {result.providers.filter((p) => p.ok && p.note).map((p) => <p key={p.id} className="fresh-flow-discovery-access" role="status">{p.note}</p>)}
+          {result.items.length === 0
+            ? <p className="fresh-flow-system-note" role="status">{missing.length > 0 ? `Nothing found from the sources that answered. Try again in a moment.` : `No results for “${result.query}”. Try different words.`}</p>
+            : <ul className="fresh-flow-discovery-list">{result.items.map((item) => <Card key={item.id} item={item} />)}</ul>}
+          <p className="fresh-flow-discovery-credit">Sources that answered: {result.providers.filter((p) => p.ok).map((p) => p.label).join(", ") || "none"}. Fresh links to the original and does not host or copy it.</p>
         </>
       )}
     </section>

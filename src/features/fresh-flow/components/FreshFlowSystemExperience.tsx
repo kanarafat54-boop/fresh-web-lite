@@ -137,7 +137,7 @@ export default function FreshFlowSystemExperience({ system, onBack, onOpenStudio
         </div>
       </section>
       </>)}
-      {!isStudio && (isLive ? <LiveWorkspace onOpenStudio={() => onOpenStudio(system.id)} /> : isMusic ? <MusicWorkspace /> : <>{isGlobalSystem(system.id) && <GlobalDiscoveryPanel systemId={system.id} />}<section className="fresh-flow-system-content" aria-labelledby="fresh-flow-system-tools">
+      {!isStudio && (isLive ? <LiveWorkspace onOpenStudio={() => onOpenStudio(system.id)} /> : isMusic ? <MusicWorkspace /> : <>{isGlobalSystem(system.id) && <div className="fresh-flow-product-workspace"><GlobalDiscoveryPanel systemId={system.id} /></div>}<section className="fresh-flow-system-content" aria-labelledby="fresh-flow-system-tools">
         <div className="fresh-flow-system-section-heading"><div><span>YOUR WORKSPACE</span><h2 id="fresh-flow-system-tools">{isStudio ? "All Studio capabilities" : `Explore ${system.label}`}</h2></div><span className="fresh-flow-system-count">{system.capabilities.length} capabilities</span></div>
         <p className="fresh-flow-system-note">This system has a dedicated entry point. Each capability below needs its own data contract and connected service before it can be represented as live.</p>
         <div className="fresh-flow-system-capability-grid">
