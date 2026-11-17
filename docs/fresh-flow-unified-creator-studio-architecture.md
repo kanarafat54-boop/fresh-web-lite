@@ -135,4 +135,4 @@ The source-system field is routing/context metadata only. It is not authorizatio
 
 ## Editors and gaps (generated)
 
-Which of the 24 systems open a real editor, and what is still missing for each, is in [fresh-flow-studio-gap-matrix.md](./fresh-flow-studio-gap-matrix.md). It is generated from the profiles and the editor list by `scripts/gen-fresh-studio-gap-matrix.mjs`. Editors: video, photo, audio/podcast and writing (text). Studio saves the project; it does not publish into any domain feed yet. Live, spatial and interactive systems are blocked on infrastructure, devices or a sandboxed runtime.
+Which of the 24 systems open a real editor, and what is still missing for each, is in [fresh-flow-studio-gap-matrix.md](./fresh-flow-studio-gap-matrix.md). It is generated from the profiles and the editor list by `scripts/gen-fresh-studio-gap-matrix.mjs`. Editors: video, photo, audio/podcast and writing (text). Studio saves the project; only Fresh Posts has a publish step so far. Live, spatial and interactive systems are blocked on infrastructure, devices or a sandboxed runtime.

@@ -9,6 +9,8 @@ import VideoEditor from "../video-studio/VideoEditor.tsx";
 import ImageEditor from "../image-studio/ImageEditor.tsx";
 import AudioEditor from "../audio-studio/AudioEditor.tsx";
 import WritingEditor from "../writing-studio/WritingEditor.tsx";
+import { publishDraftAsPost } from "../writing-studio/publishPost.ts";
+import { publishFreshPost } from "../../creator/core/freshMediaRepository.ts";
 
 type SaveState = "saved" | "saving" | "conflict" | "error";
 const AUTOSAVE_MS = 800;
@@ -155,6 +157,14 @@ export default function ProjectDetails({ projectId, startOpen, state, notify, go
   }
   if (editing && !trashed && base.meta.kind === "custom") {
     return <WritingEditor key={base.id} project={baseRef.current ?? base} service={service} notify={notify}
+      posting={base.meta.sourceSystemId === "fresh-posts" ? {
+        signedIn: state.source === "account", published: base.meta.status === "published",
+        run: (draft) => publishDraftAsPost(draft, {
+          authorId: state.source === "account" ? base.ownerId : null,
+          publish: (input) => publishFreshPost(input),
+          markPublished: async () => { const saved = await service!.setStatus(baseRef.current ?? base, "published"); baseRef.current = saved; setBase(saved); state.applyUpdate(saved); },
+        }),
+      } : undefined}
       onSaved={(p) => { baseRef.current = p; setBase(p); setSettings(p.meta.settings); state.applyUpdate(p); }} onClose={() => setEditing(false)} />;
   }
   const fields = settingFieldsFor(base.meta.kind);
