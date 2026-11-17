@@ -33,8 +33,8 @@ export const READY_SECTIONS = STUDIO_SECTIONS.filter((s) => s.ready);
 export const COMING_SOON_SECTIONS = STUDIO_SECTIONS.filter((s) => !s.ready);
 
 /** Video and image have editors inside Studio; other kinds create planning projects and link to their tools. */
-export const KINDS_WITH_EDITOR: readonly string[] = ["video", "image", "audio", "podcast"];
-export const STUDIO_EDITOR_LABELS: Readonly<Record<string, string>> = { video: "Video editor", image: "Photo editor", audio: "Audio editor", podcast: "Audio editor" };
+export const KINDS_WITH_EDITOR: readonly string[] = ["video", "image", "audio", "podcast", "custom"];
+export const STUDIO_EDITOR_LABELS: Readonly<Record<string, string>> = { video: "Video editor", image: "Photo editor", audio: "Audio editor", podcast: "Audio editor", custom: "Writing editor" };
 export const studioEditorLabel = (kind: string) => STUDIO_EDITOR_LABELS[kind] ?? "Editor";
 export const hasStudioEditor = (kind: string) => KINDS_WITH_EDITOR.includes(kind);
 

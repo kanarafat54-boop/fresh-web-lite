@@ -132,3 +132,7 @@ The implementation now includes `freshFlowStudioIntegration.ts`, a typed profile
 When a user enters Creator Studio's Create workflow from an independent Fresh Flow system, the originating system ID is carried through the Flow → Studio handoff. The Create workflow preselects the compatible project kind, and the project service persists the source system ID in Studio project metadata. The project mapper restores it when loading existing records. This adds metadata without a database migration and leaves existing project records unchanged.
 
 The source-system field is routing/context metadata only. It is not authorization, provider availability, publishing permission, or proof that a domain editor is complete.
+
+## Editors and gaps (generated)
+
+Which of the 24 systems open a real editor, and what is still missing for each, is in [fresh-flow-studio-gap-matrix.md](./fresh-flow-studio-gap-matrix.md). It is generated from the profiles and the editor list by `scripts/gen-fresh-studio-gap-matrix.mjs`. Editors: video, photo, audio/podcast and writing (text). Studio saves the project; it does not publish into any domain feed yet. Live, spatial and interactive systems are blocked on infrastructure, devices or a sandboxed runtime.
