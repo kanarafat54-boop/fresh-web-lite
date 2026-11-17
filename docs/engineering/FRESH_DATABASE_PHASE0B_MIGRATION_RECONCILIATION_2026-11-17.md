@@ -124,6 +124,28 @@ A read-only catalog query returned these non-system schemas and object counts:
 
 The live public table inventory confirms the platform is not just a social-content database: it contains Fresh ID/account/device data, Treasury ledger and payment-rail data, Fresh AI memory/knowledge/training/conversation data, Fresh Flow and media, messaging, Long Video, Studio, Fresh Mail, push delivery, and machine-access records. A table-by-table contract map must include ownership, constraints, FKs, RLS, grants, triggers, indexes, views, and RPC behavior—not merely table names.
 
+
+## Phase 0C — first live schema/security contract snapshot
+
+Read-only PostgreSQL catalog inspection on the same production project found:
+
+- **120/120 public base tables have RLS enabled**; one currently has FORCE ROW LEVEL SECURITY.
+- **18 public tables have RLS enabled but no policies.** A direct privilege check found no `SELECT` or `INSERT` grants to either `anon` or `authenticated` on those 18 tables. This is consistent with a server-only access boundary, not proof of full safety; UPDATE/DELETE/REFERENCES/TRIGGER grants and every server caller still need review. Do not add blanket policies to these tables.
+- The no-policy set includes financial ledger tables, Fresh AI safety/training/metrics records, machine credentials/audit/principal records, Fresh Mail records, Fresh Intelligence lineage/decision/knowledge relations, and the push outbox. These are high-priority Fresh Database privilege-contract tests.
+- The `supabase_realtime` publication currently contains only `public.direct_messages`. Fresh Realtime must preserve this exact contract initially; do not assume every table is realtime-published.
+- Six Storage buckets are present: public `comment-media`, `post-images`, `post-videos`, `profile-media`; private `fresh-ai-media`, `studio-media`. The `post-videos` bucket has a 50 MiB limit and MP4/WebM/QuickTime MIME allowlist; `studio-media` has a 500 MiB limit. Other listed buckets have no explicit size/MIME limit in the catalog query. This is a real constraint for Fresh Infinite Storage: large media needs a separate object-storage path and policy/metadata migration plan.
+- The current database has multiple `SECURITY DEFINER` functions. Four are executable by `anon`: `fingerprint_matches(text)`, `is_platform_reviewer()`, `short_sound_reuse_allowed(uuid)`, and `visible_author_ids(uuid[])`. Their current definitions were inspected. They appear to implement bounded read helpers (fingerprint lookup capped at 20; reviewer predicate tied to `auth.uid()`; sound-reuse preference; block-filtered author IDs), but they must receive explicit contract tests and an intentional anonymous-access decision in the Fresh API before replacement. This is not, by itself, a vulnerability finding.
+- Many other privileged functions are not executable by `anon` or `authenticated`; the Fresh API must preserve these deny-by-default boundaries rather than exposing every RPC as a generic endpoint.
+
+### Contract test implications
+
+1. Assert RLS is enabled on all 120 public tables in the replay fixture.
+2. Assert the 18 no-policy tables have no client-role privileges; do not create generic owner policies for them.
+3. Add positive and negative tests for the four anon-callable SECURITY DEFINER helpers, including malformed fingerprint input, unauthorized reviewer identity, private sound reuse, and blocked author IDs.
+4. Assert only `public.direct_messages` is in the realtime publication until an approved product contract expands it.
+5. Assert Storage bucket privacy, size, and MIME metadata; move large media to Fresh Infinite Storage only through a separately verified provider-neutral object contract.
+6. Capture all function signatures, SECURITY DEFINER flags, `search_path`, and EXECUTE grants in the schema fingerprint.
+
 ## Important CI / toolchain observation
 
 The repository full-replay workflow installs Supabase CLI with `supabase/setup-cli@v3` and `version: latest`. Supabase CLI v3 is now the current major and its defaults changed: database commands are local unless `--remote` is explicitly specified; hosted mutations require confirmation and unattended hosted mutations require `--yes`. The existing replay workflow is intended to be isolated/local and contains no production credentials. Keep it strictly local. Any future script that intentionally targets a hosted project must use explicit target flags and approval gates. See the official [CLI v3 migration guide](https://supabase.com/docs/guides/local-development/cli/migrating-to-v3) and [Nov 4 breaking-change notice](https://supabase.com/changelog?types=breaking-change).
