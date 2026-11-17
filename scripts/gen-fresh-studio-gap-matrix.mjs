@@ -25,11 +25,14 @@ const TEXT_ONLY_GAPS = {
   communities: "Text only: no community targeting or moderation tools.",
 };
 const PUBLISHES = { "fresh-posts": "Publish to Fresh Posts is connected for signed-in users (text only, up to 5,000 characters); not yet exercised against the live feed." };
+// Checked against supabase/migrations on 2026-11-17: no table or publish path exists for these systems, so a Studio publish step cannot be honest yet.
+const NO_BACKEND = new Set(["communities", "stories", "creator-channels", "fresh-music", "fresh-podcasts", "audiobooks", "fresh-news", "books-reading", "learn", "research-knowledge"]);
+const NO_BACKEND_NOTE = "Nothing to publish into yet: this system has no database table or publish path, so it needs a data-model decision first.";
 const hasEditorFor = (p) => KINDS_WITH_EDITOR.includes(p.mediaKind) && p.systemId !== "interactive-experiences";
 const rows = FRESH_FLOW_STUDIO_PROFILES.map((p) => {
   const editor = hasEditorFor(p);
   const status = editor ? "Editor exists" : p.implementation === "domain-work-required" ? "Planning project only" : "Blocked";
-  const detail = editor ? `${EDITOR_NOTE[p.mediaKind]} ${TEXT_ONLY_GAPS[p.systemId] ?? ""} ${PUBLISHES[p.systemId] ?? NOT_CONNECTED}` : (TEXT_ONLY_GAPS[p.systemId] ?? BLOCK[p.implementation] ?? "Planning project only.");
+  const detail = editor ? `${EDITOR_NOTE[p.mediaKind]} ${TEXT_ONLY_GAPS[p.systemId] ?? ""} ${PUBLISHES[p.systemId] ?? (NO_BACKEND.has(p.systemId) ? NO_BACKEND_NOTE : NOT_CONNECTED)}` : (TEXT_ONLY_GAPS[p.systemId] ?? BLOCK[p.implementation] ?? "Planning project only.");
   return `| ${p.systemId} | ${p.mediaKind} | ${status} | ${detail} |`;
 });
 const n = FRESH_FLOW_STUDIO_PROFILES.filter(hasEditorFor).length;
