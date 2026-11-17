@@ -104,6 +104,23 @@ export async function POST(request: Request): Promise<Response> {
     const uploadId = typeof body.uploadId === "string" ? body.uploadId : "";
     if (!isOwnedR2Key(key, user.id)) return json({ error: "Object access denied" }, 403);
 
+    if (action === "list-parts") {
+      if (!uploadId || uploadId.length > 2048) return json({ error: "Upload session is invalid" }, 400);
+      const listed = await r2Fetch(r2, { method: "GET", key, query: { uploadId } });
+      const xml = await listed.text();
+      if (!listed.ok) return json({ error: "Could not inspect the resumable upload" }, listed.status === 404 ? 404 : 502);
+      const parts = [...xml.matchAll(/<Part>([\\s\\S]*?)<\\/Part>/g)].map((match) => {
+        const part = match[1];
+        const partNumber = Number(part.match(/<PartNumber>(\\d+)<\\/PartNumber>/)?.[1]);
+        const etag = part.match(/<ETag>([^<]+)<\\/ETag>/)?.[1];
+        const sizeBytes = Number(part.match(/<Size>(\\d+)<\\/Size>/)?.[1]);
+        return { partNumber, etag, sizeBytes };
+      }).filter((part) => Number.isInteger(part.partNumber) && part.partNumber > 0 &&
+        typeof part.etag === "string" && /^"?[a-f0-9]{32}(?:-\\d+)?"?$/i.test(part.etag) &&
+        Number.isSafeInteger(part.sizeBytes) && part.sizeBytes > 0);
+      return json({ parts });
+    }
+
     if (action === "sign-part") {
       const partNumber = Number(body.partNumber);
       if (!uploadId || !Number.isInteger(partNumber) || partNumber < 1 || partNumber > 1000) {
