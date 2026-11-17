@@ -195,8 +195,8 @@ Cloudflare R2 is the selected first additional object provider because it expose
 ### Code added
 
 - `src/server/storage/r2S3Signer.mjs`: server-side AWS Signature Version 4 request signing and short-lived presigned URL generation for the R2 S3 endpoint.
-- `api/storage/r2.ts`: authenticated Vercel API for multipart initiate, list-parts/resume, short-lived part signing, completion, abort and private download URLs.
-- `src/core/storage/r2MultipartUpload.ts`: browser upload client using 64 MiB parts, retry, local resumable-session records and server-side completion verification.
+- `api/ai/upload.ts`: authenticated R2 multipart actions are consolidated into the existing Fresh AI upload function, preserving its current form-data upload behavior while avoiding an additional Vercel serverless function.
+- `src/core/storage/r2MultipartUpload.ts`: browser upload client using 64 MiB parts, retry, user-scoped local resumable-session records and server-side completion verification. It calls the existing `/api/ai/upload` endpoint.
 - `scripts/verify-fresh-r2-storage-contract.mjs`: deterministic signing, expiry, key ownership and secret-exposure contract tests.
 - Platform build workflow includes the R2 contract test.
 
@@ -226,4 +226,4 @@ Configure the R2 bucket CORS policy for the exact Fresh preview/production origi
 
 ### Not yet claimed
 
-The adapter is implemented but is **not live** until the bucket, scoped token, server environment variables and CORS policy are configured. No real R2 object has been uploaded or downloaded in this phase. A provider connection test, end-to-end upload/resume/download test and cost/usage monitoring are still required before routing production media to R2.
+The adapter is implemented in an existing API function to respect the Vercel Hobby 12-function limit. The adapter is **not live** until the bucket, scoped token, server environment variables and CORS policy are configured. No real R2 object has been uploaded or downloaded in this phase. A provider connection test, end-to-end upload/resume/download test and cost/usage monitoring are still required before routing production media to R2.
