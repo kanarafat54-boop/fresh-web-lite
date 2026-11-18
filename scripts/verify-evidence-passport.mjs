@@ -15,7 +15,6 @@ const researchApi = read("api/research/search.ts");
 const connector = read("src/features/ai/intelligence/intelligenceConnectors.ts");
 const resultsUi = read("src/features/home/components/FreshResearchResults.tsx");
 const persistenceAdapter = read("src/core/semantic/supabaseSemanticPersistence.ts");
-const persistenceBridge = read("src/server/research/persistSemanticResearchV2.ts");
 const passportMigration = read("supabase/migrations/20261118203000_fresh_intelligence_evidence_passports.sql");
 
 assert.match(passport, /createHash\("sha256"\)/, "Passport must use SHA-256");
