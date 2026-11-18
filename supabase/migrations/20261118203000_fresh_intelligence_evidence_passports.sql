@@ -86,6 +86,7 @@ begin
 end;
 $function$;
 
+drop trigger if exists fresh_intelligence_evidence_passports_immutable on public.fresh_intelligence_evidence_passports;
 create trigger fresh_intelligence_evidence_passports_immutable
 before update or delete on public.fresh_intelligence_evidence_passports
 for each row execute function public.reject_fresh_evidence_passport_mutation();
