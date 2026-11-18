@@ -19,7 +19,13 @@ assert.match(passport, /claimSupport: "requires_content_review"/, "A fingerprint
 assert.match(passport, /capturedMaterial/, "Passport must identify exactly what material was fingerprinted");
 assert.match(passport, /not the complete original webpage/, "Passport must disclose its capture boundary");
 assert.match(contract, /evidencePassport\?: EvidencePassport/, "Research source contract must carry its passport");
-assert.match(persistence, /evidencePassport: source\.evidencePassport \?\? null/, "Passport must be persisted with source provenance metadata");
+assert.match(persistence, /const passports = result\.sources\.flatMap/, "Research persistence must collect passport snapshots for the source graph");
+assert.match(persistence, /truthDecisions, passports/, "Passports must enter the same persistence batch as the research graph");
+assert.match(persistenceAdapter, /persist_fresh_intelligence_research_graph_with_passports/, "Supabase adapter must use the atomic graph-plus-passport RPC");
+assert.match(persistenceAdapter, /input\.passports\.map/, "Supabase adapter must serialize every passport into the atomic write");
+assert.match(passportMigration, /create table if not exists public\.fresh_intelligence_evidence_passports/, "Migration must create a dedicated passport ledger");
+assert.match(passportMigration, /on conflict \(passport_id\) do nothing/, "Passport writes must be idempotent");
+assert.match(passportMigration, /Fresh Evidence Passports are append-only records/, "Passport ledger must reject update and delete operations");
 assert.match(researchApi, /createEvidencePassport\(source, researchedAt\)/, "Research API must issue a passport for every returned source");
 assert.match(researchApi, /sources: researchResult\.sources/, "API must return the same passport-bearing source records it persists");
 assert.ok(researchApi.includes("if (!researchSources.length)"), "Research API must fail closed when no source can receive a passport");
