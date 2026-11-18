@@ -38,6 +38,8 @@ assert.ok(researchApi.includes("invalidSourceCount"), "Research API must disclos
 assert.match(connector, /evidencePassport\?: EvidencePassport/, "Frontend connector must preserve the passport contract");
 assert.match(resultsUi, /source\.evidencePassport/, "Fresh Research UI must render passport records");
 assert.match(resultsUi, /SHA-256 fingerprint/, "UI must expose the record fingerprint");
+assert.match(resultsUi, /capturedMaterial\.text/, "UI must show the exact text covered by the fingerprint");
+assert.match(resultsUi, /source\.observedAt/, "UI must show when Fresh captured the source");
 assert.match(resultsUi, /Not independently verified/, "UI must disclose the publisher-authenticity limitation");
 
 const tempDir = await mkdtemp(join(tmpdir(), "fresh-evidence-passport-"));
