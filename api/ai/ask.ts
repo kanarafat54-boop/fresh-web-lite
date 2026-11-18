@@ -325,8 +325,16 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     const evidence = (r.result.claims ?? []).flatMap((x: any) => Array.isArray(x.evidence) ? x.evidence : []) as Evidence[];
-    if (FRESH_EXTERNAL_FACT_QUESTION.test(goal.trim()) && evidence.length === 0) {
-      r.result.answer = "I couldn't verify this answer from usable web sources right now. Please try again shortly, or ask me to research it again. I won't substitute Fresh Web Lite's internal documentation for external facts.";
+    const sourceEvidence = evidence.filter((item) => {
+      try {
+        const url = new URL(item.source);
+        return url.protocol === "https:" || url.protocol === "http:";
+      } catch {
+        return false;
+      }
+    });
+    if ((FRESH_EXTERNAL_FACT_QUESTION.test(goal.trim()) || r.interpretation.needsEvidence) && sourceEvidence.length === 0) {
+      r.result.answer = "I couldn't verify this answer from usable external sources right now. The available evidence did not include a valid source link, so I won't present an unsupported factual summary. Please try the research again shortly.";
     }
     const conversationId = shortsContextCheck ? null : await conversationLedger(uid, b.conversationId, route, workspaceContext, model, goal, requestId, evidence, r.result.answer || "");
     let image: { dataUrl?: string; url?: string; assetId?: string; model: string; size: string; engine: "fresh-native" | "configured-image-engine" } | null = null;
@@ -353,8 +361,15 @@ export async function POST(req: Request): Promise<Response> {
       }
     }
 
- const persistence = await persistPipeline(requestId, uid, r.pipeline), e = evidence.map(x => ({ title: x.source, snippet: x.claim })), verification = { uniqueSources: e.length, uniqueDomains: new Set(evidence.map(x => x.source || "unknown")).size, sourceDiversity: e.length >= 6 ? "high" : e.length >= 3 ? "medium" : "low", confidence: e.length >= 3 ? "medium" : "low", contradictionsDetected: (r.result.claims ?? []).some((x: any) => x.truth === "CONTRADICTED") }, governance = { autonomousSelfModification: false, improvementProposalsRequireApproval: true, highImpactActionsRequireApproval: true, reversibleImprovementsOnly: true };
- return json({ requestId, conversationId, answer: r.result.answer, confidence: verification.confidence, source: e.length ? "Fresh AI / verified evidence" : "Fresh AI", evidence: e, pipeline: r.pipeline, governance, verification, persistence, image, inference: nativeInferenceState.value ? { modelId: nativeInferenceState.value.modelId, status: nativeInferenceState.value.status, checkpointId: nativeInferenceState.value.checkpointId, reason: nativeInferenceState.value.reason } : { modelId: "fresh-unified-1", status: "training-required", reason: "Native inference was not invoked." }, proof: { mode: "gateway", evidenceCount: e.length, provenance: "Fresh AI Intelligence Gateway → Fresh Unified inference (when configured) → Kernel → Truth/Reasoning → Verification", model }, intent: r.interpretation.intent, status: r.status, error: r.error, workspace: workspaceContext ?? null, astra: r.astra ?? null, model });
+ const persistence = await persistPipeline(requestId, uid, r.pipeline);
+ const e = sourceEvidence.map((item) => ({ title: item.claim.slice(0, 160), url: item.source, snippet: item.claim, provider: "Fresh AI", kind: "web" as const }));
+ const canonicalUrls = new Set(e.map((item) => { const url = new URL(item.url); url.hash = ""; url.hostname = url.hostname.toLowerCase().replace(/^www\\./, ""); return url.toString(); }));
+ const domains = new Set(e.map((item) => new URL(item.url).hostname.toLowerCase().replace(/^www\\./, "")));
+ const contradictionsDetected = (r.result.claims ?? []).some((item: any) => item.truth === "CONTRADICTED");
+ const sourceDiversity = domains.size >= 6 ? "high" : domains.size >= 3 ? "medium" : "low";
+ const verification = { uniqueSources: canonicalUrls.size, uniqueDomains: domains.size, sourceDiversity, confidence: !contradictionsDetected && canonicalUrls.size >= 8 && domains.size >= 5 ? "high" : domains.size >= 3 ? "medium" : "low", contradictionsDetected };
+ const governance = { autonomousSelfModification: false, improvementProposalsRequireApproval: true, highImpactActionsRequireApproval: true, reversibleImprovementsOnly: true };
+ return json({ requestId, conversationId, answer: r.result.answer, confidence: verification.confidence, source: e.length ? "Fresh AI / retrieved sources" : "Fresh AI", evidence: e, pipeline: r.pipeline, governance, verification, persistence, image, inference: nativeInferenceState.value ? { modelId: nativeInferenceState.value.modelId, status: nativeInferenceState.value.status, checkpointId: nativeInferenceState.value.checkpointId, reason: nativeInferenceState.value.reason } : { modelId: "fresh-unified-1", status: "training-required", reason: "Native inference was not invoked." }, proof: { mode: "gateway", evidenceCount: e.length, provenance: "Fresh AI Intelligence Gateway → Fresh Unified inference (when configured) → Kernel → Truth/Reasoning → Verification", model }, intent: r.interpretation.intent, status: r.status, error: r.error, workspace: workspaceContext ?? null, astra: r.astra ?? null, model });
  } catch (error) { return json({ requestId, error: error instanceof Error ? error.message : "Fresh AI request failed" }, 500); } }
 
 export default createVercelNodeHandler({ GET, POST });
