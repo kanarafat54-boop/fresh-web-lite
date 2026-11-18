@@ -62,13 +62,13 @@ export default function FreshResearchResults({ result }: { result: IntelligenceR
       <header className="fresh-research-results__heading">
         <div>
           <span className="fresh-research-results__eyebrow">FRESH RESEARCH</span>
-          <h2>Research overview</h2>
+          <h2>What’s happening</h2>
         </div>
         <span className="fresh-research-results__source-count">{sources.length} unique {sources.length === 1 ? "source" : "sources"}</span>
       </header>
 
       <div className="fresh-research-results__answer">
-        <h3>Summary</h3>
+        <h3>What we found</h3>
         <p>{result.text}</p>
       </div>
 
@@ -116,7 +116,7 @@ export default function FreshResearchResults({ result }: { result: IntelligenceR
           </div>
         )}
       </div>
-      <p className="fresh-research-results__note">Sources are retrieved references, not automatic proof of every statement. Check the original pages and their publication dates.</p>
+      <p className="fresh-research-results__note">What confirms this? Open the original pages below to see the publisher, the information they reported, and when it was published. A source is useful only when its actual content supports the point being made.</p>
     </section>
   );
 }
