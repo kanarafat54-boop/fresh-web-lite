@@ -52,7 +52,7 @@ export default function FreshResearchResults({ result }: { result: IntelligenceR
       return true;
     });
   }, [result.sources]);
-  const visible = tab === "all" ? sources : sources.filter((source) => kindOf(source) === tab.slice(0, -1) || (tab === "news" && kindOf(source) === "news"));
+  const visible = tab === "all" ? sources : sources.filter((source) => kindOf(source) === (tab === "images" ? "image" : tab === "videos" ? "video" : tab));
   const verification = result.verification;
   const mediaTab = tab === "images" || tab === "videos";
 
