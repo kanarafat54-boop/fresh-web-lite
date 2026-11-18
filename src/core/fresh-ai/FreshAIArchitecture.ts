@@ -15,7 +15,7 @@ export type TruthState = "KNOWN" | "PROBABLE" | "UNCERTAIN" | "CONTRADICTED" | "
 export type FreshIntent = "chat" | "answer" | "research" | "create" | "code" | "design" | "analyze" | "plan" | "act" | "learn" | "discover";
 export type FreshAgent = "wallet" | "feed" | "security" | "research" | "architecture" | "backend" | "frontend" | "testing" | "documentation" | "deployment" | "media" | "learning";
 
-export type Evidence = { id: string; source: string; claim: string; observedAt?: string; confidence: number };
+export type Evidence = { id: string; source: string; claim: string; observedAt?: string; confidence: number; sourceTitle?: string; sourceSnippet?: string; sourcePublishedAt?: string; sourceProvider?: string; sourceKind?: "web" | "news" | "video" | "image" | "music" };
 export type FreshClaim = { statement: string; truth: TruthState; confidence: number; evidence: Evidence[]; temporal?: { validFrom?: string; validUntil?: string } };
 export type FreshTruthDecision = { claimId: string; decision: "ALLOW_ACTION" | "ALLOW_WITH_CAUTION" | "BLOCK_ACTION"; actionable: boolean; confidence: number; reasons: string[] };
 export type FreshSkill = { id: string; name: string; description: string; capabilities: string[]; requiredTools?: string[] };
