@@ -75,4 +75,20 @@ $function$;
 
 revoke all on function public.persist_fresh_intelligence_research_graph_with_passports(text, jsonb, jsonb) from public, anon, authenticated;
 grant execute on function public.persist_fresh_intelligence_research_graph_with_passports(text, jsonb, jsonb) to service_role;
+
+create or replace function public.reject_fresh_evidence_passport_mutation()
+returns trigger
+language plpgsql
+set search_path = ''
+as $function$
+begin
+  raise exception 'Fresh Evidence Passports are append-only records';
+end;
+$function$;
+
+create trigger fresh_intelligence_evidence_passports_immutable
+before update or delete on public.fresh_intelligence_evidence_passports
+for each row execute function public.reject_fresh_evidence_passport_mutation();
+
+revoke all on function public.reject_fresh_evidence_passport_mutation() from public, anon, authenticated;
 notify pgrst, 'reload schema';
