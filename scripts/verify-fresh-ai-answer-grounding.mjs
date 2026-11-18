@@ -38,9 +38,16 @@ if (!activeAskApi.includes('u.protocol === "https:" || u.protocol === "http:"') 
     !activeAskApi.includes("const groundedClaims = claims.flatMap")) {
   throw new Error("Research claims must be tied to a valid HTTP(S) source URL before entering Fresh AI evidence.");
 }
-if (!activeAskApi.includes("if (FRESH_EXTERNAL_FACT_QUESTION.test(goal.trim()) && evidence.length === 0)") ||
-    !activeAskApi.includes("I couldn't verify this answer from usable web sources right now.")) {
-  throw new Error("Public factual questions must fail transparently when usable evidence is unavailable.");
+if (!activeAskApi.includes("const sourceEvidence = evidence.filter") ||
+    !activeAskApi.includes("r.interpretation.needsEvidence) && sourceEvidence.length === 0") ||
+    !activeAskApi.includes("I couldn't verify this answer from usable external sources right now.") ||
+    !activeAskApi.includes("url: item.source")) {
+  throw new Error("Evidence-seeking answers must fail closed without valid external URLs and preserve source links for the UI.");
+}
+if (!activeAskApi.includes("const canonicalUrls = new Set") ||
+    !activeAskApi.includes("const domains = new Set") ||
+    !activeAskApi.includes("const sourceDiversity = domains.size >= 6")) {
+  throw new Error("Research verification must count canonical URLs and distinct domains, not raw evidence rows.");
 }
 if (!activeAskApi.includes("const declaredUrls = Array.isArray(claim.sourceUrls)") ||
     !activeAskApi.includes("when those declared URLs are invalid or absent from the returned source list.") ||
