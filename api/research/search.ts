@@ -127,7 +127,12 @@ export async function POST(req: Request): Promise<Response> {
     const synthesis = synthesizeResearch(passes);
     const researchedAt = new Date().toISOString();
     const dimensions = reasonAcrossDimensions(query);
-    const researchSources = synthesis.sources.map((source) => ({ ...source, kind: sourceKind(source.url, source.publishedAt, mode), evidencePassport: createEvidencePassport(source, researchedAt) }));
+    const researchSources = synthesis.sources.flatMap((source) => {
+      try { return [{ ...source, kind: sourceKind(source.url, source.publishedAt, mode), evidencePassport: createEvidencePassport(source, researchedAt) }]; }
+      catch { return []; }
+    });
+    const invalidSourceCount = synthesis.sources.length - researchSources.length;
+    if (!researchSources.length) return json({ error: "Fresh Research did not receive a valid HTTP(S) source URL to preserve as evidence.", warnings: ["No evidence passports were issued; no factual answer was returned."], mode, runId }, 502);
     const researchResult = { query, mode, answer: synthesis.answer, sources: researchSources, claims: synthesis.claims, researchedAt };
     logStage(runId, "research.synthesis.complete", { durationMs: elapsed(synthesisStarted), sourceCount: researchResult.sources.length, claimCount: researchResult.claims.length, dimensionalLayers: dimensions.length });
     let persistenceWarning: string | undefined;
@@ -147,7 +152,7 @@ export async function POST(req: Request): Promise<Response> {
     } finally {
       if (persistenceTimeout) clearTimeout(persistenceTimeout);
     }
-    const warnings = [...(failures.length ? [`${failures.length} research pass(es) failed or timed out; Fresh returned the successfully completed evidence.`] : []), ...(persistenceWarning ? [persistenceWarning] : [])];
+    const warnings = [...(failures.length ? [`${failures.length} research pass(es) failed or timed out; Fresh returned the successfully completed evidence.`] : []), ...(invalidSourceCount ? [`${invalidSourceCount} source record(s) were excluded because they could not receive a valid HTTP(S) Evidence Passport.`] : []), ...(persistenceWarning ? [persistenceWarning] : [])];
     return json({ answer: synthesis.answer, sources: researchResult.sources, claims: synthesis.claims, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning }, 200, { "x-truemode-run-id": runId });
   } catch (error) {
     console.error("Fresh Web Research error", { runId, error });
