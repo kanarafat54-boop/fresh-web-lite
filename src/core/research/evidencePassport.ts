@@ -59,7 +59,7 @@ export function createEvidencePassport(source: PassportSource, observedAt: strin
   const idDigest = createHash("sha256").update(`${parsed.toString()}\n${observedAt}\n${digest}`, "utf8").digest("hex");
   return {
     version: "1.0",
-    id: `FEP-${idDigest.slice(0, 24).toUpperCase()}`,
+    id: `FEP-${idDigest.slice(0, 32).toUpperCase()}`,
     issuedAt: observedAt,
     issuer: "Fresh Web Lite Research",
     source: {
