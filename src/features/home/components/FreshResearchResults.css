@@ -26,3 +26,12 @@
 .fresh-research-results__empty p{margin:7px 0 0;color:#aaaabd;font-size:.8rem;line-height:1.5}
 .fresh-research-results__note{margin:0;color:#9999aa;font-size:.72rem;line-height:1.5}
 @media(max-width:420px){.fresh-research-results{padding:12px}.fresh-research-results__heading{flex-direction:column;gap:4px}}
+
+.fresh-research-passport{margin-top:10px;padding:10px 11px;border:1px solid rgba(129,120,255,.24);border-radius:10px;background:rgba(99,91,255,.055);font-size:.76rem}
+.fresh-research-passport summary{color:#c8c1ff;cursor:pointer;font-weight:650;overflow-wrap:anywhere}
+.fresh-research-passport dl{display:grid;gap:8px;margin:12px 0}
+.fresh-research-passport dl div{display:grid;gap:3px}
+.fresh-research-passport dt{color:#9999aa;font-size:.68rem}
+.fresh-research-passport dd{margin:0;color:#e5e3f5;overflow-wrap:anywhere}
+.fresh-research-passport code{font-size:.68rem;overflow-wrap:anywhere;word-break:break-all}
+.fresh-research-passport>p{margin:8px 0 0;color:#aaaabd;font-size:.7rem;line-height:1.45}
