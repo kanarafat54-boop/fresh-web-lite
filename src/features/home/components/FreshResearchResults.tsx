@@ -113,6 +113,10 @@ export default function FreshResearchResults({ result }: { result: IntelligenceR
                 <summary>Evidence passport · {source.evidencePassport.id}</summary>
                 <dl>
                   <div><dt>Record issuer</dt><dd>{source.evidencePassport.issuer}</dd></div>
+                  <div><dt>Publisher domain</dt><dd>{source.evidencePassport.source.publisherDomain}</dd></div>
+                  <div><dt>Passport issued</dt><dd>{source.evidencePassport.issuedAt}</dd></div>
+                  <div><dt>Observed by Fresh</dt><dd>{source.evidencePassport.source.observedAt}</dd></div>
+                  <div><dt>Exact material fingerprinted</dt><dd>{source.evidencePassport.capturedMaterial.text}</dd></div>
                   <div><dt>Captured by</dt><dd>{source.evidencePassport.source.retrievalProvider}</dd></div>
                   <div><dt>Captured material</dt><dd>{source.evidencePassport.capturedMaterial.kind === "publisher_excerpt" ? "Publisher excerpt" : "Title only"}</dd></div>
                   <div><dt>SHA-256 fingerprint</dt><dd><code>{source.evidencePassport.capturedMaterial.digest}</code></dd></div>
