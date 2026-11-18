@@ -3,6 +3,7 @@ import { discover, isGlobalSystem } from "../../src/core/discovery/globalDiscove
 import { synthesizeResearch, type ResearchPass } from "../../src/server/research/orchestrator.js";
 import { persistSemanticResearch } from "../../src/server/research/persistSemanticResearchV2.js";
 import { reasonAcrossDimensions } from "../../src/core/fresh-ai/dimensionalIntelligence.js";
+import { createEvidencePassport } from "../../src/core/research/evidencePassport.js";
 
 type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
 type SearchRequest = { query?: string; maxSources?: number; context?: string[]; mode?: ResearchMode };
@@ -126,7 +127,8 @@ export async function POST(req: Request): Promise<Response> {
     const synthesis = synthesizeResearch(passes);
     const researchedAt = new Date().toISOString();
     const dimensions = reasonAcrossDimensions(query);
-    const researchResult = { query, mode, answer: synthesis.answer, sources: synthesis.sources, claims: synthesis.claims, researchedAt };
+    const researchSources = synthesis.sources.map((source) => ({ ...source, kind: sourceKind(source.url, source.publishedAt, mode), evidencePassport: createEvidencePassport(source, researchedAt) }));
+    const researchResult = { query, mode, answer: synthesis.answer, sources: researchSources, claims: synthesis.claims, researchedAt };
     logStage(runId, "research.synthesis.complete", { durationMs: elapsed(synthesisStarted), sourceCount: researchResult.sources.length, claimCount: researchResult.claims.length, dimensionalLayers: dimensions.length });
     let persistenceWarning: string | undefined;
     let persistence: Awaited<ReturnType<typeof persistSemanticResearch>> | undefined;
@@ -146,7 +148,7 @@ export async function POST(req: Request): Promise<Response> {
       if (persistenceTimeout) clearTimeout(persistenceTimeout);
     }
     const warnings = [...(failures.length ? [`${failures.length} research pass(es) failed or timed out; Fresh returned the successfully completed evidence.`] : []), ...(persistenceWarning ? [persistenceWarning] : [])];
-    return json({ answer: synthesis.answer, sources: synthesis.sources, claims: synthesis.claims, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning }, 200, { "x-truemode-run-id": runId });
+    return json({ answer: synthesis.answer, sources: researchResult.sources, claims: synthesis.claims, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning }, 200, { "x-truemode-run-id": runId });
   } catch (error) {
     console.error("Fresh Web Research error", { runId, error });
     return json({ error: error instanceof Error ? error.message : "Web research provider unavailable", runId }, 502);
