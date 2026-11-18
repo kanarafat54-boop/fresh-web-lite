@@ -1,5 +1,11 @@
 import fs from "node:fs";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { build } from "esbuild";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const read = (path) => fs.readFileSync(path, "utf8");
 const passport = read("src/core/research/evidencePassport.ts");
@@ -34,5 +40,31 @@ assert.match(connector, /evidencePassport\?: EvidencePassport/, "Frontend connec
 assert.match(resultsUi, /source\.evidencePassport/, "Fresh Research UI must render passport records");
 assert.match(resultsUi, /SHA-256 fingerprint/, "UI must expose the record fingerprint");
 assert.match(resultsUi, /Not independently verified/, "UI must disclose the publisher-authenticity limitation");
+
+const tempDir = await mkdtemp(join(tmpdir(), "fresh-evidence-passport-"));
+try {
+  const bundle = await build({ entryPoints: ["src/core/research/evidencePassport.ts"], bundle: true, platform: "node", format: "esm", write: false });
+  const modulePath = join(tempDir, "evidencePassport.mjs");
+  await writeFile(modulePath, bundle.outputFiles[0].text, "utf8");
+  const { createEvidencePassport } = await import(pathToFileURL(modulePath).href);
+  const source = { title: "Example report", url: "https://www.example.test/report", snippet: "A captured report excerpt.", publishedAt: "2026-11-18T10:00:00.000Z", provider: "Test Search" };
+  const observedAt = "2026-11-18T20:00:00.000Z";
+  const first = createEvidencePassport(source, observedAt);
+  const repeat = createEvidencePassport(source, observedAt);
+  const later = createEvidencePassport(source, "2026-11-19T20:00:00.000Z");
+  const changed = createEvidencePassport({ ...source, snippet: "A changed report excerpt." }, observedAt);
+  assert.match(first.id, /^FEP-[A-F0-9]{32}$/);
+  assert.equal(first.id, repeat.id, "Same source snapshot must produce the same passport identity");
+  assert.equal(first.capturedMaterial.digest, repeat.capturedMaterial.digest);
+  assert.notEqual(first.id, later.id, "A later observation must receive a distinct passport record");
+  assert.equal(first.capturedMaterial.digest, later.capturedMaterial.digest, "Unchanged captured material must retain its fingerprint");
+  assert.notEqual(first.capturedMaterial.digest, changed.capturedMaterial.digest, "Changed captured material must change its fingerprint");
+  const expectedInput = JSON.stringify({ title: "Example report", url: "https://www.example.test/report", publisherDomain: "example.test", publishedAt: source.publishedAt, capturedText: source.snippet });
+  assert.equal(first.capturedMaterial.digest, createHash("sha256").update(expectedInput, "utf8").digest("hex"));
+  assert.throws(() => createEvidencePassport({ ...source, url: "javascript:alert(1)" }, observedAt), /valid public HTTP/);
+  console.log("Fresh Evidence Passport runtime fingerprint tests: PASS (stable identity, new observation, tamper detection, unsafe URL rejection)");
+} finally {
+  await rm(tempDir, { recursive: true, force: true });
+}
 
 console.log("Fresh Evidence Passport contract and provenance persistence: PASS");
