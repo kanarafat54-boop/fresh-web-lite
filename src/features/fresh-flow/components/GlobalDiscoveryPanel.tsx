@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { isBrowsable, type DiscoveryItem, type DiscoveryResult } from "../../../core/discovery/globalDiscovery.ts";
 
 const COPY: Record<string, { label: string; placeholder: string; heading: string; sources: string }> = {
-  "fresh-news": { label: "Search news from around the world", placeholder: "A topic, place or event", heading: "News from across the web", sources: "the public feeds of news publishers (BBC, Al Jazeera, DW, France 24, NPR, The Guardian, allAfrica) and the GDELT news index. Searching the feeds only covers recent stories; GDELT reaches further back" },
+  "fresh-news": { label: "Search news from around the world", placeholder: "A topic, place or event", heading: "News from across the web", sources: "the public feeds of news publishers (BBC, Al Jazeera, DW, France 24, NPR, The Guardian, allAfrica), which hold recent stories, and, when those find little, the GDELT news index, which reaches further back" },
   "fresh-music": { label: "Find songs and artists from any catalog", placeholder: "A song, artist or album", heading: "Music from the wider catalog", sources: "the Apple music catalog" },
   "books-reading": { label: "Find books from public libraries", placeholder: "A title, author or subject", heading: "Books beyond Fresh", sources: "Open Library and the Internet Archive" },
   learn: { label: "Find free lessons and textbooks", placeholder: "A subject you want to learn", heading: "Learning resources from open projects", sources: "Wikiversity and Wikibooks" },

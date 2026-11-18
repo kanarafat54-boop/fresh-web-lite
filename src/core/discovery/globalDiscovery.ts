@@ -38,6 +38,10 @@ export type Provider = {
   filtersLocally?: boolean;
   /** Cannot answer without words to search for, so it is skipped when only browsing. */
   needsQuery?: boolean;
+  /** Asked only after the other sources, and only when they found fewer than this many results. Spares slow or rate-limited sources. */
+  onlyIfFewerThan?: number;
+  /** A shorter limit than the default, for sources that are slow when they answer at all. */
+  timeoutMs?: number;
 };
 
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});
@@ -73,7 +77,7 @@ const enc = encodeURIComponent;
 const clamp = (n: number) => Math.max(1, Math.min(25, Math.floor(n)));
 
 export const gdelt: Provider = {
-  id: "gdelt", label: "GDELT news index", kind: "news", needsQuery: true,
+  id: "gdelt", label: "GDELT news index", kind: "news", needsQuery: true, onlyIfFewerThan: 8, timeoutMs: 3500,
   request: (q, n) => `https://api.gdeltproject.org/api/v2/doc/doc?query=${enc(q)}&mode=artlist&format=json&sort=datedesc&maxrecords=${clamp(n)}`,
   parse: (payload) => arr(obj(payload).articles).flatMap((raw) => {
     const a = obj(raw), url = safeUrl(a.url), title = str(a.title);
@@ -311,9 +315,9 @@ export async function discover(systemId: string, rawQuery: unknown, fetcher: Fet
   if (!browsing && query.length < MIN_QUERY) throw new Error(`Type at least ${MIN_QUERY} characters to search.`);
   const providers = SYSTEM_PROVIDERS[systemId].filter((p) => !(browsing && p.needsQuery));
   const limit = options.limit ?? 10, timeoutMs = options.timeoutMs ?? 8000;
-  const settled: Settled[] = await Promise.all(providers.map(async (p): Promise<Settled> => {
+  const ask = async (p: Provider): Promise<Settled> => {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const timer = setTimeout(() => controller.abort(), Math.min(p.timeoutMs ?? timeoutMs, timeoutMs));
     const failed = (error: string): Settled => ({ report: { id: p.id, label: p.label, ok: false, count: 0, error }, items: [] });
     try {
       const xml = p.format === "xml";
@@ -332,13 +336,22 @@ export async function discover(systemId: string, rawQuery: unknown, fetcher: Fet
     } catch (error) {
       return failed(error instanceof Error && error.name === "AbortError" ? `${p.label} took too long.` : `${p.label} could not be reached.`);
     } finally { clearTimeout(timer); }
-  }));
+  };
+
+  // Everyone answers at once, except the sources that only fill gaps: they are asked afterwards, and only if the rest found little.
+  const firstRound = providers.filter((p) => p.onlyIfFewerThan === undefined);
+  const settledFirst = await Promise.all(firstRound.map(ask));
+  const found = new Set(settledFirst.flatMap((s) => s.items.map((it) => it.url))).size;
+  const secondRound = providers.filter((p) => p.onlyIfFewerThan !== undefined && found < p.onlyIfFewerThan);
+  const settledSecond = await Promise.all(secondRound.map(ask));
+  const asked = [...firstRound, ...secondRound];
+  const settled: Settled[] = [...settledFirst, ...settledSecond];
 
   // Sources in a group (the publisher feeds) are reported as one line: failed only if none answered, with a note if some did not.
   const reports: ProviderReport[] = [];
   const groups = new Map<string, { at: number; members: ProviderReport[] }>();
   settled.forEach((s, i) => {
-    const group = providers[i].group;
+    const group = asked[i].group;
     if (!group) { reports.push(s.report); return; }
     let entry = groups.get(group);
     if (!entry) { entry = { at: reports.length, members: [] }; groups.set(group, entry); reports.push(s.report); }

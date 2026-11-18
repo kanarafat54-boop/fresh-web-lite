@@ -229,6 +229,38 @@ r = await D.discover("fresh-news", "flood", newsFetcher(limited));
 assert.equal(r.providers[1].error, "GDELT news index answered HTTP 429.");
 assert.equal(r.items.length, 3, "feed results are still shown");
 
+// GDELT is a fallback: it is rate limited and slow, so it is only asked when the feeds found fewer than 8 stories
+const feedsDown = { ok: false, status: 503, json: async () => ({}), text: async () => "" };
+const onlyBbc = (n) => { const o = {}; for (const f of P.NEWS_FEEDS) o[f.request("", 10)] = f.id === "bbc-world" ? reply(rssDoc(...Array.from({ length: n }, (_, i) => rssItem(`Flood item ${i}`, `https://bbc.example/f/${i}`, "Tue, 17 Nov 2026 09:30:00 GMT")))) : feedsDown; return o; };
+assert.equal(P.gdelt.onlyIfFewerThan, 8);
+newsCalls.length = 0;
+r = await D.discover("fresh-news", "flood", newsFetcher(onlyBbc(7)));
+assert.ok(newsCalls.some((u) => u.includes("gdeltproject")), "7 stories is too few, so GDELT is asked");
+assert.deepEqual(r.providers.map((p) => p.id), ["publisher-feeds", "gdelt"]);
+assert.equal(r.items.length, 8, "the 7 feed stories and the 1 from GDELT");
+newsCalls.length = 0;
+r = await D.discover("fresh-news", "flood", newsFetcher(onlyBbc(8)));
+assert.ok(!newsCalls.some((u) => u.includes("gdeltproject")), "8 stories is enough, so GDELT is spared");
+assert.deepEqual(r.providers.map((p) => p.id), ["publisher-feeds"], "a source that was not asked is not listed as answering");
+assert.equal(r.items.length, 8);
+// it is asked after the feeds, not alongside them
+const order = [];
+await D.discover("fresh-news", "flood", async (url, init) => { order.push(url.includes("gdeltproject") ? "gdelt" : "feed"); return newsFetcher()(url, init); });
+assert.equal(order.at(-1), "gdelt");
+assert.equal(order.filter((o) => o === "gdelt").length, 1);
+
+// GDELT has its own short limit, so a slow GDELT cannot hold the page for the full default time
+assert.ok(P.gdelt.timeoutMs !== undefined && P.gdelt.timeoutMs < 8000, "GDELT is cut off sooner than the default 8 seconds");
+const shipped = P.gdelt.timeoutMs;
+P.gdelt.timeoutMs = 30;
+try {
+  const t0 = performance.now();
+  r = await D.discover("fresh-news", "flood", (url, init) => (url.includes("gdeltproject") ? hang(url, init) : newsFetcher()(url, init)), { timeoutMs: 8000 });
+  assert.ok(performance.now() - t0 < 1500, "the provider's own limit applies even though the default is 8 seconds");
+} finally { P.gdelt.timeoutMs = shipped; }
+assert.equal(r.providers[1].error, "GDELT news index took too long.");
+assert.equal(r.items.length, 3, "the feed results are still shown");
+
 // a 200 reply that is not a feed (a bot-check page) is a failure, not an empty feed
 const blocked = {}; for (const f of P.NEWS_FEEDS) blocked[f.request("", 10)] = reply("<html><body>Please verify you are human</body></html>");
 r = await D.discover("fresh-news", "", newsFetcher(blocked));

@@ -12,13 +12,15 @@ All sources are free and need no key. No paid service is involved.
 | System | Source | What Fresh shows | Notes |
 | --- | --- | --- | --- |
 | Fresh News | Publisher RSS/Atom feeds: BBC News, BBC News Africa, Al Jazeera, DW, France 24, NPR, The Guardian, allAfrica | Latest headlines with nothing typed; search filters the feeds' recent items | Feeds only hold recent stories. Newest first, capped at 30 |
-| Fresh News | GDELT news index | Wider and older coverage when you search | Rate limited (about one request per 5 seconds per address); shown as a failure when it answers HTTP 429 |
+| Fresh News | GDELT news index | Wider and older coverage when you search | A fallback: asked only after the feeds, and only when they found fewer than 8 stories. Cut off after 3.5 seconds. Rate limited (about one request per 5 seconds per address), so it is shown as a failure when it answers HTTP 429 or is too slow |
 | Fresh Music | Apple music catalog (iTunes Search API) | Songs with artwork and a 30-second preview | Full tracks play at the provider |
 | Books & Reading | Open Library, Internet Archive (texts) | Catalog entries and free-to-read or borrowable books | Open Library and the Internet Archive say what can be read or borrowed |
 | Learn | Wikiversity, Wikibooks | Free lessons and open textbooks | Text is CC BY-SA |
 | Research & Knowledge | OpenAlex, Wikipedia | Papers (with open-access flag) and encyclopedia articles | |
 
 Project Gutenberg's search API (gutendex.com) answered HTTP 403 from CI, so it was replaced by the Internet Archive.
+
+GDELT was unreliable in the checks for this change: it answered HTTP 429 from CI and timed out from the Vercel preview. That is why it is a fallback rather than a source every search waits for. News works without it, and when it is asked and fails, the screen says so by name.
 
 ## Honesty rules in the code
 
@@ -37,8 +39,8 @@ Project Gutenberg's search API (gutendex.com) answered HTTP 403 from CI, so it w
 
 ## Checks
 
-- `npm run test:global-discovery`: parsing for every source with fixtures, the feed reader, fan-out, newest-first ordering, partial and total failures, timeouts, and the route wiring.
-- `.github/workflows/global-discovery-live.yml`: calls the real sources from CI and prints each publisher feed on its own. It fails if news headlines come from fewer than three publishers or any music, books, learn or research source fails. It runs on pull requests that touch discovery code and on demand.
+- `npm run test:global-discovery`: parsing for every source with fixtures, the feed reader, fan-out, newest-first ordering, partial and total failures, timeouts, the GDELT fallback rule (asked at 7 stories, spared at 8, asked after the feeds, cut off by its own limit), and the route wiring.
+- `.github/workflows/global-discovery-live.yml`: calls the real sources from CI and prints each publisher feed on its own. It fails if news headlines come from fewer than three publishers or any music, books, learn or research source fails. GDELT is printed but never fails the run. It runs on pull requests that touch discovery code and on demand.
 - Browser check at 390 px with mocked replies: headlines on arrival, search, partial failure, total failure, empty results.
 
 ## Not built yet

@@ -23,15 +23,22 @@ function show(system, query, result) {
   for (const item of result.items) assert.ok(/^https?:\/\//.test(item.url) && item.title, `${system}: malformed item ${JSON.stringify(item)}`);
 }
 
-// News: headlines with nothing typed must come from several publishers; GDELT is a bonus and may be rate limited.
+// News: headlines with nothing typed must come from several publishers. GDELT is only a fallback and may be rate limited or slow:
+// it is printed here, but it never fails the run.
 const headlines = await G.discover("fresh-news", "", fetcher, { limit: 10, timeoutMs: 15000 });
 show("fresh-news", "", headlines);
 const publishers = new Set(headlines.items.map((item) => item.source));
 if (headlines.items.length < 10 || publishers.size < 3) problems.push(`news headlines: ${headlines.items.length} items from ${publishers.size} publishers (need 10 from 3)`);
-await sleep(5500); // GDELT allows one request every 5 seconds
+// A topic the feeds cover well: GDELT should be spared.
 const election = await G.discover("fresh-news", "election", fetcher, { limit: 10, timeoutMs: 15000 });
 show("fresh-news", "election", election);
 if (election.items.length === 0) problems.push("news search for 'election' returned nothing");
+// A narrow topic: the feeds find little, so GDELT is asked. Whatever it does is reported; the feed stories must still show.
+await sleep(5500); // GDELT allows one request every 5 seconds
+const narrow = await G.discover("fresh-news", "uganda", fetcher, { limit: 10, timeoutMs: 15000 });
+show("fresh-news", "uganda", narrow);
+const asked = narrow.providers.some((p) => p.id === "gdelt");
+console.log(`  GDELT was ${asked ? "asked" : "not asked (the feeds already had enough)"}.`);
 
 // The other four systems depend on every one of their sources.
 for (const [system, query] of [["fresh-music", "miles davis"], ["books-reading", "frankenstein"], ["learn", "algebra"], ["research-knowledge", "machine learning"]]) {
