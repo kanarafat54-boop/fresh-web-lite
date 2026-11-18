@@ -51,7 +51,7 @@ export function createEvidencePassport(source: PassportSource, observedAt: strin
   const digestInput = JSON.stringify({
     title: source.title.trim(),
     url: parsed.toString(),
-    publisherDomain: parsed.hostname.toLowerCase().replace(/^www\\./, ""),
+    publisherDomain: parsed.hostname.toLowerCase().replace(/^www\./, ""),
     publishedAt: source.publishedAt ?? null,
     capturedText,
   });
@@ -65,7 +65,7 @@ export function createEvidencePassport(source: PassportSource, observedAt: strin
     source: {
       title: source.title,
       url: parsed.toString(),
-      publisherDomain: parsed.hostname.toLowerCase().replace(/^www\\./, ""),
+      publisherDomain: parsed.hostname.toLowerCase().replace(/^www\./, ""),
       retrievalProvider: source.provider,
       ...(source.publishedAt ? { publishedAt: source.publishedAt } : {}),
       observedAt,
