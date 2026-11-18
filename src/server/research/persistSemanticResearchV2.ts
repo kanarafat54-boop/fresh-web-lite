@@ -20,7 +20,7 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
   const runId = options.runId;
   const researchedAt = result.researchedAt;
   const queryScope = hash(normalizeResearchQuery(result.query));
-  const sources = result.sources.map((source) => ({ id: `research-source-${hash(source.url)}`, provider: source.provider, name: source.title, url: source.url, metadata: { publishedAt: source.publishedAt } }));
+  const sources = result.sources.map((source) => ({ id: `research-source-${hash(source.url)}`, provider: source.provider, name: source.title, url: source.url, metadata: { publishedAt: source.publishedAt, evidencePassport: source.evidencePassport ?? null } }));
   const sourceIdByUrl = new Map(sources.filter((s) => s.url).map((s) => [s.url as string, s.id]));
   const evidence: SemanticEvidence[] = result.sources.map((source, index) => ({
     id: `research-evidence-${hash(`${queryScope}:${source.url}:${index}`)}`,
