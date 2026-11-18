@@ -3,6 +3,9 @@ import fs from "node:fs";
 const goal = fs.readFileSync("src/core/fresh-ai/FreshGoalUnderstanding.ts", "utf8");
 const knowledge = fs.readFileSync("src/core/fresh-ai/FreshAIPlatformKnowledge.ts", "utf8");
 const kernel = fs.readFileSync("src/core/fresh-ai/FreshAIKernel.ts", "utf8");
+const architecture = fs.readFileSync("src/core/fresh-ai/FreshAIArchitecture.ts", "utf8");
+const gateway = fs.readFileSync("src/core/fresh-ai/FreshAIIntelligenceGateway.ts", "utf8");
+const researchResults = fs.readFileSync("src/features/home/components/FreshResearchResults.tsx", "utf8");
 
 const publicEntityRule = /^\s*(?:who|what|when|where|why|how)\s+(?:is|was|are|were|did|does|do|has|have)\s+(?!you\b|your\b|fresh ai\b|fresh\b)[A-Z][A-Za-z0-9.-]*(?:\s+[A-Z][A-Za-z0-9.-]*)*/i;
 for (const question of ["Who is Elon Musk?", "Who was Ada Lovelace?", "What is NASA?"]) {
@@ -53,6 +56,15 @@ if (!activeAskApi.includes("const declaredUrls = Array.isArray(claim.sourceUrls)
     !activeAskApi.includes("when those declared URLs are invalid or absent from the returned source list.") ||
     !activeAskApi.includes("if (!source) return [];")) {
   throw new Error("Research claims must not be silently attributed to a different source when declared provenance is invalid.");
+}
+if (!architecture.includes("sourceTitle?: string") ||
+    !architecture.includes("sourceSnippet?: string") ||
+    !gateway.includes("sourceTitle:source.title") ||
+    !gateway.includes("sourceSnippet:source.snippet") ||
+    !researchResults.includes("What confirms this?") ||
+    !researchResults.includes("source.title") ||
+    !researchResults.includes("source.snippet")) {
+  throw new Error("Research must preserve publisher context and show the actual confirming information in plain language.");
 }
 if (!kernel.includes("Only one independent source domain was available; treat this as preliminary and not independently corroborated.") ||
     !kernel.includes("Preliminary research summary:") ||
