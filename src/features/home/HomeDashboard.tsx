@@ -7,6 +7,7 @@ import { useFreshId } from "../fresh-id/context/FreshIdContext";
 import { useEffect, useState } from "react";
 import { FeedModule } from "../feed/components/FeedModule";
 import ShortsSuggestionsRow from "../fresh-flow/components/ShortsSuggestionsRow";
+import FreshResearchResults from "./components/FreshResearchResults";
 import { requestOpenShort } from "../fresh-flow/core/shortsExplore";
 import "./HomeDashboard.css";
 
