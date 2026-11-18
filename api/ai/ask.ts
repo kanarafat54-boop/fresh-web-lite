@@ -363,8 +363,8 @@ export async function POST(req: Request): Promise<Response> {
 
  const persistence = await persistPipeline(requestId, uid, r.pipeline);
  const e = sourceEvidence.map((item) => ({ title: item.claim.slice(0, 160), url: item.source, snippet: item.claim, provider: "Fresh AI", kind: "web" as const }));
- const canonicalUrls = new Set(e.map((item) => { const url = new URL(item.url); url.hash = ""; url.hostname = url.hostname.toLowerCase().replace(/^www\\./, ""); return url.toString(); }));
- const domains = new Set(e.map((item) => new URL(item.url).hostname.toLowerCase().replace(/^www\\./, "")));
+ const canonicalUrls = new Set(e.map((item) => { const url = new URL(item.url); url.hash = ""; url.hostname = url.hostname.toLowerCase().replace(/^www\./, ""); return url.toString(); }));
+ const domains = new Set(e.map((item) => new URL(item.url).hostname.toLowerCase().replace(/^www\./, "")));
  const contradictionsDetected = (r.result.claims ?? []).some((item: any) => item.truth === "CONTRADICTED");
  const sourceDiversity = domains.size >= 6 ? "high" : domains.size >= 3 ? "medium" : "low";
  const verification = { uniqueSources: canonicalUrls.size, uniqueDomains: domains.size, sourceDiversity, confidence: !contradictionsDetected && canonicalUrls.size >= 8 && domains.size >= 5 ? "high" : domains.size >= 3 ? "medium" : "low", contradictionsDetected };
