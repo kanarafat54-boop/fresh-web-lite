@@ -19,8 +19,8 @@ function canonicalUrl(value: string): string {
     for (const key of [...url.searchParams.keys()]) {
       if (/^(utm_|fbclid$|gclid$|ref$)/i.test(key)) url.searchParams.delete(key);
     }
-    url.hostname = url.hostname.toLowerCase().replace(/^www\\./, "");
-    url.pathname = url.pathname.replace(/\\/$/, "") || "/";
+    url.hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+    url.pathname = url.pathname.replace(/\/$/, "") || "/";
     return url.toString();
   } catch {
     return "";
