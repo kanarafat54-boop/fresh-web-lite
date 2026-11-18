@@ -14,15 +14,16 @@ const TABS: Array<{ id: ResultTab; label: string }> = [
 function canonicalUrl(value: string): string {
   try {
     const url = new URL(value);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return "";
     url.hash = "";
     for (const key of [...url.searchParams.keys()]) {
       if (/^(utm_|fbclid$|gclid$|ref$)/i.test(key)) url.searchParams.delete(key);
     }
-    url.hostname = url.hostname.toLowerCase().replace(/^www\./, "");
-    url.pathname = url.pathname.replace(/\/$/, "") || "/";
+    url.hostname = url.hostname.toLowerCase().replace(/^www\\./, "");
+    url.pathname = url.pathname.replace(/\\/$/, "") || "/";
     return url.toString();
   } catch {
-    return value.trim();
+    return "";
   }
 }
 
