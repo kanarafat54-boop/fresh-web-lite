@@ -54,6 +54,11 @@ if (!activeAskApi.includes("const declaredUrls = Array.isArray(claim.sourceUrls)
     !activeAskApi.includes("if (!source) return [];")) {
   throw new Error("Research claims must not be silently attributed to a different source when declared provenance is invalid.");
 }
+if (!kernel.includes("Only one independent source domain was available; treat this as preliminary and not independently corroborated.") ||
+    !kernel.includes("Preliminary research summary:") ||
+    kernel.includes("reasoning layers")) {
+  throw new Error("Research summaries must communicate source independence and must not imply that reasoning-layer count establishes factual confidence.");
+}
 const imageUi = fs.readFileSync("src/app/components/FreshAIUnified.tsx", "utf8");
 const imageApi = fs.readFileSync("api/ai/ask.ts", "utf8");
 if (!imageUi.includes('fetch("/api/ai/ask"') || !imageUi.includes("setImage(payload.image)") || !imageUi.includes("const imagePanel = image ?")) {
