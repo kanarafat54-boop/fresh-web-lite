@@ -48,11 +48,13 @@ export function createEvidencePassport(source: PassportSource, observedAt: strin
   }
   const excerpt = (source.snippet ?? "").trim();
   const capturedText = excerpt || source.title.trim();
+  const publishedDate = source.publishedAt ? new Date(source.publishedAt) : null;
+  const publishedAt = publishedDate && !Number.isNaN(publishedDate.getTime()) ? publishedDate.toISOString() : undefined;
   const digestInput = JSON.stringify({
     title: source.title.trim(),
     url: parsed.toString(),
     publisherDomain: parsed.hostname.toLowerCase().replace(/^www\./, ""),
-    publishedAt: source.publishedAt ?? null,
+    publishedAt: publishedAt ?? null,
     capturedText,
   });
   const digest = createHash("sha256").update(digestInput, "utf8").digest("hex");
@@ -67,7 +69,7 @@ export function createEvidencePassport(source: PassportSource, observedAt: strin
       url: parsed.toString(),
       publisherDomain: parsed.hostname.toLowerCase().replace(/^www\./, ""),
       retrievalProvider: source.provider,
-      ...(source.publishedAt ? { publishedAt: source.publishedAt } : {}),
+      ...(publishedAt ? { publishedAt } : {}),
       observedAt,
     },
     capturedMaterial: {
