@@ -46,7 +46,7 @@ try {
   assert.equal(lastArgs.args.p_passports[0].source_id, "source-1");
 
   // 2: A duplicate retry is a successful idempotent outcome when the prior summary is present.
-  await createSemanticPersistenceFromRpcClient(makeClient({ data: { persisted: false, alreadyPersisted: true, summary, passportsPersisted: 1 }, error: null })).persistResearchGraph(input);
+  await createSemanticPersistenceFromRpcClient(makeClient({ data: { persisted: false, alreadyPersisted: true, summary, passportsPersisted: 0 }, error: null })).persistResearchGraph(input);
 
   // 3-6: Missing, ambiguous, or malformed acknowledgements must fail closed.
   for (const badResult of [
