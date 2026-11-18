@@ -10,6 +10,7 @@ const temporal = read("src/core/semantic/temporalTruth.ts");
 const persistenceContract = read("src/core/semantic/semanticPersistence.ts");
 const persistence = read("src/core/semantic/supabaseSemanticPersistence.ts");
 const atomicMigration = read("supabase/migrations/20261014120128_atomic_truemode_research_persistence.sql");
+const passportMigration = read("supabase/migrations/20261118203000_fresh_intelligence_evidence_passports.sql");
 const researchPersistence = read("src/server/research/persistSemanticResearchV2.ts");
 const researchRoute = read("api/research/search.ts");
 const truthMigration = read("supabase/migrations/20260906100752_fresh_intelligence_truth_decisions.sql");
@@ -32,8 +33,15 @@ const required = [
   [calibration, "compareClaims", "Confidence calibration must account for related/contradictory claims."],
   [temporal, "validTo", "Temporal truth must support validity windows."],
   [persistenceContract, "truthDecisions: TruthDecision[]", "Persistence contract must carry truth decisions."],
+  [persistenceContract, "passports: Array<{ sourceId: string; passport: EvidencePassport }>", "Persistence contract must carry immutable passport snapshots."],
   [persistence, "persist_fresh_intelligence_research_graph", "Supabase adapter must use the atomic research RPC."],
   [persistence, "p_batch_key: input.batchKey", "Supabase persistence must pass an idempotency key."],
+  [persistence, "persist_fresh_intelligence_research_graph_with_passports", "Supabase persistence must use the atomic graph-plus-passport RPC."],
+  [researchPersistence, "const passports = result.sources.flatMap", "Research persistence must build passport rows linked to source IDs."],
+  [researchPersistence, "truthDecisions, passports", "Research persistence must write passports with the graph batch."],
+  [passportMigration, "create table if not exists public.fresh_intelligence_evidence_passports", "Database migration must provide a dedicated passport ledger."],
+  [passportMigration, "on conflict (passport_id) do nothing", "Passport persistence must be idempotent."],
+  [passportMigration, "Fresh Evidence Passports are append-only records", "Passport records must reject update and delete operations."],
   [atomicMigration, "create or replace function public.persist_fresh_intelligence_research_graph", "Database migration must provide the atomic persistence function."],
   [atomicMigration, "fresh_intelligence_persistence_batches", "Database migration must persist batch idempotency keys."],
   [persistence, "SUPABASE_SERVICE_ROLE_KEY", "Supabase persistence must remain server-only."],
