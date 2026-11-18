@@ -61,8 +61,13 @@ function buildGroundedAnswer(input:string,evidence:Evidence[],dimensions:ReturnT
  }
  const kbItems=safeEvidence.filter(item=>typeof item.id==="string"&&item.id.startsWith("kb-"));
  if(kbItems.length&&!interpretation.needsEvidence){const evidenceLines=safeEvidence.slice(0,6).map((item,index)=>(index+1)+". "+item.claim).join(" ");return "From Fresh Web Lite’s retrieved project documentation (source-grounded notes, not a trained-model response): "+evidenceLines;}
- const dimensionalSummary=safeDimensions.length?" using "+safeDimensions.length+" reasoning layers":"";
  const evidenceLines=safeEvidence.slice(0,6).map((item,index)=>(index+1)+". "+item.claim).join(" ");
- const freshness=interpretation.needsEvidence?" The answer is grounded in retrieved evidence; source dates and uncertainty should be considered where provided.":"";
- return "Based on the available evidence, here is the direct answer to your request. Fresh evaluated "+safeEvidence.length+" evidence item(s)"+dimensionalSummary+"."+freshness+" "+evidenceLines;
+ if(interpretation.needsEvidence){
+  const sourcedEvidence=safeEvidence.filter(item=>{try{const url=new URL(item.source);return url.protocol==="https:"||url.protocol==="http:"}catch{return false}});
+  if(!sourcedEvidence.length)return "I couldn't verify this from usable external sources, so I won't present an unsupported factual summary. Please try the research again when source links are available.";
+  const domains=new Set(sourcedEvidence.map(item=>{try{return new URL(item.source).hostname.toLowerCase().replace(/^www\./,"")}catch{return "unknown"}}).filter(domain=>domain!=="unknown"));
+  const evidenceQuality=domains.size<2?"Only one independent source domain was available; treat this as preliminary and not independently corroborated.":domains.size<3?"The sources cover a limited number of domains, so the findings are not strongly corroborated.":"The sources span multiple domains; review the original links and dates before relying on the findings.";
+  return "Preliminary research summary: "+evidenceLines+"\n\nEvidence note: "+sourcedEvidence.length+" retrieved source(s) across "+domains.size+" distinct domain(s). "+evidenceQuality;
+ }
+ return "Here is the direct answer based on the available information. "+evidenceLines;
 }
