@@ -44,6 +44,16 @@ begin
     raise exception 'Read-back failed for persisted claim/evidence/decision graph';
   end if;
 
+  begin
+    update public.fresh_intelligence_evidence_passports set captured_text='tampered' where passport_id='FEP-CI-001';
+    raise exception 'Expected immutable passport update to fail';
+  exception when raise_exception then
+    if sqlerrm not like 'Fresh Evidence Passports are append-only records' then raise; end if;
+  end;
+  if (select captured_text from public.fresh_intelligence_evidence_passports where passport_id='FEP-CI-001') <> 'CI captured excerpt' then
+    raise exception 'Immutable passport content changed after rejected update';
+  end if;
+
   retry_result := public.persist_fresh_intelligence_research_graph_with_passports('ci-truemode-batch-1', '{"entities":[],"sources":[],"claims":[],"evidence":[]}'::jsonb, passport_payload);
   if retry_result->>'persisted' <> 'false' or retry_result->>'alreadyPersisted' <> 'true' or retry_result->>'passportsPersisted' <> '0'
      or retry_result->'summary' <> first_result->'summary' then
