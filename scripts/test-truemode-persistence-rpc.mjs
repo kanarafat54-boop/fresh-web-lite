@@ -25,6 +25,7 @@ try {
     entities: [{ id: "entity-1", entityType: "concept", label: "Test topic" }],
     sources: [{ id: "source-1", provider: "test", url: "https://example.test/source" }],
     claims: [], evidence: [], claimEvidence: [], relations: [], arbitrations: [], truthDecisions: [],
+    passports: [{ sourceId: "source-1", passport: { id: "FEP-TEST-001", version: "1.0", issuer: "Fresh Web Lite Research", issuedAt: "2026-11-18T20:00:00.000Z", source: { title: "Test source", url: "https://example.test/source", publisherDomain: "example.test", retrievalProvider: "test", observedAt: "2026-11-18T20:00:00.000Z" }, capturedMaterial: { kind: "title_only", text: "Test source", digestAlgorithm: "SHA-256", digest: "a".repeat(64) }, verification: { recordStatus: "recorded", sourceUrlStatus: "valid_http_url", publisherAuthenticity: "not_independently_verified", claimSupport: "requires_content_review" }, limitations: [] } }],
   };
   let calls = 0;
   let lastArgs;
@@ -37,13 +38,15 @@ try {
   });
 
   // 1: A new atomic batch is accepted only with a complete positive acknowledgement.
-  await createSemanticPersistenceFromRpcClient(makeClient({ data: { persisted: true, alreadyPersisted: false, summary }, error: null })).persistResearchGraph(input);
-  assert.equal(lastArgs.name, "persist_fresh_intelligence_research_graph");
+  await createSemanticPersistenceFromRpcClient(makeClient({ data: { persisted: true, alreadyPersisted: false, summary, passportsPersisted: 1 }, error: null })).persistResearchGraph(input);
+  assert.equal(lastArgs.name, "persist_fresh_intelligence_research_graph_with_passports");
   assert.equal(lastArgs.args.p_batch_key, input.batchKey);
   assert.equal(lastArgs.args.p_payload.entities[0].id, "entity-1");
+  assert.equal(lastArgs.args.p_passports[0].passport_id, "FEP-TEST-001");
+  assert.equal(lastArgs.args.p_passports[0].source_id, "source-1");
 
   // 2: A duplicate retry is a successful idempotent outcome when the prior summary is present.
-  await createSemanticPersistenceFromRpcClient(makeClient({ data: { persisted: false, alreadyPersisted: true, summary }, error: null })).persistResearchGraph(input);
+  await createSemanticPersistenceFromRpcClient(makeClient({ data: { persisted: false, alreadyPersisted: true, summary, passportsPersisted: 1 }, error: null })).persistResearchGraph(input);
 
   // 3-6: Missing, ambiguous, or malformed acknowledgements must fail closed.
   for (const badResult of [
@@ -71,7 +74,7 @@ try {
   );
 
   // Direct validation also guards the contract independently of the adapter.
-  assert.doesNotThrow(() => assertResearchPersistenceRpcResult({ persisted: true, alreadyPersisted: false, summary }));
+  assert.doesNotThrow(() => assertResearchPersistenceRpcResult({ persisted: true, alreadyPersisted: false, summary, passportsPersisted: 1 }));
   assert.equal(calls, 8);
   console.log("TRUEMODE persistence RPC acknowledgement tests: PASS (8 cases)");
 } finally {
