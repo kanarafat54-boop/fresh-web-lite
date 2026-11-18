@@ -108,6 +108,20 @@ export default function FreshResearchResults({ result }: { result: IntelligenceR
               <strong>{source.title}</strong>
             </a>
             {source.snippet && <p>{source.snippet}</p>}
+            {source.evidencePassport && (
+              <details className="fresh-research-passport">
+                <summary>Evidence passport · {source.evidencePassport.id}</summary>
+                <dl>
+                  <div><dt>Record issuer</dt><dd>{source.evidencePassport.issuer}</dd></div>
+                  <div><dt>Captured by</dt><dd>{source.evidencePassport.source.retrievalProvider}</dd></div>
+                  <div><dt>Captured material</dt><dd>{source.evidencePassport.capturedMaterial.kind === "publisher_excerpt" ? "Publisher excerpt" : "Title only"}</dd></div>
+                  <div><dt>SHA-256 fingerprint</dt><dd><code>{source.evidencePassport.capturedMaterial.digest}</code></dd></div>
+                  <div><dt>Publisher authenticity</dt><dd>Not independently verified</dd></div>
+                  <div><dt>Claim support</dt><dd>Requires checking the captured content against the specific claim</dd></div>
+                </dl>
+                <p>{source.evidencePassport.limitations[0]} {source.evidencePassport.limitations[1]}</p>
+              </details>
+            )}
           </article>
         )) : (
           <div className="fresh-research-results__empty">
