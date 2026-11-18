@@ -1,4 +1,4 @@
-import type { EvidencePassport } from "../../../core/research/evidencePassport";
+import type { EvidencePassport } from "../../../core/research/evidencePassport.js";
 /** Fresh Intelligence connector contracts. */
 export type IntelligenceTask = "answer" | "research" | "coding" | "design" | "science" | "biology" | "robotics" | "optimization" | "planning" | "orchestration";
 export type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
