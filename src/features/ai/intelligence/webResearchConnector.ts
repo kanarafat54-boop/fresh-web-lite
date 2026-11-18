@@ -15,7 +15,7 @@ export const webResearchConnector: IntelligenceConnector = {
       try { const failure = (await response.json()) as { error?: string }; if (failure.error) message = failure.error; } catch { /* keep HTTP diagnostic */ }
       throw new Error(message);
     }
-    const payload = (await response.json()) as { answer?: string; sources?: IntelligenceSource[]; verification?: ResearchVerification; mode?: ResearchMode; searchedAt?: string };
-    return { provider: this.name, text: payload.answer ?? "Research results received without a synthesized answer.", sources: payload.sources ?? [], confidence: payload.verification?.confidence ?? (payload.sources?.length && payload.sources.length >= 3 ? "medium" : "low"), verification: payload.verification, researchMode: payload.mode ?? researchMode, searchedAt: payload.searchedAt };
+    const payload = (await response.json()) as { answer?: string; sources?: IntelligenceSource[]; verification?: ResearchVerification; warnings?: string[]; mode?: ResearchMode; searchedAt?: string };
+    return { provider: this.name, text: payload.answer ?? "Research results received without a synthesized answer.", sources: payload.sources ?? [], confidence: payload.verification?.confidence ?? (payload.sources?.length && payload.sources.length >= 3 ? "medium" : "low"), verification: payload.verification, warnings: payload.warnings ?? [], researchMode: payload.mode ?? researchMode, searchedAt: payload.searchedAt };
   },
 };
