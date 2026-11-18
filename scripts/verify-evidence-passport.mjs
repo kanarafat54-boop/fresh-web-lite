@@ -19,6 +19,8 @@ assert.match(contract, /evidencePassport\?: EvidencePassport/, "Research source 
 assert.match(persistence, /evidencePassport: source\.evidencePassport \?\? null/, "Passport must be persisted with source provenance metadata");
 assert.match(researchApi, /createEvidencePassport\(source, researchedAt\)/, "Research API must issue a passport for every returned source");
 assert.match(researchApi, /sources: researchResult\.sources/, "API must return the same passport-bearing source records it persists");
+assert.ok(researchApi.includes("if (!researchSources.length)"), "Research API must fail closed when no source can receive a passport");
+assert.ok(researchApi.includes("invalidSourceCount"), "Research API must disclose excluded invalid source records");
 assert.match(connector, /evidencePassport\?: EvidencePassport/, "Frontend connector must preserve the passport contract");
 assert.match(resultsUi, /source\.evidencePassport/, "Fresh Research UI must render passport records");
 assert.match(resultsUi, /SHA-256 fingerprint/, "UI must expose the record fingerprint");
