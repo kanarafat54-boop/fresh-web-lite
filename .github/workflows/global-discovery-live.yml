@@ -1,0 +1,23 @@
+name: Global discovery (live)
+
+# Searches the real public catalogs (publisher news feeds, GDELT, Apple music catalog, Open Library, Internet Archive,
+# Wikiversity, Wikibooks, OpenAlex, Wikipedia). Needs network, so it is not part of the normal build.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "src/core/discovery/**"
+      - "api/research/search.ts"
+      - "scripts/verify-global-discovery-live.mjs"
+      - ".github/workflows/global-discovery-live.yml"
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --no-warnings scripts/verify-global-discovery-live.mjs

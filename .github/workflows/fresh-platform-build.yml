@@ -83,6 +83,7 @@ jobs:
           npm run test:fresh-studio-writing
           npm run test:fresh-studio-lifecycle
           npm run test:fresh-studio-publish-post
+          npm run test:global-discovery
           npm run test:fresh-studio-multitrack
           npm run test:fresh-studio-film
           npm run test:fresh-studio-beats
