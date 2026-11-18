@@ -113,6 +113,7 @@ export default function FreshResearchResults({ result }: { result: IntelligenceR
                 <summary>Evidence passport · {source.evidencePassport.id}</summary>
                 <dl>
                   <div><dt>Record issuer</dt><dd>{source.evidencePassport.issuer}</dd></div>
+                  <div><dt>Ledger persistence</dt><dd>{result.intelligencePersisted === true ? "Confirmed in Fresh ledger" : result.intelligencePersisted === false ? "Not confirmed stored" : "Storage status unavailable"}</dd></div>
                   <div><dt>Publisher domain</dt><dd>{source.evidencePassport.source.publisherDomain}</dd></div>
                   <div><dt>Passport issued</dt><dd>{source.evidencePassport.issuedAt}</dd></div>
                   <div><dt>Observed by Fresh</dt><dd>{source.evidencePassport.source.observedAt}</dd></div>
