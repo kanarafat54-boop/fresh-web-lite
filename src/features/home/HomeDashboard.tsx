@@ -162,18 +162,7 @@ export default function HomeDashboard() {
 
       {loading && <div className="fresh-home-status" role="status">Fresh is working on that…</div>}
       {error && <div className="fresh-home-status is-error" role="alert">{error}</div>}
-      {result && (
-        <section className="fresh-global-research" aria-label="Fresh search result">
-          <strong>Fresh result</strong>
-          <p>{result.text}</p>
-          {result.sources?.map((source) => (
-            <a key={`${source.url}-${source.title}`} href={source.url} target="_blank" rel="noreferrer">
-              <span>{source.title}</span>
-              {source.snippet && <small>{source.snippet}</small>}
-            </a>
-          ))}
-        </section>
-      )}
+      {result && <FreshResearchResults result={result} />}
 
       {experienceMode !== "simple" && <section className="fresh-home-suggestions" aria-label="Suggested Shorts">
         <ShortsSuggestionsRow
