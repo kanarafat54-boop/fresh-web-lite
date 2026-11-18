@@ -75,7 +75,7 @@ export default function FreshResearchResults({ result }: { result: IntelligenceR
       {verification && (
         <div className="fresh-research-results__verification" aria-label="Source coverage">
           <span><strong>{verification.uniqueDomains}</strong> unique domains</span>
-          <span><strong>{verification.passes}</strong> research passes</span>
+          {Number.isFinite(verification.passes) && <span><strong>{verification.passes}</strong> research passes</span>}
           <span><strong>{verification.sourceDiversity}</strong> source diversity</span>
           <span><strong>{verification.confidence}</strong> system assessment</span>
         </div>
