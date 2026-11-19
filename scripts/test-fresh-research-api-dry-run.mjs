@@ -49,8 +49,14 @@ try {
   const body = await response.json();
   assert.equal(body.answer, "Example research answer from controlled test data.");
   assert.equal(body.intelligencePersisted, false, "dry-run must never be reported as durable persistence");
+  assert.equal(body.retrievalCapabilities.categories.web.status, "available");
+  assert.equal(body.retrievalCapabilities.categories.news.status, "available");
+  assert.equal(body.retrievalCapabilities.categories.images.status, "not_configured");
+  assert.equal(body.retrievalCapabilities.categories.videos.status, "not_configured");
+  assert.equal(body.retrievalCapabilities.categories.academic.status, "query_biased", "academic must not imply a dedicated scholarly index");
   assert.equal(body.persistence?.dryRun, true);
   assert.equal(body.persistence?.sources, 1);
+  assert.ok(body.claims.every((claim) => claim.sourceUrls.every((url) => body.sources.some((source) => source.url === url))), "claim citations must resolve to returned sources");
   assert.equal(body.warnings.some((warning) => warning.includes("memory layer could not persist")), false);
   assert.equal(providerCalls, 1);
 
@@ -68,7 +74,9 @@ try {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: "provider failure case", mode: "quick" }),
   }));
   assert.equal(failed.status, 504);
-  assert.match((await failed.json()).error, /All web research passes failed/);
+  const failedBody = await failed.json();
+  assert.match(failedBody.error, /All web research passes failed/);
+  assert.equal(failedBody.runId.length > 0, true);
 
   console.log("Fresh research API dry-run integration tests: PASS (3 cases; no database writes)");
 } finally {
