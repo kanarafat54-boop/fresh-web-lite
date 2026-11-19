@@ -42,6 +42,11 @@ class FreshRun5NotebookTests(unittest.TestCase):
         self.assertIn("run3CheckpointSha256", self.code)
         self.assertIn("run5CheckpointSha256", self.code)
 
+    def test_blocks_unverified_partial_resume_state(self):
+        self.assertIn("any(RUN5_DIR.iterdir())", self.code)
+        self.assertIn("Automatic resume is blocked", self.code)
+        self.assertIn("last.pt", self.code)
+
     def test_never_promotes_candidate_or_trains_new_tokenizer(self):
         self.assertIn('["productionReady"] is False', self.code)
         self.assertNotIn("fresh_tokenizer_v2.py train", self.code)
