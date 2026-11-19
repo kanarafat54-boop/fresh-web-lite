@@ -127,7 +127,7 @@ for (const width of WIDTHS) {
 
   // Bottom bar destinations.
   const bottom = (await page.locator("nav.fresh-flow-bottom-nav .fresh-nav-label").allInnerTexts()).map((t) => t.trim());
-  check(JSON.stringify(bottom) === JSON.stringify(["Home", "Shorts", "Creator Studio", "Video", "Messages", "Fresh Mail"]), `${tag} shared bottom bar is Home · Shorts · Creator Studio · Video · Messages · Fresh Mail (got ${bottom.join(" · ")})`);
+  check(JSON.stringify(bottom) === JSON.stringify(["Home", "Shorts", "Video", "Messages", "Fresh Mail"]), `${tag} shared bottom bar is Home · Shorts · Video · Messages · Fresh Mail (got ${bottom.join(" · ")})`);
 
   // No horizontal page overflow; controls are reachable and not covered.
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -149,7 +149,7 @@ for (const width of WIDTHS) {
     check(Boolean(box) && box.height >= 44, `${tag} top tab "${label.trim()}" is at least 44px tall`);
   }
   const bottomBoxes = await page.locator("nav.fresh-flow-bottom-nav button").evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
-  check(bottomBoxes.length === 6 && bottomBoxes.every((h) => h >= 44), `${tag} bottom items are at least 44px tall`);
+  check(bottomBoxes.length === 5 && bottomBoxes.every((h) => h >= 44), `${tag} bottom items are at least 44px tall`);
 
   // Each top tab navigates and becomes the single current tab.
   for (const label of ["Videos", "News / Posts", "Podcasts", "Others", "Discover"]) {
@@ -319,8 +319,10 @@ for (const width of WIDTHS) {
   });
   await page.waitForSelector(".fresh-long", { timeout: 10000 });
 
-  // Creator Studio opens the unified Studio shell inside Flow, without stacking a second bottom bar.
-  await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Creator Studio" }).click();
+  // Fresh Flow Home opens Creator Studio through its create entry, without a dedicated bottom-bar slot.
+  await page.locator('nav[aria-label="Fresh Flow media"] button', { hasText: "Discover" }).click();
+  check(await page.locator(".fresh-flow-compose").isVisible(), `${tag} Creator Studio remains discoverable from the Fresh Flow Home create entry`);
+  await page.locator(".fresh-flow-compose").click();
   await page.waitForSelector(".fs-app-embedded", { timeout: 10000 });
   check(await page.locator(".fs-bottombar").count() === 0, `${tag} embedded Creator Studio does not render a duplicate Studio bottom bar`);
   check(await page.locator("nav.fresh-flow-bottom-nav:visible").count() === 1, `${tag} Fresh Flow bottom navigation remains visible inside Creator Studio`);
