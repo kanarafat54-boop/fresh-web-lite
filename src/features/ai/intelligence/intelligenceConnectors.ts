@@ -1,3 +1,4 @@
+import type { EvidencePassport } from "../../../core/research/evidencePassport.js";
 /** Fresh Intelligence connector contracts. */
 export type IntelligenceTask = "answer" | "research" | "coding" | "design" | "science" | "biology" | "robotics" | "optimization" | "planning" | "orchestration";
 export type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
@@ -5,9 +6,9 @@ export type IntelligenceConversationTurn = { role: "user" | "assistant"; content
 export type IntelligenceRequest = { prompt: string; task?: IntelligenceTask; query?: string; context?: readonly string[]; maxSources?: number; researchMode?: ResearchMode; conversation?: readonly IntelligenceConversationTurn[] };
 export type IntelligenceSourceKind = "web" | "news" | "video" | "image" | "music";
 /** Fresh keeps provenance internally; the product UI renders proof/evidence rather than a source directory. */
-export type IntelligenceSource = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string; kind?: IntelligenceSourceKind; domain?: string };
+export type IntelligenceSource = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string; kind?: IntelligenceSourceKind; domain?: string; evidencePassport?: EvidencePassport };
 export type ResearchVerification = { passes: number; uniqueSources: number; uniqueDomains: number; sourceDiversity: "low" | "medium" | "high"; confidence: "low" | "medium" | "high"; independentPasses?: number; contradictionsDetected?: boolean };
-export type IntelligenceResponse = { text: string; provider: string; sources?: readonly IntelligenceSource[]; confidence?: "low" | "medium" | "high"; verification?: ResearchVerification; researchMode?: ResearchMode; searchedAt?: string };
+export type IntelligenceResponse = { text: string; provider: string; sources?: readonly IntelligenceSource[]; confidence?: "low" | "medium" | "high"; verification?: ResearchVerification; warnings?: readonly string[]; intelligencePersisted?: boolean; researchMode?: ResearchMode; searchedAt?: string };
 export interface IntelligenceConnector { readonly id: string; readonly name: string; readonly tasks: readonly IntelligenceTask[]; isAvailable(): boolean; run(request: IntelligenceRequest): Promise<IntelligenceResponse> }
 export type ConnectorHealth = { id: string; name: string; available: boolean; tasks: readonly IntelligenceTask[] };
 export class ConnectorRegistry {

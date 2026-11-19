@@ -3,6 +3,9 @@ import fs from "node:fs";
 const goal = fs.readFileSync("src/core/fresh-ai/FreshGoalUnderstanding.ts", "utf8");
 const knowledge = fs.readFileSync("src/core/fresh-ai/FreshAIPlatformKnowledge.ts", "utf8");
 const kernel = fs.readFileSync("src/core/fresh-ai/FreshAIKernel.ts", "utf8");
+const architecture = fs.readFileSync("src/core/fresh-ai/FreshAIArchitecture.ts", "utf8");
+const gateway = fs.readFileSync("src/core/fresh-ai/FreshAIIntelligenceGateway.ts", "utf8");
+const researchResults = fs.readFileSync("src/features/home/components/FreshResearchResults.tsx", "utf8");
 
 const publicEntityRule = /^\s*(?:who|what|when|where|why|how)\s+(?:is|was|are|were|did|does|do|has|have)\s+(?!you\b|your\b|fresh ai\b|fresh\b)[A-Z][A-Za-z0-9.-]*(?:\s+[A-Z][A-Za-z0-9.-]*)*/i;
 for (const question of ["Who is Elon Musk?", "Who was Ada Lovelace?", "What is NASA?"]) {
@@ -38,14 +41,35 @@ if (!activeAskApi.includes('u.protocol === "https:" || u.protocol === "http:"') 
     !activeAskApi.includes("const groundedClaims = claims.flatMap")) {
   throw new Error("Research claims must be tied to a valid HTTP(S) source URL before entering Fresh AI evidence.");
 }
-if (!activeAskApi.includes("if (FRESH_EXTERNAL_FACT_QUESTION.test(goal.trim()) && evidence.length === 0)") ||
-    !activeAskApi.includes("I couldn't verify this answer from usable web sources right now.")) {
-  throw new Error("Public factual questions must fail transparently when usable evidence is unavailable.");
+if (!activeAskApi.includes("const sourceEvidence = evidence.filter") ||
+    !activeAskApi.includes("r.interpretation.needsEvidence) && sourceEvidence.length === 0") ||
+    !activeAskApi.includes("I couldn't verify this answer from usable external sources right now.") ||
+    !activeAskApi.includes("url: item.source")) {
+  throw new Error("Evidence-seeking answers must fail closed without valid external URLs and preserve source links for the UI.");
+}
+if (!activeAskApi.includes("const canonicalUrls = new Set") ||
+    !activeAskApi.includes("const domains = new Set") ||
+    !activeAskApi.includes("const sourceDiversity = domains.size >= 6")) {
+  throw new Error("Research verification must count canonical URLs and distinct domains, not raw evidence rows.");
 }
 if (!activeAskApi.includes("const declaredUrls = Array.isArray(claim.sourceUrls)") ||
     !activeAskApi.includes("when those declared URLs are invalid or absent from the returned source list.") ||
     !activeAskApi.includes("if (!source) return [];")) {
   throw new Error("Research claims must not be silently attributed to a different source when declared provenance is invalid.");
+}
+if (!architecture.includes("sourceTitle?: string") ||
+    !architecture.includes("sourceSnippet?: string") ||
+    !gateway.includes("sourceTitle:source.title") ||
+    !gateway.includes("sourceSnippet:source.snippet") ||
+    !researchResults.includes("What confirms this?") ||
+    !researchResults.includes("source.title") ||
+    !researchResults.includes("source.snippet")) {
+  throw new Error("Research must preserve publisher context and show the actual confirming information in plain language.");
+}
+if (!kernel.includes("Only one independent source domain was available; treat this as preliminary and not independently corroborated.") ||
+    !kernel.includes("Preliminary research summary:") ||
+    kernel.includes("reasoning layers")) {
+  throw new Error("Research summaries must communicate source independence and must not imply that reasoning-layer count establishes factual confidence.");
 }
 const imageUi = fs.readFileSync("src/app/components/FreshAIUnified.tsx", "utf8");
 const imageApi = fs.readFileSync("api/ai/ask.ts", "utf8");

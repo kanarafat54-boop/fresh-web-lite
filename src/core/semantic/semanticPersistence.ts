@@ -1,5 +1,6 @@
 import type { SemanticClaim, SemanticEvidence } from "./types";
 import type { TruthDecision } from "./truthDecisionOrchestrator";
+import type { EvidencePassport } from "../research/evidencePassport.js";
 
 export interface SemanticPersistence {
   persistResearchGraph(input: {
@@ -13,6 +14,8 @@ export interface SemanticPersistence {
     relations: Array<{ leftClaimId: string; rightClaimId: string; relation: "same" | "supports" | "contradicts" | "unrelated" | "conditional_contradiction"; confidence: number; rationale?: string }>;
     arbitrations: Array<{ leftClaimId: string; rightClaimId: string; decision: string; confidence: number; rationale: string; requiresHumanReview?: boolean; retainedClaimIds?: string[]; supersededClaimIds?: string[] }>;
     truthDecisions: TruthDecision[];
+    /** Immutable passport snapshots linked to the source rows in this same atomic batch. */
+    passports: Array<{ sourceId: string; passport: EvidencePassport }>;
   }): Promise<void>;
 }
 

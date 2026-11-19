@@ -8,7 +8,7 @@ import type { SemanticClaim, SemanticEvidence } from "../../core/semantic/types.
 import type { ProvenanceNode } from "../../core/semantic/sourceProvenance.js";
 import type { ResearchResult } from "../../core/research/contracts.js";
 
-type PersistenceSummary = { entities: number; sources: number; claims: number; evidence: number; claimEvidence: number; relations: number; arbitrations: number; truthDecisions: number; actionableTruthDecisions: number; dryRun: boolean };
+type PersistenceSummary = { entities: number; sources: number; claims: number; evidence: number; passports: number; claimEvidence: number; relations: number; arbitrations: number; truthDecisions: number; actionableTruthDecisions: number; dryRun: boolean };
 type PersistenceOptions = { dryRun?: boolean; runId?: string };
 
 function logStage(runId: string | undefined, stage: string, details: Record<string, unknown> = {}): void {
@@ -22,6 +22,11 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
   const queryScope = hash(normalizeResearchQuery(result.query));
   const sources = result.sources.map((source) => ({ id: `research-source-${hash(source.url)}`, provider: source.provider, name: source.title, url: source.url, metadata: { publishedAt: source.publishedAt } }));
   const sourceIdByUrl = new Map(sources.filter((s) => s.url).map((s) => [s.url as string, s.id]));
+  const passports = result.sources.flatMap((source) => {
+    const passport = source.evidencePassport;
+    const sourceId = sourceIdByUrl.get(source.url);
+    return passport && sourceId ? [{ sourceId, passport }] : [];
+  });
   const evidence: SemanticEvidence[] = result.sources.map((source, index) => ({
     id: `research-evidence-${hash(`${queryScope}:${source.url}:${index}`)}`,
     claim: source.snippet ?? source.title,
@@ -115,12 +120,12 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
   }));
 
   const entities = [{ id: subjectEntityId, entityType: "concept", label: result.query, attributes: [{ key: "mode", value: result.mode, source: "web", confidence: 1, observedAt: researchedAt }] }];
-  const summary: PersistenceSummary = { entities: entities.length, sources: sources.length, claims: claims.length, evidence: evidence.length, claimEvidence: claimEvidence.length, relations: relations.length, arbitrations: arbitrations.length, truthDecisions: truthDecisions.length, actionableTruthDecisions: truthDecisions.filter((decision) => decision.actionable).length, dryRun: Boolean(options.dryRun) };
+  const summary: PersistenceSummary = { entities: entities.length, sources: sources.length, claims: claims.length, evidence: evidence.length, passports: passports.length, claimEvidence: claimEvidence.length, relations: relations.length, arbitrations: arbitrations.length, truthDecisions: truthDecisions.length, actionableTruthDecisions: truthDecisions.filter((decision) => decision.actionable).length, dryRun: Boolean(options.dryRun) };
   logStage(runId, "research.persistence.prepared", summary);
   if (options.dryRun) return summary;
 
   const batchKey = `research-batch-${queryScope}-${researchedAt}`;
-  await createSupabaseSemanticPersistence().persistResearchGraph({ batchKey, entities, sources, claims, evidence, claimEvidence, relations, arbitrations, truthDecisions });
+  await createSupabaseSemanticPersistence().persistResearchGraph({ batchKey, entities, sources, claims, evidence, claimEvidence, relations, arbitrations, truthDecisions, passports });
   logStage(runId, "research.persistence.supabase.complete", summary);
   return summary;
 }

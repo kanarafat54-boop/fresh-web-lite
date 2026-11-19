@@ -8,12 +8,16 @@ export type ResearchClaim = {
   status: "supported" | "conflicted" | "unverified";
 };
 
+export type EvidencePassport = import("./evidencePassport.js").EvidencePassport;
+
 export type ResearchSource = {
   title: string;
   url: string;
   snippet?: string;
   publishedAt?: string;
   provider: string;
+  kind?: "web" | "news" | "video" | "image" | "music";
+  evidencePassport?: EvidencePassport;
 };
 
 export type ResearchResult = {
