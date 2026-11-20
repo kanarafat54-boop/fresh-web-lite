@@ -1,5 +1,6 @@
 import type { ResearchClaim } from "../../core/research/contracts.js";
 import { FRESH_NOTES } from "../../core/research/claimEvidence.js";
+import { uniqueByCanonicalUrl } from "../../core/research/canonicalSource.js";
 import { compareClaims, type Claim } from "../../core/semantic/claimIntelligence.js";
 
 export type ResearchEvidence = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string; kind?: "web" | "news" | "video" | "image" | "music"; domain?: string };
@@ -13,10 +14,6 @@ export type ResearchSynthesis = {
 
 const domainOf = (url: string): string => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; } };
 const normalize = (value: string): string => value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
-const uniqueByUrl = (sources: ResearchEvidence[]): ResearchEvidence[] => {
-  const seen = new Set<string>();
-  return sources.filter((source) => { if (seen.has(source.url)) return false; seen.add(source.url); return true; });
-};
 
 function detectContradictions(passes: ResearchPass[]): boolean {
   const claims: Claim[] = passes.filter((pass) => pass.answer.trim()).map((pass, index) => ({
@@ -50,7 +47,7 @@ function buildClaims(passes: ResearchPass[], contradictionsDetected: boolean): R
 
 export function synthesizeResearch(passes: ResearchPass[]): ResearchSynthesis {
   const usable = passes.filter((pass) => pass.answer || pass.sources.length > 0);
-  const sources = uniqueByUrl(usable.flatMap((pass) => pass.sources));
+  const sources = uniqueByCanonicalUrl(usable.flatMap((pass) => pass.sources));
   const domains = new Set(sources.map((source) => domainOf(source.url)).filter((domain) => domain !== "unknown"));
   const passCount = usable.length;
   const independentPasses = new Set(usable.flatMap((pass) => pass.sources.map((source) => `${domainOf(source.url)}|${source.provider}`))).size;
