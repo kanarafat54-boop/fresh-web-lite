@@ -89,3 +89,11 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f scripts/test-fresh-research-rate-limit.sql
+      - name: Apply private Fresh Intelligence graph access migration
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261120190000_fresh_intelligence_private_graph_access.sql
+      - name: Verify browser roles cannot read or mutate the research graph
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f scripts/test-fresh-intelligence-private-access.sql
