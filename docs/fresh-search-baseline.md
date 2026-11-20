@@ -1,7 +1,7 @@
 # Fresh Search: baseline and plan
 
 Status of Fresh Search against the "20x research engine" brief, measured on `main` at `2c5097ec` (20 Nov 2026), plus what this change adds.
-Everything here was read from the code, the live Supabase catalog (read-only queries, no row contents) or a test run. Where something could not be checked, it says so.
+Everything here was checked against the code, live Supabase catalog and migration metadata, or tests. Production smoke tests used disposable transactions that were rolled back; no test data was retained. Where something could not be checked, it says so.
 
 ## In one paragraph
 
