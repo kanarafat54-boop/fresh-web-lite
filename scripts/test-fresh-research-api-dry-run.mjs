@@ -54,7 +54,35 @@ try {
   assert.equal(body.warnings.some((warning) => warning.includes("memory layer could not persist")), false);
   assert.equal(providerCalls, 1);
 
-  // 2: Invalid input is rejected before contacting the provider.
+  // 2: Current-entity queries with weak coverage automatically receive a news-focused second pass.
+  let adaptiveCalls = [];
+  globalThis.fetch = async (_input, init) => {
+    const request = JSON.parse(String(init?.body ?? "{}"));
+    adaptiveCalls.push(request);
+    const newsPass = request.topic === "news";
+    const results = newsPass
+      ? [
+          { title: "Independent report A", url: "https://news-a.example/musk", content: "Elon Musk leads technology companies and develops space systems.", published_date: "2026-11-20" },
+          { title: "Independent report B", url: "https://news-b.example/musk", content: "Elon Musk leads technology companies and develops space systems.", published_date: "2026-11-20" },
+          { title: "Independent report C", url: "https://news-c.example/musk", content: "Elon Musk leads technology companies and develops space systems.", published_date: "2026-11-20" },
+        ]
+      : [{ title: "Reference overview", url: "https://reference.example/musk", content: "Elon Musk leads technology companies and develops space systems." }];
+    return new Response(JSON.stringify({ answer: "Elon Musk leads technology companies and develops space systems.", results }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  const adaptive = await POST(new Request("https://fresh.test/api/research/search", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ query: "What's happening with Elon Musk?", mode: "global", maxSources: 8 }),
+  }));
+  assert.equal(adaptive.status, 200);
+  const adaptiveBody = await adaptive.json();
+  assert.equal(adaptiveCalls.length, 3, "two initial global passes plus one adaptive news pass");
+  assert.ok(adaptiveCalls.some((call) => call.topic === "news"), "the recovery pass must use the news topic");
+  assert.ok(adaptiveBody.verification.uniqueDomains >= 3, "independent domains are counted after the recovery pass");
+  assert.ok(adaptiveBody.verification.newsSources >= 3, "news coverage is reported separately");
+  assert.equal(adaptiveBody.verification.passes, 3);
+
+  // 3: Invalid input is rejected before contacting the provider.
   const callsBeforeInvalid = providerCalls;
   const invalid = await POST(new Request("https://fresh.test/api/research/search", {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: "   " }),
@@ -62,7 +90,7 @@ try {
   assert.equal(invalid.status, 400);
   assert.equal(providerCalls, callsBeforeInvalid);
 
-  // 3: If every research pass fails, the handler returns a failure rather than a fabricated answer.
+  // 4: If every research pass fails, the handler returns a failure rather than a fabricated answer.
   globalThis.fetch = async () => new Response("provider unavailable", { status: 503 });
   const failed = await POST(new Request("https://fresh.test/api/research/search", {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: "provider failure case", mode: "quick" }),
