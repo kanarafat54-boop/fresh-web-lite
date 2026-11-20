@@ -5,7 +5,7 @@ import { persistSemanticResearch } from "../../src/server/research/persistSemant
 import { reasonAcrossDimensions } from "../../src/core/fresh-ai/dimensionalIntelligence.js";
 import { createEvidencePassport } from "../../src/core/research/evidencePassport.js";
 import { mapAnswerToPassages } from "../../src/core/research/claimEvidence.js";
-import { checkFreshResearchRateLimit } from "../../src/server/research/researchRateLimit.js";
+import { checkFreshResearchRateLimit, type ResearchRateLimitResult } from "../../src/server/research/researchRateLimit.js";
 
 type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
 type SearchRequest = { query?: string; maxSources?: number; context?: string[]; mode?: ResearchMode };
@@ -127,7 +127,7 @@ export async function POST(req: Request): Promise<Response> {
     ? body.context.filter((item): item is string => typeof item === "string" && Boolean(item.trim())).slice(0, 8).map((item) => item.trim())
     : [];
   const enrichedQuery = `${modeConfig.prefix ? `${modeConfig.prefix}\n` : ""}${query}${context.length ? `\nContext:\n${context.join("\n")}` : ""}`;
-  let rateLimit;
+  let rateLimit: ResearchRateLimitResult;
   try {
     rateLimit = await checkFreshResearchRateLimit(req);
   } catch (error) {
