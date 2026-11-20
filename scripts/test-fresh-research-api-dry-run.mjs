@@ -34,8 +34,8 @@ try {
   let providerCalls = 0;
   let activeProvider = async () => new Response("No provider stub configured", { status: 500 });
   globalThis.fetch = async (input, init) => {
-    if (String(input).includes("/rest/v1/rpc/consume_fresh_research_rate_limit")) {
-      return Response.json([{ allowed: true, remaining: 19, retry_after_seconds: 0 }]);
+    if (String(input).includes("/rest/v1/rpc/consume_fresh_research_quota")) {
+      return Response.json({ allowed: true, remaining: 5, retryAfterSeconds: 0, limits: { perMinute: 6, perHour: 30, perDay: 100 } });
     }
     return activeProvider(input, init);
   };
