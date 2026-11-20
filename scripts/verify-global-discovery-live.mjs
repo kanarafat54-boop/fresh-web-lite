@@ -40,12 +40,19 @@ show("fresh-news", "uganda", narrow);
 const asked = narrow.providers.some((p) => p.id === "gdelt");
 console.log(`  GDELT was ${asked ? "asked" : "not asked (the feeds already had enough)"}.`);
 
-// The other four systems depend on every one of their sources.
+// Provider outages are reported, not confused with a Fresh failure. Multi-provider systems
+// remain useful when at least one independent catalog answers; single-provider music must answer.
 for (const [system, query] of [["fresh-music", "miles davis"], ["books-reading", "frankenstein"], ["learn", "algebra"], ["research-knowledge", "machine learning"]]) {
   await sleep(1000);
   const result = await G.discover(system, query, fetcher, { limit: 5, timeoutMs: 15000 });
   show(system, query, result);
-  for (const p of result.providers) if (!p.ok || p.count === 0) problems.push(`${system} / ${p.label}: ${p.ok ? "no results for an ordinary search" : p.error}`);
+  const healthy = result.providers.filter((provider) => provider.ok && provider.count > 0);
+  if (result.items.length === 0 || healthy.length === 0) {
+    problems.push(`${system}: no provider returned usable results (${result.providers.map((provider) => `${provider.label}: ${provider.error ?? provider.count + " results"}`).join("; ")})`);
+  } else {
+    const unavailable = result.providers.filter((provider) => !provider.ok || provider.count === 0);
+    if (unavailable.length) console.log(`  DEGRADED ${system}: ${unavailable.length} provider(s) unavailable; Fresh retained ${result.items.length} results from healthy catalogs.`);
+  }
 }
 
 assert.equal(problems.length, 0, `Global discovery live check found problems:\n - ${problems.join("\n - ")}`);

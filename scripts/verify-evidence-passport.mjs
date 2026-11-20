@@ -26,7 +26,7 @@ assert.match(passport, /not the complete original webpage/, "Passport must discl
 assert.match(contract, /evidencePassport\?: EvidencePassport/, "Research source contract must carry its passport");
 assert.match(persistence, /const passports = result\.sources\.flatMap/, "Research persistence must collect passport snapshots for the source graph");
 assert.match(persistence, /truthDecisions, passports/, "Passports must enter the same persistence batch as the research graph");
-assert.match(persistenceAdapter, /persist_fresh_intelligence_research_graph_with_passports/, "Supabase adapter must use the atomic graph-plus-passport RPC");
+assert.match(persistenceAdapter, /persist_fresh_intelligence_research_graph_with_passages/, "Supabase adapter must use the atomic graph-plus-passport-and-passage RPC");
 assert.match(persistenceAdapter, /input\.passports\.map/, "Supabase adapter must serialize every passport into the atomic write");
 assert.match(passportMigration, /create table if not exists public\.fresh_intelligence_evidence_passports/, "Migration must create a dedicated passport ledger");
 assert.match(passportMigration, /on conflict \(passport_id\) do nothing/, "Passport writes must be idempotent");

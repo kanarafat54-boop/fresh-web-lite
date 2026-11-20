@@ -10,7 +10,7 @@ export function assertResearchPersistenceRpcResult(data: unknown): void {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     throw new Error("TRUEMODE persistence RPC returned no result; persistence status is unknown.");
   }
-  const result = data as { persisted?: unknown; alreadyPersisted?: unknown; summary?: unknown; passportsPersisted?: unknown };
+  const result = data as { persisted?: unknown; alreadyPersisted?: unknown; summary?: unknown; passportsPersisted?: unknown; claimPassagesPersisted?: unknown };
   if (result.persisted !== true && result.alreadyPersisted !== true) {
     throw new Error("TRUEMODE persistence RPC did not confirm a new or previously persisted batch.");
   }
@@ -20,8 +20,11 @@ export function assertResearchPersistenceRpcResult(data: unknown): void {
   if (!Number.isInteger(result.passportsPersisted) || (result.passportsPersisted as number) < 0) {
     throw new Error("TRUEMODE persistence RPC did not confirm the immutable passport write count.");
   }
+  if (!Number.isInteger(result.claimPassagesPersisted) || (result.claimPassagesPersisted as number) < 0) {
+    throw new Error("TRUEMODE persistence RPC did not confirm the exact claim-passage write count.");
+  }
   const summary = result.summary as Record<string, unknown>;
-  for (const key of ["entities", "sources", "claims", "evidence", "claimEvidence", "relations", "arbitrations", "truthDecisions"]) {
+  for (const key of ["entities", "sources", "claims", "evidence", "claimEvidence", "claimPassages", "relations", "arbitrations", "truthDecisions"]) {
     if (!Number.isInteger(summary[key]) || (summary[key] as number) < 0) {
       throw new Error(`TRUEMODE persistence RPC returned an invalid ${key} summary count.`);
     }
@@ -58,6 +61,15 @@ export function createSemanticPersistenceFromRpcClient(client: RpcClient): Seman
         arbitrations: input.arbitrations.map((arbitration) => ({ left_claim_id: arbitration.leftClaimId, right_claim_id: arbitration.rightClaimId, decision: arbitration.decision, confidence: arbitration.confidence, rationale: arbitration.rationale, requires_human_review: arbitration.requiresHumanReview ?? false, retained_claim_ids: arbitration.retainedClaimIds ?? [], superseded_claim_ids: arbitration.supersededClaimIds ?? [] })),
         truth_decisions: input.truthDecisions.map((decision) => ({ claim_id: decision.claimId, decision: decision.decision, actionable: decision.actionable, calibrated_confidence: decision.calibration.confidence, temporal_status: decision.assessment.status, reasons: decision.reasons, assessed_at: decision.calibration.assessedAt })),
       };
+      const claimPassages = input.claimPassages.map((passage) => ({
+        passage_id: passage.id, batch_key: passage.batchKey, claim_id: passage.claimId,
+        answer_statement_id: passage.statementId, statement_text: passage.statementText,
+        statement_start: passage.statementStart, statement_end: passage.statementEnd,
+        passport_id: passage.passportId, source_id: passage.sourceId, evidence_id: passage.evidenceId,
+        quote_text: passage.quote, quote_start: passage.quoteStart, quote_end: passage.quoteEnd,
+        method: passage.method, match_score: passage.matchScore, matched_terms: passage.matchedTerms,
+        strength: passage.strength,
+      }));
       const passports = input.passports.map(({ sourceId, passport }) => ({
         passport_id: passport.id, source_id: sourceId, version: passport.version, issuer: passport.issuer,
         source_url: passport.source.url, source_title: passport.source.title, publisher_domain: passport.source.publisherDomain,
@@ -67,7 +79,7 @@ export function createSemanticPersistenceFromRpcClient(client: RpcClient): Seman
         content_digest: passport.capturedMaterial.digest, verification: passport.verification, limitations: passport.limitations,
       }));
       // The wrapper commits the semantic graph and append-only passport rows in one transaction.
-      const { data, error } = await client.rpc("persist_fresh_intelligence_research_graph_with_passports", { p_batch_key: input.batchKey, p_payload: payload, p_passports: passports });
+      const { data, error } = await client.rpc("persist_fresh_intelligence_research_graph_with_passages", { p_batch_key: input.batchKey, p_payload: payload, p_passports: passports, p_claim_passages: claimPassages });
       if (error) throw new Error(error.message || "Supabase TRUEMODE persistence RPC failed.");
       assertResearchPersistenceRpcResult(data);
     },
