@@ -39,7 +39,7 @@ try {
   });
 
   // 1: A new atomic batch is accepted only with a complete positive acknowledgement.
-  await createSemanticPersistenceFromRpcClient(makeClient({ data: { persisted: true, alreadyPersisted: false, summary, passportsPersisted: 1 }, error: null })).persistResearchGraph(input);
+  await createSemanticPersistenceFromRpcClient(makeClient({ data: { persisted: true, alreadyPersisted: false, summary, passportsPersisted: 1, claimPassagesPersisted: 1 }, error: null })).persistResearchGraph(input);
   assert.equal(lastArgs.name, "persist_fresh_intelligence_research_graph_with_passages");
   assert.equal(lastArgs.args.p_batch_key, input.batchKey);
   assert.equal(lastArgs.args.p_payload.entities[0].id, "entity-1");
@@ -50,7 +50,7 @@ try {
   assert.equal(lastArgs.args.p_claim_passages[0].passport_id, "FEP-TEST-001");
 
   // 2: A duplicate retry is a successful idempotent outcome when the prior summary is present.
-  await createSemanticPersistenceFromRpcClient(makeClient({ data: { persisted: false, alreadyPersisted: true, summary, passportsPersisted: 0 }, error: null })).persistResearchGraph(input);
+  await createSemanticPersistenceFromRpcClient(makeClient({ data: { persisted: false, alreadyPersisted: true, summary, passportsPersisted: 0, claimPassagesPersisted: 0 }, error: null })).persistResearchGraph(input);
 
   // 3-6: Missing, ambiguous, or malformed acknowledgements must fail closed.
   for (const badResult of [
@@ -78,7 +78,7 @@ try {
   );
 
   // Direct validation also guards the contract independently of the adapter.
-  assert.doesNotThrow(() => assertResearchPersistenceRpcResult({ persisted: true, alreadyPersisted: false, summary, passportsPersisted: 1 }));
+  assert.doesNotThrow(() => assertResearchPersistenceRpcResult({ persisted: true, alreadyPersisted: false, summary, passportsPersisted: 1, claimPassagesPersisted: 1 }));
   assert.equal(calls, 8);
   console.log("TRUEMODE persistence RPC acknowledgement tests: PASS (8 cases)");
 } finally {
