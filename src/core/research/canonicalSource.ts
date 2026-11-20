@@ -14,8 +14,6 @@ export function canonicalizeSourceUrl(input: string): string | null {
     if ((url.protocol !== "https:" && url.protocol !== "http:") || url.username || url.password) return null;
 
     url.hash = "";
-    url.hostname = url.hostname.toLowerCase().replace(/^www\./, "");
-    if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/, "");
 
     const trackingKeys = new Set([
       "gclid", "dclid", "fbclid", "msclkid", "mc_cid", "mc_eid",
