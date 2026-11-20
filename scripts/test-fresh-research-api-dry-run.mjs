@@ -98,7 +98,7 @@ try {
   assert.equal(failed.status, 504);
   assert.match((await failed.json()).error, /All web research passes failed/);
 
-  console.log("Fresh research API dry-run integration tests: PASS (3 cases; no database writes)");
+  console.log("Fresh research API dry-run integration tests: PASS (4 cases; no database writes)");
 } finally {
   globalThis.fetch = originalFetch;
   if (originalApiKey === undefined) delete process.env.TAVILY_API_KEY; else process.env.TAVILY_API_KEY = originalApiKey;
