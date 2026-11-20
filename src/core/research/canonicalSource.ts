@@ -1,0 +1,60 @@
+import { createHash } from "node:crypto";
+
+/**
+ * Returns a conservative identity URL for deduplication.
+ *
+ * The observed URL remains untouched in Evidence Passports. Only known tracking
+ * parameters and fragments are removed; meaningful query parameters are kept.
+ * Invalid, credential-bearing, and non-HTTP(S) URLs return null rather than
+ * being treated as safe canonical identities.
+ */
+export function canonicalizeSourceUrl(input: string): string | null {
+  try {
+    const url = new URL(input.trim());
+    if ((url.protocol !== "https:" && url.protocol !== "http:") || url.username || url.password) return null;
+
+    url.hash = "";
+    url.hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/, "");
+
+    const trackingKeys = new Set([
+      "gclid", "dclid", "fbclid", "msclkid", "mc_cid", "mc_eid",
+      "_hsenc", "_hsmi", "igshid", "vero_id", "oly_anon_id", "oly_enc_id",
+    ]);
+    for (const key of [...url.searchParams.keys()]) {
+      const normalized = key.toLowerCase();
+      if (normalized.startsWith("utm_") || trackingKeys.has(normalized)) {
+        url.searchParams.delete(key);
+      }
+    }
+    url.searchParams.sort();
+
+    // URL normalizes default ports and host casing. Keep meaningful query values.
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+/** Stable internal identity for a canonical source URL; never a truth signal. */
+export function canonicalSourceId(input: string): string | null {
+  const canonical = canonicalizeSourceUrl(input);
+  if (!canonical) return null;
+  const digest = createHash("sha256").update(canonical, "utf8").digest("hex");
+  return `fresh-source-${digest.slice(0, 32)}`;
+}
+
+/**
+ * Keeps the first observed source for each canonical URL. Invalid URLs are
+ * deduplicated only by their exact trimmed input and remain invalid elsewhere.
+ */
+export function uniqueByCanonicalUrl<T extends { url: string }>(sources: T[]): T[] {
+  const seen = new Set<string>();
+  return sources.filter((source) => {
+    const canonical = canonicalizeSourceUrl(source.url);
+    const key = canonical ?? `invalid:${source.url.trim()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
