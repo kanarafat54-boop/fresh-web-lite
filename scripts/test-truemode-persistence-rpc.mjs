@@ -26,7 +26,7 @@ try {
     sources: [{ id: "source-1", provider: "test", url: "https://example.test/source" }],
     claims: [], evidence: [], claimEvidence: [], relations: [], arbitrations: [], truthDecisions: [],
     passports: [{ sourceId: "source-1", passport: { id: "FEP-TEST-001", version: "1.0", issuer: "Fresh Web Lite Research", issuedAt: "2026-11-18T20:00:00.000Z", source: { title: "Test source", url: "https://example.test/source", publisherDomain: "example.test", retrievalProvider: "test", observedAt: "2026-11-18T20:00:00.000Z" }, capturedMaterial: { kind: "title_only", text: "Test source", digestAlgorithm: "SHA-256", digest: "a".repeat(64) }, verification: { recordStatus: "recorded", sourceUrlStatus: "valid_http_url", publisherAuthenticity: "not_independently_verified", claimSupport: "requires_content_review" }, limitations: [] } }],
-    claimPassages: [{ id: "passage-1", batchKey: "research-batch-test-2026-10-15", claimId: "claim-1", statementId: "s1", statementText: "A test statement.", statementStart: 0, statementEnd: 18, passportId: "FEP-TEST-001", sourceId: "source-1", evidenceId: "evidence-1", quote: "Test source", quoteStart: 0, quoteEnd: 11, method: "term-overlap-v1", matchScore: 0.9, matchedTerms: ["test", "source"], strength: "strong" }],
+    claimPassages: [{ id: "passage-1", batchKey: "research-batch-test-2026-10-15", claimId: "claim-1", statementId: "s1", statementText: "A test statement.", statementStart: 0, statementEnd: 17, passportId: "FEP-TEST-001", sourceId: "source-1", evidenceId: "evidence-1", quote: "Test source", quoteStart: 0, quoteEnd: 11, method: "term-overlap-v1", matchScore: 0.9, matchedTerms: ["test", "source"], strength: "strong" }],
   };
   let calls = 0;
   let lastArgs;
