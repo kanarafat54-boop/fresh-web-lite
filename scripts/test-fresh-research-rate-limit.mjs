@@ -42,7 +42,7 @@ try {
     if (url.includes("/rest/v1/rpc/consume_fresh_research_rate_limit")) {
       rpcCalls += 1;
       const payload = JSON.parse(String(init?.body ?? "{}"));
-      assert.match(payload.p_bucket_hash, /^[a-f0-9]{64}$/);
+      assert.equal(payload.p_bucket_hash, createHmac("sha256", "test-only-service-secret").update("fresh-research:v1:203.0.113.10").digest("hex"));
       assert.equal(payload.p_limit, 20);
       assert.equal(payload.p_window_seconds, 600);
       return Response.json([{
@@ -88,7 +88,7 @@ try {
 
   blockRateLimit = true;
   const beforeBlockedProviderCalls = providerCalls;
-  const blocked = await POST(makeRequest());
+  const blocked = await POST(signedRequest());
   assert.equal(blocked.status, 429);
   assert.equal(blocked.headers.get("retry-after"), "247");
   assert.equal(blocked.headers.get("x-ratelimit-limit"), "20");
