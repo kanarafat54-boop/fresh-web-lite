@@ -333,3 +333,10 @@
  .fresh-home-action-copy{grid-column:auto}
 }
 @media(prefers-reduced-motion:reduce){.fresh-home-action-card{transition:none}}
+
+.fresh-home-research-workspace{display:grid;gap:8px;min-width:0;padding:14px;border:1px solid color-mix(in srgb,var(--fresh-accent) 24%,var(--fresh-border));border-radius:22px;background:color-mix(in srgb,var(--fresh-surface) 94%,var(--fresh-accent) 2%)}
+.fresh-home-research-heading{display:grid;gap:4px;padding:2px 4px}
+.fresh-home-research-heading span{font-size:.68rem;font-weight:850;letter-spacing:.14em;color:var(--fresh-accent)}
+.fresh-home-research-heading p{margin:0;color:var(--fresh-muted);font-size:.8rem;line-height:1.45}
+.fresh-home-research-workspace .fresh-research-results{margin:0}
+.fresh-home-suggestions,.fresh-home-feed{border-top:1px solid var(--fresh-border);padding-top:18px}
