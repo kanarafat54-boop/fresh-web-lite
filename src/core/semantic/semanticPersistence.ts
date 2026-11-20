@@ -16,6 +16,13 @@ export interface SemanticPersistence {
     truthDecisions: TruthDecision[];
     /** Immutable passport snapshots linked to the source rows in this same atomic batch. */
     passports: Array<{ sourceId: string; passport: EvidencePassport }>;
+    /** Exact answer-statement to immutable source-passage links, with offsets into passport text. */
+    claimPassages: Array<{
+      id: string; claimId: string; batchKey: string; statementId: string; statementText: string;
+      statementStart: number; statementEnd: number; passportId: string; sourceId: string; evidenceId: string;
+      quote: string; quoteStart: number; quoteEnd: number; method: string; matchScore: number;
+      matchedTerms: string[]; strength: "strong" | "partial";
+    }>;
   }): Promise<void>;
 }
 
