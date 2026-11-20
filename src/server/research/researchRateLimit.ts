@@ -2,10 +2,15 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { isIP } from "node:net";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const RATE_LIMIT = { limit: 20, windowSeconds: 600 } as const;
-type RateLimitRow = { allowed: boolean; remaining: number; retry_after_seconds: number };
+const RATE_LIMIT = { perMinute: 6, perHour: 30, perDay: 100 } as const;
+type RateLimitRow = {
+  allowed: boolean;
+  remaining: number;
+  retryAfterSeconds: number;
+  limits?: { perMinute?: number; perHour?: number; perDay?: number };
+};
 export type ResearchRateLimitResult =
-  | { configured: true; allowed: boolean; remaining: number; retryAfterSeconds: number; limit: number; windowSeconds: number }
+  | { configured: true; allowed: boolean; remaining: number; retryAfterSeconds: number; limit: number; hourLimit: number; dayLimit: number; windowSeconds: number }
   | { configured: false };
 
 let cachedClient: { url: string; key: string; client: SupabaseClient } | null = null;
@@ -52,21 +57,21 @@ export async function checkFreshResearchRateLimit(req: Request): Promise<Researc
   const client = getAdminClient();
   if (!client || !key || !ip) return { configured: false };
 
-  const bucketHash = createHmac("sha256", key).update("fresh-research:v1:" + ip).digest("hex");
-  const { data, error } = await client.rpc("consume_fresh_research_rate_limit", {
-    p_bucket_hash: bucketHash,
-    p_limit: RATE_LIMIT.limit,
-    p_window_seconds: RATE_LIMIT.windowSeconds,
+  const identifierHash = createHmac("sha256", key).update("fresh-research:v1:" + ip).digest("hex");
+  const { data, error } = await client.rpc("consume_fresh_research_quota", {
+    p_identifier_hash: identifierHash,
   });
   if (error) return { configured: false };
-  const row = (Array.isArray(data) ? data[0] : data) as RateLimitRow | null;
+  const row = data as RateLimitRow | null;
   if (!row || typeof row.allowed !== "boolean") return { configured: false };
   return {
     configured: true,
     allowed: row.allowed,
     remaining: Math.max(0, Number(row.remaining) || 0),
-    retryAfterSeconds: Math.max(0, Number(row.retry_after_seconds) || 0),
-    limit: RATE_LIMIT.limit,
-    windowSeconds: RATE_LIMIT.windowSeconds,
+    retryAfterSeconds: Math.max(0, Number(row.retryAfterSeconds) || 0),
+    limit: Number(row.limits?.perMinute) || RATE_LIMIT.perMinute,
+    hourLimit: Number(row.limits?.perHour) || RATE_LIMIT.perHour,
+    dayLimit: Number(row.limits?.perDay) || RATE_LIMIT.perDay,
+    windowSeconds: 60,
   };
 }
