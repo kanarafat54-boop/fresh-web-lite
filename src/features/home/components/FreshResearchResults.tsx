@@ -48,7 +48,7 @@ function cleanSnippet(source: IntelligenceSource): string {
   const title = source.title.trim();
   if (!snippet || !title) return snippet;
   if (snippet.toLocaleLowerCase().startsWith(title.toLocaleLowerCase())) {
-    return snippet.slice(title.length).replace(/^[\\s:.-–—]+/, "").trim();
+    return snippet.slice(title.length).trim().replace(/^[:.]+/, "").trim();
   }
   return snippet;
 }
@@ -96,7 +96,8 @@ export default function FreshResearchResults({ result, onRetryBroaderSearch }: {
 
       {verification && (
         <div className="fresh-research-results__verification" aria-label="Source coverage">
-          <span><strong>{verification.uniqueDomains}</strong> unique domains</span>\n          {verification.newsSources !== undefined && <span><strong>{verification.newsSources}</strong> news sources</span>}
+          <span><strong>{verification.uniqueDomains}</strong> unique domains</span>
+          {verification.newsSources !== undefined && <span><strong>{verification.newsSources}</strong> news sources</span>}
           {Number.isFinite(verification.passes) && <span><strong>{verification.passes}</strong> research passes</span>}
           <span><strong>{verification.sourceDiversity}</strong> source diversity</span>
           <span><strong>{verification.confidence}</strong> system assessment</span>
