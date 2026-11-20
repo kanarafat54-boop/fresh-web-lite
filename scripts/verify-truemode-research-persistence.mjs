@@ -11,6 +11,7 @@ const persistenceContract = read("src/core/semantic/semanticPersistence.ts");
 const persistence = read("src/core/semantic/supabaseSemanticPersistence.ts");
 const atomicMigration = read("supabase/migrations/20261014120128_atomic_truemode_research_persistence.sql");
 const passportMigration = read("supabase/migrations/20261118203000_fresh_intelligence_evidence_passports.sql");
+const claimPassageMigration = read("supabase/migrations/20261120200000_fresh_intelligence_claim_passages.sql");
 const researchPersistence = read("src/server/research/persistSemanticResearchV2.ts");
 const researchRoute = read("api/research/search.ts");
 const truthMigration = read("supabase/migrations/20260906100752_fresh_intelligence_truth_decisions.sql");
@@ -34,12 +35,18 @@ const required = [
   [temporal, "validTo", "Temporal truth must support validity windows."],
   [persistenceContract, "truthDecisions: TruthDecision[]", "Persistence contract must carry truth decisions."],
   [persistenceContract, "passports: Array<{ sourceId: string; passport: EvidencePassport }>", "Persistence contract must carry immutable passport snapshots."],
+  [persistenceContract, "claimPassages: Array<{", "Persistence contract must carry exact claim-to-passage links."],
   [persistence, "persist_fresh_intelligence_research_graph", "Supabase adapter must use the atomic research RPC."],
   [persistence, "p_batch_key: input.batchKey", "Supabase persistence must pass an idempotency key."],
-  [persistence, "persist_fresh_intelligence_research_graph_with_passports", "Supabase persistence must use the atomic graph-plus-passport RPC."],
+  [persistence, "persist_fresh_intelligence_research_graph_with_passages", "Supabase persistence must use the atomic graph-plus-passport-and-passage RPC."],
+  [persistence, "p_claim_passages: claimPassages", "Supabase persistence must send exact passage records."],
   [researchPersistence, "const passports = result.sources.flatMap", "Research persistence must build passport rows linked to source IDs."],
-  [researchPersistence, "truthDecisions, passports", "Research persistence must write passports with the graph batch."],
+  [researchPersistence, "truthDecisions, passports, claimPassages", "Research persistence must write exact passage links with the graph batch."],
+  [researchPersistence, "const statementClaims: SemanticClaim[]", "Each answer statement must have its own persisted claim record."],
+  [researchPersistence, "const claimPassages =", "Passage records must be derived from the verified answer evidence map."],
   [passportMigration, "create table if not exists public.fresh_intelligence_evidence_passports", "Database migration must provide a dedicated passport ledger."],
+  [claimPassageMigration, "create table if not exists public.fresh_intelligence_claim_passages", "Database migration must provide a durable exact-passage ledger."],
+  [claimPassageMigration, "persist_fresh_intelligence_research_graph_with_passages", "Database migration must expose an atomic graph/passport/passage RPC."],
   [passportMigration, "on conflict (passport_id) do nothing", "Passport persistence must be idempotent."],
   [passportMigration, "Fresh Evidence Passports are append-only records", "Passport records must reject update and delete operations."],
   [atomicMigration, "create or replace function public.persist_fresh_intelligence_research_graph", "Database migration must provide the atomic persistence function."],
