@@ -5,7 +5,7 @@ import { synthesizeResearch } from "../src/server/research/orchestrator.ts";
 assert.equal(
   canonicalizeSourceUrl("HTTPS://WWW.Example.com:443/story/?utm_source=mail&b=2&a=1#section"),
   "https://www.example.com/story/?b=2&a=1",
-  "host casing, www, default port, tracking parameters, fragments and query order normalize",
+  "host casing/default port normalize; tracking and fragments are removed; www, path and query order are preserved",
 );
 assert.equal(
   canonicalizeSourceUrl("https://example.com/article?id=42&utm_campaign=spring"),
