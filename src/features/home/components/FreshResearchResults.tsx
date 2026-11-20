@@ -43,6 +43,27 @@ function dateLabel(value?: string): string | null {
   return Number.isNaN(date.getTime()) ? null : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
 }
 
+function cleanSnippet(source: IntelligenceSource): string {
+  const snippet = (source.snippet ?? "").trim();
+  const title = source.title.trim();
+  if (!snippet || !title) return snippet;
+  const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, "\\function dateLabel(value?: string): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+}
+");
+  const withoutTitle = snippet.replace(new RegExp("^\\s*" + escaped + "(?:\\s*[:.\\-–—]\\s*|\\s+)", "i"), "").trim();
+  return withoutTitle || (snippet.toLowerCase() === title.toLowerCase() ? "" : snippet);
+}
+
+function faviconUrl(source: IntelligenceSource): string | null {
+  try {
+    const url = new URL(source.url);
+    return url.protocol === "https:" || url.protocol === "http:" ? new URL("/favicon.ico", url.origin).toString() : null;
+  } catch { return null; }
+}
+
 export default function FreshResearchResults({ result, onRetryBroaderSearch }: { result: IntelligenceResponse; onRetryBroaderSearch?: () => void }) {
   const [tab, setTab] = useState<ResultTab>("all");
   const sources = useMemo(() => {
@@ -89,6 +110,9 @@ export default function FreshResearchResults({ result, onRetryBroaderSearch }: {
       {result.warnings?.length ? (
         <div className="fresh-research-results__warnings" role="status">
           {result.warnings.map((warning, index) => <p key={index}>{warning}</p>)}
+          {onRetryBroaderSearch && verification && (verification.sourceDiversity === "low" || verification.newsSources === 0) && (
+            <button type="button" className="fresh-research-results__retry" onClick={onRetryBroaderSearch}>Retry with broader news search</button>
+          )}
         </div>
       ) : null}
 
@@ -107,12 +131,14 @@ export default function FreshResearchResults({ result, onRetryBroaderSearch }: {
             <div className="fresh-research-source__meta">
               <span>{sourceLabel(source)}</span>
               <span>{kindOf(source)}</span>
-              {dateLabel(source.publishedAt) && <time dateTime={source.publishedAt}>{dateLabel(source.publishedAt)}</time>}
+              <time dateTime={source.publishedAt || undefined}>{dateLabel(source.publishedAt) ?? "Publication date unavailable"}</time>
             </div>
-            <a href={source.url} target="_blank" rel="noreferrer">
-              <strong>{source.title}</strong>
-            </a>
-            {source.snippet && <p>{source.snippet}</p>}
+            <div className="fresh-research-source__title">
+              {faviconUrl(source) && <img src={faviconUrl(source)!} alt="" aria-hidden="true" loading="lazy" onError={(event) => { event.currentTarget.hidden = true; }} />}
+              <a href={source.url} target="_blank" rel="noreferrer"><strong>{source.title}</strong><span aria-hidden="true"> ↗</span></a>
+            </div>
+            {cleanSnippet(source) && <p>{cleanSnippet(source)}</p>}
+            <a className="fresh-research-source__open" href={source.url} target="_blank" rel="noreferrer">Open original source ↗</a>
             {source.evidencePassport && (
               <details className="fresh-research-passport">
                 <summary>Evidence passport · {source.evidencePassport.id}</summary>
