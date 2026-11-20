@@ -83,7 +83,7 @@ export default function FreshAnswerEvidence({ evidence, sources }: { evidence: A
       )}
       {supportedClaims.length > 0
         ? <ol className="fresh-claims__list">{supportedClaims.map(renderClaim)}</ol>
-        : <p className="fresh-claims__empty">Fresh could not find a matching captured passage for any factual statement. No unsupported summary is being presented as established fact.</p>}
+        : claims.length > 0 ? <p className="fresh-claims__empty">Fresh could not find a matching captured passage for any factual statement. No unsupported summary is being presented as established fact.</p> : <p className="fresh-claims__empty">No factual statements were returned for this research result.</p>}
       {withheldClaims.length > 0 && (
         <details className="fresh-claims__withheld">
           <summary><span>Review withheld claims</span><span className="fresh-claims__chip">{withheldClaims.length} need more evidence</span></summary>
