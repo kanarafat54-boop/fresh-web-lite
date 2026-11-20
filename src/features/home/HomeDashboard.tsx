@@ -37,6 +37,7 @@ export default function HomeDashboard() {
   const [result, setResult] = useState<IntelligenceResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastSearchQuery, setLastSearchQuery] = useState("");
   const [experienceMode, setExperienceMode] = useState<"simple" | "standard" | "advanced">("simple");
   const [showGettingStarted, setShowGettingStarted] = useState(false);
   const [showMoreActions, setShowMoreActions] = useState(false);
@@ -52,7 +53,8 @@ export default function HomeDashboard() {
   const additionalActions = actions.filter((action) => !["flow", "create", "explore"].includes(action.id));
   const visibleActions = experienceMode === "simple" ? primaryActions : actions;
 
-  const handleSearch = async (query: string, mode: SearchMode) => {
+  const handleSearch = async (query: string, mode: SearchMode, forceBroader = false) => {
+    setLastSearchQuery(query);
     setError(null);
     setResult(null);
     if (mode === "instant") {
@@ -70,7 +72,7 @@ export default function HomeDashboard() {
         prompt: query,
         query,
         task: "research",
-        researchMode: mode === "private" ? "local" : "global",
+        researchMode: forceBroader ? "live" : mode === "private" ? "local" : "global",
         maxSources: mode === "research" ? 12 : 6,
       });
       setResult(response);
@@ -162,7 +164,15 @@ export default function HomeDashboard() {
 
       {loading && <div className="fresh-home-status" role="status">Fresh is working on that…</div>}
       {error && <div className="fresh-home-status is-error" role="alert">{error}</div>}
-      {result && <FreshResearchResults result={result} />}
+      {result && (
+        <section className="fresh-home-research-workspace" aria-label="Fresh Research workspace">
+          <div className="fresh-home-research-heading">
+            <span>RESEARCH WORKSPACE</span>
+            <p>Evidence, source coverage and original reporting stay together here.</p>
+          </div>
+          <FreshResearchResults result={result} onRetryBroaderSearch={() => { if (lastSearchQuery.trim()) void handleSearch(lastSearchQuery, "research", true); }} />
+        </section>
+      )}
 
       {experienceMode !== "simple" && <section className="fresh-home-suggestions" aria-label="Suggested Shorts">
         <ShortsSuggestionsRow

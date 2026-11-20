@@ -50,38 +50,47 @@ export default function FreshAnswerEvidence({ evidence, sources }: { evidence: A
     });
   }, [evidence, sources]);
   const claims = statements.filter((statement) => statement.kind === "claim");
-  const backed = claims.filter((statement) => statement.support === "passage_found");
-  const unbacked = claims.length - backed.length;
+  const supportedClaims = claims.filter((statement) => statement.support === "passage_found");
+  const withheldClaims = claims.filter((statement) => statement.support !== "passage_found");
+  const notes = statements.filter((statement) => statement.kind === "note");
+
+  const renderClaim = (statement: Checked) => {
+    const found = statement.support === "passage_found";
+    const strong = found && statement.passages[0].strength === "strong";
+    return (
+      <li key={statement.id} className={`fresh-claims__item ${found ? (strong ? "is-backed" : "is-partial") : "is-unbacked"}`}>
+        <details>
+          <summary>
+            <span className="fresh-claims__text">{statement.text}</span>
+            <span className="fresh-claims__chip">{found ? (strong ? "Strong passage match" : "Partial passage match") : "Withheld · no matching passage"}</span>
+          </summary>
+          {found
+            ? statement.passages.map((passage) => <Quote key={passage.passportId} passage={passage} />)
+            : <p className="fresh-claims__why">{statement.recheckFailed ? "The saved quote could not be re-checked against the source text, so it is not shown as support." : REASONS[statement.reason ?? "low_overlap"]}</p>}
+        </details>
+      </li>
+    );
+  };
 
   return (
     <div className="fresh-research-results__answer fresh-claims">
-      <h3>What we found</h3>
+      <h3>Evidence-supported findings</h3>
       {claims.length > 0 && (
         <p className="fresh-claims__summary" role="status">
-          {backed.length} of {claims.length} {claims.length === 1 ? "statement has" : "statements have"} a matching passage in the sources Fresh captured.
-          {unbacked > 0 && ` ${unbacked} ${unbacked === 1 ? "is" : "are"} not confirmed by any captured source.`}
+          {supportedClaims.length} of {claims.length} statements have a matching passage in the sources Fresh captured.
+          {withheldClaims.length > 0 && ` ${withheldClaims.length} unsupported statement(s) are withheld from the main summary.`}
         </p>
       )}
-      <ol className="fresh-claims__list">
-        {statements.map((statement) => {
-          if (statement.kind === "note") return <li key={statement.id} className="fresh-claims__note">{statement.text}</li>;
-          const found = statement.support === "passage_found";
-          const strong = found && statement.passages[0].strength === "strong";
-          return (
-            <li key={statement.id} className={`fresh-claims__item ${found ? (strong ? "is-backed" : "is-partial") : "is-unbacked"}`}>
-              <details>
-                <summary>
-                  <span className="fresh-claims__text">{statement.text}</span>
-                  <span className="fresh-claims__chip">{found ? (strong ? "Passage found" : "Partial match") : "No matching passage"}</span>
-                </summary>
-                {found
-                  ? statement.passages.map((passage) => <Quote key={passage.passportId} passage={passage} />)
-                  : <p className="fresh-claims__why">{statement.recheckFailed ? "The saved quote could not be re-checked against the source text, so it is not shown as support." : REASONS[statement.reason ?? "low_overlap"]}</p>}
-              </details>
-            </li>
-          );
-        })}
-      </ol>
+      {supportedClaims.length > 0
+        ? <ol className="fresh-claims__list">{supportedClaims.map(renderClaim)}</ol>
+        : claims.length > 0 ? <p className="fresh-claims__empty">Fresh could not find a matching captured passage for any factual statement. No unsupported summary is being presented as established fact.</p> : <p className="fresh-claims__empty">No factual statements were returned for this research result.</p>}
+      {withheldClaims.length > 0 && (
+        <details className="fresh-claims__withheld">
+          <summary><span>Review withheld claims</span><span className="fresh-claims__chip">{withheldClaims.length} need more evidence</span></summary>
+          <ol className="fresh-claims__list">{withheldClaims.map(renderClaim)}</ol>
+        </details>
+      )}
+      {notes.length > 0 && <ul className="fresh-claims__notes">{notes.map((note) => <li key={note.id}>{note.text}</li>)}</ul>}
       <details className="fresh-claims__limits">
         <summary>What “matching passage” means</summary>
         <ul>{evidence.limitations.map((limit) => <li key={limit}>{limit}</li>)}</ul>

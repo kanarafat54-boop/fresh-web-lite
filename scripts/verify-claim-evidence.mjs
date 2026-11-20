@@ -145,5 +145,14 @@ assert.match(api, /mapAnswerToPassages\(synthesis\.answer/, "the research endpoi
 assert.match(api, /answerEvidence/, "and returns the result");
 assert.match(read("src/features/ai/intelligence/webResearchConnector.ts"), /answerEvidence: payload\.answerEvidence/, "the client connector passes it through");
 assert.match(read("src/features/home/components/FreshResearchResults.tsx"), /answerEvidence/, "the results panel shows it");
+const evidenceUi = read("src/features/home/components/FreshAnswerEvidence.tsx");
+assert.match(evidenceUi, /supportedClaims/, "passage-supported claims remain visible in a partial synthesis");
+assert.match(evidenceUi, /withheldClaims/, "unsupported claims are separated instead of blocking the entire answer");
+assert.match(evidenceUi, /Review withheld claims/, "users can inspect claims withheld from the main summary");
+const researchUi = read("src/features/home/components/FreshResearchResults.tsx");
+assert.match(researchUi, /Retry with broader news search/, "limited source coverage exposes a recovery action");
+assert.match(researchUi, /Publication date unavailable/, "missing publication dates are disclosed rather than invented");
+assert.match(researchUi, /cleanSnippet\(source\)/, "source snippet previews are deduplicated against article titles");
+
 
 console.log("Claim-to-passage evidence passed (exact quotes, wrong numbers and opposite passages rejected, tampering detected, bounded input).");

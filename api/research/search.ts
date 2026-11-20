@@ -67,6 +67,14 @@ async function runTavily(apiKey: string, query: string, modeConfig: (typeof MODE
 
 function json(data: unknown, status = 200, headers?: Record<string, string>): Response { return Response.json(data, { status, headers }); }
 
+function needsAdaptiveNewsSearch(query: string, mode: ResearchMode, verification: ReturnType<typeof synthesizeResearch>["verification"]): boolean {
+  const currentEntityIntent = /\b(what'?s happening|what is happening|latest|trending|news about|updates on|recent developments|current developments|today)\b/i.test(query);
+  const hasSubject = query.replace(/\b(what'?s happening|what is happening|latest|trending|news about|updates on|recent developments|current developments|today)\b/ig, " ").trim().length >= 2;
+  return (mode === "global" || mode === "deep" || mode === "live") && currentEntityIntent && hasSubject
+    && (verification.uniqueDomains < 3 || verification.newsSources === 0);
+}
+
+
 /**
  * GET /api/discover?system=fresh-news&q=flood (routed here by vercel.json to stay inside the Hobby plan's function limit).
  * Searches open public catalogs for one Fresh Flow system. Free sources, no keys. Cached briefly at the edge because the
@@ -125,11 +133,27 @@ export async function POST(req: Request): Promise<Response> {
     const failures = settled.filter((result): result is PromiseRejectedResult => result.status === "rejected");
     if (!passes.length) return json({ error: "All web research passes failed or timed out.", mode, runId }, 504);
     const synthesisStarted = Date.now();
-    const synthesis = synthesizeResearch(passes);
+    let synthesis = synthesizeResearch(passes);
+    let adaptiveNewsAttempted = false;
+    let adaptiveNewsFailed = false;
+    if (needsAdaptiveNewsSearch(query, mode, synthesis.verification)) {
+      adaptiveNewsAttempted = true;
+      const monthYear = new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(new Date());
+      try {
+        const expandedQuery = `${query}\nLatest news and developments as of ${monthYear}. Find independent publishers, primary reporting, and recent publication dates.`;
+        const newsPass = await runTavily(apiKey, expandedQuery, { searchDepth: "advanced", topic: "news" }, Math.min(maxResults, 8), runId, passes.length + 1, "live");
+        passes.push(newsPass);
+        synthesis = synthesizeResearch(passes);
+        logStage(runId, "research.adaptive-news.complete", { uniqueDomains: synthesis.verification.uniqueDomains, newsSources: synthesis.verification.newsSources });
+      } catch (error) {
+        adaptiveNewsFailed = true;
+        logStage(runId, "research.adaptive-news.error", { error: error instanceof Error ? error.message : "unknown" });
+      }
+    }
     const researchedAt = new Date().toISOString();
     const dimensions = reasonAcrossDimensions(query);
     const researchSources = synthesis.sources.flatMap((source) => {
-      try { const evidencePassport = createEvidencePassport(source, researchedAt); return [{ ...source, publishedAt: evidencePassport.source.publishedAt, kind: sourceKind(source.url, evidencePassport.source.publishedAt, mode), evidencePassport }]; }
+      try { const evidencePassport = createEvidencePassport(source, researchedAt); return [{ ...source, publishedAt: evidencePassport.source.publishedAt, kind: source.kind ?? sourceKind(source.url, evidencePassport.source.publishedAt, mode), evidencePassport }]; }
       catch { return []; }
     });
     const invalidSourceCount = synthesis.sources.length - researchSources.length;
@@ -156,7 +180,7 @@ export async function POST(req: Request): Promise<Response> {
     } finally {
       if (persistenceTimeout) clearTimeout(persistenceTimeout);
     }
-    const warnings = [...(failures.length ? [`${failures.length} research pass(es) failed or timed out; Fresh returned the successfully completed evidence.`] : []), ...(invalidSourceCount ? [`${invalidSourceCount} source record(s) were excluded because they could not receive a valid HTTP(S) Evidence Passport.`] : []), ...(persistenceWarning ? [persistenceWarning] : [])];
+    const warnings = [...(failures.length ? [`${failures.length} research pass(es) failed or timed out; Fresh returned the successfully completed evidence.`] : []), ...(adaptiveNewsFailed ? ["Fresh attempted a broader current-news search, but that additional provider pass failed. The available evidence is still shown with its limitations."] : []), ...(adaptiveNewsAttempted && (synthesis.verification.uniqueDomains < 3 || synthesis.verification.newsSources === 0) ? ["Source coverage remains limited after an automatic broader news search. Treat this as preliminary and open the original sources before relying on it."] : []), ...(invalidSourceCount ? [`${invalidSourceCount} source record(s) were excluded because they could not receive a valid HTTP(S) Evidence Passport.`] : []), ...(persistenceWarning ? [persistenceWarning] : [])];
     return json({ answer: synthesis.answer, sources: researchResult.sources, claims: synthesis.claims, answerEvidence, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning }, 200, { "x-truemode-run-id": runId });
   } catch (error) {
     console.error("Fresh Web Research error", { runId, error });
