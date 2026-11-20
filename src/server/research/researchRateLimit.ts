@@ -1,8 +1,8 @@
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { isIP } from "node:net";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const RATE_LIMIT = { limit: 10, windowSeconds: 600 } as const;
+const RATE_LIMIT = { limit: 20, windowSeconds: 600 } as const;
 type RateLimitRow = { allowed: boolean; remaining: number; retry_after_seconds: number };
 export type ResearchRateLimitResult =
   | { configured: true; allowed: boolean; remaining: number; retryAfterSeconds: number; limit: number; windowSeconds: number }
@@ -25,7 +25,20 @@ function getAdminClient(): SupabaseClient | null {
 }
 
 /** Vercel overwrites x-real-ip with the connecting client's public IP. */
-function getTrustedClientIp(req: Request): string | null {
+function getTrustedClientIp(req: Request, secret: string): string | null {
+  const forwardedIp = req.headers.get("x-fresh-research-client-ip")?.trim() ?? "";
+  const timestamp = req.headers.get("x-fresh-research-client-timestamp")?.trim() ?? "";
+  const signature = req.headers.get("x-fresh-research-client-signature")?.trim() ?? "";
+  if (forwardedIp && isIP(forwardedIp) && /^\\d{13}$/.test(timestamp) && /^[a-f0-9]{64}$/.test(signature)) {
+    const age = Math.abs(Date.now() - Number(timestamp));
+    if (age <= 60_000) {
+      const expected = createHmac("sha256", secret)
+        .update("fresh-research-forwarded-v1:" + forwardedIp + ":" + timestamp)
+        .digest("hex");
+      if (timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) return forwardedIp;
+    }
+  }
+
   const candidate = req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for");
   const address = candidate?.split(",")[0]?.trim() ?? "";
   if (isIP(address)) return address;
@@ -34,12 +47,13 @@ function getTrustedClientIp(req: Request): string | null {
 }
 
 export async function checkFreshResearchRateLimit(req: Request): Promise<ResearchRateLimitResult> {
-  const client = getAdminClient();
-  const ip = getTrustedClientIp(req);
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY_FRESHWEBLITE || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const ip = key ? getTrustedClientIp(req, key) : null;
+  const client = getAdminClient();
   if (!client || !key || !ip) return { configured: false };
 
-  const bucketHash = createHmac("sha256", key).update(`fresh-research:v1:${ip}`).digest("hex");
+  const bucketHash = createHmac("sha256", key).update("fresh-research:v1:" + ip).digest("hex");
   const { data, error } = await client.rpc("consume_fresh_research_rate_limit", {
     p_bucket_hash: bucketHash,
     p_limit: RATE_LIMIT.limit,
