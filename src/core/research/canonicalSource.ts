@@ -27,9 +27,7 @@ export function canonicalizeSourceUrl(input: string): string | null {
         url.searchParams.delete(key);
       }
     }
-    url.searchParams.sort();
-
-    // URL normalizes default ports and host casing. Keep meaningful query values.
+    // URL normalizes host casing and default ports. Preserve path and query ordering because either can be meaningful.
     return url.toString();
   } catch {
     return null;
