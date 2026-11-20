@@ -35,3 +35,30 @@
 .fresh-research-passport dd{margin:0;color:#e5e3f5;overflow-wrap:anywhere}
 .fresh-research-passport code{font-size:.68rem;overflow-wrap:anywhere;word-break:break-all}
 .fresh-research-passport>p{margin:8px 0 0;color:#aaaabd;font-size:.7rem;line-height:1.45}
+
+/* Answer statements, each with the exact source passage that contains it (or an honest "no matching passage") */
+.fresh-claims__summary{margin:0 0 10px!important;color:#c9c9d5;font-size:.8rem!important;line-height:1.5!important;white-space:normal!important}
+.fresh-claims__list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.fresh-claims__item{border:1px solid rgba(255,255,255,.1);border-left-width:4px;border-radius:11px;background:rgba(255,255,255,.03);min-width:0}
+.fresh-claims__item.is-backed{border-left-color:#43c59e}
+.fresh-claims__item.is-partial{border-left-color:#f0b43c}
+.fresh-claims__item.is-unbacked{border-left-color:#7b7f95}
+.fresh-claims__item>details>summary{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px 10px;padding:11px 12px;cursor:pointer;list-style:none}
+.fresh-claims__item>details>summary::-webkit-details-marker{display:none}
+.fresh-claims__item>details>summary:focus-visible,.fresh-claims__limits>summary:focus-visible{outline:3px solid #a5a1ff;outline-offset:2px;border-radius:8px}
+.fresh-claims__text{flex:1 1 220px;min-width:0;line-height:1.55;overflow-wrap:anywhere}
+.fresh-claims__chip{flex:0 0 auto;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.08);color:#e6e6ef;font-size:.7rem;font-weight:650}
+.is-backed .fresh-claims__chip{background:rgba(67,197,158,.16);color:#8be3c7}
+.is-partial .fresh-claims__chip{background:rgba(240,180,60,.16);color:#f6d58f}
+.fresh-claims__why{margin:0;padding:0 12px 12px;color:#aaaabd;font-size:.78rem;line-height:1.5}
+.fresh-claims__quote{margin:0;padding:2px 12px 12px}
+.fresh-claims__quote p{margin:0;padding:9px 11px;border-radius:9px;background:rgba(99,91,255,.1);color:#eceaff;font-size:.85rem;line-height:1.55;white-space:normal;overflow-wrap:anywhere}
+.fresh-claims__quote footer{display:flex;flex-wrap:wrap;gap:3px 10px;margin-top:7px;color:#9999aa;font-size:.68rem;line-height:1.5}
+.fresh-claims__quote footer a{color:#c8c1ff}
+.fresh-claims__quote footer code{flex-basis:100%;font-size:.64rem;overflow-wrap:anywhere;word-break:break-all}
+.fresh-claims__note{padding:2px 2px 0;color:#9999aa;font-size:.76rem;line-height:1.5}
+.fresh-claims__limits{margin-top:10px;font-size:.74rem;color:#aaaabd}
+.fresh-claims__limits>summary{cursor:pointer;color:#c8c1ff;font-weight:650}
+.fresh-claims__limits ul{margin:8px 0 0;padding-left:18px;line-height:1.5}
+.fresh-claims__chip::after{content:" ▾"}
+.fresh-claims__item>details[open]>summary .fresh-claims__chip::after{content:" ▴"}

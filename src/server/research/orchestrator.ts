@@ -1,4 +1,5 @@
 import type { ResearchClaim } from "../../core/research/contracts.js";
+import { FRESH_NOTES } from "../../core/research/claimEvidence.js";
 import { compareClaims, type Claim } from "../../core/semantic/claimIntelligence.js";
 
 export type ResearchEvidence = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string };
@@ -56,8 +57,8 @@ export function synthesizeResearch(passes: ResearchPass[]): ResearchSynthesis {
   const sourceDiversity = domains.size >= 6 ? "high" : domains.size >= 3 ? "medium" : "low";
   const contradictionsDetected = detectContradictions(usable);
   const confidence = !contradictionsDetected && sources.length >= 8 && domains.size >= 5 && passCount >= 2 ? "high" : sources.length >= 3 ? "medium" : "low";
-  const primary = usable[0]?.answer ?? "Fresh found sources but could not produce a synthesized answer.";
-  const answer = contradictionsDetected ? `${primary}\n\nFresh found potentially conflicting evidence across independent research passes. Review the cited sources before treating the result as settled.` : primary;
+  const primary = usable[0]?.answer ?? FRESH_NOTES.noAnswer;
+  const answer = contradictionsDetected ? `${primary}\n\n${FRESH_NOTES.conflict}` : primary;
   const claims = buildClaims(usable, contradictionsDetected);
   return { answer, sources, claims, verification: { passes: passCount, uniqueSources: sources.length, uniqueDomains: domains.size, sourceDiversity, confidence, independentPasses, contradictionsDetected } };
 }

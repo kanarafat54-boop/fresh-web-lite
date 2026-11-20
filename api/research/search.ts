@@ -4,6 +4,7 @@ import { synthesizeResearch, type ResearchPass } from "../../src/server/research
 import { persistSemanticResearch } from "../../src/server/research/persistSemanticResearchV2.js";
 import { reasonAcrossDimensions } from "../../src/core/fresh-ai/dimensionalIntelligence.js";
 import { createEvidencePassport } from "../../src/core/research/evidencePassport.js";
+import { mapAnswerToPassages } from "../../src/core/research/claimEvidence.js";
 
 type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
 type SearchRequest = { query?: string; maxSources?: number; context?: string[]; mode?: ResearchMode };
@@ -134,6 +135,9 @@ export async function POST(req: Request): Promise<Response> {
     const invalidSourceCount = synthesis.sources.length - researchSources.length;
     if (!researchSources.length) return json({ error: "Fresh Research did not receive a valid HTTP(S) source URL to preserve as evidence.", warnings: ["No evidence passports were issued; no factual answer was returned."], mode, runId }, 502);
     const researchResult = { query, mode, answer: synthesis.answer, sources: researchSources, claims: synthesis.claims, researchedAt };
+    // Which statements of the answer does a captured source passage actually contain? The exact quotes ride along so they can be checked.
+    const answerEvidence = mapAnswerToPassages(synthesis.answer, researchSources.flatMap((source) => (source.evidencePassport ? [source.evidencePassport] : [])));
+    logStage(runId, "research.claims.mapped", answerEvidence.summary);
     logStage(runId, "research.synthesis.complete", { durationMs: elapsed(synthesisStarted), sourceCount: researchResult.sources.length, claimCount: researchResult.claims.length, dimensionalLayers: dimensions.length });
     let persistenceWarning: string | undefined;
     let persistence: Awaited<ReturnType<typeof persistSemanticResearch>> | undefined;
@@ -153,7 +157,7 @@ export async function POST(req: Request): Promise<Response> {
       if (persistenceTimeout) clearTimeout(persistenceTimeout);
     }
     const warnings = [...(failures.length ? [`${failures.length} research pass(es) failed or timed out; Fresh returned the successfully completed evidence.`] : []), ...(invalidSourceCount ? [`${invalidSourceCount} source record(s) were excluded because they could not receive a valid HTTP(S) Evidence Passport.`] : []), ...(persistenceWarning ? [persistenceWarning] : [])];
-    return json({ answer: synthesis.answer, sources: researchResult.sources, claims: synthesis.claims, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning }, 200, { "x-truemode-run-id": runId });
+    return json({ answer: synthesis.answer, sources: researchResult.sources, claims: synthesis.claims, answerEvidence, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning }, 200, { "x-truemode-run-id": runId });
   } catch (error) {
     console.error("Fresh Web Research error", { runId, error });
     return json({ error: error instanceof Error ? error.message : "Web research provider unavailable", runId }, 502);
