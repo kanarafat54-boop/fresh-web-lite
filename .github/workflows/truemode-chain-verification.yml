@@ -76,11 +76,11 @@ jobs:
       - name: Apply immutable evidence passport ledger migration
         env:
           PGPASSWORD: postgres
-        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261118203000_fresh_intelligence_evidence_passports.sql
+        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261120151100_fresh_intelligence_evidence_passports.sql
       - name: Apply exact claim-to-passage evidence migration
         env:
           PGPASSWORD: postgres
-        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261120200000_fresh_intelligence_claim_passages.sql
+        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261120164927_fresh_intelligence_claim_passages.sql
       - name: Verify writes, read-back, idempotency, and rollback
         env:
           PGPASSWORD: postgres
@@ -96,7 +96,7 @@ jobs:
       - name: Apply private Fresh Intelligence graph access migration
         env:
           PGPASSWORD: postgres
-        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261120190000_fresh_intelligence_private_graph_access.sql
+        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261120162812_20261120190000_fresh_intelligence_private_graph_access.sql
       - name: Verify browser roles cannot read or mutate the research graph
         env:
           PGPASSWORD: postgres
