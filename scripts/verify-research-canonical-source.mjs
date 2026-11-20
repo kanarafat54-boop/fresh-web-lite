@@ -36,6 +36,7 @@ assert.equal(canonicalizeSourceUrl("javascript:alert(1)"), null);
 assert.equal(canonicalizeSourceUrl("file:///etc/passwd"), null);
 assert.equal(canonicalizeSourceUrl("https://user:secret@example.com/private"), null);
 assert.equal(canonicalizeSourceUrl("not a url"), null);
+assert.equal(canonicalizeSourceUrl({ url: "https://example.com" }), null, "malformed provider URL values are rejected safely");
 
 const first = "https://example.com/story?id=7&utm_medium=social";
 const second = "https://example.com/story?id=7#comments";
@@ -49,15 +50,18 @@ const sources = [
   { title: "Different article", url: "https://example.com/story?id=8", provider: "provider-a" },
   { title: "Unsafe source", url: "javascript:alert(1)", provider: "provider-a" },
   { title: "Unsafe source duplicate", url: "javascript:alert(1)", provider: "provider-b" },
+  { title: "Malformed source", url: 42, provider: "provider-c" },
 ];
 const unique = uniqueByCanonicalUrl(sources);
 assert.deepEqual(unique.map((item) => item.title), ["First observed", "Different article", "Unsafe source"]);
 
 const synthesis = synthesizeResearch([
-  { answer: "Research answer", sources: sources.slice(0, 3) },
+  { answer: "Research answer one", sources: [sources[0]] },
+  { answer: "Research answer two", sources: [sources[1]] },
 ]);
 assert.equal(synthesis.sources.length, 2, "research synthesis deduplicates canonical URLs before source counts");
 assert.equal(synthesis.verification.uniqueDomains, 1, "domain diversity is calculated after canonical deduplication");
 assert.equal(synthesis.verification.independentPasses, 1, "duplicate provider/domain records do not inflate the independent-source count");
+assert.deepEqual(synthesis.claims[1].sourceUrls, [first], "claim provenance is remapped to the retained canonical source URL");
 
 console.log("Fresh Research canonical-source identity checks passed.");
