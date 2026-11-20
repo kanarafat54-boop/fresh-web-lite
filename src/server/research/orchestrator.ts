@@ -2,13 +2,13 @@ import type { ResearchClaim } from "../../core/research/contracts.js";
 import { FRESH_NOTES } from "../../core/research/claimEvidence.js";
 import { compareClaims, type Claim } from "../../core/semantic/claimIntelligence.js";
 
-export type ResearchEvidence = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string };
+export type ResearchEvidence = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string; kind?: "web" | "news" | "video" | "image" | "music"; domain?: string };
 export type ResearchPass = { answer: string; sources: ResearchEvidence[] };
 export type ResearchSynthesis = {
   answer: string;
   sources: ResearchEvidence[];
   claims: ResearchClaim[];
-  verification: { passes: number; uniqueSources: number; uniqueDomains: number; sourceDiversity: "low" | "medium" | "high"; confidence: "low" | "medium" | "high"; independentPasses: number; contradictionsDetected: boolean };
+  verification: { passes: number; uniqueSources: number; uniqueDomains: number; newsSources: number; sourceDiversity: "low" | "medium" | "high"; confidence: "low" | "medium" | "high"; independentPasses: number; contradictionsDetected: boolean };
 };
 
 const domainOf = (url: string): string => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "unknown"; } };
@@ -55,10 +55,11 @@ export function synthesizeResearch(passes: ResearchPass[]): ResearchSynthesis {
   const passCount = usable.length;
   const independentPasses = new Set(usable.flatMap((pass) => pass.sources.map((source) => `${domainOf(source.url)}|${source.provider}`))).size;
   const sourceDiversity = domains.size >= 6 ? "high" : domains.size >= 3 ? "medium" : "low";
+  const newsSources = sources.filter((source) => source.kind === "news").length;
   const contradictionsDetected = detectContradictions(usable);
   const confidence = !contradictionsDetected && sources.length >= 8 && domains.size >= 5 && passCount >= 2 ? "high" : sources.length >= 3 ? "medium" : "low";
   const primary = usable[0]?.answer ?? FRESH_NOTES.noAnswer;
   const answer = contradictionsDetected ? `${primary}\n\n${FRESH_NOTES.conflict}` : primary;
   const claims = buildClaims(usable, contradictionsDetected);
-  return { answer, sources, claims, verification: { passes: passCount, uniqueSources: sources.length, uniqueDomains: domains.size, sourceDiversity, confidence, independentPasses, contradictionsDetected } };
+  return { answer, sources, claims, verification: { passes: passCount, uniqueSources: sources.length, uniqueDomains: domains.size, newsSources, sourceDiversity, confidence, independentPasses, contradictionsDetected } };
 }
