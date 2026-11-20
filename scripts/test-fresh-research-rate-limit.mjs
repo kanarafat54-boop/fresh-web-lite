@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import { build } from "esbuild";
 import { pathToFileURL } from "node:url";
 import { writeFile, mkdtemp, rm } from "node:fs/promises";
@@ -42,7 +43,7 @@ try {
       rpcCalls += 1;
       const payload = JSON.parse(String(init?.body ?? "{}"));
       assert.match(payload.p_bucket_hash, /^[a-f0-9]{64}$/);
-      assert.equal(payload.p_limit, 10);
+      assert.equal(payload.p_limit, 20);
       assert.equal(payload.p_window_seconds, 600);
       return Response.json([{
         allowed: !blockRateLimit,
@@ -63,11 +64,24 @@ try {
 
   const makeRequest = () => new Request("https://fresh.test/api/research/search", {
     method: "POST",
-    headers: { "content-type": "application/json", "x-real-ip": "203.0.113.10" },
+    headers: { "content-type": "application/json", "x-real-ip": "203.0.113.11" },
     body: JSON.stringify({ query: "controlled research rate-limit test", mode: "quick" }),
   });
 
-  const allowed = await POST(makeRequest());
+  const signedIp = "203.0.113.10";
+  const timestamp = String(Date.now());
+  const signature = createHmac("sha256", "test-only-service-secret")
+    .update("fresh-research-forwarded-v1:" + signedIp + ":" + timestamp)
+    .digest("hex");
+  const signedRequest = () => {
+    const request = makeRequest();
+    const headers = new Headers(request.headers);
+    headers.set("x-fresh-research-client-ip", signedIp);
+    headers.set("x-fresh-research-client-timestamp", timestamp);
+    headers.set("x-fresh-research-client-signature", signature);
+    return new Request(request, { headers });
+  };
+  const allowed = await POST(signedRequest());
   assert.equal(allowed.status, 200, "requests within the database quota remain available");
   assert.equal(rpcCalls, 1);
   assert.equal(providerCalls, 1);
@@ -77,7 +91,7 @@ try {
   const blocked = await POST(makeRequest());
   assert.equal(blocked.status, 429);
   assert.equal(blocked.headers.get("retry-after"), "247");
-  assert.equal(blocked.headers.get("x-ratelimit-limit"), "10");
+  assert.equal(blocked.headers.get("x-ratelimit-limit"), "20");
   assert.equal(blocked.headers.get("x-ratelimit-remaining"), "0");
   assert.equal(providerCalls, beforeBlockedProviderCalls, "blocked requests must not spend provider credits");
   assert.equal(rpcCalls, 2);
