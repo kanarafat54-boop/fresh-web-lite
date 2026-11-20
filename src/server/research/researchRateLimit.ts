@@ -29,7 +29,7 @@ function getTrustedClientIp(req: Request, secret: string): string | null {
   const forwardedIp = req.headers.get("x-fresh-research-client-ip")?.trim() ?? "";
   const timestamp = req.headers.get("x-fresh-research-client-timestamp")?.trim() ?? "";
   const signature = req.headers.get("x-fresh-research-client-signature")?.trim() ?? "";
-  if (forwardedIp && isIP(forwardedIp) && /^\\d{13}$/.test(timestamp) && /^[a-f0-9]{64}$/.test(signature)) {
+  if (forwardedIp && isIP(forwardedIp) && /^\d{13}$/.test(timestamp) && /^[a-f0-9]{64}$/.test(signature)) {
     const age = Math.abs(Date.now() - Number(timestamp));
     if (age <= 60_000) {
       const expected = createHmac("sha256", secret)
