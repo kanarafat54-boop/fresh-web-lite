@@ -52,7 +52,8 @@ export default function HomeDashboard() {
   const additionalActions = actions.filter((action) => !["flow", "create", "explore"].includes(action.id));
   const visibleActions = experienceMode === "simple" ? primaryActions : actions;
 
-  const handleSearch = async (query: string, mode: SearchMode) => {
+  const handleSearch = async (query: string, mode: SearchMode, forceBroader = false) => {
+    setLastSearchQuery(query);
     setError(null);
     setResult(null);
     if (mode === "instant") {
