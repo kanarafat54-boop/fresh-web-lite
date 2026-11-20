@@ -10,7 +10,7 @@ const temporal = read("src/core/semantic/temporalTruth.ts");
 const persistenceContract = read("src/core/semantic/semanticPersistence.ts");
 const persistence = read("src/core/semantic/supabaseSemanticPersistence.ts");
 const atomicMigration = read("supabase/migrations/20261014120128_atomic_truemode_research_persistence.sql");
-const passportMigration = read("supabase/migrations/20261118203000_fresh_intelligence_evidence_passports.sql");
+const passportMigration = read("supabase/migrations/20261120151100_fresh_intelligence_evidence_passports.sql");
 const researchPersistence = read("src/server/research/persistSemanticResearchV2.ts");
 const researchRoute = read("api/research/search.ts");
 const truthMigration = read("supabase/migrations/20260906100752_fresh_intelligence_truth_decisions.sql");
@@ -117,7 +117,7 @@ if (!persistence.includes("observed_at: observedAt")) {
 }
 
 const researchRateLimit = read("src/server/research/rateLimit.ts");
-const researchRateLimitMigration = read("supabase/migrations/20261120170000_fresh_research_rate_limits.sql");
+const researchRateLimitMigration = read("supabase/migrations/20261120151112_fresh_research_rate_limits.sql");
 const researchRateLimitSqlTest = read("scripts/test-fresh-research-rate-limits.sql");
 assert(researchApi.includes("consumeFreshResearchQuota(req)"), "Research POST must consume a durable quota before provider calls");
 assert(researchApi.includes("status: 429") || researchApi.includes("}, 429,"), "Research quota denials must return HTTP 429");
