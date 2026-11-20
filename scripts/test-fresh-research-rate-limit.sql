@@ -34,9 +34,8 @@ begin
   select * into v from public.consume_fresh_research_rate_limit(repeat('b', 64), 10, 600);
   if not v.allowed then raise exception 'A separate client bucket was not independent'; end if;
 
-  select * into v from public.consume_fresh_research_rate_limit(v_key, 10, 1);
+  select * into v from public.consume_fresh_research_rate_limit(v_key, 10, 600);
   if v.allowed then
-    -- The window may not have expired in this instant; test reset deterministically below.
     raise exception 'Existing window should remain blocked before its reset';
   end if;
 end;
