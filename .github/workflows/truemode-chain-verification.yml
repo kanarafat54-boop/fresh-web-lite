@@ -81,11 +81,11 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f scripts/test-truemode-persistence-postgres.sql
-      - name: Apply durable Fresh Research rate-limit migration
+      - name: Apply the existing Fresh Research multi-window quota migration
         env:
           PGPASSWORD: postgres
-        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261120130000_fresh_research_durable_rate_limits.sql
-      - name: Verify durable rate-limit quotas and least privilege
+        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261120151112_fresh_research_rate_limits.sql
+      - name: Verify minute, hour and day research quotas and least privilege
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f scripts/test-fresh-research-rate-limit.sql
