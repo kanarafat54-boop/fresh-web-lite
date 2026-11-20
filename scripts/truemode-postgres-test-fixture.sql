@@ -48,6 +48,12 @@ create table public.fresh_intelligence_arbitrations (
   decision text not null, confidence numeric, rationale text, requires_human_review boolean not null default false,
   retained_claim_ids text[] not null default '{}', superseded_claim_ids text[] not null default '{}'
 );
+create table public.fresh_intelligence_claim_revisions (
+  id uuid primary key default gen_random_uuid(),
+  claim_id text not null references public.fresh_intelligence_claims(id),
+  revision jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
 create table public.fresh_intelligence_truth_decisions (
   id uuid primary key default gen_random_uuid(),
   claim_id text not null references public.fresh_intelligence_claims(id),
@@ -55,3 +61,26 @@ create table public.fresh_intelligence_truth_decisions (
   actionable boolean not null, calibrated_confidence numeric not null check (calibrated_confidence between 0 and 1),
   temporal_status text not null, reasons jsonb not null default '[]'::jsonb, assessed_at timestamptz not null
 );
+
+-- Reproduce the old public graph boundary so the privacy migration proves it removes it.
+do $$
+declare
+  table_name text;
+  graph_tables text[] := array[
+    'fresh_intelligence_sources',
+    'fresh_intelligence_claims',
+    'fresh_intelligence_evidence',
+    'fresh_intelligence_claim_evidence',
+    'fresh_intelligence_claim_relations',
+    'fresh_intelligence_arbitrations',
+    'fresh_intelligence_claim_revisions',
+    'fresh_intelligence_entities'
+  ];
+begin
+  foreach table_name in array graph_tables loop
+    execute format('alter table public.%I enable row level security', table_name);
+    execute format('create policy fresh_intelligence_test_public_read on public.%I for select to anon, authenticated using (true)', table_name);
+    execute format('grant all privileges on table public.%I to anon, authenticated, service_role', table_name);
+  end loop;
+end;
+$$;

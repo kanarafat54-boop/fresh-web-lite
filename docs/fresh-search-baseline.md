@@ -1,11 +1,11 @@
 # Fresh Search: baseline and plan
 
-Status of Fresh Search against the "20x research engine" brief, measured on `main` at `2c5097ec` (20 Nov 2026), plus what this change adds.
-Everything here was read from the code, the live Supabase catalog (read-only queries, no row contents) or a test run. Where something could not be checked, it says so.
+Status of Fresh Search against the "20x research engine" brief. The original capability baseline was measured at `2c5097ec`; production database and main-branch state were rechecked on 20 Nov 2026 at `bcf1eaeb`.
+Everything here was read from the code, the live Supabase catalog (read-only queries, no row contents), GitHub Actions, or a test run. Where something could not be checked, it says so.
 
 ## In one paragraph
 
-Fresh Search today is a **single-vendor web search (Tavily) with an organized results screen and a tamper-evident record of each source** (Evidence Passports, #313). It is honest about its limits in the screen text, but four things stand between it and the brief: (1) a "claim" was the whole answer paragraph linked to every source, not one fact linked to the passage that supports it; (2) Images, Video and News are guessed from web addresses, not served by real providers; (3) there is no private, per-user research memory (projects, saved sources, notes, jobs, monitors); (4) the evidence ledger migration from #313 is not applied to production, and the research graph that is stored is publicly readable and contains users' search words. This change fixes (1) for the first time (v1, below). Items 3 and 4 and the provider work are the next slices.
+Fresh Search today is a **single-vendor web search (Tavily) with an organized results screen, source Evidence Passports, and sentence-to-passage evidence checks** (#313, #315, #316). The latest upgrade also adds adaptive current-news recovery, clearer publisher cards, and durable request quotas (#316, #318). Remaining gaps: (1) Images, Video and News are still partly inferred from URLs rather than consistently served by dedicated providers; (2) there is no private, per-user research memory (projects, saved sources, notes, jobs, monitors); (3) the legacy research graph still has public-read policies and excessive browser-role grants. The passport ledger and quota RPC are now present in production. The public graph access boundary is being addressed in PR #319.
 
 ## Capability matrix
 
@@ -19,7 +19,7 @@ Status: **Implemented** (works and is checked), **Partial**, **Heuristic** (exis
 | Academic | Partial | OpenAlex is used, but only in the Fresh Flow Research panel | Not in Fresh Search; no DOI-keyed records |
 | Organized results screen | Implemented | `FreshResearchResults.tsx` (#313). Phone layout checked at 390 px | Tabs depend on the guessed kinds above |
 | De-duplication | Partial | `uniqueByUrl` in `src/server/research/orchestrator.ts` (exact URL) | No canonical or syndicated-copy grouping |
-| Evidence Passport (per source) | Implemented in code | `src/core/research/evidencePassport.ts`: SHA-256 of the captured excerpt, publisher, published vs observed time, limits spelled out | **Ledger not live in production** (finding F1) |
+| Evidence Passport (per source) | Implemented and persisted | `src/core/research/evidencePassport.ts`; live ledger migration `20261120151100` and graph-plus-passports RPC are present in production | Repository migration filename differs from the production version; keep the mapping in Phase 0B reconciliation |
 | **Claim to exact passage** | **New in this change (v1)** | `src/core/research/claimEvidence.ts`; `scripts/verify-claim-evidence.mjs` | Deterministic word-and-number match, not understanding. Computed per response, not stored |
 | Claim model before this change | Was a gap | `buildClaims` made one claim per research pass: the whole answer, linked to all of that pass's sources | Still true for the stored graph (`fresh_intelligence_claims`) |
 | Confidence | Heuristic | 0.7 with three or more sources, else 0.5; stance from word overlap and negation words (`src/core/semantic/evidenceStance.ts`) | Not calibrated. Shown as "system assessment" |
@@ -33,7 +33,7 @@ Status: **Implemented** (works and is checked), **Partial**, **Heuristic** (exis
 
 ## Database and security findings (live project, read-only)
 
-- **F1, blocker: the passport migration is not in production.** The newest applied migration is `20261115160000`. `20261118203000_fresh_intelligence_evidence_passports.sql` is not applied, and the function `persist_fresh_intelligence_research_graph_with_passports` that #313's code calls does not exist (only the older `persist_fresh_intelligence_research_graph` does). Result: a research run still answers, but saving fails and the screen says "Not confirmed stored". The last saved batch is from 18 Nov 17:05 UTC and there are none since the merge; that is consistent with failing, or with no searches, and cannot be told apart from here. The migration only adds a table, a function and a trigger, so it can be undone by dropping them. **Needs the owner's approval to apply.** PRs #309 to #311 (database reconciliation) are open and should be coordinated with.
+- **F1, resolved in production: Evidence Passport ledger and quota RPC are present.** The live migration ledger includes `20261120151100` (`fresh_intelligence_evidence_passports`) and `20261120151112` (`fresh_research_rate_limits`); the graph-plus-passports RPC and quota RPC both exist. The passport RPC was smoke-tested transactionally with rollback, and the quota RPC was verified against the minute/hour/day limits and least-privilege grants in the #317/#318 rollout. One reconciliation detail remains: the repository passport migration file is named `20261118203000_...`, while production records the applied version as `20261120151100`; preserve that mapping in the Phase 0B migration reconciliation rather than rewriting production history.
 - **F2, should-fix, privacy: the research graph is world-readable and holds search words.** `fresh_intelligence_sources`, `_claims`, `_evidence`, `_claim_evidence`, `_claim_relations`, `_entities`, `_arbitrations` and `_claim_revisions` have a SELECT policy for `anon` and `authenticated`. The research query is stored as an entity label, and the claim text is the answer. Anyone with the public key can read what any user searched. Decision for the owner: keep the graph public and stop storing raw queries, or add owner scoping. The brief's private research memory (Phase 2) needs the second anyway.
 - **F3, note: table grants are wider than the policies.** `anon` and `authenticated` hold INSERT, UPDATE, DELETE and TRUNCATE on those tables. Row security blocks writes through the API because there are no write policies, but TRUNCATE is not governed by row security. Revoking the write grants is cheap defense in depth (the project already did this for `fresh_id` tables).
 - **F4, note: the passport table itself is well shaped.** Row security on, all privileges revoked from `public`, `anon` and `authenticated`, service role only, and a trigger rejects UPDATE and DELETE. Not protected: TRUNCATE (no guard) and the table owner. It references sources with `on delete restrict`, so removing a source (a user or legal takedown) needs a defined process, because the ledger cannot be edited. The passport ID includes the observation time, so one source seen twice has two passports; they are linked only by the source and fingerprint.
@@ -54,11 +54,11 @@ Checks: `scripts/verify-claim-evidence.mjs` (run by `npm run test:truemode-chain
 
 ## Plan
 
-1. **Done here:** baseline, claim to passage v1.
-2. **Next, needs the owner:** apply the passport migration (F1); decide F2; revoke the extra grants (F3).
-3. **Persist claim to passage links** (a new table for claim, passport, quote position, method), so the stored graph stops saying "one answer = one claim".
-4. **Real providers, verticals honest:** Academic from OpenAlex (DOI, authors), News from the publisher feeds and GDELT, Books and encyclopedic from the catalogs already built in #312, all as Fresh Search sources with passports. Stop guessing kinds from addresses: a web result with no dedicated provider is labeled "web".
-5. **Private research memory:** owner-scoped projects, saved sources, notes, with row security tests, then jobs for long runs.
+1. **Done:** baseline and claim-to-passage v1; adaptive news/source UX recovery (#316); durable request quotas and fail-closed provider protection (#318); production Evidence Passport ledger and quota RPC.
+2. **In progress:** remove public read/write access to the legacy research graph while preserving service-role persistence (#319). The migration is paired with a disposable PostgreSQL regression test; production rollout follows merge and CI.
+3. **Next:** persist claim-to-passage links (claim, passport, exact quote offsets, matching method) so the stored graph no longer treats a whole answer as one claim.
+4. **Real providers, verticals honest:** Academic from OpenAlex (DOI, authors), News from publisher feeds and GDELT, Books and encyclopedic from the catalogs already built in #312, all as Fresh Search sources with passports. Stop guessing kinds from addresses: a web result with no dedicated provider is labeled "web".
+5. **Private research memory:** owner-scoped projects, saved sources, notes, and long-running jobs, with row-security tests.
 6. **Then:** entity resolution (namesake safe), timelines (event vs publication vs observation time), conflict analysis across providers, monitoring and alerts, export.
 
 Risks: one search vendor (cost and outage); free catalogs have their own limits (GDELT answered HTTP 429 and timed out in our checks); a stronger claim judge needs a model, which has a cost and must stay replaceable; the production migration and any row-security change are one-way decisions for the owner.
