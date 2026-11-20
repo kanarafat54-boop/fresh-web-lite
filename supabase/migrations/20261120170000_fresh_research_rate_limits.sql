@@ -40,7 +40,7 @@ begin
     raise exception 'Invalid research quota identifier' using errcode = '22023';
   end if;
 
-  insert into private.fresh_research_rate_limits (
+  insert into private.fresh_research_rate_limits as current_limits (
     identifier_hash, minute_started_at, minute_count,
     hour_started_at, hour_count, day_started_at, day_count, updated_at
   ) values (
@@ -49,23 +49,23 @@ begin
   )
   on conflict (identifier_hash) do update set
     minute_started_at = case
-      when private.fresh_research_rate_limits.minute_started_at < excluded.minute_started_at
-      then excluded.minute_started_at else private.fresh_research_rate_limits.minute_started_at end,
+      when current_limits.minute_started_at < excluded.minute_started_at
+      then excluded.minute_started_at else current_limits.minute_started_at end,
     minute_count = case
-      when private.fresh_research_rate_limits.minute_started_at < excluded.minute_started_at
-      then 1 else private.fresh_research_rate_limits.minute_count + 1 end,
+      when current_limits.minute_started_at < excluded.minute_started_at
+      then 1 else current_limits.minute_count + 1 end,
     hour_started_at = case
-      when private.fresh_research_rate_limits.hour_started_at < excluded.hour_started_at
-      then excluded.hour_started_at else private.fresh_research_rate_limits.hour_started_at end,
+      when current_limits.hour_started_at < excluded.hour_started_at
+      then excluded.hour_started_at else current_limits.hour_started_at end,
     hour_count = case
-      when private.fresh_research_rate_limits.hour_started_at < excluded.hour_started_at
-      then 1 else private.fresh_research_rate_limits.hour_count + 1 end,
+      when current_limits.hour_started_at < excluded.hour_started_at
+      then 1 else current_limits.hour_count + 1 end,
     day_started_at = case
-      when private.fresh_research_rate_limits.day_started_at < excluded.day_started_at
-      then excluded.day_started_at else private.fresh_research_rate_limits.day_started_at end,
+      when current_limits.day_started_at < excluded.day_started_at
+      then excluded.day_started_at else current_limits.day_started_at end,
     day_count = case
-      when private.fresh_research_rate_limits.day_started_at < excluded.day_started_at
-      then 1 else private.fresh_research_rate_limits.day_count + 1 end,
+      when current_limits.day_started_at < excluded.day_started_at
+      then 1 else current_limits.day_count + 1 end,
     updated_at = excluded.updated_at
   returning minute_count, hour_count, day_count
   into v_minute_count, v_hour_count, v_day_count;
