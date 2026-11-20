@@ -30,13 +30,17 @@ The first implementation sequence is deliberately conservative: establish a sour
 | Knowledge retrieval evaluation | `scripts/test-fresh-knowledge-retrieval.sh`; 428 held-out questions | Existing benchmark measures platform-document retrieval (hit@1 and hit@4); do not misrepresent it as external-web search quality. |
 | Knowledge graph primitives | `supabase/migrations/20260922181208_fresh_knowledge_graph_v1.sql` | Alias and entity-relation tables exist, but are server-managed and not yet integrated as a complete entity extraction/resolution pipeline in Fresh Research. |
 
+### Production snapshot (20 November 2026)
+
+Read-only checks against the live Supabase project found 33 Fresh Intelligence entities, 298 source rows, 77 immutable Evidence Passports, and 24 exact claim-passage records. The Fresh Knowledge Graph alias and entity-relation tables both contain zero rows. This confirms that the graph schema exists but the research runtime has not yet populated its multilingual aliases or durable entity relationships. Two missing foreign-key indexes on the passage ledger were added in production and verified. The production migration history was also compared with the repository; the passport, private-graph, and passage migration filenames in this branch are aligned to their already-applied production versions without editing migration history.
+
 ### Confirmed gaps
 
 1. **No general-purpose external source index.** Research sources are retrieved for a request and persisted into the evidence/claim graph, but there is no demonstrated crawl queue, canonical document index, or scheduled refresh pipeline for arbitrary external web content.
 2. **Entity resolution is not research-grade.** `src/core/semantic/entityResolution.ts` uses an in-memory `semanticStore` and token-set similarity. Its thresholds can conflate namesakes; it is not a safe durable entity-resolution service.
 3. **The research route does not use the platform knowledge retriever as an external knowledge index.** These are different corpora and must remain distinct.
 4. **Query fanout is basic.** Deep/global currently have a small number of same-provider passes; adaptive news is a targeted extra pass. There is no general facet planner with budget and provider-aware deduplication.
-5. **Source deduplication is limited.** Exact URL deduplication does not reliably group canonical URLs, syndicated copies, or sources that share an upstream report.
+5. **Source deduplication is limited.** Exact URL deduplication does not reliably group canonical URLs, syndicated copies, or sources that share an upstream report. PR #321 adds conservative canonical URL identity, deduplicates before source/domain counts, remaps claim provenance to the retained URL, and safely excludes malformed provider URL values. This is a first identity layer, not yet a durable external document index.
 6. **Vertical typing is partly heuristic.** A URL/date-derived kind is not sufficient proof that a result is a news, image, video, academic, local, person, or organization record.
 7. **Private per-user research workspaces are not established.** Projects, saved sources, notes, research jobs, monitors, and user-scoped memory need a separate, explicitly authorized design.
 
@@ -124,7 +128,9 @@ Do not copy entire websites by default. Respect robots directives, provider term
 - Treat PR #318, #319, and #320 as merged code/CI work. Their successful Actions runs are not, by themselves, proof that every production deployment or live data path is healthy.
 - PR #317 is an older open draft superseded in scope by merged PR #318; do not merge it blindly.
 
-### Phase 1 — Canonical source index contract
+### Phase 1 — Canonical source identity contract
+
+PR #321 implements the initial pure canonicalization and synthesis integration. The durable external document index remains future work.
 
 Acceptance:
 - URL normalization is deterministic and preserves the originally observed URL.
@@ -181,4 +187,4 @@ Acceptance:
 
 ## Immediate next engineering slice
 
-Implement Phase 1 as a pure, testable canonical-source identity module first, then integrate it into research source deduplication and the evidence persistence adapter. This is the smallest safe foundation for a future index: it reduces duplicate documents without prematurely introducing a crawler, a new schema, or unsafe entity merges.
+Implement Phase 2 as a durable, service-only entity-candidate pipeline. Start by extracting conservative candidates from public source titles and permitted excerpts, linking every candidate to source/passport/passage provenance, and marking all candidates pending review. Do not auto-merge namesakes or promote candidate extraction into truth. Only after candidate persistence, privacy, idempotency, and namesake regression tests pass should accepted aliases and relations be written into the existing Fresh Knowledge Graph. This directly addresses the production finding that the current alias/relation tables are empty without prematurely creating an uncontrolled crawler or public knowledge dump.
