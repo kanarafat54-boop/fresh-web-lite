@@ -40,12 +40,18 @@ show("fresh-news", "uganda", narrow);
 const asked = narrow.providers.some((p) => p.id === "gdelt");
 console.log(`  GDELT was ${asked ? "asked" : "not asked (the feeds already had enough)"}.`);
 
-// The other four systems depend on every one of their sources.
+// Each category must remain useful when at least one provider is available. A single upstream outage is degraded coverage, not a broken category.
 for (const [system, query] of [["fresh-music", "miles davis"], ["books-reading", "frankenstein"], ["learn", "algebra"], ["research-knowledge", "machine learning"]]) {
   await sleep(1000);
   const result = await G.discover(system, query, fetcher, { limit: 5, timeoutMs: 15000 });
   show(system, query, result);
-  for (const p of result.providers) if (!p.ok || p.count === 0) problems.push(`${system} / ${p.label}: ${p.ok ? "no results for an ordinary search" : p.error}`);
+  const availableProviders = result.providers.filter((provider) => provider.ok);
+  const failedProviders = result.providers.filter((provider) => !provider.ok);
+  if (availableProviders.length === 0 || result.items.length === 0) {
+    problems.push(`${system}: no usable results from any provider (${failedProviders.map((provider) => `${provider.label}: ${provider.error}`).join("; ")})`);
+  } else if (failedProviders.length > 0) {
+    console.log(`  DEGRADED ${system}: ${failedProviders.length} provider(s) unavailable; ${availableProviders.length} provider(s) kept the category usable.`);
+  }
 }
 
 assert.equal(problems.length, 0, `Global discovery live check found problems:\n - ${problems.join("\n - ")}`);
