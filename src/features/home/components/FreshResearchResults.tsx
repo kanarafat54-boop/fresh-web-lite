@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { IntelligenceResponse, IntelligenceSource, IntelligenceSourceKind } from "../../ai/intelligence/intelligenceConnectors";
+import FreshAnswerEvidence from "./FreshAnswerEvidence";
 import "./FreshResearchResults.css";
 
 type ResultTab = "all" | "web" | "news" | "images" | "videos";
@@ -67,10 +68,14 @@ export default function FreshResearchResults({ result }: { result: IntelligenceR
         <span className="fresh-research-results__source-count">{sources.length} unique {sources.length === 1 ? "source" : "sources"}</span>
       </header>
 
-      <div className="fresh-research-results__answer">
-        <h3>What we found</h3>
-        <p>{result.text}</p>
-      </div>
+      {result.answerEvidence?.statements.length
+        ? <FreshAnswerEvidence evidence={result.answerEvidence} sources={sources} />
+        : (
+          <div className="fresh-research-results__answer">
+            <h3>What we found</h3>
+            <p>{result.text}</p>
+          </div>
+        )}
 
       {verification && (
         <div className="fresh-research-results__verification" aria-label="Source coverage">
