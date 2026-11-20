@@ -19,7 +19,7 @@ create table if not exists public.fresh_intelligence_claim_passages (
   matched_terms jsonb not null default '[]'::jsonb check (jsonb_typeof(matched_terms) = 'array'),
   strength text not null check (strength in ('strong', 'partial')),
   created_at timestamptz not null default now(),
-  unique (claim_id, passport_id, quote_start, quote_end, method)
+  unique (claim_id, answer_statement_id, passport_id, quote_start, quote_end, method)
 );
 
 create index if not exists fresh_intelligence_claim_passages_claim_idx
@@ -28,6 +28,15 @@ create index if not exists fresh_intelligence_claim_passages_passport_idx
   on public.fresh_intelligence_claim_passages(passport_id);
 create index if not exists fresh_intelligence_claim_passages_batch_idx
   on public.fresh_intelligence_claim_passages(batch_key);
+
+comment on column public.fresh_intelligence_claim_passages.statement_start is
+  'Zero-based JavaScript UTF-16 code-unit offset into the synthesized answer.';
+comment on column public.fresh_intelligence_claim_passages.statement_end is
+  'Exclusive zero-based JavaScript UTF-16 code-unit offset into the synthesized answer.';
+comment on column public.fresh_intelligence_claim_passages.quote_start is
+  'Zero-based JavaScript UTF-16 code-unit offset into the immutable passport captured_text.';
+comment on column public.fresh_intelligence_claim_passages.quote_end is
+  'Exclusive zero-based JavaScript UTF-16 code-unit offset into the immutable passport captured_text.';
 
 alter table public.fresh_intelligence_claim_passages enable row level security;
 revoke all on table public.fresh_intelligence_claim_passages from public, anon, authenticated;
