@@ -116,6 +116,21 @@ if (!persistence.includes("observed_at: observedAt")) {
   throw new Error("Claim relation persistence must include the observed_at timestamp.");
 }
 
+const researchRateLimit = read("src/server/research/rateLimit.ts");
+const researchRateLimitMigration = read("supabase/migrations/20261120170000_fresh_research_rate_limits.sql");
+const researchRateLimitSqlTest = read("scripts/test-fresh-research-rate-limits.sql");
+assert(researchApi.includes("consumeFreshResearchQuota(req)"), "Research POST must consume a durable quota before provider calls");
+assert(researchApi.includes("status: 429") || researchApi.includes("}, 429,"), "Research quota denials must return HTTP 429");
+assert(researchApi.includes("}, 503,"), "Research must fail closed when durable abuse protection is unavailable");
+assert(researchRateLimit.includes('request.headers.get("x-real-ip")'), "Rate limiting must use Vercel's edge-derived client IP");
+assert(researchRateLimit.includes('createHmac("sha256", secretKey)'), "Rate limiting must HMAC identifiers instead of storing raw IPs");
+assert(researchRateLimit.includes('rpc("consume_fresh_research_quota"'), "Rate limiting must use the atomic database RPC");
+assert(researchRateLimitMigration.includes("security definer") && researchRateLimitMigration.includes("set search_path = ''"), "Quota RPC must use a pinned search path");
+assert(researchRateLimitMigration.includes("grant execute on function public.consume_fresh_research_quota(text) to service_role"), "Only the server service role may execute the quota RPC");
+assert(researchRateLimitMigration.includes("revoke all on table private.fresh_research_rate_limits from public, anon, authenticated, service_role"), "Quota records must not be directly readable by API roles");
+assert(researchRateLimitSqlTest.includes("six") || researchRateLimitSqlTest.includes("1..6"), "PostgreSQL quota tests must verify the per-minute limit");
+assert(researchRateLimitSqlTest.includes("has_function_privilege"), "PostgreSQL quota tests must verify RPC grants");
+
 console.log("TRUEMODE research → truth decision → Supabase contract: PASS");
 console.log("Claims, evidence, independence, provenance, confidence calibration, temporal truth, decision boundary, and persistence wiring are present.");
 
