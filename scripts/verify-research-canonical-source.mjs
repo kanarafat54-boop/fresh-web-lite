@@ -57,11 +57,11 @@ assert.deepEqual(unique.map((item) => item.title), ["First observed", "Different
 
 const synthesis = synthesizeResearch([
   { answer: "Research answer one", sources: [sources[0]] },
-  { answer: "Research answer two", sources: [sources[1]] },
+  { answer: "Research answer two", sources: [sources[1], sources[2]] },
 ]);
 assert.equal(synthesis.sources.length, 2, "research synthesis deduplicates canonical URLs before source counts");
 assert.equal(synthesis.verification.uniqueDomains, 1, "domain diversity is calculated after canonical deduplication");
 assert.equal(synthesis.verification.independentPasses, 1, "duplicate provider/domain records do not inflate the independent-source count");
-assert.deepEqual(synthesis.claims[1].sourceUrls, [first], "claim provenance is remapped to the retained canonical source URL");
+assert.deepEqual(synthesis.claims[1].sourceUrls, [first, "https://example.com/story?id=8"], "claim provenance is remapped to the retained canonical source URL while preserving other evidence");
 
 console.log("Fresh Research canonical-source identity checks passed.");
