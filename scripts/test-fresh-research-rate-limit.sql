@@ -34,7 +34,7 @@ begin
   select * into v from public.consume_fresh_research_rate_limit(repeat('b', 64), 20, 600);
   if not v.allowed then raise exception 'A separate client bucket was not independent'; end if;
 
-  select * into v from public.consume_fresh_research_rate_limit(v_key, 10, 600);
+  select * into v from public.consume_fresh_research_rate_limit(v_key, 20, 600);
   if v.allowed then
     raise exception 'Existing window should remain blocked before its reset';
   end if;
