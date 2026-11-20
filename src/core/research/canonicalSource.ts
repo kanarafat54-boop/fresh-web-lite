@@ -8,7 +8,8 @@ import { createHash } from "node:crypto";
  * Invalid, credential-bearing, and non-HTTP(S) URLs return null rather than
  * being treated as safe canonical identities.
  */
-export function canonicalizeSourceUrl(input: string): string | null {
+export function canonicalizeSourceUrl(input: unknown): string | null {
+  if (typeof input !== "string") return null;
   try {
     const url = new URL(input.trim());
     if ((url.protocol !== "https:" && url.protocol !== "http:") || url.username || url.password) return null;
@@ -47,6 +48,7 @@ export function canonicalSourceId(input: string): string | null {
 export function uniqueByCanonicalUrl<T extends { url: string }>(sources: T[]): T[] {
   const seen = new Set<string>();
   return sources.filter((source) => {
+    if (typeof source.url !== "string") return false;
     const canonical = canonicalizeSourceUrl(source.url);
     const key = canonical ?? `invalid:${source.url.trim()}`;
     if (seen.has(key)) return false;
