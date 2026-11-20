@@ -21,6 +21,8 @@ export type ResearchSource = {
 };
 
 export type ResearchResult = {
+  /** Sentence-level evidence mapping; persisted separately from truth assessments. */
+  answerEvidence?: import("./claimEvidence.js").AnswerEvidence;
   query: string;
   mode: ResearchMode;
   answer: string;
