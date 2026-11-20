@@ -21,17 +21,17 @@ declare
   i integer;
   v_key text := repeat('a', 64);
 begin
-  for i in 1..11 loop
-    select * into v from public.consume_fresh_research_rate_limit(v_key, 10, 600);
-    if i <= 10 and not v.allowed then
+  for i in 1..21 loop
+    select * into v from public.consume_fresh_research_rate_limit(v_key, 20, 600);
+    if i <= 20 and not v.allowed then
       raise exception 'Request % was unexpectedly blocked', i;
     end if;
-    if i = 11 and v.allowed then
-      raise exception 'Request 11 should be blocked by the 10-request limit';
+    if i = 21 and v.allowed then
+      raise exception 'Request 21 should be blocked by the 20-request limit';
     end if;
   end loop;
 
-  select * into v from public.consume_fresh_research_rate_limit(repeat('b', 64), 10, 600);
+  select * into v from public.consume_fresh_research_rate_limit(repeat('b', 64), 20, 600);
   if not v.allowed then raise exception 'A separate client bucket was not independent'; end if;
 
   select * into v from public.consume_fresh_research_rate_limit(v_key, 10, 600);
@@ -52,8 +52,8 @@ do $$
 declare
   v record;
 begin
-  select * into v from public.consume_fresh_research_rate_limit(repeat('a', 64), 10, 600);
-  if not v.allowed or v.remaining <> 9 then
+  select * into v from public.consume_fresh_research_rate_limit(repeat('a', 64), 20, 600);
+  if not v.allowed or v.remaining <> 19 then
     raise exception 'Expired rate-limit window did not reset correctly';
   end if;
 end;
