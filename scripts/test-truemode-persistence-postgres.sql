@@ -24,7 +24,7 @@ declare
   ));
   claim_passage_payload jsonb := jsonb_build_array(jsonb_build_object(
     'passage_id','ci-passage-1','claim_id','ci-claim-1','answer_statement_id','s1',
-    'statement_text','CI test claim statement','statement_start',0,'statement_end',24,
+    'statement_text','CI test claim statement','statement_start',0,'statement_end',23,
     'passport_id','FEP-CI-001','source_id','ci-source-1','evidence_id','ci-evidence-1',
     'quote_text','CI captured excerpt','quote_start',0,'quote_end',19,
     'method','term-overlap-v1','match_score',0.85,'matched_terms',jsonb_build_array('ci','captured','excerpt'),'strength','strong'
