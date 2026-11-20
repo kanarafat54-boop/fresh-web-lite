@@ -8,10 +8,16 @@ import { join } from "node:path";
 const originalFetch = globalThis.fetch;
 const originalApiKey = process.env.TAVILY_API_KEY;
 const originalDryRun = process.env.PERSISTENCE_DRY_RUN;
+const originalSupabaseUrl = process.env.SUPABASE_URL;
+const originalSupabaseKey = process.env.SUPABASE_SECRET_KEY_FRESHWEBLITE;
+const originalNodeEnv = process.env.NODE_ENV;
 const tempDir = await mkdtemp(join(tmpdir(), "fresh-research-route-"));
 try {
   process.env.TAVILY_API_KEY = "test-only-not-a-real-key";
   process.env.PERSISTENCE_DRY_RUN = "true";
+  process.env.SUPABASE_URL = "https://supabase.test";
+  process.env.SUPABASE_SECRET_KEY_FRESHWEBLITE = "test-only-service-secret";
+  process.env.NODE_ENV = "test";
 
   const bundle = await build({
     entryPoints: ["api/research/search.ts"],
@@ -26,7 +32,14 @@ try {
   const { POST } = await import(pathToFileURL(modulePath).href);
 
   let providerCalls = 0;
-  globalThis.fetch = async () => {
+  let activeProvider = async () => new Response("No provider stub configured", { status: 500 });
+  globalThis.fetch = async (input, init) => {
+    if (String(input).includes("/rest/v1/rpc/consume_fresh_research_quota")) {
+      return Response.json({ allowed: true, remaining: 5, retryAfterSeconds: 0, limits: { perMinute: 6, perHour: 30, perDay: 100 } });
+    }
+    return activeProvider(input, init);
+  };
+  activeProvider = async () => {
     providerCalls += 1;
     return new Response(JSON.stringify({
       answer: "Example research answer from controlled test data.",
@@ -56,7 +69,7 @@ try {
 
   // 2: Current-entity queries with weak coverage automatically receive a news-focused second pass.
   let adaptiveCalls = [];
-  globalThis.fetch = async (_input, init) => {
+  activeProvider = async (_input, init) => {
     const request = JSON.parse(String(init?.body ?? "{}"));
     adaptiveCalls.push(request);
     const newsPass = request.topic === "news";
@@ -91,7 +104,7 @@ try {
   assert.equal(providerCalls, callsBeforeInvalid);
 
   // 4: If every research pass fails, the handler returns a failure rather than a fabricated answer.
-  globalThis.fetch = async () => new Response("provider unavailable", { status: 503 });
+  activeProvider = async () => new Response("provider unavailable", { status: 503 });
   const failed = await POST(new Request("https://fresh.test/api/research/search", {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: "provider failure case", mode: "quick" }),
   }));
@@ -103,5 +116,8 @@ try {
   globalThis.fetch = originalFetch;
   if (originalApiKey === undefined) delete process.env.TAVILY_API_KEY; else process.env.TAVILY_API_KEY = originalApiKey;
   if (originalDryRun === undefined) delete process.env.PERSISTENCE_DRY_RUN; else process.env.PERSISTENCE_DRY_RUN = originalDryRun;
+  if (originalSupabaseUrl === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = originalSupabaseUrl;
+  if (originalSupabaseKey === undefined) delete process.env.SUPABASE_SECRET_KEY_FRESHWEBLITE; else process.env.SUPABASE_SECRET_KEY_FRESHWEBLITE = originalSupabaseKey;
+  if (originalNodeEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = originalNodeEnv;
   await rm(tempDir, { recursive: true, force: true });
 }

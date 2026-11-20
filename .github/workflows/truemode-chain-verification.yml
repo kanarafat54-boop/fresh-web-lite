@@ -37,6 +37,8 @@ jobs:
         run: npm run test:truemode-persistence-rpc
       - name: Verify research API dry-run end to end without database writes
         run: npm run test:fresh-research-api-dry-run
+      - name: Verify durable Fresh Research rate-limit route behavior
+        run: npm run test:fresh-research-rate-limit
 
   postgres-integration:
     name: Real PostgreSQL persistence integration
@@ -79,3 +81,11 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f scripts/test-truemode-persistence-postgres.sql
+      - name: Apply the existing Fresh Research multi-window quota migration
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261120151112_fresh_research_rate_limits.sql
+      - name: Verify minute, hour and day research quotas and least privilege
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f scripts/test-fresh-research-rate-limit.sql
