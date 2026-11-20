@@ -34,8 +34,11 @@ if (!activeAskApi.includes("const FRESH_EXTERNAL_FACT_QUESTION = /") ||
     !activeAskApi.includes("if (FRESH_EXTERNAL_FACT_QUESTION.test(goal.trim())) return [];")) {
   throw new Error("The active /api/ai/ask retrieval path must reject internal platform knowledge for public factual questions.");
 }
-if (!activeAskApi.includes("i.needsEvidence || i.intent === \"research\" ? research(x)")) {
+if (!activeAskApi.includes("i.needsEvidence || i.intent === \"research\" ? research(x, req)")) {
   throw new Error("Evidence-seeking questions must invoke the real research route from the active Fresh AI API.");
+}
+if (!activeAskApi.includes("x-fresh-research-client-signature") || !activeAskApi.includes("fresh-research-forwarded-v1:")) {
+  throw new Error("Internal Fresh AI research requests must forward a signed, trusted client identity.");
 }
 if (!activeAskApi.includes('u.protocol === "https:" || u.protocol === "http:"') ||
     !activeAskApi.includes("const groundedClaims = claims.flatMap")) {
