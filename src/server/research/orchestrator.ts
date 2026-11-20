@@ -50,7 +50,7 @@ export function synthesizeResearch(passes: ResearchPass[]): ResearchSynthesis {
   const sources = uniqueByCanonicalUrl(usable.flatMap((pass) => pass.sources));
   const domains = new Set(sources.map((source) => domainOf(source.url)).filter((domain) => domain !== "unknown"));
   const passCount = usable.length;
-  const independentPasses = new Set(usable.flatMap((pass) => pass.sources.map((source) => `${domainOf(source.url)}|${source.provider}`))).size;
+  const independentPasses = new Set(sources.map((source) => `${domainOf(source.url)}|${source.provider}`)).size;
   const sourceDiversity = domains.size >= 6 ? "high" : domains.size >= 3 ? "medium" : "low";
   const newsSources = sources.filter((source) => source.kind === "news").length;
   const contradictionsDetected = detectContradictions(usable);
