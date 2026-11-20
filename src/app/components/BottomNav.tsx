@@ -43,7 +43,6 @@ export default function BottomNav() {
   const freshFlowDestinations: Array<{ id: string; label: string; icon: (active: boolean) => ReactNode }> = [
     { id: "feed", label: "Home", icon: (a) => <ShortsIcons.NavHomeIcon size={24} filled={a} /> },
     { id: "fresh-flow-shorts", label: "Shorts", icon: (a) => <ShortsIcons.NavShortsIcon size={24} filled={a} /> },
-    { id: "fresh-flow-system-fresh-studio", label: "Creator Studio", icon: () => <ShortsIcons.NavCreateIcon size={24} /> },
     { id: "fresh-flow-long-videos", label: "Video", icon: () => <ShortsIcons.NavVideoIcon size={24} /> },
     { id: "communication", label: "Messages", icon: (a) => <ShortsIcons.NavMessagesIcon size={24} filled={a} /> },
     { id: "fresh-mail", label: "Fresh Mail", icon: () => <ShortsIcons.NavMailIcon size={24} /> },

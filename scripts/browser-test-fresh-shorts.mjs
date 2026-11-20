@@ -368,8 +368,15 @@ for (const width of WIDTHS) {
   const aiBox = await page.locator(".global-fresh-ai-trigger").first().boundingBox().catch(() => null);
   if (aiBox) check(aiBox.width <= 48 && aiBox.y < 200 && aiBox.x + aiBox.width >= width - 24, `${tag} Fresh AI button is compact and top-right`);
 
-  // Creator Studio opens the unified shell inside Flow; Shorts tools remain a dedicated section.
-  await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Creator Studio" }).click();
+  // Creator Studio opens from the Fresh Flow Home create entry; it no longer occupies a bottom-nav slot.
+  // Restore the same Flow Home route fixture used at test setup. This keeps
+  // the test focused on the Studio entry contract, not unrelated global nav.
+  await page.evaluate(() => {
+    window.history.replaceState({ freshRoute: "fresh-flow" }, "", "/fresh-flow");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await page.locator(".fresh-flow-compose").waitFor({ state: "visible", timeout: 8000 });
+  await page.locator(".fresh-flow-compose").click();
   await page.locator(".fs-app-embedded").waitFor({ timeout: 8000 });
   check(await page.locator(".fs-bottombar").count() === 0, `${tag} embedded Creator Studio does not add a second bottom navigation`);
   const studioFlowTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts()).map((t) => t.trim());
