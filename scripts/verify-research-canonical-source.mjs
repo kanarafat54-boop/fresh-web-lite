@@ -48,5 +48,6 @@ const synthesis = synthesizeResearch([
 ]);
 assert.equal(synthesis.sources.length, 2, "research synthesis deduplicates canonical URLs before source counts");
 assert.equal(synthesis.verification.uniqueDomains, 1, "domain diversity is calculated after canonical deduplication");
+assert.equal(synthesis.verification.independentPasses, 1, "duplicate provider/domain records do not inflate the independent-source count");
 
 console.log("Fresh Research canonical-source identity checks passed.");
