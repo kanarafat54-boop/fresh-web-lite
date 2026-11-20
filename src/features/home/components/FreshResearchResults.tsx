@@ -47,14 +47,10 @@ function cleanSnippet(source: IntelligenceSource): string {
   const snippet = (source.snippet ?? "").trim();
   const title = source.title.trim();
   if (!snippet || !title) return snippet;
-  const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, "\\function dateLabel(value?: string): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
-}
-");
-  const withoutTitle = snippet.replace(new RegExp("^\\s*" + escaped + "(?:\\s*[:.\\-–—]\\s*|\\s+)", "i"), "").trim();
-  return withoutTitle || (snippet.toLowerCase() === title.toLowerCase() ? "" : snippet);
+  if (snippet.toLocaleLowerCase().startsWith(title.toLocaleLowerCase())) {
+    return snippet.slice(title.length).replace(/^[\\s:.-–—]+/, "").trim();
+  }
+  return snippet;
 }
 
 function faviconUrl(source: IntelligenceSource): string | null {
