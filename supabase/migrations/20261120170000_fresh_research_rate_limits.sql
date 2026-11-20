@@ -1,8 +1,6 @@
 -- Durable, privacy-preserving quotas for the public Fresh Research endpoint.
 -- Raw IP addresses are never persisted. The application sends an HMAC-SHA256 identifier.
 create schema if not exists private;
-revoke all on schema private from public, anon, authenticated;
-
 create table private.fresh_research_rate_limits (
   identifier_hash text primary key
     check (identifier_hash ~ '^[0-9a-f]{64}$'),
@@ -14,6 +12,8 @@ create table private.fresh_research_rate_limits (
   day_count integer not null default 0 check (day_count >= 0),
   updated_at timestamptz not null default now()
 );
+
+alter table private.fresh_research_rate_limits enable row level security;
 
 create index fresh_research_rate_limits_updated_at_idx
   on private.fresh_research_rate_limits (updated_at);
