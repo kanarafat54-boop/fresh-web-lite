@@ -1,6 +1,6 @@
 import type { ResearchClaim } from "../../core/research/contracts.js";
 import { FRESH_NOTES } from "../../core/research/claimEvidence.js";
-import { uniqueByCanonicalUrl } from "../../core/research/canonicalSource.js";
+import { canonicalizeSourceUrl, uniqueByCanonicalUrl } from "../../core/research/canonicalSource.js";
 import { compareClaims, type Claim } from "../../core/semantic/claimIntelligence.js";
 
 export type ResearchEvidence = { title: string; url: string; snippet?: string; publishedAt?: string; provider: string; kind?: "web" | "news" | "video" | "image" | "music"; domain?: string };
@@ -33,13 +33,13 @@ function detectContradictions(passes: ResearchPass[]): boolean {
   return false;
 }
 
-function buildClaims(passes: ResearchPass[], contradictionsDetected: boolean): ResearchClaim[] {
+function buildClaims(passes: ResearchPass[], contradictionsDetected: boolean, retainedUrlByCanonical: Map<string, string>): ResearchClaim[] {
   return passes
     .filter((pass) => pass.answer.trim())
     .map((pass, index) => ({
       id: `research-pass-claim-${index + 1}`,
       text: pass.answer.trim(),
-      sourceUrls: pass.sources.map((source) => source.url),
+      sourceUrls: [...new Set(pass.sources.map((source) => canonicalizeSourceUrl(source.url)).filter((canonical): canonical is string => Boolean(canonical)).map((canonical) => retainedUrlByCanonical.get(canonical)).filter((url): url is string => Boolean(url)))],
       confidence: contradictionsDetected ? 0.45 : pass.sources.length >= 3 ? 0.7 : 0.5,
       status: contradictionsDetected ? "conflicted" : "supported",
     }));
@@ -47,7 +47,13 @@ function buildClaims(passes: ResearchPass[], contradictionsDetected: boolean): R
 
 export function synthesizeResearch(passes: ResearchPass[]): ResearchSynthesis {
   const usable = passes.filter((pass) => pass.answer || pass.sources.length > 0);
-  const sources = uniqueByCanonicalUrl(usable.flatMap((pass) => pass.sources));
+  const allSources = usable.flatMap((pass) => pass.sources);
+  const sources = uniqueByCanonicalUrl(allSources);
+  const retainedUrlByCanonical = new Map<string, string>();
+  for (const source of sources) {
+    const canonical = canonicalizeSourceUrl(source.url);
+    if (canonical) retainedUrlByCanonical.set(canonical, source.url);
+  }
   const domains = new Set(sources.map((source) => domainOf(source.url)).filter((domain) => domain !== "unknown"));
   const passCount = usable.length;
   const independentPasses = new Set(sources.map((source) => `${domainOf(source.url)}|${source.provider}`)).size;
@@ -57,6 +63,6 @@ export function synthesizeResearch(passes: ResearchPass[]): ResearchSynthesis {
   const confidence = !contradictionsDetected && sources.length >= 8 && domains.size >= 5 && passCount >= 2 ? "high" : sources.length >= 3 ? "medium" : "low";
   const primary = usable[0]?.answer ?? FRESH_NOTES.noAnswer;
   const answer = contradictionsDetected ? `${primary}\n\n${FRESH_NOTES.conflict}` : primary;
-  const claims = buildClaims(usable, contradictionsDetected);
+  const claims = buildClaims(usable, contradictionsDetected, retainedUrlByCanonical);
   return { answer, sources, claims, verification: { passes: passCount, uniqueSources: sources.length, uniqueDomains: domains.size, newsSources, sourceDiversity, confidence, independentPasses, contradictionsDetected } };
 }
