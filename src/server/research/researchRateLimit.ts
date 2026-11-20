@@ -11,6 +11,7 @@ export type ResearchRateLimitResult =
 let cachedClient: { url: string; key: string; client: SupabaseClient } | null = null;
 
 function getAdminClient(): SupabaseClient | null {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY_FRESHWEBLITE || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return null;
   if (!cachedClient || cachedClient.url !== url || cachedClient.key !== key) {
@@ -46,7 +47,6 @@ function getTrustedClientIp(req: Request, secret: string): string | null {
 }
 
 export async function checkFreshResearchRateLimit(req: Request): Promise<ResearchRateLimitResult> {
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY_FRESHWEBLITE || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
   const ip = key ? getTrustedClientIp(req, key) : null;
   const client = getAdminClient();
