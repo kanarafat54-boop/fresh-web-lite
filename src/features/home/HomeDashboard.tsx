@@ -36,7 +36,7 @@ export default function HomeDashboard() {
   const { user, isAuthenticated } = useFreshId();
   const [result, setResult] = useState<IntelligenceResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);\n  const [lastSearchQuery, setLastSearchQuery] = useState("");
   const [experienceMode, setExperienceMode] = useState<"simple" | "standard" | "advanced">("simple");
   const [showGettingStarted, setShowGettingStarted] = useState(false);
   const [showMoreActions, setShowMoreActions] = useState(false);
@@ -70,7 +70,7 @@ export default function HomeDashboard() {
         prompt: query,
         query,
         task: "research",
-        researchMode: mode === "private" ? "local" : "global",
+        researchMode: forceBroader ? "live" : mode === "private" ? "local" : "global",
         maxSources: mode === "research" ? 12 : 6,
       });
       setResult(response);
@@ -162,7 +162,7 @@ export default function HomeDashboard() {
 
       {loading && <div className="fresh-home-status" role="status">Fresh is working on that…</div>}
       {error && <div className="fresh-home-status is-error" role="alert">{error}</div>}
-      {result && <FreshResearchResults result={result} />}
+      {result && (\n        <section className="fresh-home-research-workspace" aria-label="Fresh Research workspace">\n          <div className="fresh-home-research-heading">\n            <span>RESEARCH WORKSPACE</span>\n            <p>Evidence, source coverage and original reporting stay together here.</p>\n          </div>\n          <FreshResearchResults result={result} onRetryBroaderSearch={() => { if (lastSearchQuery.trim()) void handleSearch(lastSearchQuery, "research", true); }} />\n        </section>\n      )}
 
       {experienceMode !== "simple" && <section className="fresh-home-suggestions" aria-label="Suggested Shorts">
         <ShortsSuggestionsRow
