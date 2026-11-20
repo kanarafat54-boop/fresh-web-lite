@@ -19,7 +19,7 @@
     "test:fresh-neural": "node scripts/verify-fresh-neural-generation.mjs",
     "test:fresh-ai-image-engine": "node scripts/verify-fresh-ai-image-engine-adapter.mjs",
     "test:fresh-unified-inference": "node scripts/verify-fresh-unified-inference.mjs",
-    "test:truemode-chain": "node scripts/verify-truemode-research-persistence.mjs && node scripts/verify-evidence-passport.mjs && node --no-warnings scripts/verify-claim-evidence.mjs && node scripts/verify-research-canonical-source.mjs",
+    "test:truemode-chain": "node scripts/verify-truemode-research-persistence.mjs && node scripts/verify-evidence-passport.mjs && node --no-warnings scripts/verify-claim-evidence.mjs && node --experimental-strip-types --import ./scripts/register-js-to-ts.mjs scripts/verify-research-canonical-source.mjs",
     "test:fresh-ai-profile-creator-actions": "node scripts/verify-fresh-ai-profile-creator-actions.mjs",
     "test:fresh-e2ee": "node scripts/verify-fresh-e2ee-contract.mjs",
     "test:production-routing": "node scripts/verify-production-routing.mjs",
@@ -162,7 +162,7 @@
     "test:fresh-studio-image": "node --experimental-strip-types --no-warnings scripts/test-fresh-studio-image.mjs",
     "test:evidence-passport": "node scripts/verify-evidence-passport.mjs",
     "test:claim-evidence": "node --no-warnings scripts/verify-claim-evidence.mjs",
-    "test:research-canonical-source": "node scripts/verify-research-canonical-source.mjs"
+    "test:research-canonical-source": "node --experimental-strip-types --import ./scripts/register-js-to-ts.mjs scripts/verify-research-canonical-source.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
