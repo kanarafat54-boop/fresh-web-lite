@@ -156,7 +156,8 @@ async function research(goal: string, request: Request): Promise<Evidence[]> {
   try {
     const headers = new Headers({ "content-type": "application/json" });
     // Forward only the IP that Vercel itself placed on the inbound request, signed for this short-lived internal hop.
-    const clientIp = request.headers.get("x-real-ip")?.trim() ?? "";
+    const clientIpHeader = request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for") ?? "";
+    const clientIp = clientIpHeader.split(",")[0]?.trim() ?? "";
     const signingKey = process.env.SUPABASE_SECRET_KEY_FRESHWEBLITE || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (signingKey && isIP(clientIp)) {
       const timestamp = String(Date.now());
