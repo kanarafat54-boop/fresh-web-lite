@@ -11,6 +11,8 @@ const original = {
   apiKey: process.env.TAVILY_API_KEY,
   supabaseUrl: process.env.SUPABASE_URL,
   supabaseKey: process.env.SUPABASE_SECRET_KEY_FRESHWEBLITE,
+  fallbackSupabaseKey: process.env.SUPABASE_SECRET_KEY,
+  serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   dryRun: process.env.PERSISTENCE_DRY_RUN,
   nodeEnv: process.env.NODE_ENV,
 };
@@ -19,6 +21,8 @@ try {
   process.env.TAVILY_API_KEY = "test-only-not-a-real-key";
   process.env.SUPABASE_URL = "https://supabase.test";
   process.env.SUPABASE_SECRET_KEY_FRESHWEBLITE = "test-only-service-secret";
+  process.env.SUPABASE_SECRET_KEY = "";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "";
   process.env.PERSISTENCE_DRY_RUN = "true";
   process.env.NODE_ENV = "test";
 
@@ -109,6 +113,8 @@ try {
     TAVILY_API_KEY: original.apiKey,
     SUPABASE_URL: original.supabaseUrl,
     SUPABASE_SECRET_KEY_FRESHWEBLITE: original.supabaseKey,
+    SUPABASE_SECRET_KEY: original.fallbackSupabaseKey,
+    SUPABASE_SERVICE_ROLE_KEY: original.serviceRoleKey,
     PERSISTENCE_DRY_RUN: original.dryRun,
     NODE_ENV: original.nodeEnv,
   })) {
