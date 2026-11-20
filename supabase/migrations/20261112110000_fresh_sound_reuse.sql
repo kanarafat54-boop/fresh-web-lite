@@ -7,7 +7,7 @@
 --     always allowed. Server roles (auth.uid() is null) are not restricted.
 --   * If the new Short does not set a sound_name, it takes the source's, so the credit and the Sound page line up.
 --
--- Additive. Needs 20261111120000_fresh_shorts_privacy_controls.sql applied first. Also pins the search_path of the
+-- Additive. Needs 20261112064343_fresh_shorts_privacy_controls.sql applied first. Also pins the search_path of the
 -- keyword-validation helper that migration created (flagged by the security advisor).
 
 alter function public.short_keywords_valid(text[]) set search_path = public;

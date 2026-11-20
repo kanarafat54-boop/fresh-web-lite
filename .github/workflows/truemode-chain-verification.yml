@@ -74,7 +74,15 @@ jobs:
       - name: Apply immutable evidence passport ledger migration
         env:
           PGPASSWORD: postgres
-        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261118203000_fresh_intelligence_evidence_passports.sql
+        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261120151100_fresh_intelligence_evidence_passports.sql
+      - name: Apply durable Fresh Research rate-limit migration
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261120151112_fresh_research_rate_limits.sql
+      - name: Verify Fresh Research quotas and least-privilege grants
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d truemode_test -v ON_ERROR_STOP=1 -f scripts/test-fresh-research-rate-limits.sql
       - name: Verify writes, read-back, idempotency, and rollback
         env:
           PGPASSWORD: postgres
