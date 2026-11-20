@@ -64,6 +64,9 @@ try {
   assert.equal(body.intelligencePersisted, false, "dry-run must never be reported as durable persistence");
   assert.equal(body.persistence?.dryRun, true);
   assert.equal(body.persistence?.sources, 1);
+  assert.equal(body.answerEvidence?.summary.claims, 1, "the answer is mapped into sentence-level claim evidence");
+  assert.equal(body.persistence?.claims, 2, "the synthesis finding and individual answer statement are both represented in the dry-run graph");
+  assert.equal(body.persistence?.claimPassages, 0, "unsupported passages are not fabricated");
   assert.equal(body.warnings.some((warning) => warning.includes("memory layer could not persist")), false);
   assert.equal(providerCalls, 1);
 
