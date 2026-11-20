@@ -145,11 +145,17 @@ export async function POST(req: Request): Promise<Response> {
       "Retry-After": String(rateLimit.retryAfterSeconds),
       "X-RateLimit-Limit": String(rateLimit.limit),
       "X-RateLimit-Remaining": "0",
+      "X-RateLimit-Limit-Minute": String(rateLimit.limit),
+      "X-RateLimit-Limit-Hour": String(rateLimit.hourLimit),
+      "X-RateLimit-Limit-Day": String(rateLimit.dayLimit),
     });
   }
   const rateLimitHeaders = {
     "X-RateLimit-Limit": String(rateLimit.limit),
     "X-RateLimit-Remaining": String(rateLimit.remaining),
+    "X-RateLimit-Limit-Minute": String(rateLimit.limit),
+    "X-RateLimit-Limit-Hour": String(rateLimit.hourLimit),
+    "X-RateLimit-Limit-Day": String(rateLimit.dayLimit),
   };
   try {
     const queries = mode === "deep" || mode === "global" ? [enrichedQuery, `${enrichedQuery}\nSeek independent sources and evidence that can confirm or challenge the main findings.`] : [enrichedQuery];
