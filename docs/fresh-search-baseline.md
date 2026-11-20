@@ -1,11 +1,11 @@
 # Fresh Search: baseline and plan
 
-Status of Fresh Search against the "20x research engine" brief, measured on `main` at `2c5097ec` (20 Nov 2026), plus what this change adds.
+Status of Fresh Search against the "20x research engine" brief, updated 20 Nov 2026 after the production evidence-passport and quota schema rollout in PR #317.
 Everything here was checked against the code, live Supabase catalog and migration metadata, or tests. Production smoke tests used disposable transactions that were rolled back; no test data was retained. Where something could not be checked, it says so.
 
 ## In one paragraph
 
-Fresh Search today is a **single-vendor web search (Tavily) with an organized results screen and a tamper-evident record of each source** (Evidence Passports, #313). It is honest about its limits in the screen text, but four things stand between it and the brief: (1) a "claim" was the whole answer paragraph linked to every source, not one fact linked to the passage that supports it; (2) Images, Video and News are guessed from web addresses, not served by real providers; (3) there is no private, per-user research memory (projects, saved sources, notes, jobs, monitors); (4) the evidence ledger migration from #313 is not applied to production, and the research graph that is stored is publicly readable and contains users' search words. This change fixes (1) for the first time (v1, below). Items 3 and 4 and the provider work are the next slices.
+Fresh Search today is a **single-vendor web search (Tavily) with an organized results screen and a tamper-evident record of each source** (Evidence Passports, #313). It is honest about its limits in the screen text, but four things stand between it and the brief: (1) a "claim" was the whole answer paragraph linked to every source, not one fact linked to the passage that supports it; (2) Images, Video and News are guessed from web addresses, not served by real providers; (3) there is no private, per-user research memory (projects, saved sources, notes, jobs, monitors); (4) the research graph that is stored is publicly readable and contains users' search words. This change fixes (1) for the first time (v1), brings the evidence-passport ledger online, and adds durable abuse controls. Private per-user research memory, graph privacy, and provider expansion remain the next slices.
 
 ## Capability matrix
 
@@ -29,7 +29,7 @@ Status: **Implemented** (works and is checked), **Partial**, **Heuristic** (exis
 | Research projects, saved sources, notes, jobs, monitors | **Missing** | Live catalog has none (only unrelated `fresh_projects`, `fresh_ai_missions`, `fresh_media_jobs`) | Phase 2 of the plan |
 | Export of reports and source ledgers | Missing | None found | |
 | Retrieved text treated as data | Implemented in the research path | The answer is written by the search vendor. Fresh only string-matches it (`claimEvidence.ts` has a test with an injected "ignore previous instructions" page) | `/api/ai/ask` was not audited |
-| Endpoint protection | Partial | Query capped at 2,000 characters, sources at 16, 60 s limit; durable per-IP quota of 6/min, 30/hour, 100/day | Guest access remains; limits are per edge-observed IP rather than per signed-in account |
+| Endpoint protection | Partial | Query capped at 2,000 characters, sources at 16, 60 s limit; durable per-IP quota in PR #317 (6/min, 30/hour, 100/day) | Guest access remains; limits are per edge-observed IP rather than per signed-in account |
 
 ## Database and security findings (live project)
 
