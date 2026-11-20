@@ -8,7 +8,7 @@ import type { SemanticClaim, SemanticEvidence } from "../../core/semantic/types.
 import type { ProvenanceNode } from "../../core/semantic/sourceProvenance.js";
 import type { ResearchResult } from "../../core/research/contracts.js";
 
-type PersistenceSummary = { entities: number; sources: number; claims: number; evidence: number; passports: number; claimEvidence: number; relations: number; arbitrations: number; truthDecisions: number; actionableTruthDecisions: number; dryRun: boolean };
+type PersistenceSummary = { entities: number; sources: number; claims: number; evidence: number; passports: number; claimEvidence: number; claimPassages: number; relations: number; arbitrations: number; truthDecisions: number; actionableTruthDecisions: number; dryRun: boolean };
 type PersistenceOptions = { dryRun?: boolean; runId?: string };
 
 function logStage(runId: string | undefined, stage: string, details: Record<string, unknown> = {}): void {
@@ -119,13 +119,66 @@ export async function persistSemanticResearch(result: ResearchResult, options: P
     supersededClaimIds: decision.supersededClaimIds,
   }));
 
+  // Preserve each answer statement as its own claim record. Passage matching is provenance,
+  // not a truth verdict: these statement claims remain uncertain and are not fed into the
+  // semantic truth-decision/arbitration engine.
+  const answerStatements = result.answerEvidence?.statements.filter((statement) => statement.kind === "claim") ?? [];
+  const statementClaimId = new Map(answerStatements.map((statement) => [
+    statement.id,
+    "research-statement-" + queryScope + "-" + hash(`${statement.start}:${statement.text}`),
+  ]));
+  const statementClaims: SemanticClaim[] = answerStatements.map((statement) => ({
+    id: statementClaimId.get(statement.id)!,
+    subjectEntityId,
+    predicate: "answer_statement",
+    object: statement.text,
+    normalizedText: statement.text.toLocaleLowerCase().normalize("NFKC").trim(),
+    status: "uncertain",
+    // A passage overlap score is not calibrated truth confidence.
+    confidence: 0,
+    firstObservedAt: researchedAt,
+    lastObservedAt: researchedAt,
+    evidenceIds: [],
+    counterEvidenceIds: [],
+  }));
+  const persistedClaims = [...claims, ...statementClaims];
+  const claimPassages = (result.answerEvidence?.statements ?? []).flatMap((statement) => {
+    if (statement.kind !== "claim" || statement.support !== "passage_found") return [];
+    const claimId = statementClaimId.get(statement.id);
+    if (!claimId) return [];
+    return statement.passages.flatMap((passage) => {
+      const sourceId = sourceIdByUrl.get(passage.sourceUrl);
+      const evidenceItem = evidenceByUrl.get(passage.sourceUrl);
+      if (!sourceId || !evidenceItem) return [];
+      return [{
+        id: `research-passage-${hash(`${claimId}:${passage.passportId}:${passage.start}:${passage.end}:${passage.method}`)}`,
+        claimId,
+        batchKey: `research-batch-${queryScope}-${researchedAt}`,
+        statementId: statement.id,
+        statementText: statement.text,
+        statementStart: statement.start,
+        statementEnd: statement.end,
+        passportId: passage.passportId,
+        sourceId,
+        evidenceId: evidenceItem.id,
+        quote: passage.quote,
+        quoteStart: passage.start,
+        quoteEnd: passage.end,
+        method: passage.method,
+        matchScore: passage.score,
+        matchedTerms: passage.matchedTerms,
+        strength: passage.strength,
+      }];
+    });
+  });
+
   const entities = [{ id: subjectEntityId, entityType: "concept", label: result.query, attributes: [{ key: "mode", value: result.mode, source: "web", confidence: 1, observedAt: researchedAt }] }];
-  const summary: PersistenceSummary = { entities: entities.length, sources: sources.length, claims: claims.length, evidence: evidence.length, passports: passports.length, claimEvidence: claimEvidence.length, relations: relations.length, arbitrations: arbitrations.length, truthDecisions: truthDecisions.length, actionableTruthDecisions: truthDecisions.filter((decision) => decision.actionable).length, dryRun: Boolean(options.dryRun) };
+  const summary: PersistenceSummary = { entities: entities.length, sources: sources.length, claims: persistedClaims.length, evidence: evidence.length, passports: passports.length, claimEvidence: claimEvidence.length, claimPassages: claimPassages.length, relations: relations.length, arbitrations: arbitrations.length, truthDecisions: truthDecisions.length, actionableTruthDecisions: truthDecisions.filter((decision) => decision.actionable).length, dryRun: Boolean(options.dryRun) };
   logStage(runId, "research.persistence.prepared", summary);
   if (options.dryRun) return summary;
 
   const batchKey = `research-batch-${queryScope}-${researchedAt}`;
-  await createSupabaseSemanticPersistence().persistResearchGraph({ batchKey, entities, sources, claims, evidence, claimEvidence, relations, arbitrations, truthDecisions, passports });
+  await createSupabaseSemanticPersistence().persistResearchGraph({ batchKey, entities, sources, claims: persistedClaims, evidence, claimEvidence, relations, arbitrations, truthDecisions, passports, claimPassages });
   logStage(runId, "research.persistence.supabase.complete", summary);
   return summary;
 }
