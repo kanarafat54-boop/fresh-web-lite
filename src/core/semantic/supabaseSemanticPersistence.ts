@@ -10,7 +10,7 @@ export function assertResearchPersistenceRpcResult(data: unknown): void {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     throw new Error("TRUEMODE persistence RPC returned no result; persistence status is unknown.");
   }
-  const result = data as { persisted?: unknown; alreadyPersisted?: unknown; summary?: unknown; passportsPersisted?: unknown };
+  const result = data as { persisted?: unknown; alreadyPersisted?: unknown; summary?: unknown; passportsPersisted?: unknown; claimPassagesPersisted?: unknown };
   if (result.persisted !== true && result.alreadyPersisted !== true) {
     throw new Error("TRUEMODE persistence RPC did not confirm a new or previously persisted batch.");
   }
@@ -19,6 +19,9 @@ export function assertResearchPersistenceRpcResult(data: unknown): void {
   }
   if (!Number.isInteger(result.passportsPersisted) || (result.passportsPersisted as number) < 0) {
     throw new Error("TRUEMODE persistence RPC did not confirm the immutable passport write count.");
+  }
+  if (!Number.isInteger(result.claimPassagesPersisted) || (result.claimPassagesPersisted as number) < 0) {
+    throw new Error("TRUEMODE persistence RPC did not confirm the exact claim-passage write count.");
   }
   const summary = result.summary as Record<string, unknown>;
   for (const key of ["entities", "sources", "claims", "evidence", "claimEvidence", "claimPassages", "relations", "arbitrations", "truthDecisions"]) {
