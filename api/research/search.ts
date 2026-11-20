@@ -153,7 +153,7 @@ export async function POST(req: Request): Promise<Response> {
     const researchedAt = new Date().toISOString();
     const dimensions = reasonAcrossDimensions(query);
     const researchSources = synthesis.sources.flatMap((source) => {
-      try { const evidencePassport = createEvidencePassport(source, researchedAt); return [{ ...source, publishedAt: evidencePassport.source.publishedAt, kind: sourceKind(source.url, evidencePassport.source.publishedAt, mode), evidencePassport }]; }
+      try { const evidencePassport = createEvidencePassport(source, researchedAt); return [{ ...source, publishedAt: evidencePassport.source.publishedAt, kind: source.kind ?? sourceKind(source.url, evidencePassport.source.publishedAt, mode), evidencePassport }]; }
       catch { return []; }
     });
     const invalidSourceCount = synthesis.sources.length - researchSources.length;
