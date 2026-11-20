@@ -5,6 +5,7 @@ import { persistSemanticResearch } from "../../src/server/research/persistSemant
 import { reasonAcrossDimensions } from "../../src/core/fresh-ai/dimensionalIntelligence.js";
 import { createEvidencePassport } from "../../src/core/research/evidencePassport.js";
 import { mapAnswerToPassages } from "../../src/core/research/claimEvidence.js";
+import { checkFreshResearchRateLimit } from "../../src/server/research/researchRateLimit.js";
 
 type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
 type SearchRequest = { query?: string; maxSources?: number; context?: string[]; mode?: ResearchMode };
@@ -126,6 +127,30 @@ export async function POST(req: Request): Promise<Response> {
     ? body.context.filter((item): item is string => typeof item === "string" && Boolean(item.trim())).slice(0, 8).map((item) => item.trim())
     : [];
   const enrichedQuery = `${modeConfig.prefix ? `${modeConfig.prefix}\n` : ""}${query}${context.length ? `\nContext:\n${context.join("\n")}` : ""}`;
+  let rateLimit;
+  try {
+    rateLimit = await checkFreshResearchRateLimit(req);
+  } catch (error) {
+    logStage(runId, "research.rate-limit.error", { error: error instanceof Error ? error.message : "unknown" });
+    return json({ error: "Fresh Research is temporarily unavailable because request protection could not be verified.", runId }, 503, { "Cache-Control": "no-store" });
+  }
+  if (!rateLimit.configured) {
+    logStage(runId, "research.rate-limit.unavailable");
+    return json({ error: "Fresh Research is temporarily unavailable because request protection is not configured.", runId }, 503, { "Cache-Control": "no-store" });
+  }
+  if (!rateLimit.allowed) {
+    logStage(runId, "research.rate-limit.blocked", { limit: rateLimit.limit, windowSeconds: rateLimit.windowSeconds });
+    return json({ error: "Research request limit reached. Please wait before searching again.", runId }, 429, {
+      "Cache-Control": "no-store",
+      "Retry-After": String(rateLimit.retryAfterSeconds),
+      "X-RateLimit-Limit": String(rateLimit.limit),
+      "X-RateLimit-Remaining": "0",
+    });
+  }
+  const rateLimitHeaders = {
+    "X-RateLimit-Limit": String(rateLimit.limit),
+    "X-RateLimit-Remaining": String(rateLimit.remaining),
+  };
   try {
     const queries = mode === "deep" || mode === "global" ? [enrichedQuery, `${enrichedQuery}\nSeek independent sources and evidence that can confirm or challenge the main findings.`] : [enrichedQuery];
     const settled = await Promise.allSettled(queries.map((candidate, index) => runTavily(apiKey, candidate, modeConfig, Math.ceil(maxResults / queries.length), runId, index + 1, mode)));
@@ -181,7 +206,7 @@ export async function POST(req: Request): Promise<Response> {
       if (persistenceTimeout) clearTimeout(persistenceTimeout);
     }
     const warnings = [...(failures.length ? [`${failures.length} research pass(es) failed or timed out; Fresh returned the successfully completed evidence.`] : []), ...(adaptiveNewsFailed ? ["Fresh attempted a broader current-news search, but that additional provider pass failed. The available evidence is still shown with its limitations."] : []), ...(adaptiveNewsAttempted && (synthesis.verification.uniqueDomains < 3 || synthesis.verification.newsSources === 0) ? ["Source coverage remains limited after an automatic broader news search. Treat this as preliminary and open the original sources before relying on it."] : []), ...(invalidSourceCount ? [`${invalidSourceCount} source record(s) were excluded because they could not receive a valid HTTP(S) Evidence Passport.`] : []), ...(persistenceWarning ? [persistenceWarning] : [])];
-    return json({ answer: synthesis.answer, sources: researchResult.sources, claims: synthesis.claims, answerEvidence, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning }, 200, { "x-truemode-run-id": runId });
+    return json({ answer: synthesis.answer, sources: researchResult.sources, claims: synthesis.claims, answerEvidence, verification: synthesis.verification, warnings, mode, searchedAt: researchedAt, runId, persistence: persistence ?? null, intelligencePersisted: !dryRun && Boolean(persistence) && !persistenceWarning }, 200, { "x-truemode-run-id": runId, ...rateLimitHeaders, "Cache-Control": "no-store" });
   } catch (error) {
     console.error("Fresh Web Research error", { runId, error });
     return json({ error: error instanceof Error ? error.message : "Web research provider unavailable", runId }, 502);
