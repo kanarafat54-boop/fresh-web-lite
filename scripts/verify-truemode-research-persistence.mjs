@@ -126,6 +126,7 @@ assert(researchRateLimit.includes('request.headers.get("x-real-ip")'), "Rate lim
 assert(researchRateLimit.includes('createHmac("sha256", secretKey)'), "Rate limiting must HMAC identifiers instead of storing raw IPs");
 assert(researchRateLimit.includes('rpc("consume_fresh_research_quota"'), "Rate limiting must use the atomic database RPC");
 assert(researchRateLimitMigration.includes("security definer") && researchRateLimitMigration.includes("set search_path = ''"), "Quota RPC must use a pinned search path");
+assert(researchRateLimitMigration.includes("alter table private.fresh_research_rate_limits enable row level security"), "Private quota storage must have RLS enabled as defense in depth");
 assert(researchRateLimitMigration.includes("grant execute on function public.consume_fresh_research_quota(text) to service_role"), "Only the server service role may execute the quota RPC");
 assert(researchRateLimitMigration.includes("revoke all on table private.fresh_research_rate_limits from public, anon, authenticated, service_role"), "Quota records must not be directly readable by API roles");
 assert(researchRateLimitSqlTest.includes("six") || researchRateLimitSqlTest.includes("1..6"), "PostgreSQL quota tests must verify the per-minute limit");
