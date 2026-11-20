@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import { build } from "esbuild";
 import { pathToFileURL } from "node:url";
 import { writeFile, mkdtemp, rm } from "node:fs/promises";
@@ -33,10 +34,12 @@ try {
 
   let providerCalls = 0;
   let quotaCalls = 0;
+  let lastQuotaRequest;
   let quotaPayload = { allowed: true, remaining: 5, retryAfterSeconds: 0 };
   const fakeFetch = async (input, init) => {
     if (String(input).includes("/rest/v1/rpc/consume_fresh_research_quota")) {
       quotaCalls += 1;
+      lastQuotaRequest = JSON.parse(String(init?.body ?? "{}"));
       return new Response(JSON.stringify(quotaPayload), { status: 200, headers: { "content-type": "application/json" } });
     }
     providerCalls += 1;
@@ -55,7 +58,7 @@ try {
   // 1: Real HTTP handler, durable quota RPC, synthesis and dry-run persistence.
   const response = await POST(new Request("https://fresh.test/api/research/search", {
     method: "POST",
-    headers: { "content-type": "application/json", "x-real-ip": "203.0.113.10" },
+    headers: { "content-type": "application/json", "x-real-ip": "203.0.113.10", "x-forwarded-for": "198.51.100.99" },
     body: JSON.stringify({ query: "controlled TRUEMODE integration test", mode: "quick", maxSources: 2 }),
   }));
   assert.equal(response.status, 200);
@@ -66,6 +69,8 @@ try {
   assert.equal(body.persistence?.sources, 1);
   assert.equal(providerCalls, 1);
   assert.equal(quotaCalls, 1, "every valid request must consume a durable quota token");
+  assert.equal(lastQuotaRequest.p_identifier_hash, createHmac("sha256", "test-only-supabase-secret-key").update("203.0.113.10").digest("hex"), "quota identity must HMAC the edge IP, not the spoofed forwarded-for header");
+  assert.notEqual(lastQuotaRequest.p_identifier_hash, "203.0.113.10", "raw IP addresses must never be sent to quota storage");
 
   // 2: Low source coverage on a current-entity query triggers a news-specific recovery pass.
   let adaptiveCalls = [];
