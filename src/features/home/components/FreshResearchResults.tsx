@@ -43,7 +43,7 @@ function dateLabel(value?: string): string | null {
   return Number.isNaN(date.getTime()) ? null : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
 }
 
-export default function FreshResearchResults({ result }: { result: IntelligenceResponse }) {
+export default function FreshResearchResults({ result, onRetryBroaderSearch }: { result: IntelligenceResponse; onRetryBroaderSearch?: () => void }) {
   const [tab, setTab] = useState<ResultTab>("all");
   const sources = useMemo(() => {
     const seen = new Set<string>();
@@ -79,7 +79,7 @@ export default function FreshResearchResults({ result }: { result: IntelligenceR
 
       {verification && (
         <div className="fresh-research-results__verification" aria-label="Source coverage">
-          <span><strong>{verification.uniqueDomains}</strong> unique domains</span>
+          <span><strong>{verification.uniqueDomains}</strong> unique domains</span>\n          {verification.newsSources !== undefined && <span><strong>{verification.newsSources}</strong> news sources</span>}
           {Number.isFinite(verification.passes) && <span><strong>{verification.passes}</strong> research passes</span>}
           <span><strong>{verification.sourceDiversity}</strong> source diversity</span>
           <span><strong>{verification.confidence}</strong> system assessment</span>
