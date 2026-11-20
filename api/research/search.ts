@@ -5,6 +5,7 @@ import { persistSemanticResearch } from "../../src/server/research/persistSemant
 import { reasonAcrossDimensions } from "../../src/core/fresh-ai/dimensionalIntelligence.js";
 import { createEvidencePassport } from "../../src/core/research/evidencePassport.js";
 import { mapAnswerToPassages } from "../../src/core/research/claimEvidence.js";
+import { consumeFreshResearchQuota } from "../../src/server/research/rateLimit.js";
 
 type ResearchMode = "quick" | "deep" | "global" | "live" | "academic" | "business" | "people" | "local";
 type SearchRequest = { query?: string; maxSources?: number; context?: string[]; mode?: ResearchMode };
@@ -127,6 +128,21 @@ export async function POST(req: Request): Promise<Response> {
     : [];
   const enrichedQuery = `${modeConfig.prefix ? `${modeConfig.prefix}\n` : ""}${query}${context.length ? `\nContext:\n${context.join("\n")}` : ""}`;
   try {
+    let quota;
+    try {
+      quota = await consumeFreshResearchQuota(req);
+    } catch (error) {
+      logStage(runId, "research.rate-limit.unavailable", { error: error instanceof Error ? error.message : "unknown" });
+      return json({ error: "Fresh Research protection is temporarily unavailable. Please try again shortly.", runId }, 503, { "Cache-Control": "no-store" });
+    }
+    if (!quota.allowed) {
+      logStage(runId, "research.rate-limit.blocked", { remaining: quota.remaining, retryAfterSeconds: quota.retryAfterSeconds });
+      return json({ error: "Research request limit reached. Please wait before searching again.", runId, retryAfterSeconds: quota.retryAfterSeconds }, 429, {
+        "Cache-Control": "no-store",
+        "Retry-After": String(quota.retryAfterSeconds),
+        "X-RateLimit-Remaining": String(quota.remaining),
+      });
+    }
     const queries = mode === "deep" || mode === "global" ? [enrichedQuery, `${enrichedQuery}\nSeek independent sources and evidence that can confirm or challenge the main findings.`] : [enrichedQuery];
     const settled = await Promise.allSettled(queries.map((candidate, index) => runTavily(apiKey, candidate, modeConfig, Math.ceil(maxResults / queries.length), runId, index + 1, mode)));
     const passes = settled.filter((result): result is PromiseFulfilledResult<ResearchPass> => result.status === "fulfilled").map((result) => result.value);
