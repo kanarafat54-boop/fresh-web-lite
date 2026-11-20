@@ -152,7 +152,7 @@ assert.match(evidenceUi, /Review withheld claims/, "users can inspect claims wit
 const researchUi = read("src/features/home/components/FreshResearchResults.tsx");
 assert.match(researchUi, /Retry with broader news search/, "limited source coverage exposes a recovery action");
 assert.match(researchUi, /Publication date unavailable/, "missing publication dates are disclosed rather than invented");
-assert.match(researchUi, /cleanSnippet\\(source\\)/, "source snippet previews are deduplicated against article titles");
+assert.match(researchUi, /cleanSnippet\(source\)/, "source snippet previews are deduplicated against article titles");
 
 
 console.log("Claim-to-passage evidence passed (exact quotes, wrong numbers and opposite passages rejected, tampering detected, bounded input).");
