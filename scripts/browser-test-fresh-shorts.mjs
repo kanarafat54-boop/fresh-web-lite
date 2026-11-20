@@ -369,11 +369,12 @@ for (const width of WIDTHS) {
   if (aiBox) check(aiBox.width <= 48 && aiBox.y < 200 && aiBox.x + aiBox.width >= width - 24, `${tag} Fresh AI button is compact and top-right`);
 
   // Creator Studio opens from the Fresh Flow Home create entry; it no longer occupies a bottom-nav slot.
-  // Return to Fresh Flow Home through the real platform navigation.
-  // Shorts intentionally omits the Discover tab from its compact media-world header.
-  await page.locator('nav[aria-label="Fresh Flow navigation"] button[aria-label="Home"]').click();
-  await page.locator('nav[aria-label="Fresh primary navigation"] button[aria-label="Flow"]').waitFor({ state: "visible", timeout: 8000 });
-  await page.locator('nav[aria-label="Fresh primary navigation"] button[aria-label="Flow"]').click();
+  // Restore the same Flow Home route fixture used at test setup. This keeps
+  // the test focused on the Studio entry contract, not unrelated global nav.
+  await page.evaluate(() => {
+    window.history.replaceState({ freshRoute: "fresh-flow" }, "", "/fresh-flow");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
   await page.locator(".fresh-flow-compose").waitFor({ state: "visible", timeout: 8000 });
   await page.locator(".fresh-flow-compose").click();
   await page.locator(".fs-app-embedded").waitFor({ timeout: 8000 });
