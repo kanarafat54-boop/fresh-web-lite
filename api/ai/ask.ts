@@ -1,4 +1,6 @@
 import { createVercelNodeHandler } from "../../src/server/vercelNodeAdapter.js";
+import { createHmac } from "node:crypto";
+import { isIP } from "node:net";
 import { handleMachineGateway } from "../../src/server/machine/entry.js";
 import { handleFreshAIStatus } from "../../src/server/freshAIStatus.js";
 import { createClient } from "@supabase/supabase-js";
@@ -145,14 +147,27 @@ async function handleBlenderWorkerProxy(req: Request): Promise<Response> {
   }
 }
 
-async function research(goal: string): Promise<Evidence[]> {
+async function research(goal: string, request: Request): Promise<Evidence[]> {
   const configured = process.env.FRESH_RESEARCH_URL?.trim();
   const origin = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
   const endpoint = configured || `${origin}/api/research/search`;
   const mode = /\b(news|trending|latest|today|current|right now|worldwide|global|across the world)\b/i.test(goal) ? "live" : "global";
   const ac = new AbortController(), timer = setTimeout(() => ac.abort(), 15_000);
   try {
-    const r = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" }, signal: ac.signal, body: JSON.stringify({ query: goal, mode, maxSources: 10 }) });
+    const headers = new Headers({ "content-type": "application/json" });
+    // Forward only the IP that Vercel itself placed on the inbound request, signed for this short-lived internal hop.
+    const clientIp = request.headers.get("x-real-ip")?.trim() ?? "";
+    const signingKey = process.env.SUPABASE_SECRET_KEY_FRESHWEBLITE || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (signingKey && isIP(clientIp)) {
+      const timestamp = String(Date.now());
+      const signature = createHmac("sha256", signingKey)
+        .update("fresh-research-forwarded-v1:" + clientIp + ":" + timestamp)
+        .digest("hex");
+      headers.set("x-fresh-research-client-ip", clientIp);
+      headers.set("x-fresh-research-client-timestamp", timestamp);
+      headers.set("x-fresh-research-client-signature", signature);
+    }
+    const r = await fetch(endpoint, { method: "POST", headers, signal: ac.signal, body: JSON.stringify({ query: goal, mode, maxSources: 10 }) });
     if (!r.ok) return [];
     const p = await r.json() as { claims?: Array<{ id?: string; text?: string; confidence?: number; sourceUrls?: string[] }>; sources?: Array<{ title?: string; url?: string; snippet?: string; publishedAt?: string }>; runId?: string };
     const sources = (p.sources ?? []).filter((source) => {
@@ -280,7 +295,7 @@ export async function POST(req: Request): Promise<Response> {
     const gw = createFreshAIIntelligenceGateway({
       skills: createCoreFreshSkillRegistry(),
       memory: memory(shortsContextCheck ? null : uid),
-      retrieve: async (x, i) => { const [web, kb] = await Promise.all([i.needsEvidence || i.intent === "research" ? research(x) : Promise.resolve([] as Awaited<ReturnType<typeof research>>), i.intent !== "chat" && isExplicitFreshPlatformQuestion(x) ? platformKnowledge(x) : Promise.resolve([] as Awaited<ReturnType<typeof research>>)]); return [...web, ...kb]; },
+      retrieve: async (x, i) => { const [web, kb] = await Promise.all([i.needsEvidence || i.intent === "research" ? research(x, req) : Promise.resolve([] as Awaited<ReturnType<typeof research>>), i.intent !== "chat" && isExplicitFreshPlatformQuestion(x) ? platformKnowledge(x) : Promise.resolve([] as Awaited<ReturnType<typeof research>>)]); return [...web, ...kb]; },
       nativeAnswer: async (input, interpretation, evidence, _reasoning, _memories, turns) => {
         const history = turns.slice(-6).map(turn => turn.role + ": " + turn.content.slice(0, 1200)).join("\n");
         const sources = evidence.slice(0, 8).map(item => "- Claim: " + item.claim.slice(0, 700) + "\n  Source: " + (item.source || "unspecified")).join("\n");
