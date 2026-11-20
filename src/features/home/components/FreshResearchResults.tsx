@@ -104,9 +104,9 @@ export default function FreshResearchResults({ result, onRetryBroaderSearch }: {
         </div>
       )}
 
-      {result.warnings?.length ? (
+      {(result.warnings?.length || (verification && (verification.sourceDiversity === "low" || verification.newsSources === 0))) ? (
         <div className="fresh-research-results__warnings" role="status">
-          {result.warnings.map((warning, index) => <p key={index}>{warning}</p>)}
+          {(result.warnings ?? []).map((warning, index) => <p key={index}>{warning}</p>)}
           {onRetryBroaderSearch && verification && (verification.sourceDiversity === "low" || verification.newsSources === 0) && (
             <button type="button" className="fresh-research-results__retry" onClick={onRetryBroaderSearch}>Retry with broader news search</button>
           )}
