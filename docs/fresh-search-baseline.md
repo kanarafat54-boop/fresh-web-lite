@@ -19,7 +19,7 @@ Status: **Implemented** (works and is checked), **Partial**, **Heuristic** (exis
 | Academic | Partial | OpenAlex is used, but only in the Fresh Flow Research panel | Not in Fresh Search; no DOI-keyed records |
 | Organized results screen | Implemented | `FreshResearchResults.tsx` (#313). Phone layout checked at 390 px | Tabs depend on the guessed kinds above |
 | De-duplication | Partial | `uniqueByUrl` in `src/server/research/orchestrator.ts` (exact URL) | No canonical or syndicated-copy grouping |
-| Evidence Passport (per source) | Implemented in code | `src/core/research/evidencePassport.ts`: SHA-256 of the captured excerpt, publisher, published vs observed time, limits spelled out | **Ledger not live in production** (finding F1) |
+| Evidence Passport (per source) | Implemented and persisted | `src/core/research/evidencePassport.ts`; live ledger migration `20261120151100` and graph-plus-passports RPC are present in production | Repository migration filename differs from the production version; keep the mapping in Phase 0B reconciliation |
 | **Claim to exact passage** | **New in this change (v1)** | `src/core/research/claimEvidence.ts`; `scripts/verify-claim-evidence.mjs` | Deterministic word-and-number match, not understanding. Computed per response, not stored |
 | Claim model before this change | Was a gap | `buildClaims` made one claim per research pass: the whole answer, linked to all of that pass's sources | Still true for the stored graph (`fresh_intelligence_claims`) |
 | Confidence | Heuristic | 0.7 with three or more sources, else 0.5; stance from word overlap and negation words (`src/core/semantic/evidenceStance.ts`) | Not calibrated. Shown as "system assessment" |
