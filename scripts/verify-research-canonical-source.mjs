@@ -4,7 +4,7 @@ import { synthesizeResearch } from "../src/server/research/orchestrator.ts";
 
 assert.equal(
   canonicalizeSourceUrl("HTTPS://WWW.Example.com:443/story/?utm_source=mail&b=2&a=1#section"),
-  "https://example.com/story?a=1&b=2",
+  "https://www.example.com/story/?b=2&a=1",
   "host casing, www, default port, tracking parameters, fragments and query order normalize",
 );
 assert.equal(
@@ -13,22 +13,32 @@ assert.equal(
   "meaningful query parameters are retained",
 );
 assert.equal(
-  canonicalizeSourceUrl("https://example.com/article?id=42"),
-  canonicalizeSourceUrl("https://example.com/article/?id=42#top"),
-  "safe URL variants share an identity",
+  canonicalizeSourceUrl("https://example.com/article?id=42&utm_source=mail"),
+  canonicalizeSourceUrl("https://example.com/article?id=42#top"),
+  "tracking parameters and fragments do not change identity",
 );
 assert.notEqual(
   canonicalizeSourceUrl("https://example.com/article?id=42"),
   canonicalizeSourceUrl("https://example.com/article?id=43"),
   "different meaningful query values remain distinct",
 );
+assert.notEqual(
+  canonicalizeSourceUrl("https://example.com/article?id=42"),
+  canonicalizeSourceUrl("https://example.com/article/?id=42"),
+  "trailing slash differences are preserved because servers may treat paths differently",
+);
+assert.notEqual(
+  canonicalizeSourceUrl("https://example.com/a?x=1&y=2"),
+  canonicalizeSourceUrl("https://example.com/a?y=2&x=1"),
+  "query parameter order is preserved to avoid changing signed or order-sensitive URLs",
+);
 assert.equal(canonicalizeSourceUrl("javascript:alert(1)"), null);
 assert.equal(canonicalizeSourceUrl("file:///etc/passwd"), null);
 assert.equal(canonicalizeSourceUrl("https://user:secret@example.com/private"), null);
 assert.equal(canonicalizeSourceUrl("not a url"), null);
 
-const first = "https://www.example.com/story?utm_medium=social&id=7";
-const second = "https://example.com/story/?id=7#comments";
+const first = "https://example.com/story?id=7&utm_medium=social";
+const second = "https://example.com/story?id=7#comments";
 assert.equal(canonicalSourceId(first), canonicalSourceId(second), "stable IDs use canonical identity");
 assert.match(canonicalSourceId(first) ?? "", /^fresh-source-[a-f0-9]{32}$/);
 assert.equal(canonicalSourceId("javascript:alert(1)"), null);
