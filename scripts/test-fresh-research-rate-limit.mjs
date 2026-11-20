@@ -39,17 +39,16 @@ try {
   let blockRateLimit = false;
   globalThis.fetch = async (input, init) => {
     const url = String(input);
-    if (url.includes("/rest/v1/rpc/consume_fresh_research_rate_limit")) {
+    if (url.includes("/rest/v1/rpc/consume_fresh_research_quota")) {
       rpcCalls += 1;
       const payload = JSON.parse(String(init?.body ?? "{}"));
-      assert.equal(payload.p_bucket_hash, createHmac("sha256", "test-only-service-secret").update("fresh-research:v1:203.0.113.10").digest("hex"));
-      assert.equal(payload.p_limit, 20);
-      assert.equal(payload.p_window_seconds, 600);
-      return Response.json([{
+      assert.equal(payload.p_identifier_hash, createHmac("sha256", "test-only-service-secret").update("fresh-research:v1:203.0.113.10").digest("hex"));
+      return Response.json({
         allowed: !blockRateLimit,
-        remaining: blockRateLimit ? 0 : 9,
-        retry_after_seconds: blockRateLimit ? 247 : 0,
-      }]);
+        remaining: blockRateLimit ? 0 : 5,
+        retryAfterSeconds: blockRateLimit ? 247 : 0,
+        limits: { perMinute: 6, perHour: 30, perDay: 100 },
+      });
     }
     providerCalls += 1;
     return Response.json({
@@ -91,7 +90,9 @@ try {
   const blocked = await POST(signedRequest());
   assert.equal(blocked.status, 429);
   assert.equal(blocked.headers.get("retry-after"), "247");
-  assert.equal(blocked.headers.get("x-ratelimit-limit"), "20");
+  assert.equal(blocked.headers.get("x-ratelimit-limit"), "6");
+  assert.equal(blocked.headers.get("x-ratelimit-limit-hour"), "30");
+  assert.equal(blocked.headers.get("x-ratelimit-limit-day"), "100");
   assert.equal(blocked.headers.get("x-ratelimit-remaining"), "0");
   assert.equal(providerCalls, beforeBlockedProviderCalls, "blocked requests must not spend provider credits");
   assert.equal(rpcCalls, 2);
@@ -101,7 +102,7 @@ try {
   assert.equal(unavailable.status, 503, "rate-limit storage failures fail closed");
   assert.equal(providerCalls, beforeBlockedProviderCalls);
 
-  console.log("Fresh Research durable rate-limit route tests: PASS (allowed, blocked, fail-closed)");
+  console.log("Fresh Research multi-window quota route tests: PASS (allowed, blocked, fail-closed)");
 } finally {
   globalThis.fetch = originalFetch;
   for (const [name, value] of Object.entries({
