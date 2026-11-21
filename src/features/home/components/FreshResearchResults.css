@@ -76,3 +76,9 @@
 .fresh-claims__withheld .fresh-claims__list{margin-top:10px}
 .fresh-claims__empty{color:#d2d0df;font-size:.82rem;line-height:1.55}
 .fresh-claims__notes{margin:10px 0 0;padding-left:18px;color:#aaaabd;font-size:.76rem;line-height:1.5}
+.fresh-claims__unchecked{margin-top:10px;padding:10px 12px;border:1px dashed rgba(255,255,255,.22);border-radius:11px;background:rgba(255,255,255,.025)}
+.fresh-claims__unchecked>summary{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;cursor:pointer;color:#e6e6ef;font-weight:650;list-style:none}
+.fresh-claims__unchecked>summary::-webkit-details-marker{display:none}
+.fresh-claims__unchecked>summary:focus-visible{outline:3px solid #a5a1ff;outline-offset:2px;border-radius:8px}
+.fresh-claims__unchecked .fresh-claims__why{padding:8px 0 0}
+.fresh-claims__tail{margin:8px 0 0!important;color:#c9c9d5;font-size:.82rem;line-height:1.55!important}

@@ -66,6 +66,12 @@ export type AnswerStatement = {
 export type AnswerEvidence = {
   method: typeof CLAIM_EVIDENCE_METHOD;
   statements: AnswerStatement[];
+  /** The statements cover answer.slice(0, checkedUpTo). Whatever follows was NOT checked, and must be shown as such, never dropped. */
+  checkedUpTo: number;
+  /** Length of the whole answer, in characters. */
+  answerLength: number;
+  /** Characters after checkedUpTo that are not blank. 0 when the whole answer was checked. */
+  uncheckedChars: number;
   summary: { claims: number; withPassage: number; strong: number; partial: number; withoutPassage: number };
   limitations: readonly string[];
 };
@@ -130,12 +136,13 @@ export function splitStatements(text: string): Segment[] {
 
 const STOP_WORDS = new Set(("a about after all also an and any are as at be been being but by can could did do does for from had has have he her his how i if in into is it its may might more most of on or our she so some such than that the their them then there these they this those to too up us was we were what when where which who whom why will with would you your").split(" "));
 const NEGATIONS = new Set(["not", "no", "never", "none", "cannot", "without", "neither", "nor", "denied", "denies", "deny", "refused", "rejected", "false", "unable", "failed", "fails"]);
-const TOKEN = /\p{N}+(?:[.,]\p{N}+)*|\p{L}+/gu;
+/** A number may carry a leading minus (hyphen, minus sign or en dash); see termsOf for when that dash is a sign. */
+const TOKEN = /[-−–]?\p{N}+(?:[.,]\p{N}+)*|\p{L}+/gu;
 
 type Terms = { all: string[]; numbers: Set<string>; negated: boolean };
 
 function canonical(token: string): string {
-  if (/^\p{N}/u.test(token)) return token.replace(/,/g, "");
+  if (/^-?\p{N}/u.test(token)) return token.replace(/,/g, "");
   if (token.length > 4 && token.endsWith("ies")) return `${token.slice(0, -3)}y`;
   if (token.length > 4 && /(?:x|ch|sh|ss|z)es$/.test(token)) return token.slice(0, -2);
   if (token.length > 3 && token.endsWith("s") && !token.endsWith("ss")) return token.slice(0, -1);
@@ -145,12 +152,18 @@ function canonical(token: string): string {
 /** Distinctive terms of a text, in order of first appearance, plus its numbers and whether it is negated. */
 export function termsOf(text: string): Terms {
   const raw = text.normalize("NFKC").toLowerCase();
-  const tokens = raw.match(TOKEN) ?? [];
   const seen = new Set<string>(), all: string[] = [], numbers = new Set<string>();
   let negated = /n['’]t\b/.test(raw);
-  for (const token of tokens) {
+  for (const match of raw.matchAll(TOKEN)) {
+    let token = match[0];
+    if (/^[-−–]/u.test(token)) {
+      // A minus sign reverses a number ("-5 million" is not "5 million"), but the dash in "5-10" or "COVID-19" is punctuation:
+      // it is a sign only when no letter or digit comes right before it. A plus sign never changes a number's meaning here.
+      const before = match.index > 0 ? raw[match.index - 1] : "";
+      token = !before || !/[\p{L}\p{N}]/u.test(before) ? `-${token.slice(1)}` : token.slice(1);
+    }
     if (NEGATIONS.has(token)) { negated = true; continue; }
-    const isNumber = /^\p{N}/u.test(token);
+    const isNumber = /^-?\p{N}/u.test(token);
     if (!isNumber && (STOP_WORDS.has(token) || token.length < 2)) continue;
     const term = canonical(token);
     if (isNumber) numbers.add(term);
@@ -230,7 +243,14 @@ const NOTE_SENTENCES = new Set(Object.values(FRESH_NOTES).flatMap((note) => spli
  */
 export function mapAnswerToPassages(answer: string, passports: readonly EvidencePassport[]): AnswerEvidence {
   const windows = passports.slice(0, MAX_PASSPORTS).flatMap(windowsOf);
-  const statements: AnswerStatement[] = splitStatements(answer.slice(0, MAX_ANSWER_CHARS)).slice(0, MAX_STATEMENTS).map((segment, index) => {
+  // The work is bounded, but nothing is lost silently: a sentence cut by the limit is not checked as if it were whole,
+  // and everything after the last checked sentence is reported as unchecked so the screen can still show it.
+  let segments = splitStatements(answer.slice(0, MAX_ANSWER_CHARS));
+  if (answer.length > MAX_ANSWER_CHARS) segments = segments.slice(0, -1);
+  segments = segments.slice(0, MAX_STATEMENTS);
+  const checkedUpTo = segments.length ? segments[segments.length - 1].end : 0;
+  const uncheckedChars = answer.slice(checkedUpTo).trim().length;
+  const statements: AnswerStatement[] = segments.map((segment, index) => {
     const base = { id: `s${index + 1}`, text: segment.text, start: segment.start, end: segment.end };
     if (isFreshNote(segment.text)) return { ...base, kind: "note" as const, support: "not_applicable" as const, passages: [] };
     const claim = termsOf(segment.text);
@@ -261,6 +281,9 @@ export function mapAnswerToPassages(answer: string, passports: readonly Evidence
   return {
     method: CLAIM_EVIDENCE_METHOD,
     statements,
+    checkedUpTo,
+    answerLength: answer.length,
+    uncheckedChars,
     summary: {
       claims: claims.length,
       withPassage: withPassage.length,
