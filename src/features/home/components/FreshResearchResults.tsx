@@ -85,8 +85,8 @@ export default function FreshResearchResults({ result, onRetryBroaderSearch }: {
         <span className="fresh-research-results__source-count">{sources.length} unique {sources.length === 1 ? "source" : "sources"}</span>
       </header>
 
-      {result.answerEvidence?.statements.length
-        ? <FreshAnswerEvidence evidence={result.answerEvidence} sources={sources} />
+      {result.answerEvidence && (result.answerEvidence.statements.length > 0 || (result.answerEvidence.uncheckedChars ?? 0) > 0)
+        ? <FreshAnswerEvidence evidence={result.answerEvidence} sources={result.sources ?? []} fullText={result.text} />
         : (
           <div className="fresh-research-results__answer">
             <h3>What we found</h3>

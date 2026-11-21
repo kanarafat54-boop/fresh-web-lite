@@ -40,7 +40,7 @@ function Quote({ passage }: { passage: PassageSupport }) {
  * The answer, one statement at a time. A statement is shown as backed only when a quote from a captured source passage is
  * found AND re-checks against that source's saved text in this same response. Anything else says it is not confirmed.
  */
-export default function FreshAnswerEvidence({ evidence, sources }: { evidence: AnswerEvidence; sources: readonly IntelligenceSource[] }) {
+export default function FreshAnswerEvidence({ evidence, sources, fullText }: { evidence: AnswerEvidence; sources: readonly IntelligenceSource[]; fullText?: string }) {
   const statements = useMemo<Checked[]>(() => {
     const passports = new Map(sources.flatMap((source) => (source.evidencePassport ? [[source.evidencePassport.id, source.evidencePassport] as const] : [])));
     return evidence.statements.map((statement) => {
@@ -53,6 +53,9 @@ export default function FreshAnswerEvidence({ evidence, sources }: { evidence: A
   const supportedClaims = claims.filter((statement) => statement.support === "passage_found");
   const withheldClaims = claims.filter((statement) => statement.support !== "passage_found");
   const notes = statements.filter((statement) => statement.kind === "note");
+  // Part of a very long answer is not checked at all. It stays on screen, labelled as unchecked, instead of vanishing.
+  const uncheckedChars = evidence.uncheckedChars ?? 0;
+  const uncheckedText = uncheckedChars > 0 && fullText ? fullText.slice(evidence.checkedUpTo ?? 0).trim() : "";
 
   const renderClaim = (statement: Checked) => {
     const found = statement.support === "passage_found";
@@ -83,11 +86,18 @@ export default function FreshAnswerEvidence({ evidence, sources }: { evidence: A
       )}
       {supportedClaims.length > 0
         ? <ol className="fresh-claims__list">{supportedClaims.map(renderClaim)}</ol>
-        : claims.length > 0 ? <p className="fresh-claims__empty">Fresh could not find a matching captured passage for any factual statement. No unsupported summary is being presented as established fact.</p> : <p className="fresh-claims__empty">No factual statements were returned for this research result.</p>}
+        : claims.length > 0 ? <p className="fresh-claims__empty">Fresh could not find a matching captured passage for any factual statement. No unsupported summary is being presented as established fact.</p> : uncheckedChars === 0 ? <p className="fresh-claims__empty">No factual statements were returned for this research result.</p> : null}
       {withheldClaims.length > 0 && (
         <details className="fresh-claims__withheld">
           <summary><span>Review withheld claims</span><span className="fresh-claims__chip">{withheldClaims.length} need more evidence</span></summary>
           <ol className="fresh-claims__list">{withheldClaims.map(renderClaim)}</ol>
+        </details>
+      )}
+      {uncheckedChars > 0 && (
+        <details className="fresh-claims__unchecked" open>
+          <summary><span>Not checked against sources</span><span className="fresh-claims__chip">{uncheckedChars.toLocaleString()} characters</span></summary>
+          <p className="fresh-claims__why">This part of the answer was too long to check, so Fresh did not look for a source passage. Treat it as unverified.</p>
+          {uncheckedText && <p className="fresh-claims__tail">{uncheckedText}</p>}
         </details>
       )}
       {notes.length > 0 && <ul className="fresh-claims__notes">{notes.map((note) => <li key={note.id}>{note.text}</li>)}</ul>}
