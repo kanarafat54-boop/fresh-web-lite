@@ -1,5 +1,6 @@
--- Restore public reaction-read policies recorded in the production schema baseline.
--- The clean migration chain enabled RLS but did not recreate these policies.
+-- Restore public reaction-read policies for tables present in the clean migration chain.
+-- short_reposts is production-only and has no repository migration that creates it;
+-- do not reference that baseline-only table in a clean replay.
 drop policy if exists "Anyone can view likes" on public.post_likes;
 create policy "Anyone can view likes"
   on public.post_likes
@@ -14,16 +15,8 @@ create policy "Short likes viewable by everyone"
   to public
   using (true);
 
-drop policy if exists "Reposts viewable by everyone" on public.short_reposts;
-create policy "Reposts viewable by everyone"
-  on public.short_reposts
-  for select
-  to public
-  using (true);
-
 -- Allow an authenticated user to change the reaction on their own post-like row.
--- The feed and shared media workspace already expose reaction switching, but the
--- existing policy set only permits INSERT and DELETE. Keep ownership immutable.
+-- Keep ownership immutable in both the row visibility and resulting row check.
 drop policy if exists "Users can update their own post reactions" on public.post_likes;
 create policy "Users can update their own post reactions"
   on public.post_likes
