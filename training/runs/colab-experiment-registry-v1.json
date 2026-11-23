@@ -1,0 +1,210 @@
+{
+  "schema": "fresh-ai-colab-experiment-registry-v1",
+  "modelId": "fresh-unified-1",
+  "baseline": {
+    "runId": "fresh-unified-1-run3",
+    "checkpointSha256": "298b558e89edab77745834389cb2b1979e632979f9be7b4adad1892c2f2fc25d",
+    "productionReady": false,
+    "servingStatus": "training-required"
+  },
+  "policy": {
+    "notebookOutputsAreReportedEvidence": true,
+    "checkpointBinariesCommitted": false,
+    "externalCheckpointRehashPerformed": false,
+    "promotionAllowed": false,
+    "runtimeSwitchAllowed": false,
+    "note": "Notebook-reported verification is recorded as such. The checkpoint binaries were not supplied in this repository change, so their bytes are not independently re-hashed here."
+  },
+  "sourceNotebooks": [
+    {
+      "run": 5,
+      "file": "fresh-ai-run5-google-colab-v2.ipynb",
+      "sha256": "072411bbf9be0acb8c48d08bdbd3229fe8b0b07b662a4e707ab2fd27ed49b858",
+      "role": "Run 5 reference and reviewed data provenance"
+    },
+    {
+      "run": 6,
+      "file": "fresh-ai-run6-google-colab-v2.ipynb",
+      "sha256": "7ccd4598f940cf6986c85b87c6d4a17c17e99332aa19b7a91276bec24f3a5df4",
+      "role": "Same-data evaluation"
+    },
+    {
+      "run": 7,
+      "file": "fresh-ai-run7-google-colab-v2.ipynb",
+      "sha256": "f9e7584cc52ee8ce9e65f75d034f67cb6bcde0076de9482f01ec3adac81af84c",
+      "role": "Readiness gatebook; prepared but not executed"
+    },
+    {
+      "run": 8,
+      "file": "fresh-ai-run8-google-colab-v1.ipynb",
+      "sha256": "1a8a1cf931158c9b933010260438de93dc9b1021d616471984ff8fb0019cabdc",
+      "role": "Fresh-fact fine-tuning and evaluation"
+    },
+    {
+      "run": 9,
+      "file": "fresh-ai-run9-google-colab-v1.ipynb",
+      "sha256": "416dcca7add4d3c9e89bc20c463ec7f209762703debd92e16280313c94a5f06f",
+      "role": "Passage-conditioned answering experiment"
+    }
+  ],
+  "runs": [
+    {
+      "run": 6,
+      "runId": "fresh-unified-run6-evaluation",
+      "kind": "evaluation",
+      "status": "completed",
+      "sourceNotebook": "fresh-ai-run6-google-colab-v2.ipynb",
+      "evaluatedArms": [
+        "run3",
+        "run5",
+        "run4-leaky-reference"
+      ],
+      "metrics": {
+        "recall": {
+          "run3": {
+            "passed": 0,
+            "total": 224
+          },
+          "run5": {
+            "passed": 0,
+            "total": 224
+          },
+          "run4LeakyReference": {
+            "passed": 47,
+            "total": 224
+          }
+        },
+        "perplexity": {
+          "dolly": {
+            "run3": 41.9,
+            "run5": 45.8,
+            "run4": 33.2
+          },
+          "freshDocs": {
+            "run3": 205.6,
+            "run5": 12.7,
+            "run4": 1.4
+          },
+          "freshOther": {
+            "run3": 3.7,
+            "run5": 8,
+            "run4": 3.3
+          },
+          "oasst1": {
+            "run3": 25,
+            "run5": 24.4,
+            "run4": 17.5
+          },
+          "wikipediaEn": {
+            "run3": 44.1,
+            "run5": 44.6,
+            "run4": 32.5
+          },
+          "wikipediaSw": {
+            "run3": 15.7,
+            "run5": 16.7,
+            "run4": 11.9
+          }
+        }
+      },
+      "interpretation": "Run 5 showed no statistically distinguishable recall gain over Run 3 and had >5% perplexity regressions on Dolly and Wikipedia-Swahili. Run 4 is a leaky reference and must not be selected as a valid candidate.",
+      "promotionEligible": false
+    },
+    {
+      "run": 7,
+      "runId": "fresh-unified-run7-readiness",
+      "kind": "readiness-assessment",
+      "status": "prepared-not-executed",
+      "sourceNotebook": "fresh-ai-run7-google-colab-v2.ipynb",
+      "manualReviewEntries": 0,
+      "machineReviewOutputPresent": false,
+      "interpretation": "Notebook defines evidence-driven gates and an empty MANUAL_REVIEWS map. Only the Drive mount output is present; no executed readiness decision is available.",
+      "promotionEligible": false
+    },
+    {
+      "run": 8,
+      "runId": "fresh-unified-1-run8",
+      "kind": "fine-tuning",
+      "status": "notebook-reported-technically-verified",
+      "sourceNotebook": "fresh-ai-run8-google-colab-v1.ipynb",
+      "checkpoint": {
+        "sha256": "b8b101363996609a1a754d58258e004865ec17c3159b38f43f23a446c26ce96d",
+        "parameters": 49947136,
+        "steps": 630,
+        "seqLen": 1024,
+        "tokensSeen": 20643840,
+        "trainLoss": 3.2138522267341614,
+        "heldOutLoss": 3.45056734085083,
+        "heldOutPerplexity": 31.518268838685213,
+        "initFromSha256": "298b558e89edab77745834389cb2b1979e632979f9be7b4adad1892c2f2fc25d",
+        "productionReady": false
+      },
+      "evaluation": {
+        "taughtFacts": {
+          "passed": 34,
+          "total": 80,
+          "meanKeyTermRecall": 0.43
+        },
+        "unseenAnswerControl": {
+          "passed": 0,
+          "total": 224
+        },
+        "passageGrounding": {
+          "passed": 0,
+          "total": 80
+        },
+        "retentionRegressionGroups": [
+          "dolly",
+          "wikipedia-sw"
+        ],
+        "retention": {
+          "dolly": 7.9,
+          "wikipediaSw": 5.2
+        }
+      },
+      "interpretation": "Clear taught-fact recall improvement over Run 3 and Run 5, but no demonstrated passage-grounding gain; >5% retention regressions on Dolly and Swahili Wikipedia block promotion.",
+      "promotionEligible": false
+    },
+    {
+      "run": 9,
+      "runId": "fresh-unified-1-run9",
+      "kind": "fine-tuning",
+      "status": "notebook-reported-technically-verified",
+      "sourceNotebook": "fresh-ai-run9-google-colab-v1.ipynb",
+      "checkpoint": {
+        "sha256": "327184a3212c25a1073429f5106f54010d02e9256c04890549e9f52fe7733e29",
+        "parameters": 49947136,
+        "steps": 705,
+        "seqLen": 1024,
+        "tokensSeen": 23101440,
+        "trainLoss": 2.9441609978675842,
+        "heldOutLoss": 3.3144148141145706,
+        "heldOutPerplexity": 27.506292979575356,
+        "initFromSha256": "298b558e89edab77745834389cb2b1979e632979f9be7b4adad1892c2f2fc25d",
+        "productionReady": false
+      },
+      "evaluation": {
+        "taughtFacts": {
+          "passed": 5,
+          "total": 80,
+          "meanKeyTermRecall": 0.102
+        },
+        "unseenAnswerControl": {
+          "passed": 0,
+          "total": 224
+        },
+        "passageGrounding": {
+          "passed": 1,
+          "total": 80
+        },
+        "retentionRegressionGroups": [],
+        "retention": {
+          "dolly": 4,
+          "wikipediaSw": 2.6
+        }
+      },
+      "interpretation": "No clear taught-fact recall gain over Run 3 or Run 5; no statistically clear passage-grounding gain. General retention probe has no >5% regression, but capability gates remain unmet.",
+      "promotionEligible": false
+    }
+  ]
+}

@@ -48,6 +48,8 @@ jobs:
           grep -q '"exampleCount": 62' artifacts/fresh-training/user-intake-curated-v1.manifest.json
           grep -q '"weightsCreated": false' artifacts/fresh-training/user-intake-curated-v1.manifest.json
           grep -q '"checkpointCreated": false' artifacts/fresh-training/user-intake-curated-v1.manifest.json
+      - name: Verify registered Fresh AI Colab experiments 6–9
+        run: node scripts/verify-fresh-ai-colab-experiments.mjs
       - name: Install Fresh training backend
         run: python3 -m pip install -r training/requirements.txt
       - name: Train and evaluate Fresh Astra Vision v0.1 on synthetic CPU pilot
