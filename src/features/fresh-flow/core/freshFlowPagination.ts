@@ -1,4 +1,6 @@
-export const FRESH_FLOW_PAGE_SIZE = 24;
+import { FRESH_FLOW_PAGE_SIZE } from "./freshFlowRuntimeFabric.ts";
+
+export { FRESH_FLOW_PAGE_SIZE };
 
 export type FreshFlowPageCursor = {
   offset: number;
