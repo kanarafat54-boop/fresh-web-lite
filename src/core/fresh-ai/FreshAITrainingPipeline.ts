@@ -90,3 +90,5 @@ export function buildImprovementProposal(scores: EvaluationScore[], feedback?: s
 }
 
 export const FRESH_SERVING_POLICY: ServingPolicy = { maxLatencyMs: 30000, allowFallback: true, requireEvidenceForCurrentFacts: true, requireApprovalForHighImpactActions: true, productionMutationRequiresApproval: true, autonomousSelfModification: false };
+
+export { FRESH_AI_COLAB_EXPERIMENTS, FRESH_AI_COLAB_EXPERIMENT_POLICY } from "./FreshAIColabExperimentRegistry.js";
