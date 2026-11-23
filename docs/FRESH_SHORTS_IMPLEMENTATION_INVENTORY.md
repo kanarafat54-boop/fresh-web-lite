@@ -1,6 +1,6 @@
 # Fresh Shorts — implementation inventory (P0 repository audit)
 
-Baseline: `Fresh_Shorts_Master_Product_and_Engineering_Specification.docx` (Parts 1–18). Fresh Studio is excluded.
+Baseline: `Fresh_Shorts_Master_Product_and_Engineering_Specification.docx` (Parts 1–18), reconciled with the current Fresh Flow repository. Fresh Studio is part of Fresh Flow and remains in scope wherever Shorts creation, editing, publishing, projects, or creator workflows depend on it.
 Audited against `main` at `3e6100c` on 2026-11-04. Progress update on 2026-11-05 is in the section at the end.
 
 ## How to read the statuses
@@ -32,7 +32,7 @@ promoted. Nothing was changed, replaced or removed by this audit.
 | Sound and audio ecosystem (Part 5) | Partial | `soundName` link opens a sound topic page (`shortsTopics.ts`) | No dedicated Sound page with usage count and "use this sound"; transcripts not found. |
 | Related long videos and live highlights (6.4–6.6) | Partial | `FreshFlowLongVideos.tsx`, remix and duet columns in `20260824000000_shorts_interaction_depth.sql` | Link UI between a Short and its full video to verify. |
 | Context panel, TrueMode, provenance, trust indicators (Part 7) | Mostly Planned | Only "Explain" and "Research" buttons that open Fresh AI (`FreshFlowShortsStream.tsx` ~L958) | No context panel, provenance or origin trace panel connected to real services. Spec rule 31: integrate only through services that exist. |
-| Creator and publishing entry (Part 8) | Out of scope boundary | `publishFreshShort.ts`, `ShortsCreateCamera.tsx` | Studio editing is excluded; publish status and remix attribution display only. |
+| Creator and publishing entry (Part 8) | Partial — integrated with Fresh Flow Creator Studio | `publishFreshShort.ts`, `ShortsCreateCamera.tsx`, `ShortsStudio.tsx`, `StudioProjects.tsx`, `freshFlowStudioIntegration.ts`, `fresh-studio/*` | Verify the complete handoff from each originating media system into the shared Studio, project persistence, editor capability status, resumable upload/processing, publish authorization, and return-to-origin context. Do not duplicate or exclude Studio. |
 | Notifications (Part 9) | Partial | `ShortsNotifications.tsx`, `shortsActivity.ts` | Verify the notification types in 9.2. |
 | Privacy, safety, moderation (Part 10) | Partial | `shortsSafety.ts` (report reasons, mute creator), comment report and block, moderation_state on comments | Visibility controls, appeals and the creator moderation queue not found. |
 | System states (Part 12) | Partial | Empty feed text, `navigator.onLine` guard on pagination | No offline screen, permission-denied or unsupported-device states found. |
@@ -59,7 +59,7 @@ promoted. Nothing was changed, replaced or removed by this audit.
 - Preserve working playback, discovery, authentication and social infrastructure; extend, do not replace.
 - Migrations are additive and are not applied by the engineer; owner applies after review.
 - The API directory stays within the Vercel function limit (12 files); new endpoints reuse existing functions.
-- Fresh Studio stays out of scope.
+- Preserve the unified Fresh Flow Creator Studio. Shorts Studio is a domain workspace within that shared studio, not a competing destination. Keep all 24 Fresh Flow system profiles and their shared production-service mappings.
 
 ## Progress update (2026-11-05)
 
@@ -160,3 +160,55 @@ Limits, stated plainly:
 - Device notifications use the browser Notification API and only appear while Fresh is open. Real push with the app closed needs Web Push keys and a server sender; not built.
 - Mixing a reused sound in the camera has not been tested on a physical phone. No Android device pass is evidenced.
 - Only users with the admin role can review. Who else may review is an owner decision.
+
+
+## Current preservation and grading update (2026-11-23)
+
+This section supersedes outdated scope statements above while retaining the historical audit trail. It is a repository inspection, not a claim that all user journeys have passed live end-to-end testing.
+
+### Preservation boundary — corrected
+
+- Fresh Studio / Creator Studio is part of Fresh Flow. It is not excluded from the product or from the integration work.
+- There is one shared Creator Studio shell with domain workspaces. Shorts Studio is a Shorts-specific workspace for drafts, publishing, analytics and creator management; it must not become a competing second studio.
+- Fresh Flow's 24 independent media systems remain separate user-facing experiences and map into the shared Studio through `freshFlowStudioIntegration.ts`.
+- Preserve the universal platform Home and its navigation separately from Fresh Flow's own Home and media-world navigation.
+- Preserve existing Shorts routes, pager/player, comments and media attachments, reactions, creator profiles, sound reuse, context/provenance declarations, moderation/privacy, notifications, history/saved/collections, Data Saver, and all supporting migrations and verification scripts. Improve them additively; do not delete or silently simplify them.
+
+### Repository evidence observed on 2026-11-23
+
+| Area | Repository evidence | Grade from this inspection | Required proof before Verified |
+|---|---|---|---|
+| Fresh Flow shell and navigation | `FreshFlowHub.tsx`, `FreshFlowHome.tsx`, `freshFlowArchitecture.ts`, `freshFlowSystemRegistry.ts` | Implemented in code; browser/device verification pending | Route transitions, deep links, back behavior, global Home separation, responsive navigation |
+| Shorts discovery and playback | `FreshFlowShortsExperience.tsx`, `FreshFlowShortsStream.tsx`, `shorts/*`, `shortsPerformance.ts` | Implemented in code; end-to-end verification pending | Real media, feed ordering, playback/retry/buffering, URL synchronization, accessibility and device pass |
+| Search, topics, filters, recommendations | `ShortsExplore.tsx`, `ShortsTopicPage.tsx`, `shortsExplore.ts`, `shortsFilters.ts`, recommendation controls | Implemented in code; data coverage and behavior need verification | Search source, filter combinations, empty/error states, recommendation controls |
+| Comments and social interactions | Shared `CommentPanel.tsx`, comment reaction code, universal interaction adapter and migrations | Implemented in code; persistence/security coverage must be rechecked | Text/audio/video/image comments, nested replies, all reaction types, repost/share/save, RLS and failure handling |
+| Creator profiles and community | `ShortsCreatorProfile.tsx`, playlists, follow state and notifications | Implemented in code; live user journey pending | Follow/unfollow persistence, profile tabs, playlists, notification delivery |
+| Sounds and reuse | `shortsSound.ts`, `soundReuse.ts`, sound topic/reuse UI and migration | Implemented in code; physical-device mixing verification pending | Permission checks, attribution, block/privacy enforcement, camera/editor handoff |
+| Context, captions and provenance | Context/provenance panels, captions and supporting services | Implemented with explicit limits; not equivalent to independent fact verification | Verify creator-declared vs independently verified origin labels, source links, caption timing and service failure |
+| Safety, privacy and moderation | Privacy, reporting, moderation, appeals and user-block services/components | Implemented in code; live policy and reviewer workflow pending verification | RLS/API authorization, appeals, admin-only review boundary, block/mute behavior, auditability |
+| Saved, history and collections | Saved/history sheets, playlists/collections services and migrations | Implemented in code; complete persistence path pending verification | Save/remove, collection CRUD, history clear, cross-device state and ownership tests |
+| Notifications | `ShortsNotifications.tsx`, activity and notification state/delivery services | Implemented in code; delivery scope must be represented truthfully | In-app state, category preferences, quiet mode, foreground-only browser notifications vs true push |
+| Create Studio integration | `ShortsStudio.tsx`, `StudioProjects.tsx`, `ShortsCreateCamera.tsx`, `freshFlowStudioIntegration.ts`, `fresh-studio/*` | Integrated architecture present; editor/provider maturity varies by domain | Verify every origin handoff, project persistence/versioning, editor capability, media pipeline, processing and authorized publishing |
+| Reliability, performance and accessibility | Shorts state screens, Data Saver, telemetry, performance scripts and browser tests | Automated coverage exists; physical Android review not evidenced here | Run all gates, keyboard/focus/contrast/reduced motion, 320–430px layouts, slow/offline/permission-denied states and real Android testing |
+
+### Creator Studio integration contract
+
+The repository's `verify-fresh-flow-studio-integration.mjs` asserts 24 registered Fresh Flow systems, 24 matching Studio profiles, valid media kinds/workspaces, explicit implementation statuses, creation intents, capability dependencies, shared services, and preservation of originating system metadata through project creation/loading and Studio launch. This is a static contract check; it does not prove every editor, provider, upload worker, or publishing destination is production-ready.
+
+### Current repository / PR notes
+
+- Main inspected at `fbd72a54cf4a29ec5682cf9691630cf639823c84`.
+- PR #324 is open and concerns restoration of reaction read policies and owner-scoped post-reaction updates. Its description reports isolated migration replay and behavioral tests passed; it is not merged and must be reviewed independently.
+- PR #325 is open/draft and concerns bounded News / Posts pagination. It is adjacent Fresh Flow work, not a reason to replace or bypass the shared pagination contract.
+- Do not infer production database state from migration files or isolated replay. Confirm live migration status before claiming production behavior.
+- No physical Android device validation is evidenced by this repository inspection.
+
+### Grading rules for the next implementation pass
+
+Use four explicit grades:
+- **A — Verified:** implementation plus automated and relevant end-to-end/browser/device tests, including persistence and failure paths.
+- **B — Implemented, verification incomplete:** substantial code exists but one or more real user journeys or environments are not proven.
+- **C — Partial:** only part of the specified behavior exists, or integration is incomplete.
+- **D — Missing / blocked:** no safe implementation exists yet, or a required provider/owner decision is unavailable.
+
+A grade is not a deletion decision. Every B/C/D item remains in the preservation ledger with its evidence, gap, dependency and next action. Do not downgrade a feature merely because its provider is not yet connected; record the capability boundary honestly and retain the existing foundation.
