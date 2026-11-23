@@ -45,28 +45,33 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const requestGenerationRef = useRef(0);
   const appendLockRef = useRef<symbol | null>(null);
+  const prefetchBlockedCursorRef = useRef<string | null>(null);
   const { state: runtimeState, replaceQueue, appendQueue, beginAppend, endAppend, setActive: setRuntimeActive, shouldPrefetch } = useFreshFlowRuntime();
 
   useEffect(() => {
     const requestId = ++requestGenerationRef.current;
     appendLockRef.current = null;
+    prefetchBlockedCursorRef.current = null;
     void loadPosts({ requestId });
     return () => {
       if (requestGenerationRef.current === requestId) requestGenerationRef.current += 1;
       appendLockRef.current = null;
+      prefetchBlockedCursorRef.current = null;
     };
   }, [discoveryId, user?.id, isGuest, sharedPostId]);
 
   useEffect(() => {
-    if (!shouldPrefetch || loadingMore || runtimeState.loadingMore || !hasMorePosts) return;
+    if (!shouldPrefetch || loadingMore || runtimeState.loadingMore || !hasMorePosts || prefetchBlockedCursorRef.current === feedCursor) return;
     void loadPosts({ append: true });
   }, [shouldPrefetch, loadingMore, runtimeState.loadingMore, hasMorePosts, feedCursor]);
 
-  async function loadPosts(options: { append?: boolean; requestId?: number } = {}) {
+  async function loadPosts(options: { append?: boolean; manual?: boolean; requestId?: number } = {}) {
     const append = Boolean(options.append);
     const appendToken = append ? Symbol("fresh-flow-feed-page") : null;
     if (append) {
       if (appendLockRef.current || !feedCursor || sharedPostId) return;
+      if (!options.manual && prefetchBlockedCursorRef.current === feedCursor) return;
+      if (options.manual) prefetchBlockedCursorRef.current = null;
       appendLockRef.current = appendToken;
       setLoadingMore(true);
       beginAppend();
@@ -76,6 +81,7 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
 
     if (!append) {
       appendLockRef.current = null;
+      prefetchBlockedCursorRef.current = null;
       setLoading(true);
       setLoadingMore(false);
       setHasMorePosts(false);
@@ -180,6 +186,7 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
       if (!isCurrentRequest()) return;
       setFeedCursor(nextCursor);
       setHasMorePosts(nextHasMore);
+      prefetchBlockedCursorRef.current = append && mapped.length === 0 ? nextCursor : null;
       setSavedIds((current) => append ? new Set([...current, ...savedPostIds]) : savedPostIds);
       const runtimeItems = mapped.map((post) => ({
         id: post.id,
@@ -208,6 +215,7 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
       if (!isCurrentRequest()) return;
       const message = loadError instanceof Error ? loadError.message : "Unknown feed error";
       setError(append ? `Could not load more posts: ${message}` : `Could not load the feed: ${message}`);
+      if (append) prefetchBlockedCursorRef.current = feedCursor;
       if (!append) setLoading(false);
     } finally {
       if (append && appendLockRef.current === appendToken) {
@@ -400,7 +408,7 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
 
       {!loading && hasMorePosts && !sharedPostId && (
         <div className="feed-pagination">
-          <button type="button" className="add-note-btn" onClick={() => void loadPosts({ append: true })} disabled={loadingMore}>
+          <button type="button" className="add-note-btn" onClick={() => void loadPosts({ append: true, manual: true })} disabled={loadingMore}>
             {loadingMore ? "Loading more..." : "Load more posts"}
           </button>
         </div>
