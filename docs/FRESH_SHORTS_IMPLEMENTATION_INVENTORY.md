@@ -114,7 +114,7 @@ Re-audit conclusion:
 - The strongest existing implementation remains the integrated Shorts pager and shared comment system, including text/audio/video/image attachments and parent-child replies. Treat these as **Partial** until the complete UI-to-persistence flows and failure handling are verified on a live signed-in session.
 - Do not rebuild the pager, comment engine, playlists, pinned comments, routes, or filters already merged or in review.
 - PR #227's optional `authorVerified` boundary was fixed in `21a802c`; its same-host test fixture was corrected in `2e15a04`. A panel-specific Chromium interaction test was added in `d76f441` and awaits fresh CI. Do not merge until that test and required checks pass; live signed-in API and Android-device validation remain manual gates. Review #224, #226 and #228 against current `main` and their migrations. Keep Supabase migration-history drift as a separate release gate.
-- Fresh Studio remains outside this specification and is not included in this work.
+- [Historical boundary, superseded by the 2026-11-23 preservation update below] This earlier audit treated Fresh Studio as outside the Shorts specification. The current product boundary is the unified Fresh Flow Creator Studio, which remains part of Fresh Flow and must be preserved and integrated.
 
 ## Progress update (2026-11-07 — slices merged)
 
