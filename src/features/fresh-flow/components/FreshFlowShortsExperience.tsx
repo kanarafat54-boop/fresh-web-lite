@@ -140,7 +140,7 @@ export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
             /* ignore */
           }
           if (isGuest) setActiveRoute("auth-signin");
-          else setActiveRoute("creator");
+          else setActiveRoute("fresh-flow-system-fresh-studio");
         }}
       />
     </div>
