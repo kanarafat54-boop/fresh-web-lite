@@ -52,7 +52,7 @@ begin
     and user_id = 'f1000000-0000-4000-8000-000000000001';
   get diagnostics affected = row_count;
   if affected <> 0 then
-    raise exception 'A different user changed another account\'s reaction';
+    raise exception 'A different user changed another account''s reaction';
   end if;
 end
 $$;
