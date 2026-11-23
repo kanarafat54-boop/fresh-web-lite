@@ -46,12 +46,16 @@ export default function ShortsStudio({ embedded = false }: { embedded?: boolean 
 
   return (
     <section className={`shorts-studio${embedded ? " shorts-studio-embedded" : ""}`} aria-label="Shorts Studio">
-      {!embedded && <header className="shorts-studio-head">
-        <div><h2>Creator Studio</h2><p>Edit, publish, track.</p></div>
-        <button type="button" className="shorts-studio-back" onClick={() => setActiveRoute("fresh-flow-shorts")}>‹ Shorts</button>
-      </header>}
-      <nav className="shorts-studio-tabs" aria-label="Studio sections">
-        {TABS.map((item) => <button key={item.id} type="button" className={tab === item.id ? "active" : ""} aria-pressed={tab === item.id} onClick={() => setTab(item.id)}>{item.label}</button>)}
+      <header className="shorts-studio-head">
+        <div className="shorts-studio-heading-copy">
+          <span className="shorts-studio-eyebrow">FRESH FLOW · CREATOR WORKSPACE</span>
+          <h2>{embedded ? "Shorts workspace" : "Creator Studio"}</h2>
+          <p>Make, manage and understand your short-form videos.</p>
+        </div>
+        {!embedded && <button type="button" className="shorts-studio-back" onClick={() => setActiveRoute("fresh-flow-shorts")}>‹ Back to Shorts</button>}
+      </header>
+      <nav className="shorts-studio-tabs" aria-label="Shorts Studio sections">
+        {TABS.map((item) => <button key={item.id} type="button" className={tab === item.id ? "active" : ""} aria-current={tab === item.id ? "page" : undefined} onClick={() => setTab(item.id)}>{item.label}</button>)}
       </nav>
 
       {tab !== "create" && !signedIn && <p className="shorts-studio-note">Sign in to see your Studio numbers. <button type="button" onClick={() => setActiveRoute("auth-signin")}>Sign in</button></p>}
