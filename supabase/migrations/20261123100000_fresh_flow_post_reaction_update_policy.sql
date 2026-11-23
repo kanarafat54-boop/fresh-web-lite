@@ -1,8 +1,22 @@
--- Restore the public reaction-read policy recorded in the production schema baseline.
--- The clean migration chain enabled RLS but did not recreate this policy.
+-- Restore public reaction-read policies recorded in the production schema baseline.
+-- The clean migration chain enabled RLS but did not recreate these policies.
 drop policy if exists "Anyone can view likes" on public.post_likes;
 create policy "Anyone can view likes"
   on public.post_likes
+  for select
+  to public
+  using (true);
+
+drop policy if exists "Short likes viewable by everyone" on public.short_likes;
+create policy "Short likes viewable by everyone"
+  on public.short_likes
+  for select
+  to public
+  using (true);
+
+drop policy if exists "Reposts viewable by everyone" on public.short_reposts;
+create policy "Reposts viewable by everyone"
+  on public.short_reposts
   for select
   to public
   using (true);
