@@ -212,3 +212,13 @@ Use four explicit grades (no area is promoted to A based only on source-code pre
 - **D — Missing / blocked:** no safe implementation exists yet, or a required provider/owner decision is unavailable.
 
 A grade is not a deletion decision. Every B/C/D item remains in the preservation ledger with its evidence, gap, dependency and next action. Do not downgrade a feature merely because its provider is not yet connected; record the capability boundary honestly and retain the existing foundation.
+
+
+### Additive UI and creator-entry implementation pass (2026-11-23)
+
+- Added `FreshFlowVisualRefresh.css` and imported it from the existing `FreshFlowHub.tsx`. The layer updates presentation only across the existing Flow shell, Home, Shorts feed/player, Explore, creator profile, notifications, capture flow and embedded Shorts Studio. Existing components remain the owners of behavior, data and persistence.
+- Corrected the Shorts feed's signed-in create action: it previously navigated to the generic `creator` route; it now opens `fresh-flow-system-fresh-studio`, preserving the create intent so the shared `FreshStudioApp` can resume in its publishing workflow.
+- Extended `verify-fresh-flow-studio-integration.mjs` with a regression assertion for the Shorts-to-shared-Studio route and create-intent handoff.
+- Latest implementation commit at time of this note: `ff54f27da745140ed224f5a35d5a6d3a5c6d49ea`.
+- Fresh Shorts Production Gate, Fresh Web Lite build gate and Fresh Flow Navigation Browser Test were triggered for this commit; their final conclusions must be read before promoting any related grade to A.
+- The visual refresh is not a substitute for real-device visual review. Verify 320/360/390/430px layouts, keyboard/focus, reduced motion, comment/media attachment flows, camera permissions, offline/retry states and actual Studio publishing on signed-in Android.
