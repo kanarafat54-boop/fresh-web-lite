@@ -40,6 +40,9 @@ jobs:
       - name: Replay every repository migration from an empty local database
         run: supabase db reset --local --no-seed
 
+      - name: Verify owner-only post reaction updates
+        run: psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f scripts/test-fresh-flow-post-reactions-rls.sql
+
       - name: Verify resumable Long Video upload and owner-folder RLS
         run: node scripts/test-long-video-tus.mjs
 
