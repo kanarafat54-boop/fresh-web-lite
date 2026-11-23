@@ -32,9 +32,9 @@ where post_id = 'f2000000-0000-4000-8000-000000000001'
 
 do $$
 begin
-  if (select reaction_type from public.post_likes
+  if coalesce((select reaction_type from public.post_likes
       where post_id = 'f2000000-0000-4000-8000-000000000001'
-        and user_id = 'f1000000-0000-4000-8000-000000000001') <> 'love' then
+        and user_id = 'f1000000-0000-4000-8000-000000000001'), '') <> 'love' then
     raise exception 'Owner could not persist a changed post reaction';
   end if;
 end
