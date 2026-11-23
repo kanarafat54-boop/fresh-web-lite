@@ -4,9 +4,11 @@ import {
   decodeFreshFlowCursor,
   encodeFreshFlowCursor,
   fetchFreshFlowPage,
+  FRESH_FLOW_PAGE_SIZE,
   nextFreshFlowCursor,
 } from "../src/features/fresh-flow/core/freshFlowPagination.ts";
 
+assert.equal(FRESH_FLOW_PAGE_SIZE, 24);
 assert.equal(encodeFreshFlowCursor({ offset: -4 }), "0");
 assert.deepEqual(decodeFreshFlowCursor("24"), { offset: 24 });
 assert.deepEqual(decodeFreshFlowCursor("not-a-cursor"), { offset: 0 });
