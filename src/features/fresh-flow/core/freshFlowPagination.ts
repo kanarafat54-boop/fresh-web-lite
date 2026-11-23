@@ -1,4 +1,4 @@
-import { FRESH_FLOW_PAGE_SIZE } from "./freshFlowRuntimeFabric";
+import { FRESH_FLOW_PAGE_SIZE } from "./freshFlowRuntimeFabric.ts";
 
 export { FRESH_FLOW_PAGE_SIZE };
 
