@@ -1,6 +1,6 @@
 -- Behavioral RLS test for changing a post reaction. Runs after a full local
 -- Supabase migration replay; the transaction is rolled back and uses test-only IDs.
-\\set ON_ERROR_STOP on
+\set ON_ERROR_STOP on
 begin;
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
@@ -76,4 +76,4 @@ end
 $$;
 
 rollback;
-\\echo Fresh Flow post-reaction RLS: PASS
+\echo Fresh Flow post-reaction RLS: PASS
