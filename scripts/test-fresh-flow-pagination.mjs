@@ -51,6 +51,8 @@ for (const token of [
   'order("id", { ascending: false })',
   "requestGenerationRef",
   "appendLockRef",
+  "prefetchBlockedCursorRef",
+  "manual: true",
   "isCurrentRequest()",
   "shouldPrefetch",
   "Load more posts",
