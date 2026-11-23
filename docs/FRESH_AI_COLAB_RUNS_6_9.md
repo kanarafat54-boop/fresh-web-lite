@@ -2,14 +2,14 @@
 
 ## Purpose and serving boundary
 
-Runs 6–9 are now represented in the Fresh AI experiment registry and application metadata. They are experiment evidence, not a production model switch. The canonical baseline remains `fresh-unified-1-run3` with `weightsStatus: training-required`. No checkpoint binary was supplied with this repository change, so the checkpoint hashes below are transcribed from the uploaded notebooks' manifests and verification outputs; they have not been independently re-hashed from the binary files here.
+Runs 6–9 are represented in the Fresh AI experiment registry and application metadata. They are experiment evidence, not a production model switch. The canonical baseline remains `fresh-unified-1-run3` with `weightsStatus: training-required`. No checkpoint binary was supplied with this repository change, so the checkpoint hashes below are transcribed from the uploaded notebooks' manifests and verification outputs; they have not been independently re-hashed from the binary files here.
 
 ## Run map
 
 | Run | Role | Recorded result | Decision |
 |---|---|---|---|
 | 6 | Same-data evaluation | Run 5: 0/224 recall; Run 3: 0/224. Run 4: 47/224 but is explicitly a leaky reference. | Do not select Run 4; Run 5 has no demonstrated recall gain and has >5% Dolly and Swahili-Wikipedia perplexity regressions. |
-| 7 | Readiness gatebook | Notebook contains an empty `MANUAL_REVIEWS` map; no executed readiness JSON/report is present. | Prepared, not executed. No readiness pass. |
+| 7 | Readiness gatebook for the Run 5 candidate | Notebook checks the Run 5/Run 6 evidence chain, but `MANUAL_REVIEWS` is empty and no executed readiness JSON/report is present. | Prepared, not executed. It is not a readiness assessment of Run 8 or Run 9. No readiness pass. |
 | 8 | Fresh-fact fine-tuning | 630 steps; 34/80 taught-fact questions passed (42.5%); 0/80 passage-grounding; retention regressions: Dolly +7.9%, Wikipedia-Swahili +5.2%. | Useful knowledge-recall signal, but retention regressions and grounding failure block promotion. |
 | 9 | Passage-conditioned fine-tuning | 705 steps; 5/80 taught-fact questions passed (6.2%); 1/80 passage-grounding; no >5% retention regression. | No clear capability gain; not promotable. |
 
@@ -35,13 +35,14 @@ The exact uploaded notebook bytes are fingerprinted in `training/runs/colab-expe
 - It does not copy checkpoint binaries into Git.
 - It does not attach Run 8 or Run 9 to `FreshUnifiedModelRuntime.trainedInference`.
 - It does not register either candidate as the production checkpoint.
-- It does not mark Run 7 ready.
+- It does not mark Run 7 ready or claim that its Run 5 review gates apply to Runs 8–9.
 - It does not claim independent binary verification, safety approval, grounding success, or production readiness.
 
 ## Next evidence required
 
-1. Export the Run 7 readiness report and its referenced manual-review evidence.
-2. Retrieve the Run 8 and Run 9 checkpoint files and independently re-hash them against the recorded manifests.
-3. Add robust instruction-following, truthfulness/abstention, grounding, passage QA, tool-use, and safety evaluations.
-4. Resolve Run 8's Dolly and Swahili retention regressions.
-5. Only after all gates pass, prepare a separate owner-approved promotion and runtime integration change with rollback evidence.
+1. Execute Run 7's Run 5-specific manual reviews and export its readiness report, if that historical review is still required.
+2. For Runs 8 and 9, run a candidate-specific readiness suite rather than reusing Run 7's Run 5 gatebook.
+3. Retrieve the Run 8 and Run 9 checkpoint files and independently re-hash them against the recorded manifests.
+4. Add robust instruction-following, truthfulness/abstention, grounding, passage QA, tool-use, and safety evaluations.
+5. Resolve Run 8's Dolly and Swahili retention regressions.
+6. Only after all gates pass, prepare a separate owner-approved promotion and runtime integration change with rollback evidence.
