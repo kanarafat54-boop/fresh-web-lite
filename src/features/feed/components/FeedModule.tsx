@@ -12,6 +12,7 @@ import { useProfileNav } from "../../profile/context/ProfileNavContext";
 import type { Post } from "../types/post";
 import { applyDiscoveryFilter, type DiscoverablePost } from "../../fresh-flow/core/applyDiscoveryFilter";
 import { getSocialAuthorIds } from "../../fresh-flow/core/social";
+import { fetchFreshFlowPage, FRESH_FLOW_PAGE_SIZE } from "../../fresh-flow/core/freshFlowPagination";
 import { useFreshFlowRuntime } from "../../fresh-flow/core/useFreshFlowRuntime";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -35,124 +36,186 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [feedCursor, setFeedCursor] = useState<string | null>(null);
+  const [hasMorePosts, setHasMorePosts] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openCommentsFor, setOpenCommentsFor] = useState<string | null>(null);
   const [shareTarget, setShareTarget] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { state: runtimeState, replaceQueue, setActive: setRuntimeActive } = useFreshFlowRuntime();
+  const requestGenerationRef = useRef(0);
+  const appendLockRef = useRef<symbol | null>(null);
+  const { state: runtimeState, replaceQueue, appendQueue, beginAppend, endAppend, setActive: setRuntimeActive, shouldPrefetch } = useFreshFlowRuntime();
 
   useEffect(() => {
-    void loadPosts();
+    const requestId = ++requestGenerationRef.current;
+    appendLockRef.current = null;
+    void loadPosts({ requestId });
+    return () => {
+      if (requestGenerationRef.current === requestId) requestGenerationRef.current += 1;
+      appendLockRef.current = null;
+    };
   }, [discoveryId, user?.id, isGuest, sharedPostId]);
 
-  async function loadPosts() {
-    setLoading(true);
-    setError(null);
+  useEffect(() => {
+    if (!shouldPrefetch || loadingMore || runtimeState.loadingMore || !hasMorePosts) return;
+    void loadPosts({ append: true });
+  }, [shouldPrefetch, loadingMore, runtimeState.loadingMore, hasMorePosts, feedCursor]);
 
-    let postsQuery = supabase
-      .from("posts")
-      .select("id, author_id, content, image_url, video_url, like_count, comment_count, created_at");
-    if (sharedPostId) {
-      postsQuery = postsQuery.eq("id", sharedPostId);
+  async function loadPosts(options: { append?: boolean; requestId?: number } = {}) {
+    const append = Boolean(options.append);
+    const appendToken = append ? Symbol("fresh-flow-feed-page") : null;
+    if (append) {
+      if (appendLockRef.current || !feedCursor || sharedPostId) return;
+      appendLockRef.current = appendToken;
+      setLoadingMore(true);
+      beginAppend();
+    }
+    const requestId = options.requestId ?? (append ? requestGenerationRef.current : ++requestGenerationRef.current);
+    const isCurrentRequest = () => requestId === requestGenerationRef.current;
+
+    if (!append) {
+      appendLockRef.current = null;
+      setLoading(true);
+      setLoadingMore(false);
+      setHasMorePosts(false);
+      setFeedCursor(null);
+      setError(null);
     } else {
-      postsQuery = postsQuery.order("created_at", { ascending: false }).limit(24);
-    }
-    const { data: postsData, error: postsError } = await postsQuery;
-
-    if (postsError) {
-      setError(`Couldn't load the feed: ${postsError.message}`);
-      setLoading(false);
-      return;
+      setError(null);
     }
 
-    const base: DiscoverablePost[] = (postsData ?? []).map((p: any) => ({
-      id: p.id,
-      authorId: p.author_id,
-      content: p.content ?? "",
-      videoUrl: p.video_url ?? null,
-      imageUrl: p.image_url ?? null,
-      likeCount: p.like_count ?? 0,
-      commentCount: p.comment_count ?? 0,
-      createdAt: p.created_at,
-    }));
+    try {
+      let postsData: any[] = [];
+      let nextCursor: string | null = null;
+      let nextHasMore = false;
+      let postsQuery = supabase
+        .from("posts")
+        .select("id, author_id, content, image_url, video_url, like_count, comment_count, created_at");
 
-    let followingIds: Set<string> | undefined;
-    if (discoveryId === "following" && user && !isGuest) {
-      try {
-        followingIds = new Set(await getSocialAuthorIds(user.id));
-      } catch {
-        followingIds = new Set();
+      if (sharedPostId) {
+        const { data, error: postsError } = await postsQuery.eq("id", sharedPostId);
+        if (!isCurrentRequest()) return;
+        if (postsError) throw postsError;
+        postsData = data ?? [];
+      } else {
+        postsQuery = postsQuery
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false });
+        const page = await fetchFreshFlowPage<any>(postsQuery as any, append ? feedCursor : null, FRESH_FLOW_PAGE_SIZE);
+        if (!isCurrentRequest()) return;
+        if (page.error) throw page.error;
+        postsData = page.data;
+        nextCursor = page.cursor;
+        nextHasMore = page.hasMore;
       }
-    }
 
-    const filtered = discoveryId
-      ? applyDiscoveryFilter(base, discoveryId, { followingAuthorIds: followingIds })
-      : base;
-
-    const authorIds = [...new Set(filtered.map((p) => p.authorId).filter(Boolean))];
-    let profileMap = new Map<string, { full_name: string; username: string }>();
-
-    if (authorIds.length > 0) {
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("user_public_profiles")
-        .select("id, full_name, username")
-        .in("id", authorIds);
-      if (profilesError) {
-        setError(`Couldn't load author profiles: ${profilesError.message}`);
-        setLoading(false);
-        return;
-      }
-      profileMap = new Map((profilesData ?? []).map((u: any) => [u.id, u]));
-    }
-
-    let reactionMap = new Map<string, string>();
-    let savedPostIds = new Set<string>();
-    if (user && !isGuest) {
-      const { data: likesData } = await supabase
-        .from("post_likes")
-        .select("post_id, reaction_type")
-        .eq("user_id", user.id);
-      reactionMap = new Map((likesData ?? []).map((l: any) => [l.post_id, l.reaction_type]));
-
-      const { data: savedData } = await supabase
-        .from("saved_posts")
-        .select("post_id")
-        .eq("user_id", user.id);
-      savedPostIds = new Set((savedData ?? []).map((s: any) => s.post_id));
-    }
-
-    const mapped: Post[] = filtered.map((p) => {
-      const profile = profileMap.get(p.authorId);
-      return {
+      const base: DiscoverablePost[] = postsData.map((p: any) => ({
         id: p.id,
-        authorId: p.authorId,
-        authorName: profile?.full_name ?? "Unknown",
-        authorUsername: profile?.username ?? "unknown",
+        authorId: p.author_id,
         content: p.content ?? "",
-        imageUrl: p.imageUrl ?? null,
-        videoUrl: p.videoUrl ?? null,
-        likeCount: p.likeCount ?? 0,
-        commentCount: p.commentCount ?? 0,
-        myReaction: reactionMap.get(p.id) ?? null,
-        createdAt: p.createdAt,
-      };
-    });
+        videoUrl: p.video_url ?? null,
+        imageUrl: p.image_url ?? null,
+        likeCount: p.like_count ?? 0,
+        commentCount: p.comment_count ?? 0,
+        createdAt: p.created_at,
+      }));
 
-    setPosts(mapped);
-    setSavedIds(savedPostIds);
-    replaceQueue(mapped.map((post) => ({
-      id: post.id,
-      kind: post.videoUrl ? "long-video" : post.imageUrl ? "image" : "post",
-      world: "news-posts",
-      authorId: post.authorId,
-      title: post.content?.slice(0, 90) || "Fresh Post",
-      description: post.content || "",
-      mediaUrl: post.videoUrl || post.imageUrl,
-      posterUrl: post.imageUrl,
-      createdAt: post.createdAt,
-      safety: "approved",
-    })), null, false);
-    setLoading(false);
+      let followingIds: Set<string> | undefined;
+      if (discoveryId === "following" && user && !isGuest) {
+        try {
+          followingIds = new Set(await getSocialAuthorIds(user.id));
+        } catch {
+          followingIds = new Set();
+        }
+        if (!isCurrentRequest()) return;
+      }
+
+      const filtered = discoveryId
+        ? applyDiscoveryFilter(base, discoveryId, { followingAuthorIds: followingIds })
+        : base;
+      const authorIds = [...new Set(filtered.map((post) => post.authorId).filter(Boolean))];
+      let profileMap = new Map<string, { full_name: string; username: string }>();
+
+      if (authorIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("user_public_profiles")
+          .select("id, full_name, username")
+          .in("id", authorIds);
+        if (!isCurrentRequest()) return;
+        if (profilesError) throw profilesError;
+        profileMap = new Map((profilesData ?? []).map((profile: any) => [profile.id, profile]));
+      }
+
+      let reactionMap = new Map<string, string>();
+      let savedPostIds = new Set<string>();
+      if (user && !isGuest && filtered.length > 0) {
+        const visiblePostIds = filtered.map((post) => post.id);
+        const [likesResult, savedResult] = await Promise.all([
+          supabase.from("post_likes").select("post_id, reaction_type").eq("user_id", user.id).in("post_id", visiblePostIds),
+          supabase.from("saved_posts").select("post_id").eq("user_id", user.id).in("post_id", visiblePostIds),
+        ]);
+        if (!isCurrentRequest()) return;
+        reactionMap = new Map((likesResult.data ?? []).map((like: any) => [like.post_id, like.reaction_type]));
+        savedPostIds = new Set((savedResult.data ?? []).map((saved: any) => saved.post_id));
+      }
+
+      const mapped: Post[] = filtered.map((post) => {
+        const profile = profileMap.get(post.authorId);
+        return {
+          id: post.id,
+          authorId: post.authorId,
+          authorName: profile?.full_name ?? "Unknown",
+          authorUsername: profile?.username ?? "unknown",
+          content: post.content ?? "",
+          imageUrl: post.imageUrl ?? null,
+          videoUrl: post.videoUrl ?? null,
+          likeCount: post.likeCount ?? 0,
+          commentCount: post.commentCount ?? 0,
+          myReaction: reactionMap.get(post.id) ?? null,
+          createdAt: post.createdAt,
+        };
+      });
+
+      if (!isCurrentRequest()) return;
+      setFeedCursor(nextCursor);
+      setHasMorePosts(nextHasMore);
+      setSavedIds((current) => append ? new Set([...current, ...savedPostIds]) : savedPostIds);
+      const runtimeItems = mapped.map((post) => ({
+        id: post.id,
+        kind: post.videoUrl ? "long-video" as const : post.imageUrl ? "image" as const : "post" as const,
+        world: "news-posts" as const,
+        authorId: post.authorId,
+        title: post.content?.slice(0, 90) || "Fresh Post",
+        description: post.content || "",
+        mediaUrl: post.videoUrl || post.imageUrl,
+        posterUrl: post.imageUrl,
+        createdAt: post.createdAt,
+        safety: "approved" as const,
+      }));
+      if (append) {
+        setPosts((current) => {
+          const existingIds = new Set(current.map((post) => post.id));
+          return [...current, ...mapped.filter((post) => !existingIds.has(post.id))];
+        });
+        appendQueue(runtimeItems, nextCursor, nextHasMore);
+      } else {
+        setPosts(mapped);
+        replaceQueue(runtimeItems, nextCursor, nextHasMore);
+      }
+      setLoading(false);
+    } catch (loadError) {
+      if (!isCurrentRequest()) return;
+      const message = loadError instanceof Error ? loadError.message : "Unknown feed error";
+      setError(append ? `Could not load more posts: ${message}` : `Could not load the feed: ${message}`);
+      if (!append) setLoading(false);
+    } finally {
+      if (append && appendLockRef.current === appendToken) {
+        appendLockRef.current = null;
+        setLoadingMore(false);
+        endAppend();
+      }
+    }
   }
 
   function showAllPosts() {
@@ -334,6 +397,14 @@ export function FeedModule({ discoveryId }: FeedModuleProps = {}) {
           </li>
         ))}
       </ul>
+
+      {!loading && hasMorePosts && !sharedPostId && (
+        <div className="feed-pagination">
+          <button type="button" className="add-note-btn" onClick={() => void loadPosts({ append: true })} disabled={loadingMore}>
+            {loadingMore ? "Loading more..." : "Load more posts"}
+          </button>
+        </div>
+      )}
 
       {openCommentsFor && (
         <CommentPanel targetType="post" targetId={openCommentsFor} onClose={() => { setOpenCommentsFor(null); void loadPosts(); }} />
