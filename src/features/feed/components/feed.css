@@ -211,3 +211,14 @@ font-weight:bold;
 @media(max-width:420px) {
   .fresh-profile-overlay .profile-view { padding-bottom:24px !important; }
 }
+
+
+/* Fresh Flow News / Posts bounded pagination controls. */
+.module[data-discovery] .feed-pagination {
+  display:flex;
+  justify-content:center;
+  padding:18px 0 26px;
+}
+.module[data-discovery] .feed-pagination .add-note-btn {
+  min-width:min(100%,220px);
+}
