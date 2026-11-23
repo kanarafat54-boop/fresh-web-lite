@@ -55,3 +55,8 @@ for (const [source, token, label] of [
   [flowHub, "setStudioSourceSystemId(systemId ?? null)", "Flow carries domain origin into Studio"],
 ]) assert.ok(source.includes(token), label);
 console.log("Fresh Flow → Creator Studio creation-origin handoff: PASS");
+
+const shortsExperience = readFileSync("src/features/fresh-flow/components/FreshFlowShortsExperience.tsx", "utf8");
+assert.match(shortsExperience, /else setActiveRoute\("fresh-flow-system-fresh-studio"\)/, "Shorts create intent opens the shared Fresh Studio route");
+assert.match(studioApp, /section: readCreateIntent\(\) \? "publish" : "home"/, "a Shorts create intent resumes at the shared Studio publishing workflow");
+console.log("Fresh Shorts → shared Creator Studio create-intent handoff: PASS");
