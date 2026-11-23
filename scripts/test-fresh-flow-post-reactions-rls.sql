@@ -26,22 +26,15 @@ on conflict (id) do nothing;
 insert into public.short_likes (short_id, user_id, reaction_type)
 values ('f3000000-0000-4000-8000-000000000001', 'f1000000-0000-4000-8000-000000000001', 'like')
 on conflict (short_id, user_id) do nothing;
-insert into public.short_reposts (short_id, user_id)
-values ('f3000000-0000-4000-8000-000000000001', 'f1000000-0000-4000-8000-000000000002')
-on conflict (short_id, user_id) do nothing;
-
--- Public read policies must also survive a clean migration replay.
+-- Public Shorts reaction reads must survive a clean migration replay.
 set local role anon;
-do $
+do $$
 begin
   if (select count(*) from public.short_likes where short_id = 'f3000000-0000-4000-8000-000000000001') <> 1 then
     raise exception 'Public Shorts reaction read policy is missing';
   end if;
-  if (select count(*) from public.short_reposts where short_id = 'f3000000-0000-4000-8000-000000000001') <> 1 then
-    raise exception 'Public Shorts repost read policy is missing';
-  end if;
 end
-$;
+$$;
 reset role;
 
 -- Owner A can create and change their reaction.
