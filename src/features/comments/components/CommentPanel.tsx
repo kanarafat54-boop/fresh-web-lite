@@ -471,9 +471,9 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     if (!user || isGuest || (!draft.trim() && !recordedBlob && !files.length)) return;
     setPosting(true);
     setError(null);
+    const uploadedPaths: string[] = [];
     try {
       const attachments: UniversalCommentAttachment[] = [];
-      const uploadedPaths: string[] = [];
       for (const file of files) attachments.push(await uploadFile(file, uploadedPaths));
       if (recordedBlob) {
         const file = new File([recordedBlob], `${crypto.randomUUID()}.webm`, { type: recordedBlob.type });
