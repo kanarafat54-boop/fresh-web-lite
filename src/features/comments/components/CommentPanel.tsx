@@ -41,6 +41,7 @@ type Row = {
 type ViewRow = Row & {
   authorName: string;
   authorUsername: string;
+  authorAvatarUrl: string | null;
   replies: ViewRow[];
 };
 
@@ -106,6 +107,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const column = COLUMN_MAP[targetType];
   const [comments, setComments] = useState<ViewRow[]>([]);
   const [shortAuthorId, setShortAuthorId] = useState<string | null>(null);
+  const [currentUserAvatarUrl, setCurrentUserAvatarUrl] = useState<string | null>(null);
   const [pinningId, setPinningId] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<CommentSortMode>("oldest");
   const [mutedAuthors, setMutedAuthors] = useState<Set<string>>(new Set());
@@ -140,7 +142,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const imageInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const currentUserName = typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : user?.email ?? "You";
-  const currentUserAvatar = typeof user?.user_metadata?.avatar_url === "string" ? user.user_metadata.avatar_url : typeof user?.user_metadata?.picture === "string" ? user.user_metadata.picture : null;
+  const currentUserAvatar = currentUserAvatarUrl ?? (typeof user?.user_metadata?.avatar_url === "string" ? user.user_metadata.avatar_url : typeof user?.user_metadata?.picture === "string" ? user.user_metadata.picture : null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -343,18 +345,28 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
       data = withoutBlockedAuthors((data ?? []) as any[], blocked, (row: any) => row.author_id);
     }
     const ids = [...new Set((data ?? []).map((row: any) => row.author_id).filter(Boolean))];
+    const profileIds = [...new Set([...ids, ...(user?.id ? [user.id] : [])])];
     let profiles: any[] = [];
+    let avatarProfiles: any[] = [];
     if (ids.length) {
       const result = await supabase.from("user_public_profiles").select("id,full_name,username").in("id", ids);
       profiles = result.data ?? [];
     }
+    if (profileIds.length) {
+      // profile_details RLS exposes avatars only for public profiles and the current user.
+      const avatarResult = await supabase.from("profile_details").select("user_id,avatar_url").in("user_id", profileIds);
+      avatarProfiles = avatarResult.data ?? [];
+    }
     const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
+    const avatarMap = new Map(avatarProfiles.map((profile) => [profile.user_id, profile.avatar_url]));
+    setCurrentUserAvatarUrl(user?.id ? avatarMap.get(user.id) ?? null : null);
     const rows: ViewRow[] = (data ?? []).map((row: any) => ({
       ...row,
       pinned_at: row.pinned_at ?? null,
       attachments: Array.isArray(row.attachments) ? row.attachments : [],
       authorName: profileMap.get(row.author_id)?.full_name ?? "Unknown",
       authorUsername: profileMap.get(row.author_id)?.username ?? "unknown",
+      authorAvatarUrl: avatarMap.get(row.author_id) ?? null,
       replies: [],
     }));
     setComments(buildTree(rows));
@@ -550,7 +562,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     return (
       <div key={comment.id} className={depth ? "comment-reply" : "comment-root"}>
         <div className="comment-item">
-          <button type="button" className="comment-avatar" onClick={() => openProfile(comment.author_id)} aria-label={`Open ${comment.authorName}'s profile`}>{(comment.authorName || "?").slice(0, 1).toUpperCase()}</button>
+          <button type="button" className="comment-avatar" onClick={() => openProfile(comment.author_id)} aria-label={`Open ${comment.authorName}'s profile`}>{comment.authorAvatarUrl ? <img src={comment.authorAvatarUrl} alt="" loading="lazy" /> : (comment.authorName || "?").slice(0, 1).toUpperCase()}</button>
           <div className="comment-body">
             <div className="comment-header">
               <button type="button" className="comment-author-profile" onClick={() => openProfile(comment.author_id)}>{comment.authorUsername !== "unknown" ? comment.authorUsername : comment.authorName}</button>
