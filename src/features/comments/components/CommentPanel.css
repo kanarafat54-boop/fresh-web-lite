@@ -58,3 +58,46 @@
 .fresh-comments .comment-sort-row .reply-btn{flex:0 0 auto;white-space:nowrap}
 
 .short-comment-held{display:inline-flex;align-items:center;gap:5px;margin:4px 0 6px;padding:4px 8px;border-radius:99px;background:rgba(255,184,77,.14);color:#ffcf85;font-size:.74rem;font-weight:700}
+
+/* Accessible modal layering: comments own the viewport while open, so app navigation
+   cannot cover the list or composer. Closing restores the unchanged navigation. */
+.fresh-comments-backdrop {
+  z-index: 10000;
+  padding-top: env(safe-area-inset-top);
+  overscroll-behavior: contain;
+}
+.fresh-comments {
+  width: min(100%, 560px);
+  max-height: calc(100dvh - env(safe-area-inset-top));
+  min-height: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: border-box;
+}
+.fresh-comments .comment-list {
+  min-height: 0;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.fresh-comments .comment-input-row {
+  flex: 0 0 auto;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  background: inherit;
+}
+.fresh-comments button,
+.fresh-comments input,
+.fresh-comments label {
+  touch-action: manipulation;
+}
+@media (max-width: 560px) {
+  .fresh-comments {
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fresh-comments-backdrop { animation: fresh-comments-backdrop-in 160ms ease-out; }
+  @keyframes fresh-comments-backdrop-in {
+    from { background: rgba(3,5,12,0); }
+    to { background: rgba(3,5,12,.62); }
+  }
+}
