@@ -330,7 +330,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
       void supabase.from("shorts").select("author_id").eq("id", targetId).maybeSingle()
         .then(({ data }) => setShortAuthorId((data as any)?.author_id ?? null));
     } else setShortAuthorId(null);
-  }, [targetId, table, column, targetType]);
+  }, [targetId, table, column, targetType, user?.id, isGuest]);
 
   useEffect(() => {
     return () => {
