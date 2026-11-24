@@ -137,6 +137,10 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const live = useRef<HTMLVideoElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const currentUserName = typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : user?.email ?? "You";
+  const currentUserAvatar = typeof user?.user_metadata?.avatar_url === "string" ? user.user_metadata.avatar_url : typeof user?.user_metadata?.picture === "string" ? user.user_metadata.picture : null;
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -658,15 +662,33 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
           {emojiOpen && <div className="quick-reaction-row">{QUICK_REACTIONS.map((reaction) => <button key={reaction} className="quick-reaction-chip" onClick={() => setDraft((value) => value + reaction)} aria-label={`Add ${reaction}`}>{reaction}</button>)}</div>}
           <div className="comment-composer">
             <div className="comment-input-row">
-              <input type="text" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={replyingTo ? `Reply to ${replyingTo.authorName}...` : "Add a comment..."} className="comment-input" aria-label="Add a comment" onKeyDown={(event) => { if (event.key === "Enter") void addComment(); }} />
+              <div className="comment-composer-avatar" role="img" aria-label={`${currentUserName}'s avatar`}>
+                {currentUserAvatar ? <img src={currentUserAvatar} alt="" /> : currentUserName.slice(0, 1).toUpperCase()}
+              </div>
+              <textarea
+                rows={1}
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                placeholder={replyingTo ? `Reply to ${replyingTo.authorName}...` : "Add a comment..."}
+                className="comment-input"
+                aria-label="Add a comment"
+                onFocus={(event) => { event.currentTarget.style.height = "72px"; }}
+                onBlur={(event) => { event.currentTarget.style.height = "44px"; }}
+                onInput={(event) => { const target = event.currentTarget; target.style.height = "72px"; target.style.height = `${Math.min(target.scrollHeight, 120)}px`; }}
+                onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void addComment(); } }}
+              />
               <button type="button" className="icon-only-btn" onClick={() => setEmojiOpen((open) => !open)} aria-label="Emoji" aria-pressed={emojiOpen}>☺</button>
               <button type="button" className="comment-send" onClick={() => void addComment()} disabled={posting} aria-label={posting ? "Posting" : "Send comment"}>{posting ? "…" : <SendIcon size={16} />}</button>
             </div>
             <div className="comment-tools-row" role="group" aria-label="Comment attachments and recording">
-              <button type="button" className="icon-only-btn" onClick={() => attachmentInputRef.current?.click()} aria-label="Attach images or files">📎</button>
-              <input ref={attachmentInputRef} className="comment-file-input" type="file" multiple accept="image/*,audio/*,video/*,.pdf,.txt,.doc,.docx" onChange={(event) => { selectFiles(event.target.files); event.currentTarget.value = ""; }} tabIndex={-1} aria-hidden="true" />
               <button type="button" className="icon-only-btn" onClick={() => void startRecording("audio")} aria-label="Record audio"><MicIcon size={18} /></button>
               <button type="button" className="icon-only-btn" onClick={() => void startRecording("video")} aria-label="Record video"><VideoCameraIcon size={18} /></button>
+              <button type="button" className="icon-only-btn" onClick={() => imageInputRef.current?.click()} aria-label="Attach an image">▧</button>
+              <input ref={imageInputRef} className="comment-file-input" type="file" accept="image/*" onChange={(event) => { selectFiles(event.target.files); event.currentTarget.value = ""; }} tabIndex={-1} aria-hidden="true" />
+              <button type="button" className="icon-only-btn" onClick={() => galleryInputRef.current?.click()} aria-label="Choose image gallery">▦</button>
+              <input ref={galleryInputRef} className="comment-file-input" type="file" accept="image/*" multiple onChange={(event) => { selectFiles(event.target.files); event.currentTarget.value = ""; }} tabIndex={-1} aria-hidden="true" />
+              <button type="button" className="icon-only-btn" onClick={() => attachmentInputRef.current?.click()} aria-label="Attach audio, video or other files">📎</button>
+              <input ref={attachmentInputRef} className="comment-file-input" type="file" multiple accept="image/*,audio/*,video/*,.pdf,.txt,.doc,.docx" onChange={(event) => { selectFiles(event.target.files); event.currentTarget.value = ""; }} tabIndex={-1} aria-hidden="true" />
             </div>
           </div>
           {files.length > 0 && <div aria-label="Selected attachments">{files.map((file, index) => <span key={`${file.name}-${index}`} className="quick-reaction-chip">{file.name}<button onClick={() => setFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Remove ${file.name}`}>×</button></span>)}</div>}
