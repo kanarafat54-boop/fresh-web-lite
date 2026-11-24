@@ -10,11 +10,12 @@ const referenceCss = readFileSync("src/features/fresh-flow/components/FreshFlowR
 const flowHub = readFileSync("src/features/fresh-flow/FreshFlowHub.tsx", "utf8");
 
 
-assert.match(panel, /role="dialog" aria-modal="false" aria-labelledby="fresh-comments-title"/, "comments sheet is non-modal so shared navigation remains accessible");
+assert.match(panel, /role="dialog" aria-modal="true" aria-labelledby="fresh-comments-title"/, "comments sheet is modal while shared navigation is hidden");
 assert.match(panel, /onCloseRef\.current\(\)/, "Escape closes the dialog without rebinding its focus effect");
 assert.match(panel, /previousFocus\?\.focus\(\)/, "closing restores focus to the invoking control");
 assert.match(panel, /panel\.addEventListener\("keydown", handleKeyDown\)/, "Escape handling remains attached to the comments sheet");
-assert.doesNotMatch(panel, /event\.key !== "Tab"/, "comments do not trap Tab away from shared navigation");
+assert.match(panel, /event\.key !== "Tab"/, "comments trap Tab inside the modal sheet");
+assert.match(panel, /event\.shiftKey && \(document\.activeElement === first/, "Shift+Tab wraps to the final control inside comments");
 assert.match(panel, /fresh-flow-comments-visibility/, "opening comments announces persistent-navigation visibility");
 assert.match(panel, /getClientRects\(\)\.length > 0/, "hidden controls are excluded from the focus cycle");
 assert.match(panel, /window\.visualViewport/, "virtual-keyboard viewport is observed");
@@ -90,9 +91,10 @@ assert.match(referenceCss, /--ff-green:\s*#22e58a/, "reference design includes t
 assert.match(referenceCss, /--ff-violet:\s*#635bff/, "reference design retains the Fresh violet accent");
 assert.match(referenceCss, /\.fresh-flow-home-hero/, "reference styling covers the Fresh Flow Home hero");
 assert.match(referenceCss, /\.fresh-flow-stream\[data-discovery\] \.fresh-flow-actions/, "reference styling covers the Shorts action rail");
-assert.match(referenceCss, /\.fresh-flow-hub\s+\.fresh-comments-backdrop\s*\{[^}]*z-index:\s*420[^}]*padding-bottom:\s*calc\(68px \+ env\(safe-area-inset-bottom\)\)/s, "comments sheet reserves the persistent navigation and device safe area");
+assert.match(referenceCss, /\.fresh-flow-hub\s+\.fresh-comments-backdrop\s*\{[^}]*z-index:\s*420[^}]*padding-bottom:\s*env\(safe-area-inset-bottom\)/s, "comments sheet uses the full lower viewport and only respects the device safe area");
 assert.match(referenceCss, /\.fresh-flow-bottom-nav\s*\{[^}]*z-index:\s*430/s, "persistent bottom navigation layers above the comments backdrop");
-assert.match(flowHub, /commentsOpenRef\.current \|\| \(target instanceof Element && target\.closest\("\.fresh-comments-backdrop"\)\)/, "comment-list scrolling never auto-hides the bottom navigation");
+assert.match(flowHub, /setVisibility\(!open\)/, "opening comments hides the bottom navigation and closing restores it");
+assert.match(flowHub, /commentsOpenRef\.current \|\| \(target instanceof Element && target\.closest\("\.fresh-comments-backdrop"\)\)/, "comment-list scrolling never overrides modal navigation visibility");
 assert.match(referenceCss, /safe-area-inset-bottom/, "reference styling respects device bottom safe areas");
 assert.match(referenceCss, /prefers-reduced-motion/, "reference styling includes reduced-motion handling");
 
