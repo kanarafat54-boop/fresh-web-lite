@@ -40,4 +40,5 @@ assert.match(surface, /role="dialog" aria-modal="true" aria-label="Fresh search"
 assert.match(surface, /surface\.addEventListener\("keydown", handleKeyDown\)/, "search traps keyboard focus");
 assert.match(surface, /onCloseRef\.current\(\)/, "Escape closes search");
 assert.match(surface, /soundPageRef\.current/, "Escape closes the nested sound page before closing search");
+assert.match(surface, /soundTriggerRef\.current\?\.focus\(\)/, "closing the sound page restores focus to its result");
 console.log("Fresh search Sounds category: PASS");
