@@ -403,6 +403,17 @@ for (const width of WIDTHS) {
   });
   const initialFocusInside = await sheet.evaluate((element) => element.contains(document.activeElement));
   check(initialFocusInside, `${tag} opening Comments moves focus inside the dialog`);
+  await sheet.evaluate((element) => {
+    const selector = 'button:not([disabled]), input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+    const visible = Array.from(element.querySelectorAll(selector)).filter((item) => item.getClientRects().length > 0);
+    visible[0]?.focus();
+  });
+  await page.keyboard.press("Shift+Tab");
+  check(await sheet.evaluate((element) => {
+    const selector = 'button:not([disabled]), input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+    const visible = Array.from(element.querySelectorAll(selector)).filter((item) => item.getClientRects().length > 0);
+    return visible.at(-1) === document.activeElement;
+  }), `${tag} Shift+Tab wraps to the final control inside Comments`);
   await page.keyboard.press("Tab");
   check(await sheet.evaluate((element) => element.contains(document.activeElement)), `${tag} Tab remains inside the Comments dialog`);
   await page.keyboard.press("Escape");
