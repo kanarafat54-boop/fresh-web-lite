@@ -147,7 +147,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     if (!panel) return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const focusableSelector = 'button:not([disabled]), input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
-    const focusable = () => Array.from(panel.querySelectorAll<HTMLElement>(focusableSelector)).filter((element) => element.getAttribute("aria-hidden") !== "true");
+    const focusable = () => Array.from(panel.querySelectorAll<HTMLElement>(focusableSelector)).filter((element) => element.getAttribute("aria-hidden") !== "true" && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== "hidden");
     (focusable()[0] ?? panel).focus();
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
