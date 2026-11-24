@@ -25,7 +25,9 @@ on:
     branches: [main]
     paths:
       - "src/features/fresh-flow/**"
+      - "src/features/comments/**"
       - "src/app/components/BottomNav.*"
+      - "scripts/test-fresh-shorts-comment-accessibility.mjs"
       - "scripts/browser-test-fresh-flow-navigation.mjs"
       - "scripts/browser-test-fresh-shorts.mjs"
       - "scripts/test-fresh-short-watch-signals.mjs"
