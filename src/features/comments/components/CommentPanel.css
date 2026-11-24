@@ -1,7 +1,7 @@
 .fresh-comments-backdrop{position:fixed;inset:0;z-index:140;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,5,12,.62)}
 .fresh-comments{width:min(100%,560px);display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(129,92,255,.28);border-bottom:0;border-radius:22px 22px 0 0;background:#0b0f1d;color:#fff;box-shadow:0 -18px 50px rgba(0,0,0,.5)}
 :root[data-theme="light"] .fresh-comments{background:#fff;color:#12162a;border-color:rgba(91,60,220,.2)}
-.fresh-comments .sheet-drag-handle{flex:0 0 auto;width:44px;height:5px;margin:8px auto 2px;border-radius:99px;background:rgba(255,255,255,.28);touch-action:none;cursor:grab}
+ .fresh-comments .sheet-drag-handle{flex:0 0 auto;width:44px;height:5px;margin:8px auto 2px;padding:8px 0;border-radius:99px;background:rgba(255,255,255,.28);background-clip:content-box;touch-action:none;cursor:grab;box-sizing:content-box}
 :root[data-theme="light"] .fresh-comments .sheet-drag-handle{background:rgba(0,0,0,.2)}
 .fresh-comments .comment-panel-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 14px 10px}
 .fresh-comments .comment-panel-header h3{margin:0;font-size:1.05rem;font-weight:700}
@@ -29,7 +29,7 @@
 .fresh-comments .recorder-controls{display:flex;gap:8px}
 .fresh-comments .quick-reaction-row{display:flex;gap:4px;overflow-x:auto;padding:4px 14px;scrollbar-width:none}
 .fresh-comments .quick-reaction-chip{min-width:40px;min-height:40px;border:0;border-radius:99px;background:rgba(255,255,255,.07);font-size:1.2rem;cursor:pointer}
-.fresh-comments .comment-input-row{display:flex;align-items:center;gap:2px;padding:6px 8px calc(8px + env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.08)}
+.fresh-comments .comment-composer{flex:0 0 auto;padding:6px 8px 8px;border-top:1px solid rgba(255,255,255,.08);background:inherit}.fresh-comments .comment-input-row{display:flex;align-items:center;gap:6px;min-width:0}.fresh-comments .comment-tools-row{display:flex;align-items:center;gap:6px;padding-top:4px}.fresh-comments .comment-file-input{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .fresh-comments .comment-input{flex:1;min-width:0;min-height:44px;padding:0 14px;border:1px solid rgba(255,255,255,.14);border-radius:99px;background:rgba(255,255,255,.06);color:inherit;font:inherit;font-size:.92rem}
 :root[data-theme="light"] .fresh-comments .comment-input{border-color:rgba(0,0,0,.14);background:rgba(0,0,0,.04)}
 .fresh-comments .comment-send{flex:0 0 44px;width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:50%;background:linear-gradient(135deg,#6f30ff,#11a7e7);color:#fff;cursor:pointer}
@@ -58,3 +58,133 @@
 .fresh-comments .comment-sort-row .reply-btn{flex:0 0 auto;white-space:nowrap}
 
 .short-comment-held{display:inline-flex;align-items:center;gap:5px;margin:4px 0 6px;padding:4px 8px;border-radius:99px;background:rgba(255,184,77,.14);color:#ffcf85;font-size:.74rem;font-weight:700}
+
+/* Accessible modal layering: comments own the viewport while open, so app navigation
+   cannot cover the list or composer. Closing restores the unchanged navigation. */
+.fresh-comments-backdrop {
+  z-index: 10000;
+  padding-top: env(safe-area-inset-top);
+  overscroll-behavior: contain;
+}
+.fresh-comments {
+  width: min(100%, 560px);
+  max-height: calc(100dvh - env(safe-area-inset-top));
+  min-height: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: border-box;
+}
+.fresh-comments .comment-list {
+  min-height: 0;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.fresh-comments .comment-input-row {
+  flex: 0 0 auto;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  background: inherit;
+}
+.fresh-comments button,
+.fresh-comments input,
+.fresh-comments label {
+  touch-action: manipulation;
+}
+@media (max-width: 560px) {
+  .fresh-comments {
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fresh-comments-backdrop { animation: fresh-comments-backdrop-in 160ms ease-out; }
+  @keyframes fresh-comments-backdrop-in {
+    from { background: rgba(3,5,12,0); }
+    to { background: rgba(3,5,12,.62); }
+  }
+}
+
+
+/* Two-level composer: keep writing and sending prominent while media tools remain easy to reach. */
+.fresh-comments .comment-input-row .comment-input{flex:1 1 auto;width:0;min-width:0}
+.fresh-comments .comment-input-row .icon-only-btn,
+.fresh-comments .comment-tools-row .icon-only-btn{flex:0 0 44px;min-width:44px;min-height:44px;display:grid;place-items:center;border:0;border-radius:50%;background:rgba(255,255,255,.055);color:inherit;font:inherit;cursor:pointer}
+.fresh-comments .comment-input-row .comment-send{flex:0 0 44px}
+.fresh-comments .comment-tools-row .icon-only-btn{background:rgba(255,255,255,.07)}
+.fresh-comments .comment-input-row button:focus-visible,
+.fresh-comments .comment-tools-row button:focus-visible,
+.fresh-comments .comment-close-btn:focus-visible{outline:2px solid #8d65ff;outline-offset:2px}
+@media(max-width:360px){
+  .fresh-comments .comment-composer{padding-inline:6px}
+  .fresh-comments .comment-input-row{gap:4px}
+  .fresh-comments .comment-input-row .icon-only-btn,
+  .fresh-comments .comment-input-row .comment-send,
+  .fresh-comments .comment-tools-row .icon-only-btn{flex-basis:42px;min-width:42px}
+}
+
+/* The safe-area inset belongs to the sheet container, not the text row. */
+.fresh-comments .comment-input-row{padding-bottom:0;background:transparent}
+
+
+/* Match the master composer contract: avatar + expandable writing row, then four media tools. */
+.fresh-comments .comment-composer-avatar{
+  flex:0 0 32px;width:32px;height:32px;border-radius:50%;overflow:hidden;
+  display:grid;place-items:center;background:linear-gradient(145deg,#635bff,#4f46e5);
+  color:#fff;font-size:.8rem;font-weight:800;line-height:1;
+}
+.fresh-comments .comment-composer-avatar img{display:block;width:100%;height:100%;object-fit:cover}
+.fresh-comments textarea.comment-input{
+  display:block;align-self:center;min-height:44px;max-height:120px;height:44px;
+  padding:10px 12px;line-height:1.35;resize:none;overflow-y:auto;white-space:pre-wrap;
+}
+.fresh-comments textarea.comment-input:focus{min-height:72px;outline:2px solid rgba(99,91,255,.55);outline-offset:1px}
+.fresh-comments .comment-tools-row{justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.fresh-comments .comment-tools-row::-webkit-scrollbar{display:none}
+
+.fresh-comments .comment-avatar{overflow:hidden}
+.fresh-comments .comment-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
+
+
+.fresh-comments .comment-filter-row{
+  display:flex;align-items:center;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;
+  padding:4px 12px 8px;scrollbar-width:none;white-space:nowrap;
+}
+.fresh-comments .comment-filter-row::-webkit-scrollbar{display:none}
+.fresh-comments .comment-filter-row .reply-btn{flex:0 0 auto;min-height:34px;padding:6px 10px;border-radius:999px}
+.fresh-comments .comment-filter-row .reply-btn[aria-pressed="true"]{background:rgba(99,91,255,.2);border-color:rgba(99,91,255,.55);color:#fff}
+
+
+.fresh-comments .comment-verified-badge{
+  flex:0 0 15px;width:15px;height:15px;display:inline-grid;place-items:center;border-radius:50%;
+  background:#4f46e5;color:#fff;font-size:10px;font-weight:900;line-height:1;
+}
+.fresh-comments .comment-creator-badge{
+  display:inline-flex;align-items:center;min-height:18px;padding:2px 6px;border-radius:999px;
+  background:rgba(99,91,255,.16);color:#c8c3ff;font-size:.62rem;font-weight:750;line-height:1;
+}
+
+
+.fresh-comments .comment-reply-count{display:inline-flex;align-items:center;min-height:30px;color:#b9b7c8;font-size:.72rem;font-weight:650}
+.fresh-comments .comment-reaction-chips .comment-reaction-chip{
+  border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.045);color:inherit;
+  border-radius:999px;padding:4px 8px;font:inherit;cursor:pointer;
+}
+.fresh-comments .comment-reaction-chips .comment-reaction-chip:focus-visible,
+.fresh-comments .comment-reaction-summary button:focus-visible{outline:2px solid #8d65ff;outline-offset:2px}
+.fresh-comments .comment-reaction-summary{
+  display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:6px 0 10px;padding:9px 10px;
+  border:1px solid rgba(99,91,255,.25);border-radius:12px;background:rgba(99,91,255,.07);
+}
+.fresh-comments .comment-reaction-summary-header{display:flex;align-items:center;justify-content:space-between;flex:1 0 100%;color:#e8e6ff;font-size:.78rem}
+
+.fresh-comments .comment-thread-back{
+  justify-self:start;display:inline-flex;align-items:center;min-height:36px;padding:4px 10px;
+  border:1px solid rgba(99,91,255,.28);border-radius:999px;background:rgba(99,91,255,.1);
+  color:#e8e6ff;font-size:.76rem;font-weight:700;cursor:pointer;
+}
+.fresh-comments .comment-thread-back:focus-visible{outline:2px solid #8d65ff;outline-offset:2px}
+
+.fresh-comments .comment-edit-form{display:grid;gap:8px;margin:6px 0 10px}
+.fresh-comments .comment-edit-form textarea{width:100%;min-height:76px;max-height:160px;box-sizing:border-box;padding:10px 12px;border:1px solid rgba(99,91,255,.45);border-radius:12px;background:rgba(255,255,255,.06);color:inherit;font:inherit;font-size:.9rem;line-height:1.4;resize:vertical}
+.fresh-comments .comment-edit-actions{display:flex;gap:8px;justify-content:flex-end}
+.fresh-comments .comment-edit-actions button{min-height:36px;padding:4px 12px;border:1px solid rgba(99,91,255,.3);border-radius:999px;background:rgba(99,91,255,.12);color:inherit;font:inherit;font-size:.78rem;font-weight:700}
+.fresh-comments .comment-edit-actions button:disabled{opacity:.5}
+.fresh-comments .comment-edit-form textarea:focus-visible,.fresh-comments .comment-edit-actions button:focus-visible{outline:2px solid #8d65ff;outline-offset:2px}

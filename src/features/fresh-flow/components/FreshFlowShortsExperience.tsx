@@ -5,9 +5,9 @@ import FreshFlowShortsStream from "./FreshFlowShortsStream";
 import { recordFreshShortsTelemetry } from "../core/shortsTelemetry";
 import "./FreshFlowShortsExperience.css";
 
-type Props = { onOpenTopic?: (tag: string) => void };
+type Props = { onOpenTopic?: (tag: string) => void; onOpenStudio?: (systemId: string) => void };
 
-type CreateIntent = { action?: string; sourceShortId?: string; sourceVideoUrl?: string };
+type CreateIntent = { action?: string; sourceShortId?: string; sourceAuthorId?: string; sourceVideoUrl?: string; sourceCaption?: string };
 
 function getConnectionType(): string | undefined {
   const connection = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection;
@@ -19,7 +19,7 @@ function getConnectionType(): string | undefined {
  * Both navigations stay visible: Shorts scrolls like a vertical pager and never
  * hides the app chrome, so there is no separate "immersive" mode to enter or exit.
  */
-export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
+export default function FreshFlowShortsExperience({ onOpenTopic, onOpenStudio }: Props) {
   const { setActiveRoute } = useLayout();
   const { isGuest } = useFreshId();
   const watchedVideoIdsRef = useRef<Map<HTMLVideoElement, string>>(new Map());
@@ -140,7 +140,8 @@ export default function FreshFlowShortsExperience({ onOpenTopic }: Props) {
             /* ignore */
           }
           if (isGuest) setActiveRoute("auth-signin");
-          else setActiveRoute("creator");
+          else if (onOpenStudio) onOpenStudio("fresh-shorts");
+          else setActiveRoute("fresh-flow-system-fresh-studio");
         }}
       />
     </div>

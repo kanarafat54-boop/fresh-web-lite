@@ -214,5 +214,26 @@
 
 /* Fresh Flow tucks away both navigation bars during active scrolling. */
 .fresh-flow-bottom-nav.flow-navigation-hidden{opacity:0;transform:translate(-50%,calc(100% + 16px));pointer-events:none;visibility:hidden;}
-.fresh-flow-bottom-nav{transition:opacity 180ms ease,transform 180ms ease,visibility 180ms ease;}
+.fresh-flow-bottom-nav{transition:opacity 180ms ease,transform 180ms ease;} /* visibility changes immediately so modal surfaces never expose the bar */
 @media(prefers-reduced-motion:reduce){.fresh-flow-bottom-nav{transition:none;}}
+
+
+/* Fresh Flow labels remain readable across all six destinations on narrow phones. */
+.fresh-flow-bottom-nav .fresh-flow-nav-item{min-height:54px;padding:3px 1px;gap:2px}
+.fresh-flow-bottom-nav .fresh-nav-label{font-size:clamp(.62rem,2.5vw,.7rem);line-height:1.08;font-weight:700;white-space:normal;overflow-wrap:anywhere}
+@media(max-width:360px){
+  .fresh-flow-bottom-nav .fresh-flow-nav-item{min-height:52px}
+  .fresh-flow-bottom-nav .fresh-nav-label{font-size:.6rem}
+}
+
+
+/* Keep the Flow active state inside the master violet / indigo palette. */
+.fresh-flow-bottom-nav .fresh-flow-nav-item.active{
+  border-color:rgba(99,91,255,.5);
+  background:linear-gradient(145deg,rgba(99,91,255,.28),rgba(79,70,229,.18));
+  box-shadow:inset 0 0 24px rgba(99,91,255,.12),0 0 18px rgba(99,91,255,.12);
+}
+.fresh-flow-bottom-nav .fresh-flow-nav-item.active::before{
+  background:linear-gradient(90deg,#635bff,#4f46e5);
+  box-shadow:0 0 14px rgba(99,91,255,.45);
+}

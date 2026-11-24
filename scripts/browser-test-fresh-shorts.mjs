@@ -72,7 +72,7 @@ async function diagnose(page, label) {
 }
 
 const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"] });
-const WIDTHS = [320, 390, 430];
+const WIDTHS = [320, 360, 390, 430];
 // On phones every header control except Search lives in the "more" menu; open it before using one.
 async function openHeaderMenu(page) {
   const list = page.locator("header .fresh-flow-header-more-list");
@@ -143,16 +143,22 @@ for (const width of WIDTHS) {
   const rail = await page.evaluate(() => {
     const item = document.querySelector(".fresh-flow-item");
     const tabs = document.querySelector(".fresh-flow-tabs");
+    const nav = document.querySelector("nav.fresh-flow-bottom-nav");
+    const meta = item.querySelector(".fresh-flow-meta");
     const itemBox = item.getBoundingClientRect();
     const tabsBottom = tabs ? tabs.getBoundingClientRect().bottom : itemBox.top;
+    const navTop = nav ? nav.getBoundingClientRect().top : itemBox.bottom;
+    const metaBottom = meta ? meta.getBoundingClientRect().bottom : itemBox.bottom;
     const boxes = [...item.querySelectorAll(".fresh-flow-actions button")].map((el) => el.getBoundingClientRect());
-    return { count: boxes.length, top: Math.min(...boxes.map((r) => r.top)), bottom: Math.max(...boxes.map((r) => r.bottom)), itemBottom: itemBox.bottom, tabsBottom };
+    return { count: boxes.length, top: Math.min(...boxes.map((r) => r.top)), bottom: Math.max(...boxes.map((r) => r.bottom)), itemBottom: itemBox.bottom, tabsBottom, navTop, metaBottom };
   });
   const modes = (await page.locator('.fresh-flow-tabs [role="tab"]').allInnerTexts()).map((t) => t.replace(/^\S+\s/, "").trim());
   check(JSON.stringify(modes) === JSON.stringify(["For You", "Following", "Friends", "Trending", "Fresh Picks", "Learn", "Relax"]), `${tag} discovery modes are For You · Following · Friends · Trending · Fresh Picks · Learn · Relax (got ${modes.join(" · ")})`);
   check((await page.locator(".fresh-flow-item").first().locator(".fresh-flow-rail-avatar").count()) === 1, `${tag} rail starts with the creator profile photo`);
   check(rail.count >= 7, `${tag} action rail has profile, react, comment, repost, save, share and more (${rail.count})`);
   check(rail.top >= rail.tabsBottom - 1 && rail.bottom <= rail.itemBottom + 1, `${tag} every action sits inside the visible Short, below the tabs (${Math.round(rail.top)} >= ${Math.round(rail.tabsBottom)})`);
+  check(rail.bottom <= rail.navTop - 1, `${tag} action rail stays above bottom navigation (${Math.round(rail.bottom)} <= ${Math.round(rail.navTop)})`);
+  check(rail.metaBottom <= rail.navTop - 1, `${tag} creator/caption metadata stays above bottom navigation (${Math.round(rail.metaBottom)} <= ${Math.round(rail.navTop)})`);
   await page.locator('.fresh-flow-item [aria-label="Share"]').first().click();
   await page.locator('[aria-label="Share this Short"]').waitFor({ timeout: 5000 });
   const shareText = await page.locator('[aria-label="Share this Short"]').innerText();
@@ -315,7 +321,10 @@ for (const width of WIDTHS) {
   const stats = (await profile.locator(".shorts-profile-stats dt").allInnerTexts()).map((t) => t.trim());
   check(JSON.stringify(stats) === JSON.stringify(["Following", "Followers", "Likes"]), `${tag} profile stats are Following · Followers · Likes`);
   const ptabs = (await profile.locator(".shorts-profile-tabs button").allInnerTexts()).map((t) => t.trim());
-  check(JSON.stringify(ptabs) === JSON.stringify(["Shorts", "Playlists", "About"]), `${tag} profile tabs are Shorts · Playlists · About`);
+  check(JSON.stringify(ptabs) === JSON.stringify(["Shorts", "Reposts", "Playlists", "About"]), `${tag} profile tabs are Shorts · Reposts · Playlists · About`);
+  const repostsTab = profile.locator(".shorts-profile-tabs button", { hasText: "Reposts" });
+  await repostsTab.click();
+  check(await repostsTab.getAttribute("aria-pressed") === "true", `${tag} Reposts tab opens as an accessible creator section`);
   check(await profile.getByRole("button", { name: "Follow" }).isVisible() && await profile.getByRole("button", { name: "Message" }).isVisible(), `${tag} profile has Follow and Message`);
   await profile.locator(".shorts-profile-tabs button", { hasText: "Playlists" }).click();
   check(await profile.locator('[aria-label="Creator playlists"]').isVisible(), `${tag} Playlists tab shows the creator playlists section`);
@@ -351,18 +360,77 @@ for (const width of WIDTHS) {
   await create.getByRole("button", { name: "Close" }).click();
   check(!(await create.isVisible().catch(() => false)), `${tag} Create Short closes back to the feed`);
 
-  // Comments sheet (design screen 7): a styled bottom sheet with the count in its title and a composer or sign-in prompt.
-  await page.locator('.fresh-flow-stream[data-discovery] [aria-label="Comments"]').first().click();
+  // Comments sheet: verify viewport geometry, stacking, independent scrolling and keyboard dismissal.
+  const commentsTrigger = page.locator('.fresh-flow-stream[data-discovery] [aria-label="Comments"]').first();
+  await commentsTrigger.focus();
+  await commentsTrigger.click();
   const sheet = page.getByRole("dialog", { name: "Comments" });
   await sheet.waitFor({ state: "visible", timeout: 8000 }).catch(() => undefined);
   check(await sheet.isVisible().catch(() => false), `${tag} Comments sheet opens`);
   const sheetBox = await sheet.boundingBox().catch(() => null);
-  check(!!sheetBox && sheetBox.y > 40 && sheetBox.y + sheetBox.height <= 760 + 1 && sheetBox.width <= width + 1, `${tag} Comments sheet is a bottom sheet inside the viewport`);
+  check(!!sheetBox && sheetBox.y > 40 && sheetBox.height >= (await page.evaluate(() => window.innerHeight)) * 0.8 && sheetBox.y + sheetBox.height <= (await page.evaluate(() => window.innerHeight)) + 1 && sheetBox.width <= width + 1, `${tag} Comments sheet opens tall (at least 80% of the viewport) inside the viewport`);
   check((await sheet.locator("h3").innerText().catch(() => "")).startsWith("Comments"), `${tag} Comments sheet is titled Comments`);
+  check(await sheet.getAttribute("aria-modal") === "true" && Boolean(await sheet.getAttribute("aria-labelledby")), `${tag} Comments sheet exposes modal semantics`);
+  await page.waitForFunction(() => {
+    const nav = document.querySelector("nav.fresh-flow-bottom-nav");
+    return Boolean(nav && getComputedStyle(nav).visibility === "hidden");
+  });
+  check(!(await page.locator("nav.fresh-flow-bottom-nav").isVisible()), `${tag} bottom navigation is hidden while Comments is open`);
+  const backdropCoversNavigation = await sheet.evaluate((element) => {
+    const layer = element.closest(".comment-panel-backdrop");
+    const nav = document.querySelector("nav.fresh-flow-bottom-nav");
+    if (!layer || !nav) return false;
+    const layerRect = layer.getBoundingClientRect();
+    const layerZ = Number.parseInt(getComputedStyle(layer).zIndex, 10) || 0;
+    const navZ = Number.parseInt(getComputedStyle(nav).zIndex, 10) || 0;
+    // The hidden nav is translated below the viewport; compare the modal with
+    // the viewport edge, then verify stacking order instead of the transformed nav rect.
+    return layerRect.bottom >= window.innerHeight - 1 && layerZ > navZ;
+  });
+  check(backdropCoversNavigation, `${tag} Comments modal covers the viewport bottom above hidden navigation`);
+  const list = sheet.locator(".comment-list");
+  if (await list.count()) {
+    const overflowY = await list.evaluate((element) => getComputedStyle(element).overflowY);
+    check(overflowY === "auto" || overflowY === "scroll", `${tag} comment list scrolls independently`);
+  }
   const sheetText = await sheet.innerText().catch(() => "");
   check(sheetText.includes("Register to comment") || (await sheet.getByPlaceholder("Add a comment...").count()) === 1, `${tag} Comments sheet has the composer or a sign-in prompt`);
+  const relevantSort = sheet.getByRole("button", { name: "Relevant" });
+  check(await relevantSort.getAttribute("aria-pressed") === "true", `${tag} comment sorting defaults to Relevant`);
+  const commentFilters = sheet.getByRole("group", { name: "Filter comments" });
+  check(await commentFilters.getByRole("button").count() === 7, `${tag} all seven comment filters remain discoverable`);
+  await commentFilters.getByRole("button", { name: "Audio" }).click();
+  check(await commentFilters.getByRole("button", { name: "Audio" }).getAttribute("aria-pressed") === "true", `${tag} audio comment filter is interactive`);
+  await commentFilters.getByRole("button", { name: "All" }).click();
+  check(await commentFilters.getByRole("button", { name: "All" }).getAttribute("aria-pressed") === "true", `${tag} All comments filter restores the full conversation`);
+  await page.waitForFunction(() => {
+    const dialog = document.querySelector('[role="dialog"][aria-labelledby="fresh-comments-title"]');
+    return Boolean(dialog && dialog.contains(document.activeElement));
+  });
+  const initialFocusInside = await sheet.evaluate((element) => element.contains(document.activeElement));
+  check(initialFocusInside, `${tag} opening Comments moves focus inside the dialog`);
+  await sheet.evaluate((element) => {
+    const selector = 'button:not([disabled]), input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+    const visible = Array.from(element.querySelectorAll(selector)).filter((item) => item.getClientRects().length > 0);
+    visible[0]?.focus();
+  });
+  await page.keyboard.press("Shift+Tab");
+  check(await sheet.evaluate((element) => {
+    const selector = 'button:not([disabled]), input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+    const visible = Array.from(element.querySelectorAll(selector)).filter((item) => item.getClientRects().length > 0);
+    return visible.at(-1) === document.activeElement;
+  }), `${tag} Shift+Tab wraps to the final control inside Comments`);
+  await page.keyboard.press("Tab");
+  check(await sheet.evaluate((element) => element.contains(document.activeElement)), `${tag} Tab remains inside the Comments dialog`);
+  await page.keyboard.press("Escape");
+  check(!(await sheet.isVisible().catch(() => false)), `${tag} Escape closes the Comments sheet`);
+  check(await page.locator("nav.fresh-flow-bottom-nav").isVisible(), `${tag} bottom navigation returns after Comments closes`);
+  check(await commentsTrigger.evaluate((element) => document.activeElement === element), `${tag} closing Comments restores focus to its trigger`);
+  await commentsTrigger.click();
+  await sheet.waitFor({ state: "visible", timeout: 8000 }).catch(() => undefined);
   await sheet.getByRole("button", { name: "Close comments" }).click();
-  check(!(await sheet.isVisible().catch(() => false)), `${tag} Comments sheet closes`);
+  check(!(await sheet.isVisible().catch(() => false)), `${tag} close button closes the Comments sheet`);
+  check(await page.locator("nav.fresh-flow-bottom-nav").isVisible(), `${tag} bottom navigation returns after close button dismissal`);
 
   // Fresh AI button: compact and top-right, so it never covers the action rail or bottom navigation.
   const aiBox = await page.locator(".global-fresh-ai-trigger").first().boundingBox().catch(() => null);

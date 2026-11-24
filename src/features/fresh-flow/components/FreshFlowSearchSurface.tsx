@@ -1,16 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLayout } from "../../../app/contexts/useLayout";
 import {
-  searchVideos, searchPosts, searchNews, searchWebInfo, searchPeople, searchTopics,
-  type VideoResult, type PostResult, type PersonResult, type TopicResult,
+  searchVideos, searchPosts, searchNews, searchWebInfo, searchPeople, searchTopics, searchSounds,
+  type VideoResult, type PostResult, type PersonResult, type TopicResult, type SoundResult,
 } from "../core/searchService";
 import type { IntelligenceResponse } from "../../ai/intelligence";
 import ShortsExplore from "./ShortsExplore";
+import ShortsTopicPage from "./ShortsTopicPage";
 import { requestOpenShort } from "../core/shortsExplore";
 import { addRecent, cleanQuery, readRecent, removeRecent, writeRecent } from "../core/recentSearches";
 import "./FreshFlowSearchSurface.css";
 
-type SearchTab = "videos" | "posts" | "news" | "web" | "people" | "topics";
+type SearchTab = "videos" | "posts" | "news" | "web" | "people" | "sounds" | "topics";
 
 const TABS: Array<{ id: SearchTab; label: string }> = [
   { id: "videos", label: "Videos" },
@@ -18,6 +19,7 @@ const TABS: Array<{ id: SearchTab; label: string }> = [
   { id: "news", label: "News" },
   { id: "web", label: "Web Info" },
   { id: "people", label: "People" },
+  { id: "sounds", label: "Sounds" },
   { id: "topics", label: "Topics" },
 ];
 
@@ -43,7 +45,15 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
   const [webInfo, setWebInfo] = useState<IntelligenceResponse | null>(null);
   const [people, setPeople] = useState<PersonResult[]>([]);
   const [topics, setTopics] = useState<TopicResult[]>([]);
+  const [sounds, setSounds] = useState<SoundResult[]>([]);
+  const [soundPage, setSoundPage] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const soundTriggerRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  const soundPageRef = useRef(soundPage);
+  onCloseRef.current = onClose;
+  soundPageRef.current = soundPage;
   const [recent, setRecent] = useState<string[]>(() => readRecent(scope));
 
   const run = async (activeTab: SearchTab, q: string) => {
@@ -58,6 +68,7 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
       else if (activeTab === "news") setNews(await searchNews(q));
       else if (activeTab === "web") setWebInfo(await searchWebInfo(q));
       else if (activeTab === "people") setPeople(await searchPeople(q));
+      else if (activeTab === "sounds") setSounds(await searchSounds(q));
       else if (activeTab === "topics") setTopics(await searchTopics(q));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Search failed.");
@@ -76,8 +87,49 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusableSelector = 'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+    const focusable = () => Array.from(surface.querySelectorAll<HTMLElement>(focusableSelector))
+      .filter((element) => element.getAttribute("aria-hidden") !== "true" && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== "hidden");
+    (focusable()[0] ?? surface).focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        if (soundPageRef.current) {
+          setSoundPage(null);
+          requestAnimationFrame(() => soundTriggerRef.current?.focus());
+        } else onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusable();
+      if (!items.length) {
+        event.preventDefault();
+        surface.focus();
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    surface.addEventListener("keydown", handleKeyDown);
+    return () => {
+      surface.removeEventListener("keydown", handleKeyDown);
+      previousFocus?.focus();
+    };
+  }, []);
+
   return (
-    <div className="fresh-flow-search-surface" role="dialog" aria-modal="true" aria-label="Fresh search">
+    <div ref={surfaceRef} className="fresh-flow-search-surface" role="dialog" aria-modal="true" aria-label="Fresh search" tabIndex={-1}>
       <header className="fresh-flow-search-header">
         <input
           autoFocus
@@ -150,6 +202,20 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
             </ul>
           )
         )}
+        {!loading && !error && searched && tab === "sounds" && (
+          sounds.length === 0 ? <p className="fresh-flow-empty">No matching sounds found.</p> : (
+            <ul className="fresh-flow-search-list" aria-label="Sound results">
+              {sounds.map((sound) => (
+                <li key={sound.name}>
+                  <button type="button" className="fresh-flow-search-person" onClick={(event) => { soundTriggerRef.current = event.currentTarget; setSoundPage(sound.name); }}>
+                    <strong>♪ {sound.name}</strong>
+                    <small>{sound.useCount}{sound.capped ? "+" : ""} {sound.useCount === 1 && !sound.capped ? "Short" : "Shorts"}</small>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )
+        )}
         {!loading && !error && searched && tab === "topics" && (
           topics.length === 0 ? <p className="fresh-flow-empty">No matching topics found.</p> : (
             <ul className="fresh-flow-search-list">
@@ -180,8 +246,11 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
             onSearchTopic={(tag) => { setQuery(tag); setTab("videos"); void run("videos", tag); }}
           />
         )}
-        {!searched && scope !== "shorts" && <p className="fresh-flow-empty">Search Videos, Posts, News, Web Info, People and Topics across Fresh.</p>}
+        {!searched && scope !== "shorts" && <p className="fresh-flow-empty">Search Videos, Posts, News, Web Info, People, Sounds and Topics across Fresh.</p>}
       </div>
+      {soundPage && (
+        <ShortsTopicPage kind="sound" value={soundPage} onClose={() => { setSoundPage(null); requestAnimationFrame(() => soundTriggerRef.current?.focus()); }} onOpenShort={() => { setSoundPage(null); setActiveRoute("fresh-flow-shorts"); onClose(); }} />
+      )}
     </div>
   );
 }

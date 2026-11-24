@@ -41,3 +41,33 @@
 .studio-kinds button.selected{border-color:#635bff;background:rgba(99,91,255,.16)}
 .studio-projects-new{margin:0}
 .studio-project-card{padding:16px;gap:12px}
+
+
+/* Fresh Flow visual refresh — additive skin; all existing workspace states and actions remain intact. */
+.shorts-studio{max-width:1040px;padding:clamp(14px,2.5vw,28px) 14px calc(112px + env(safe-area-inset-bottom));}
+.shorts-studio-head{align-items:flex-start;padding:clamp(16px,2.8vw,26px);margin:2px 0 16px;border:1px solid rgba(255,255,255,.11);border-radius:22px;background:radial-gradient(ellipse at 90% 0%,rgba(124,58,237,.23),transparent 48%),radial-gradient(ellipse at 0% 100%,rgba(99,91,255,.12),transparent 52%),linear-gradient(145deg,#111a20,#11111a 72%);box-shadow:0 18px 48px rgba(0,0,0,.18);}
+.shorts-studio-heading-copy{display:grid;gap:5px;min-width:0}
+.shorts-studio-eyebrow{color:#8d65ff;font-size:.68rem;font-weight:800;letter-spacing:.14em}
+.shorts-studio-head h2{font-size:clamp(1.35rem,3vw,1.8rem);letter-spacing:-.035em}
+.shorts-studio-head p{color:rgba(255,255,255,.68);font-size:.9rem}
+.shorts-studio-back{border-color:rgba(110,231,183,.3);background:rgba(99,91,255,.08)}
+.shorts-studio-tabs{gap:7px;margin:0 0 18px;padding:0 0 9px;border-bottom-color:rgba(255,255,255,.1)}
+.shorts-studio-tabs button{min-height:42px;padding:7px 14px;border:1px solid transparent;border-radius:999px;box-shadow:none!important}
+.shorts-studio-tabs button.active{color:#e3e0ff;background:rgba(99,91,255,.12);border-color:rgba(110,231,183,.28)}
+.shorts-studio-stats{gap:10px;margin:16px 0}
+.shorts-studio-stats div{position:relative;overflow:hidden;min-height:92px;padding:16px;border-color:rgba(255,255,255,.1);border-radius:17px;background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025))}
+.shorts-studio-stats div::after{content:"";position:absolute;right:-24px;bottom:-34px;width:84px;height:84px;border-radius:50%;background:rgba(99,91,255,.08);pointer-events:none}
+.shorts-studio-stats dd{font-size:clamp(1.4rem,3vw,1.8rem);letter-spacing:-.04em}
+.shorts-studio-stats dt{font-size:.76rem;letter-spacing:.02em}
+.shorts-studio-actions{gap:10px;margin:14px 0 22px}
+.shorts-studio-actions button{border-radius:14px;transition:transform .15s ease,border-color .15s ease,background .15s ease}
+.shorts-studio-actions button:hover{transform:translateY(-1px);border-color:rgba(110,231,183,.42)}
+.shorts-studio-actions .primary{background:linear-gradient(120deg,#635bff,#4f46e5);color:#ffffff}
+.shorts-studio-list{gap:9px}
+.shorts-studio-list button{min-height:76px;padding:8px;border-color:rgba(255,255,255,.09);border-radius:15px;background:linear-gradient(120deg,rgba(255,255,255,.055),rgba(255,255,255,.02))}
+.shorts-studio-list video{width:60px;height:68px;border-radius:10px}
+.shorts-studio-list button:hover{border-color:rgba(110,231,183,.34);background:rgba(99,91,255,.06)}
+.shorts-studio-note{padding:12px 14px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.035)}
+.shorts-studio :focus-visible{outline:2px solid #8d65ff;outline-offset:3px}
+@media(min-width:720px){.shorts-studio-stats{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.shorts-studio-actions button{transition:none}.shorts-studio-actions button:hover{transform:none}}

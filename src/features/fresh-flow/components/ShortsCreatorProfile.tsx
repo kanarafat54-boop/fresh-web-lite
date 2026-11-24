@@ -5,9 +5,10 @@ import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { setAuthorFollow } from "../core/social";
 import { formatCount, loadCreatorProfile, requestOpenShort, type CreatorProfileData } from "../core/shortsExplore";
 import { addShortToPlaylist, createShortPlaylist, loadCreatorPlaylists, loadMyShortPlaylists, loadPlaylistShorts, type FreshShortPlaylist } from "../core/shortsPlaylists";
+import { loadCreatorReposts, type CreatorRepost } from "../core/creatorReposts";
 import "./ShortsCreatorProfile.css";
 
-type Tab = "shorts" | "playlists" | "about";
+type Tab = "shorts" | "reposts" | "playlists" | "about";
 type PlaylistShort = { id: string; caption: string; videoUrl: string; viewCount: number; createdAt: string };
 
 type Props = {
@@ -34,6 +35,8 @@ export default function ShortsCreatorProfile({ authorId, onClose, onOpenShort, o
   const [playlistNotice, setPlaylistNotice] = useState<string | null>(null);
   const [reporting, setReporting] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [reposts, setReposts] = useState<CreatorRepost[] | null>(null);
+  const [repostError, setRepostError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,6 +62,16 @@ export default function ShortsCreatorProfile({ authorId, onClose, onOpenShort, o
     });
     return () => { cancelled = true; };
   }, [authorId, isSelf, tab]);
+
+  useEffect(() => {
+    if (tab !== "reposts") return;
+    let cancelled = false;
+    setReposts(null); setRepostError(null);
+    loadCreatorReposts(authorId)
+      .then((items) => { if (!cancelled) setReposts(items); })
+      .catch((cause) => { if (!cancelled) setRepostError(cause instanceof Error ? cause.message : "Reposts could not be loaded."); });
+    return () => { cancelled = true; };
+  }, [authorId, tab]);
 
   const toggleFollow = async () => {
     if (!data) return;
@@ -136,8 +149,8 @@ export default function ShortsCreatorProfile({ authorId, onClose, onOpenShort, o
             </div>
           )}
           <nav className="shorts-profile-tabs" aria-label="Creator sections">
-            {(["shorts", "playlists", "about"] as Tab[]).map((id) => (
-              <button key={id} type="button" className={tab === id ? "active" : ""} aria-pressed={tab === id} onClick={() => { setTab(id); setPlaylistNotice(null); }}>{id === "shorts" ? "Shorts" : id === "playlists" ? "Playlists" : "About"}</button>
+            {(["shorts", "reposts", "playlists", "about"] as Tab[]).map((id) => (
+              <button key={id} type="button" className={tab === id ? "active" : ""} aria-pressed={tab === id} onClick={() => { setTab(id); setPlaylistNotice(null); }}>{id === "shorts" ? "Shorts" : id === "reposts" ? "Reposts" : id === "playlists" ? "Playlists" : "About"}</button>
             ))}
           </nav>
           {tab === "shorts" && (data.shorts.length === 0 ? <p className="shorts-profile-note">No Shorts yet.</p> : (
@@ -161,6 +174,23 @@ export default function ShortsCreatorProfile({ authorId, onClose, onOpenShort, o
               ))}
             </ul>
           ))}
+          {tab === "reposts" && (
+            repostError ? <p className="shorts-profile-note" role="alert">{repostError}</p>
+            : reposts === null ? <p className="shorts-profile-note">Loading reposts…</p>
+            : reposts.length === 0 ? <p className="shorts-profile-note">{isSelf ? "You haven't reposted any Shorts yet." : "No reposts to show."}</p>
+            : (
+              <ul className="shorts-profile-grid" aria-label="Reposted Shorts">
+                {reposts.map((short) => (
+                  <li key={short.id}>
+                    <button type="button" onClick={() => openShort(short.id)} aria-label={`Open reposted Short: ${short.caption || "Fresh Short"}`}>
+                      <video src={`${short.videoUrl}#t=0.5`} muted playsInline preload="metadata" />
+                      <span>↻ {formatCount(short.viewCount)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )
+          )}
           {tab === "playlists" && (
             <section className="shorts-profile-playlists" aria-label="Creator playlists">
               {isSelf && (

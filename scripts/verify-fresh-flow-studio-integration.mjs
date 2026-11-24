@@ -55,3 +55,11 @@ for (const [source, token, label] of [
   [flowHub, "setStudioSourceSystemId(systemId ?? null)", "Flow carries domain origin into Studio"],
 ]) assert.ok(source.includes(token), label);
 console.log("Fresh Flow → Creator Studio creation-origin handoff: PASS");
+
+const shortsExperience = readFileSync("src/features/fresh-flow/components/FreshFlowShortsExperience.tsx", "utf8");
+assert.match(shortsExperience, /onOpenStudio\("fresh-shorts"\)/, "Shorts create intent identifies Fresh Shorts as its Studio source system");
+assert.match(flowHub, /setStudioSourceSystemId\(systemId\)/, "Fresh Flow preserves the originating system when opening Studio");
+assert.match(studioApp, /sourceSystemId: initialSystemId \?\? undefined/, "Studio receives the originating system ID");
+assert.match(studioApp, /section: readCreateIntent\(\) \? "publish" : "home"/, "a Shorts create intent resumes at the shared Studio publishing workflow");
+assert.match(shortsExperience, /sourceAuthorId\?: string; sourceVideoUrl\?: string; sourceCaption\?: string/, "Shorts create intents retain creator, media and caption context");
+console.log("Fresh Shorts → shared Creator Studio create-intent handoff: PASS");
