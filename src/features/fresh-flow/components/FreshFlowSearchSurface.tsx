@@ -49,6 +49,7 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
   const [soundPage, setSoundPage] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const soundTriggerRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
   const soundPageRef = useRef(soundPage);
   onCloseRef.current = onClose;
@@ -97,8 +98,10 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        if (soundPageRef.current) setSoundPage(null);
-        else onCloseRef.current();
+        if (soundPageRef.current) {
+          setSoundPage(null);
+          requestAnimationFrame(() => soundTriggerRef.current?.focus());
+        } else onCloseRef.current();
         return;
       }
       if (event.key !== "Tab") return;
@@ -204,7 +207,7 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
             <ul className="fresh-flow-search-list" aria-label="Sound results">
               {sounds.map((sound) => (
                 <li key={sound.name}>
-                  <button type="button" className="fresh-flow-search-person" onClick={() => setSoundPage(sound.name)}>
+                  <button type="button" className="fresh-flow-search-person" onClick={(event) => { soundTriggerRef.current = event.currentTarget; setSoundPage(sound.name); }}>
                     <strong>♪ {sound.name}</strong>
                     <small>{sound.useCount}{sound.capped ? "+" : ""} {sound.useCount === 1 && !sound.capped ? "Short" : "Shorts"}</small>
                   </button>
@@ -246,7 +249,7 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
         {!searched && scope !== "shorts" && <p className="fresh-flow-empty">Search Videos, Posts, News, Web Info, People, Sounds and Topics across Fresh.</p>}
       </div>
       {soundPage && (
-        <ShortsTopicPage kind="sound" value={soundPage} onClose={() => setSoundPage(null)} onOpenShort={() => { setSoundPage(null); setActiveRoute("fresh-flow-shorts"); onClose(); }} />
+        <ShortsTopicPage kind="sound" value={soundPage} onClose={() => { setSoundPage(null); requestAnimationFrame(() => soundTriggerRef.current?.focus()); }} onOpenShort={() => { setSoundPage(null); setActiveRoute("fresh-flow-shorts"); onClose(); }} />
       )}
     </div>
   );
