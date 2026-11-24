@@ -126,6 +126,8 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const live = useRef<HTMLVideoElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // Keep keyboard and screen-reader users inside the open modal, and return focus
   // to the control that opened it when the sheet closes.
@@ -139,7 +141,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== "Tab") return;
@@ -164,7 +166,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
       panel.removeEventListener("keydown", handleKeyDown);
       previousFocus?.focus();
     };
-  }, [onClose]);
+  }, []);
 
   const displayComments = useMemo(() => {
     const visible = comments.filter((row) => !mutedAuthors.has(row.author_id));
@@ -582,7 +584,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
               <button type="button" className="icon-only-btn" onClick={() => setEmojiOpen((open) => !open)} aria-label="Emoji" aria-pressed={emojiOpen}>☺</button>
               <button type="button" className="comment-send" onClick={() => void addComment()} disabled={posting} aria-label={posting ? "Posting" : "Send comment"}>{posting ? "…" : <SendIcon size={16} />}</button>
             </div>
-            <div className="comment-tools-row" aria-label="Comment attachments and recording">
+            <div className="comment-tools-row" role="group" aria-label="Comment attachments and recording">
               <button type="button" className="icon-only-btn" onClick={() => attachmentInputRef.current?.click()} aria-label="Attach images or files">📎</button>
               <input ref={attachmentInputRef} className="comment-file-input" type="file" multiple accept="image/*,audio/*,video/*,.pdf,.txt,.doc,.docx" onChange={(event) => { selectFiles(event.target.files); event.currentTarget.value = ""; }} tabIndex={-1} aria-hidden="true" />
               <button type="button" className="icon-only-btn" onClick={() => void startRecording("audio")} aria-label="Record audio"><MicIcon size={18} /></button>
