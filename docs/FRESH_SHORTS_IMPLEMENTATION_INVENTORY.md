@@ -353,7 +353,7 @@ All C/D gaps remain in scope. None is permission to remove a feature.
 
 **Branch:** `audit/fresh-shorts-preservation-grade-20261123`  
 **PR:** #326  
-**Implementation commits:** `12addbe4f87137f52c6c6d3ecc6808e725b8f519` (additive reference-direction stylesheet), `95d5b839c91cf0ad19f57910efe56ef1cdb6d0d7` (load stylesheet in Fresh Flow hub), `0449381ca45b845c2d0121955878f2004474e60e` (extend comment/navigation style contract checks).
+**Implementation commits:** `12addbe4f87137f52c6c6d3ecc6808e725b8f519` (additive reference-direction stylesheet), `95d5b839c91cf0ad19f57910efe56ef1cdb6d0d7` (load stylesheet in Fresh Flow hub), `0449381ca45b845c2d0121955878f2004474e60e` (extend comment/navigation style contract checks), `83c423c2e5474cecb90e68504cd7d623cf0467e5` (correct scoped comments stacking assertion).
 
 ### Implemented in this pass
 
@@ -377,3 +377,6 @@ All C/D gaps remain in scope. None is permission to remove a feature.
 2. Inspect rendered preview at 320/360/390/430px and desktop; verify the six-item bottom navigation and comments sheet with actual viewport/keyboard behavior.
 3. Continue feature-entry-point audit for Home, Explore/search, creator profile, sounds, saved/collections, notifications, context/provenance, and Studio; map each to existing routes/services before changing interaction structure.
 4. Keep all unverified features at B/C/D until real journeys, authorization and persistence are evidenced.
+
+
+**Latest reference-direction head:** `83c423c2e5474cecb90e68504cd7d623cf0467e5`. PR #326 remains open and mergeable. Vercel and Netlify preview statuses are pending at the latest check; no completed GitHub Actions run was returned for this exact head during the check. Do not mark the new visual layer as browser-verified until those checks complete.
