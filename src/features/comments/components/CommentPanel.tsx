@@ -168,6 +168,32 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     };
   }, []);
 
+  // The virtual keyboard can shrink the visual viewport without changing 100dvh.
+  // Track that viewport so the composer stays above Android/iOS keyboards.
+  useEffect(() => {
+    const panel = panelRef.current;
+    const backdrop = panel?.parentElement as HTMLElement | null;
+    if (!panel || !backdrop) return;
+    const viewport = window.visualViewport;
+    const updateViewport = () => {
+      const visibleHeight = viewport?.height ?? window.innerHeight;
+      const visibleTop = viewport?.offsetTop ?? 0;
+      const keyboardInset = Math.max(0, window.innerHeight - (visibleHeight + visibleTop));
+      backdrop.style.bottom = `${keyboardInset}px`;
+      backdrop.style.boxSizing = "border-box";
+      panel.style.setProperty("--fresh-comments-vh", `${visibleHeight / 100}px`);
+    };
+    updateViewport();
+    viewport?.addEventListener("resize", updateViewport);
+    viewport?.addEventListener("scroll", updateViewport);
+    window.addEventListener("resize", updateViewport);
+    return () => {
+      viewport?.removeEventListener("resize", updateViewport);
+      viewport?.removeEventListener("scroll", updateViewport);
+      window.removeEventListener("resize", updateViewport);
+    };
+  }, []);
+
   const displayComments = useMemo(() => {
     const visible = comments.filter((row) => !mutedAuthors.has(row.author_id));
     const stripReplies = (row: ViewRow): ViewRow => ({ ...row, replies: row.replies.filter((reply) => !mutedAuthors.has(reply.author_id)).map(stripReplies) });
@@ -567,7 +593,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
 
   return (
     <div className="comment-panel-backdrop fresh-comments-backdrop" onClick={onClose}>
-      <div ref={panelRef} className="comment-panel fresh-comments" role="dialog" aria-modal="true" aria-labelledby="fresh-comments-title" tabIndex={-1} style={{ height: `${sheetHeight}dvh`, maxHeight: "calc(100dvh - env(safe-area-inset-top))" }} onClick={(event) => event.stopPropagation()}>
+      <div ref={panelRef} className="comment-panel fresh-comments" role="dialog" aria-modal="true" aria-labelledby="fresh-comments-title" tabIndex={-1} style={{ height: `calc(var(--fresh-comments-vh, 1dvh) * ${sheetHeight})`, maxHeight: "calc(var(--fresh-comments-vh, 1dvh) * 100 - env(safe-area-inset-top))" }} onClick={(event) => event.stopPropagation()}>
         <div className="sheet-drag-handle" onPointerDown={(event) => { dragY.current = event.clientY; dragH.current = sheetHeight; }} onPointerMove={(event) => { if (event.buttons === 1 && dragY.current !== null) setSheetHeight(Math.min(SHEET_MAX, Math.max(SHEET_MIN, dragH.current + ((dragY.current - event.clientY) / window.innerHeight) * 100))); }} onPointerUp={() => { dragY.current = null; setSheetHeight((height) => height > (SHEET_MIN + SHEET_MAX) / 2 ? SHEET_MAX : SHEET_MIN); }} />
         <div className="comment-panel-header">
           <h3 id="fresh-comments-title">Comments{comments.length ? ` (${compact(countAll(comments))})` : ""}</h3>
