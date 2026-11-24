@@ -163,7 +163,8 @@
     "test:evidence-passport": "node scripts/verify-evidence-passport.mjs",
     "test:claim-evidence": "node --no-warnings scripts/verify-claim-evidence.mjs",
     "test:fresh-shorts-comment-accessibility": "node scripts/test-fresh-shorts-comment-accessibility.mjs",
-    "test:fresh-search-sounds": "node --no-warnings scripts/test-fresh-search-sounds.mjs"
+    "test:fresh-search-sounds": "node --no-warnings scripts/test-fresh-search-sounds.mjs",
+    "test:fresh-creator-reposts": "node --no-warnings scripts/test-fresh-creator-reposts.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",

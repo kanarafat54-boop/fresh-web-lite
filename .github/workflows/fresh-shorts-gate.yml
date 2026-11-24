@@ -33,6 +33,8 @@ jobs:
         run: npm run test:fresh-shorts-comment-accessibility
       - name: Search Sounds category
         run: npm run test:fresh-search-sounds
+      - name: Creator profile Reposts tab
+        run: npm run test:fresh-creator-reposts
 
       - name: Playlists and pinned comments contract
         run: npm run test:fresh-shorts-playlists
