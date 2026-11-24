@@ -11,8 +11,8 @@ assert.match(migration, /set updated_at = coalesce\(created_at, now\(\)\)\s+wher
 assert.match(migration, /alter column updated_at set default now\(\)[\s\S]*alter column updated_at set not null/i);
 assert.match(migration, /security invoker/i, "timestamp trigger must not bypass RLS");
 assert.match(migration, /if new\.content is distinct from old\.content then[\s\S]*new\.updated_at := now\(\)[\s\S]*new\.updated_at := old\.updated_at/i, "only text changes update the edited timestamp");
-assert.match(migration, /before update of content on public\.short_comments[\s\S]*execute function public\.guard_short_comment_blocks\(\)/i, "edits re-run the existing block guard");
-assert.match(migration, /before update of content on public\.short_comments[\s\S]*execute function public\.short_comment_controls\(\)/i, "edits re-run creator audience and keyword moderation controls");
+assert.match(migration, /create trigger guard_short_comment_blocks_on_edit\s+before update of content on public\.short_comments\s+for each row execute function public\.guard_short_comment_blocks\(\)/i, "edits re-run the existing block guard");
+assert.match(migration, /create trigger short_comment_controls_on_edit\s+before update of content on public\.short_comments\s+for each row execute function public\.short_comment_controls\(\)/i, "edits re-run creator audience and keyword moderation controls");
 assert.match(migration, /before update on public\.short_comments/i);
 assert.match(migration, /revoke update on table public\.short_comments from public, anon, authenticated/i);
 assert.match(migration, /grant update \(content, updated_at\) on table public\.short_comments to authenticated/i);
@@ -25,6 +25,8 @@ assert.match(component, /targetType === "short"/, "edit UI is limited to the sup
 assert.match(component, /Edit comment/);
 assert.match(component, /Save changes/);
 assert.match(component, /updated_at/);
+assert.match(component, /moderation_state: data\.moderation_state/, "UI reflects any server-side moderation hold after editing");
+assert.match(component, /Comment saved and held for review/);
 assert.match(styles, /\.fresh-comments \.comment-edit-form/);
 assert.match(workflow, /test:fresh-shorts-comment-editing/);
 console.log("Fresh Shorts comment editing contract tests passed.");
