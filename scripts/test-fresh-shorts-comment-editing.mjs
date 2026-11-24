@@ -7,7 +7,7 @@ const styles = fs.readFileSync(new URL("../src/features/comments/components/Comm
 const workflow = fs.readFileSync(new URL("../.github/workflows/fresh-shorts-gate.yml", import.meta.url), "utf8");
 
 assert.match(migration, /add column if not exists updated_at timestamptz/i);
-assert.match(migration, /set updated_at = coalesce\\(created_at, now\\(\\)\\)\\s+where updated_at is null/i, "existing comments keep their original creation time");
+assert.match(migration, /set updated_at = coalesce\(created_at, now\(\)\)\s+where updated_at is null/i, "existing comments keep their original creation time");
 assert.match(migration, /alter column updated_at set default now\(\)[\s\S]*alter column updated_at set not null/i);
 assert.match(migration, /security invoker/i, "timestamp trigger must not bypass RLS");
 assert.match(migration, /if new\.content is distinct from old\.content then[\s\S]*new\.updated_at := now\(\)[\s\S]*new\.updated_at := old\.updated_at/i, "only text changes update the edited timestamp");
