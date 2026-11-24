@@ -359,3 +359,90 @@
   .shorts-explore { padding-inline: 10px; }
   .shorts-profile-body { padding-inline: 12px; }
 }
+
+
+/* Shared Create Studio is a first-class Fresh Flow workspace, not a separate product shell. */
+.fresh-flow-hub .fs-app {
+  --fs-bg: #080d12;
+  --fs-panel: #101820;
+  --fs-panel-2: #16212a;
+  --fs-line: rgba(220,235,244,.11);
+  --fs-primary: #42e58b;
+  --fs-accent: #1ebc72;
+  --fs-success: #42e58b;
+  --fs-text: #edf6f1;
+  --fs-muted: #9aaba5;
+  --fs-radius: 16px;
+  background:
+    radial-gradient(ellipse at 88% 0%,rgba(141,101,255,.075),transparent 30rem),
+    #080d12;
+}
+.fresh-flow-hub .fs-app .fs-topbar {
+  background: rgba(8,13,18,.94);
+  border-bottom-color: var(--fresh-refresh-line);
+  backdrop-filter: blur(18px);
+}
+.fresh-flow-hub .fs-app .fs-wordmark b { color: #8cf0b0; }
+.fresh-flow-hub .fs-app .fs-nav {
+  background: rgba(13,20,27,.98);
+  border-right-color: var(--fresh-refresh-line);
+}
+.fresh-flow-hub .fs-app .fs-nav-item {
+  border-radius: 12px;
+}
+.fresh-flow-hub .fs-app .fs-nav-item.is-active {
+  color: #d9ffe8;
+  background: rgba(66,229,139,.12);
+  box-shadow: inset 3px 0 #42e58b;
+}
+.fresh-flow-hub .fs-app .fs-btn-primary {
+  border-color: #42e58b;
+  background: linear-gradient(120deg,#42e58b,#a0f4bb);
+  color: #07130d;
+}
+.fresh-flow-hub .fs-app .fs-welcome {
+  border-color: rgba(66,229,139,.2);
+  border-radius: 22px;
+  background:
+    radial-gradient(ellipse at 90% 0%,rgba(141,101,255,.2),transparent 44%),
+    radial-gradient(ellipse at 0% 100%,rgba(66,229,139,.12),transparent 48%),
+    linear-gradient(145deg,#14221f,#101820 72%);
+  box-shadow: 0 20px 54px rgba(0,0,0,.2);
+}
+.fresh-flow-hub .fs-app .fs-card,
+.fresh-flow-hub .fs-app .fs-panel,
+.fresh-flow-hub .fs-app .fs-kind {
+  border-color: var(--fresh-refresh-line);
+  background: linear-gradient(145deg,#151f27,#10171e);
+  border-radius: 17px;
+}
+.fresh-flow-hub .fs-app .fs-kind:hover,
+.fresh-flow-hub .fs-app .fs-card:hover {
+  border-color: rgba(66,229,139,.4);
+}
+.fresh-flow-hub .fs-app .fs-tabs button.is-active,
+.fresh-flow-hub .fs-app .fs-steps li.is-active {
+  color: #c9f9d8;
+  border-bottom-color: #42e58b;
+}
+.fresh-flow-hub .fs-app .fs-link { color: #9df2ba; }
+.fresh-flow-hub .fs-app :is(button,a,input,select,textarea):focus-visible {
+  outline-color: #7af0aa;
+  outline-offset: 3px;
+}
+.fresh-flow-hub .fs-app .fs-bottombar {
+  background: rgba(12,19,25,.97);
+  border-top-color: var(--fresh-refresh-line);
+  backdrop-filter: blur(18px);
+}
+@media (max-width: 899px) {
+  .fresh-flow-hub .fs-app-embedded .fs-topbar { border-radius: 0; }
+  .fresh-flow-hub .fs-app-embedded .fs-main { padding: 14px 12px 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fresh-flow-hub .fs-app *, .fresh-flow-hub .fs-app *::before, .fresh-flow-hub .fs-app *::after {
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
