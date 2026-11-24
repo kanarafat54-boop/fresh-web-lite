@@ -490,7 +490,7 @@ The changed-file list includes `supabase/migrations/20261124120000_fresh_comment
 
 Project status was healthy. The health advisor returned no findings. The following live schema/policy findings are material to Fresh Flow / Shorts:
 
-1. **Duplicate reaction constraints:** `public.short_comment_reactions` has both `short_comment_reactions_type_check` (the legacy 10-value check) and `short_comment_reactions_reaction_type_check` (the expanded 18-value check). The applied widening migration drops/recreates the latter name but does not drop the legacy `short_comment_reactions_type_check`. PostgreSQL enforces both, so the eight newer values — Curious, Inspire, Insightful, Agree, Disagree, Helpful, Question and Respect — remain rejected. A new corrective migration is required. It was not created or applied in this session; do not change production directly.
+1. **Duplicate reaction constraints:** `public.short_comment_reactions` has both `short_comment_reactions_type_check` (the legacy 10-value check) and `short_comment_reactions_reaction_type_check` (the expanded 18-value check). The applied widening migration drops/recreates the latter name but does not drop the legacy `short_comment_reactions_type_check`. PostgreSQL enforces both, so the eight newer values — Curious, Inspire, Insightful, Agree, Disagree, Helpful, Question and Respect — remain rejected. A corrective migration has now been added to this PR as `supabase/migrations/20261124150000_fix_short_comment_reaction_constraints.sql`. It drops both the legacy narrow constraint and the previous widened constraint, recreates one canonical 18-value constraint, validates existing rows, and changes no reaction data. It is not applied to production; production still requires the normal reviewed migration release.
 2. **Comment editing:** `short_comments` has no UPDATE policy and no `updated_at` column. Owner delete and insert paths exist; editing remains D.
 3. **Attachment storage:** the live `comment-media` bucket is `public=true`, with `file_size_limit=null` and `allowed_mime_types=null`. Public reads and owner-folder writes/deletes exist. The new `20261124120000_fresh_comment_media_server_limits.sql` migration is not in the live migration ledger and has not been applied. It sets a 50 MiB limit and MIME allowlist but does not change public-read behavior.
 4. **Draft and social access:** `creator_drafts` has owner-scoped SELECT/INSERT/UPDATE/DELETE policies. `short_comment_reactions` writes are owner-scoped but rows are publicly readable. `short_reposts` has public read and owner-scoped write paths.
@@ -533,3 +533,12 @@ When a user opens the Shorts Comments panel, the Fresh Flow bottom navigation mu
 - Automated tests updated: `scripts/browser-test-fresh-shorts.mjs` and `scripts/test-fresh-shorts-comment-accessibility.mjs`.
 - Latest code head at the time of this entry: `417949d0598ba2a2d474db050125a2e1b27061da`. GitHub Actions validation was triggered for the preceding code head and is being rechecked on the final documentation head. Do not claim browser or CI success until the new run completes.
 - No production database mutation, migration application, PR merge or production deployment was performed.
+
+
+### Follow-up: corrective comment reaction migration prepared
+
+- Added `supabase/migrations/20261124150000_fix_short_comment_reaction_constraints.sql` after the prior widened migration.
+- The migration drops both competing CHECK constraint names, creates one canonical 18-value CHECK constraint, validates existing rows and reloads the PostgREST schema cache.
+- No reaction rows are deleted or rewritten. The migration has not been applied to production.
+- `scripts/test-fresh-shorts-comment-reactions.mjs` now asserts both old constraint drops, canonical recreation, validation and preservation of all 18 reaction values.
+- Grade remains **B pending isolated migration replay and release** until CI proves the entire migration chain and production deployment applies it through the approved release process.
