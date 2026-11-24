@@ -1,7 +1,7 @@
 .fresh-comments-backdrop{position:fixed;inset:0;z-index:140;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,5,12,.62)}
 .fresh-comments{width:min(100%,560px);display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(129,92,255,.28);border-bottom:0;border-radius:22px 22px 0 0;background:#0b0f1d;color:#fff;box-shadow:0 -18px 50px rgba(0,0,0,.5)}
 :root[data-theme="light"] .fresh-comments{background:#fff;color:#12162a;border-color:rgba(91,60,220,.2)}
-.fresh-comments .sheet-drag-handle{flex:0 0 auto;width:44px;height:5px;margin:8px auto 2px;border-radius:99px;background:rgba(255,255,255,.28);touch-action:none;cursor:grab}
+ .fresh-comments .sheet-drag-handle{flex:0 0 auto;width:44px;height:5px;margin:8px auto 2px;padding:8px 0;border-radius:99px;background-clip:content-box;background:rgba(255,255,255,.28);touch-action:none;cursor:grab;box-sizing:content-box}
 :root[data-theme="light"] .fresh-comments .sheet-drag-handle{background:rgba(0,0,0,.2)}
 .fresh-comments .comment-panel-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 14px 10px}
 .fresh-comments .comment-panel-header h3{margin:0;font-size:1.05rem;font-weight:700}
