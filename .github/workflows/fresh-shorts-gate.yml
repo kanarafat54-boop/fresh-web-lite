@@ -31,6 +31,8 @@ jobs:
 
       - name: Comment accessibility and preservation contract
         run: npm run test:fresh-shorts-comment-accessibility
+      - name: Comment editing ownership and persistence contract
+        run: npm run test:fresh-shorts-comment-editing
       - name: Search Sounds category
         run: npm run test:fresh-search-sounds
       - name: Creator profile Reposts tab
