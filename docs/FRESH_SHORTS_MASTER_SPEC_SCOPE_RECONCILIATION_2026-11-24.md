@@ -22,7 +22,7 @@ Fresh Shorts remains a complete media, discovery, and conversation experience in
 
 | Original location | Reconciled interpretation |
 |---|---|
-| Part 8.2 | The requirement to preserve the existing creation workflow and avoid a second disconnected editor remains. The sentence stating Fresh Studio is outside scope is superseded. Shared Studio integration is in scope. |
+| Cover, document purpose and Part 1.3 | The explicit-exclusion field and repeated “Fresh Studio excluded” labels are historical text and are superseded by this addendum. Fresh Studio is included as Fresh Flow's shared creator workspace. |\n| Part 8.2 | The requirement to preserve the existing creation workflow and avoid a second disconnected editor remains. The sentence stating Fresh Studio is outside scope is superseded. Shared Studio integration is in scope. |
 | Part 17, item 34 | “Do not include Fresh Studio” is superseded. Replace with: “Preserve and integrate the existing shared Fresh Flow Creator Studio; do not create a competing Studio or discard existing Studio functionality.” |
 | Final Scope Confirmation | The Fresh Studio exclusion column is superseded. Fresh Studio / Create Studio is included as the shared Fresh Flow creator workspace and Shorts integration target. |
 | All other parts | Remain in force. Media freedom, rich conversations, discovery, social systems, provenance, moderation, privacy, backend authorization, performance, accessibility, and failure-state requirements are unchanged. |
