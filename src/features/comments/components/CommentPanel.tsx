@@ -204,6 +204,16 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     };
   }, []);
 
+  useEffect(() => {
+    setActiveThreadRootId(null);
+    setReplyingTo(null);
+    setDraft("");
+    setCommentFilter("all");
+    setReactionSummaryFor(null);
+    setDismissedCommentIds(new Set());
+    allCommentsScrollTopRef.current = 0;
+  }, [targetId]);
+
   // The virtual keyboard can shrink the visual viewport without changing 100dvh.
   // Track that viewport so the composer stays above Android/iOS keyboards.
   useEffect(() => {
@@ -685,7 +695,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
                   return <a key={index} href={attachment.url} target="_blank" rel="noreferrer">{attachment.altText ?? "Open attachment"}</a>;
                 })}
                 <button className="reply-btn" onClick={() => openReplyThread(comment)}>Reply</button>
-                {comment.replies.length > 0 && <span className="comment-reply-count">{compact(countAll(comment.replies))} replies</span>}
+                {comment.replies.length > 0 && <span className="comment-reply-count">{compact(countAll(comment.replies))} {countAll(comment.replies) === 1 ? "reply" : "replies"}</span>}
                 {targetType === "short" && depth === 0 && user?.id === shortAuthorId && !isGuest && <button className="reply-btn" type="button" disabled={pinningId === comment.id} onClick={() => void togglePinned(comment.id, Boolean(comment.pinned_at))}>{pinningId === comment.id ? "…" : comment.pinned_at ? "Unpin" : "Pin"}</button>}
                 <button className="reply-btn" onClick={() => setMenuFor(menuFor === comment.id ? null : comment.id)} aria-expanded={menuFor === comment.id} aria-label="More comment actions">⋯</button>
                 {menuFor === comment.id && (
@@ -765,7 +775,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
         <div className="sheet-drag-handle" onPointerDown={(event) => { dragY.current = event.clientY; dragH.current = sheetHeight; }} onPointerMove={(event) => { if (event.buttons === 1 && dragY.current !== null) setSheetHeight(Math.min(SHEET_MAX, Math.max(SHEET_MIN, dragH.current + ((dragY.current - event.clientY) / window.innerHeight) * 100))); }} onPointerUp={() => { dragY.current = null; setSheetHeight((height) => height > (SHEET_MIN + SHEET_MAX) / 2 ? SHEET_MAX : SHEET_MIN); }} />
         <div className="comment-panel-header">
           {activeThreadRootId && <button type="button" className="comment-thread-back" onClick={backToAllComments} aria-label="Back to all comments">← All comments</button>}
-          <h3 id="fresh-comments-title">{activeThreadRootId ? (threadReplyCount ? `Thread (${compact(threadReplyCount)} replies)` : "Thread") : `Comments${comments.length ? ` (${compact(countAll(comments))})` : ""}`}</h3>
+          <h3 id="fresh-comments-title">{activeThreadRootId ? (threadReplyCount ? `Thread (${compact(threadReplyCount)} ${threadReplyCount === 1 ? "reply" : "replies"})` : "Thread") : `Comments${comments.length ? ` (${compact(countAll(comments))})` : ""}`}</h3>
           <button className="back-btn comment-close-btn" onClick={onClose} aria-label="Close comments"><CloseIcon size={20} /></button>
           {!activeThreadRootId && <div className="comment-sort-row">
             {([ ["relevant", "Relevant"], ["newest", "Newest"], ["liked", "Most liked"], ["oldest", "Oldest"] ] as Array<[CommentSortMode, string]>).map(([mode, label]) => (
