@@ -21,7 +21,7 @@ assert.match(panel, /<textarea[\s\S]*?onKeyDown=\{\(event\) => \{ if \(event\.ke
 assert.match(panel, /aria-label="Attach an image"/, "single-image attachment has a dedicated entry point");
 assert.match(panel, /aria-label="Choose image gallery"/, "multi-image gallery has a dedicated entry point");
 assert.match(panel, /aria-label="Attach audio, video or other files"/, "the general media/file attachment path is preserved");
-assert.match(panel, /profile_details").select\("user_id,avatar_url"\)/, "comment avatars use the privacy-filtered profile details view");
+assert.match(panel, /profile_details"\)\.select\("user_id,avatar_url"\)/, "comment avatars use the privacy-filtered profile details view");
 assert.match(panel, /authorAvatarUrl: avatarMap\.get\(row\.author_id\)/, "comment cards receive public-author avatars");
 assert.match(panel, /authorVerified: Boolean\(profileMap\.get\(row\.author_id\)\?\.verified\)/, "verified status is shown only from public profile data");
 assert.match(panel, /comment-creator-badge/, "Short creators receive a subtle identity badge on their comments");
