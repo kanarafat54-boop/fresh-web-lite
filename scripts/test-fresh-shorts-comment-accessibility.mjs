@@ -88,7 +88,7 @@ assert.match(referenceCss, /--ff-green:\\s*#22e58a/, "reference design includes 
 assert.match(referenceCss, /--ff-violet:\\s*#635bff/, "reference design retains the Fresh violet accent");
 assert.match(referenceCss, /\\.fresh-flow-home-hero/, "reference styling covers the Fresh Flow Home hero");
 assert.match(referenceCss, /\\.fresh-flow-stream\\[data-discovery\\] \\.fresh-flow-actions/, "reference styling covers the Shorts action rail");
-assert.match(referenceCss, /\\.fresh-comments-backdrop\\s*\\{[^}]*z-index:\\s*420/s, "comments surface stacks above persistent bottom navigation");
+assert.match(referenceCss, /\.fresh-flow-hub\s+\.fresh-comments-backdrop\s*\{[^}]*z-index:\s*420/s, "comments surface stacks above persistent bottom navigation");
 assert.match(referenceCss, /safe-area-inset-bottom/, "reference styling respects device bottom safe areas");
 assert.match(referenceCss, /prefers-reduced-motion/, "reference styling includes reduced-motion handling");
 
