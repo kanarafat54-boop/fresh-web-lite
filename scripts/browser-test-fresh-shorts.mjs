@@ -72,7 +72,7 @@ async function diagnose(page, label) {
 }
 
 const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"] });
-const WIDTHS = [320, 390, 430];
+const WIDTHS = [320, 360, 390, 430];
 // On phones every header control except Search lives in the "more" menu; open it before using one.
 async function openHeaderMenu(page) {
   const list = page.locator("header .fresh-flow-header-more-list");
@@ -351,18 +351,40 @@ for (const width of WIDTHS) {
   await create.getByRole("button", { name: "Close" }).click();
   check(!(await create.isVisible().catch(() => false)), `${tag} Create Short closes back to the feed`);
 
-  // Comments sheet (design screen 7): a styled bottom sheet with the count in its title and a composer or sign-in prompt.
-  await page.locator('.fresh-flow-stream[data-discovery] [aria-label="Comments"]').first().click();
+  // Comments sheet: verify viewport geometry, stacking, independent scrolling and keyboard dismissal.
+  const commentsTrigger = page.locator('.fresh-flow-stream[data-discovery] [aria-label="Comments"]').first();
+  await commentsTrigger.focus();
+  await commentsTrigger.click();
   const sheet = page.getByRole("dialog", { name: "Comments" });
   await sheet.waitFor({ state: "visible", timeout: 8000 }).catch(() => undefined);
   check(await sheet.isVisible().catch(() => false), `${tag} Comments sheet opens`);
   const sheetBox = await sheet.boundingBox().catch(() => null);
   check(!!sheetBox && sheetBox.y > 40 && sheetBox.y + sheetBox.height <= 760 + 1 && sheetBox.width <= width + 1, `${tag} Comments sheet is a bottom sheet inside the viewport`);
   check((await sheet.locator("h3").innerText().catch(() => "")).startsWith("Comments"), `${tag} Comments sheet is titled Comments`);
+  check(await sheet.getAttribute("aria-modal") === "true" && Boolean(await sheet.getAttribute("aria-labelledby")), `${tag} Comments sheet exposes modal semantics`);
+  const stacking = await sheet.evaluate((element) => ({
+    panel: Number.parseInt(getComputedStyle(element).zIndex, 10) || 0,
+    nav: Number.parseInt(getComputedStyle(document.querySelector("nav.fresh-flow-bottom-nav")).zIndex, 10) || 0,
+  }));
+  check(stacking.panel > stacking.nav, `${tag} Comments sheet stacks above bottom navigation (${stacking.panel} > ${stacking.nav})`);
+  const list = sheet.locator(".comment-list");
+  if (await list.count()) {
+    const overflowY = await list.evaluate((element) => getComputedStyle(element).overflowY);
+    check(overflowY === "auto" || overflowY === "scroll", `${tag} comment list scrolls independently`);
+  }
   const sheetText = await sheet.innerText().catch(() => "");
   check(sheetText.includes("Register to comment") || (await sheet.getByPlaceholder("Add a comment...").count()) === 1, `${tag} Comments sheet has the composer or a sign-in prompt`);
+  const initialFocusInside = await sheet.evaluate((element) => element.contains(document.activeElement));
+  check(initialFocusInside, `${tag} opening Comments moves focus inside the dialog`);
+  await page.keyboard.press("Tab");
+  check(await sheet.evaluate((element) => element.contains(document.activeElement)), `${tag} Tab remains inside the Comments dialog`);
+  await page.keyboard.press("Escape");
+  check(!(await sheet.isVisible().catch(() => false)), `${tag} Escape closes the Comments sheet`);
+  check(await commentsTrigger.evaluate((element) => document.activeElement === element), `${tag} closing Comments restores focus to its trigger`);
+  await commentsTrigger.click();
+  await sheet.waitFor({ state: "visible", timeout: 8000 }).catch(() => undefined);
   await sheet.getByRole("button", { name: "Close comments" }).click();
-  check(!(await sheet.isVisible().catch(() => false)), `${tag} Comments sheet closes`);
+  check(!(await sheet.isVisible().catch(() => false)), `${tag} close button closes the Comments sheet`);
 
   // Fresh AI button: compact and top-right, so it never covers the action rail or bottom navigation.
   const aiBox = await page.locator(".global-fresh-ai-trigger").first().boundingBox().catch(() => null);
