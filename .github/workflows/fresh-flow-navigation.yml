@@ -85,5 +85,5 @@ jobs:
         run: node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-safety.mjs
       - name: Install ffmpeg (synthetic test clips)
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
-      - name: Shorts pager behavior at 320/390/430px
+      - name: Shorts pager and comment dialog behavior at 320/360/390/430px
         run: node scripts/browser-test-fresh-shorts.mjs dist
