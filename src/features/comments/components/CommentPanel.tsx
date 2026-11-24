@@ -88,6 +88,17 @@ function inferKind(file: File): InteractionMediaKind {
   return "file";
 }
 
+function commentMediaPathFromUrl(value: string): string | null {
+  try {
+    const pathname = new URL(value).pathname;
+    const marker = "/storage/v1/object/public/comment-media/";
+    const index = pathname.indexOf(marker);
+    return index < 0 ? null : decodeURIComponent(pathname.slice(index + marker.length));
+  } catch {
+    return null;
+  }
+}
+
 export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProps) {
   const { user, isGuest } = useFreshId();
   const { openProfile } = useProfileNav();
@@ -229,9 +240,23 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
 
   async function deleteComment(commentId: string) {
     setConfirmDelete(null); setMenuFor(null);
+    const { data: commentMedia } = await supabase.from(table)
+      .select("attachments,audio_url,video_url").eq("id", commentId).maybeSingle();
+    const attachmentUrls = Array.isArray(commentMedia?.attachments)
+      ? (commentMedia.attachments as Array<{ url?: unknown }>).map((item) => typeof item?.url === "string" ? item.url : null)
+      : [];
+    const mediaPaths = [...new Set([...attachmentUrls, commentMedia?.audio_url, commentMedia?.video_url]
+      .filter((value): value is string => typeof value === "string")
+      .map(commentMediaPathFromUrl)
+      .filter((value): value is string => Boolean(value)))];
     const { error: deleteError } = await supabase.from(table).delete().eq("id", commentId);
     if (deleteError) { setNotice("Fresh could not delete that comment."); return; }
-    setNotice("Comment deleted.");
+    let cleanupFailed = false;
+    if (mediaPaths.length) {
+      const { error: cleanupError } = await supabase.storage.from("comment-media").remove(mediaPaths);
+      cleanupFailed = Boolean(cleanupError);
+    }
+    setNotice(cleanupFailed ? "Comment deleted. Some attached media could not be cleaned up yet." : "Comment deleted.");
     await loadComments();
   }
 
@@ -432,11 +457,12 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     setPreview(null);
   }
 
-  async function uploadFile(file: File) {
+  async function uploadFile(file: File, uploadedPaths: string[]) {
     if (!user) throw new Error("Sign in required");
     const path = `${user.id}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const { error: uploadError } = await supabase.storage.from("comment-media").upload(path, file, { contentType: file.type, upsert: false });
     if (uploadError) throw uploadError;
+    uploadedPaths.push(path);
     const { data } = supabase.storage.from("comment-media").getPublicUrl(path);
     return { kind: inferKind(file), url: data.publicUrl, mimeType: file.type, altText: file.name };
   }
@@ -447,10 +473,11 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     setError(null);
     try {
       const attachments: UniversalCommentAttachment[] = [];
-      for (const file of files) attachments.push(await uploadFile(file));
+      const uploadedPaths: string[] = [];
+      for (const file of files) attachments.push(await uploadFile(file, uploadedPaths));
       if (recordedBlob) {
         const file = new File([recordedBlob], `${crypto.randomUUID()}.webm`, { type: recordedBlob.type });
-        const uploaded = await uploadFile(file);
+        const uploaded = await uploadFile(file, uploadedPaths);
         attachments.push({ ...uploaded, kind: recordMode === "audio" ? "audio" : "video" });
       }
       const payload = {
@@ -472,7 +499,13 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
       setFiles([]);
       await loadComments();
     } catch (postError: any) {
-      setError(explainControlError(postError?.message) ?? postError?.message ?? "Couldn't post comment");
+      let cleanupFailed = false;
+      if (uploadedPaths.length) {
+        const { error: cleanupError } = await supabase.storage.from("comment-media").remove(uploadedPaths);
+        cleanupFailed = Boolean(cleanupError);
+      }
+      const message = explainControlError(postError?.message) ?? postError?.message ?? "Couldn't post comment";
+      setError(cleanupFailed ? `${message} Some uploaded media may need cleanup.` : message);
     } finally {
       setPosting(false);
     }
