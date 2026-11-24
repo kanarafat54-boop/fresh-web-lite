@@ -46,5 +46,11 @@ create policy "Users can update their own short comments"
 on public.short_comments
 for update
 to authenticated
-using ((select auth.uid()) = author_id)
-with check ((select auth.uid()) = author_id);
+using (
+  (select auth.uid()) = author_id
+  and coalesce((select auth.jwt() ->> 'is_anonymous')::boolean, false) = false
+)
+with check (
+  (select auth.uid()) = author_id
+  and coalesce((select auth.jwt() ->> 'is_anonymous')::boolean, false) = false
+);
