@@ -368,7 +368,7 @@ All C/D gaps remain in scope. None is permission to remove a feature.
 
 - This pass is a CSS and source-contract implementation; it is **not** proof of a successful browser/device experience. The new checks still need to run in CI and the preview.
 - No actual screenshot comparison or Android soft-keyboard/device test was available during this pass.
-- The named original and reconciled master DOCX files were not present at the repository root on the inspected branch (GitHub Contents API returned 404 for both paths). The checked-in scope reconciliation addendum was available and confirms Fresh Studio is in scope. The DOCX files must be supplied or their actual repository paths identified before claiming a complete document-to-code reconciliation.
+- The original 17-page master DOCX was recovered from the user's Library and read in full during this pass. It contains the historical Fresh Studio exclusion in Parts 1, 8, 17 and the final scope confirmation; the checked-in 2026-11-24 scope addendum explicitly supersedes only those exclusions and makes the shared Studio in-scope. The separately named reconciled DOCX was not found in the Library search or at the repository root. The source DOCX remains unchanged as an auditable historical baseline.
 - No database migration was applied, no production setting changed, and no PR merge was performed.
 
 ### Next implementation sequence
