@@ -59,8 +59,9 @@ const COLUMN_MAP: Record<CommentTargetType, string> = {
 };
 
 const QUICK_REACTIONS = ["❤️", "😂", "😮", "😢", "🔥", "👏", "🙌", "💯"];
-const SHEET_MIN = 55;
-const SHEET_MAX = 88;
+const SHEET_MIN = 58;
+const SHEET_DEFAULT = 88;
+const SHEET_MAX = 94;
 
 function buildTree(rows: ViewRow[]): ViewRow[] {
   const map = new Map<string, ViewRow>(rows.map((row) => [row.id, { ...row, replies: [] }]));
@@ -141,7 +142,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sheetHeight, setSheetHeight] = useState(SHEET_MIN);
+  const [sheetHeight, setSheetHeight] = useState(SHEET_DEFAULT);
   const [recordMode, setRecordMode] = useState<"none" | "audio" | "video">("none");
   const [recording, setRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
@@ -151,7 +152,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const [pickerFor, setPickerFor] = useState<string | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const dragY = useRef<number | null>(null);
-  const dragH = useRef(SHEET_MIN);
+  const dragH = useRef(SHEET_DEFAULT);
   const recorder = useRef<MediaRecorder | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const chunks = useRef<BlobPart[]>([]);
@@ -779,7 +780,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   return (
     <div className="comment-panel-backdrop fresh-comments-backdrop" onClick={onClose}>
       <div ref={panelRef} className="comment-panel fresh-comments" role="dialog" aria-modal="true" aria-labelledby="fresh-comments-title" tabIndex={-1} style={{ height: `calc(var(--fresh-comments-vh, 1dvh) * ${sheetHeight})`, maxHeight: "calc(var(--fresh-comments-vh, 1dvh) * 100 - env(safe-area-inset-top))" }} onClick={(event) => event.stopPropagation()}>
-        <div className="sheet-drag-handle" onPointerDown={(event) => { dragY.current = event.clientY; dragH.current = sheetHeight; }} onPointerMove={(event) => { if (event.buttons === 1 && dragY.current !== null) setSheetHeight(Math.min(SHEET_MAX, Math.max(SHEET_MIN, dragH.current + ((dragY.current - event.clientY) / window.innerHeight) * 100))); }} onPointerUp={() => { dragY.current = null; setSheetHeight((height) => height > (SHEET_MIN + SHEET_MAX) / 2 ? SHEET_MAX : SHEET_MIN); }} />
+        <div className="sheet-drag-handle" role="presentation" aria-hidden="true" onPointerDown={(event) => { dragY.current = event.clientY; dragH.current = sheetHeight; }} onPointerMove={(event) => { if (event.buttons === 1 && dragY.current !== null) setSheetHeight(Math.min(SHEET_MAX, Math.max(SHEET_MIN, dragH.current + ((dragY.current - event.clientY) / window.innerHeight) * 100))); }} onPointerUp={() => { dragY.current = null; setSheetHeight((height) => height > (SHEET_MIN + SHEET_MAX) / 2 ? SHEET_MAX : SHEET_MIN); }} />
         <div className="comment-panel-header">
           {activeThreadRootId && <button type="button" className="comment-thread-back" onClick={backToAllComments} aria-label="Back to all comments">← All comments</button>}
           <h3 id="fresh-comments-title">{activeThreadRootId ? (threadReplyCount ? `Thread (${compact(threadReplyCount)} ${threadReplyCount === 1 ? "reply" : "replies"})` : "Thread") : `Comments${comments.length ? ` (${compact(countAll(comments))})` : ""}`}</h3>
