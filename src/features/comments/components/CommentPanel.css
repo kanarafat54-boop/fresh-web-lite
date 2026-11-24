@@ -150,3 +150,13 @@
 .fresh-comments .comment-filter-row::-webkit-scrollbar{display:none}
 .fresh-comments .comment-filter-row .reply-btn{flex:0 0 auto;min-height:34px;padding:6px 10px;border-radius:999px}
 .fresh-comments .comment-filter-row .reply-btn[aria-pressed="true"]{background:rgba(99,91,255,.2);border-color:rgba(99,91,255,.55);color:#fff}
+
+
+.fresh-comments .comment-verified-badge{
+  flex:0 0 15px;width:15px;height:15px;display:inline-grid;place-items:center;border-radius:50%;
+  background:#4f46e5;color:#fff;font-size:10px;font-weight:900;line-height:1;
+}
+.fresh-comments .comment-creator-badge{
+  display:inline-flex;align-items:center;min-height:18px;padding:2px 6px;border-radius:999px;
+  background:rgba(99,91,255,.16);color:#c8c3ff;font-size:.62rem;font-weight:750;line-height:1;
+}
