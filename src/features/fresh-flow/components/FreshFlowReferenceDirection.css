@@ -134,9 +134,9 @@
 .fresh-flow-hub .fresh-flow-stream[data-discovery] .fresh-flow-sound-link,
 .fresh-flow-hub .fresh-flow-stream[data-discovery] .fresh-flow-hashtag { color: #a9f4ca; }
 
-/* Comments sit above the player but stop before the persistent Fresh Flow navigation. */
+/* Comments own the lower viewport; Fresh Flow navigation is hidden for this modal interaction. */
 .fresh-flow-hub .fresh-comments-backdrop {
-  z-index: 420;
+  z-index: 440;
   box-sizing: border-box;
   align-items: flex-end;
   padding-top: max(8px, env(safe-area-inset-top));
