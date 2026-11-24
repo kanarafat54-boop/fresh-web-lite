@@ -377,6 +377,10 @@ for (const width of WIDTHS) {
   }
   const sheetText = await sheet.innerText().catch(() => "");
   check(sheetText.includes("Register to comment") || (await sheet.getByPlaceholder("Add a comment...").count()) === 1, `${tag} Comments sheet has the composer or a sign-in prompt`);
+  await page.waitForFunction(() => {
+    const dialog = document.querySelector('[role="dialog"][aria-labelledby="fresh-comments-title"]');
+    return Boolean(dialog && dialog.contains(document.activeElement));
+  });
   const initialFocusInside = await sheet.evaluate((element) => element.contains(document.activeElement));
   check(initialFocusInside, `${tag} opening Comments moves focus inside the dialog`);
   await page.keyboard.press("Tab");
