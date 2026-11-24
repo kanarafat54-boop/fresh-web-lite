@@ -160,3 +160,17 @@
   display:inline-flex;align-items:center;min-height:18px;padding:2px 6px;border-radius:999px;
   background:rgba(99,91,255,.16);color:#c8c3ff;font-size:.62rem;font-weight:750;line-height:1;
 }
+
+
+.fresh-comments .comment-reply-count{display:inline-flex;align-items:center;min-height:30px;color:#b9b7c8;font-size:.72rem;font-weight:650}
+.fresh-comments .comment-reaction-chips .comment-reaction-chip{
+  border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.045);color:inherit;
+  border-radius:999px;padding:4px 8px;font:inherit;cursor:pointer;
+}
+.fresh-comments .comment-reaction-chips .comment-reaction-chip:focus-visible,
+.fresh-comments .comment-reaction-summary button:focus-visible{outline:2px solid #8d65ff;outline-offset:2px}
+.fresh-comments .comment-reaction-summary{
+  display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:6px 0 10px;padding:9px 10px;
+  border:1px solid rgba(99,91,255,.25);border-radius:12px;background:rgba(99,91,255,.07);
+}
+.fresh-comments .comment-reaction-summary-header{display:flex;align-items:center;justify-content:space-between;flex:1 0 100%;color:#e8e6ff;font-size:.78rem}
