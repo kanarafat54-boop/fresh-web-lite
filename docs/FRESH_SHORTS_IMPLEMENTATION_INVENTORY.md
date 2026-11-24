@@ -347,3 +347,33 @@ The following are implementation changes, not claims of completed product verifi
 7. **P6 — Device and release proof:** run browser interaction tests, low-memory Android tests, keyboard/safe-area/permission/offline cases, then verify preview and production independently.
 
 All C/D gaps remain in scope. None is permission to remove a feature.
+
+
+## Progress update (2026-11-24 — reference-direction implementation pass)
+
+**Branch:** `audit/fresh-shorts-preservation-grade-20261123`  
+**PR:** #326  
+**Implementation commits:** `12addbe4f87137f52c6c6d3ecc6808e725b8f519` (additive reference-direction stylesheet), `95d5b839c91cf0ad19f57910efe56ef1cdb6d0d7` (load stylesheet in Fresh Flow hub), `0449381ca45b845c2d0121955878f2004474e60e` (extend comment/navigation style contract checks).
+
+### Implemented in this pass
+
+- Added `src/features/fresh-flow/components/FreshFlowReferenceDirection.css` as a final additive style layer loaded by `FreshFlowHub.tsx`.
+- Established a scoped Fresh Flow visual token set: midnight canvas `#0D0D12`, raised surfaces `#12121A` / `#191925`, violet `#635BFF`, and Fresh green `#22E58A`.
+- Applied the direction to the existing hub masthead, Home hero, recommendation/directory cards, Shorts discovery tabs and action rail, comments sheet, and six-destination Fresh Flow bottom navigation.
+- Increased comments foreground stacking above the persistent bottom navigation, styled the panel as an independently scrollable foreground task, and added bottom safe-area padding to the composer.
+- Kept all existing routes, navigation destinations, feature components, data contracts and Studio handoff code unchanged.
+- Extended `scripts/test-fresh-shorts-comment-accessibility.mjs` with source-contract assertions for stylesheet loading, design tokens, player action rail, comment z-index, safe-area handling and reduced-motion support.
+
+### Evidence limits / remaining work
+
+- This pass is a CSS and source-contract implementation; it is **not** proof of a successful browser/device experience. The new checks still need to run in CI and the preview.
+- No actual screenshot comparison or Android soft-keyboard/device test was available during this pass.
+- The named original and reconciled master DOCX files were not present at the repository root on the inspected branch (GitHub Contents API returned 404 for both paths). The checked-in scope reconciliation addendum was available and confirms Fresh Studio is in scope. The DOCX files must be supplied or their actual repository paths identified before claiming a complete document-to-code reconciliation.
+- No database migration was applied, no production setting changed, and no PR merge was performed.
+
+### Next implementation sequence
+
+1. Run the Shorts gate, comment accessibility test, TypeScript/lint/build and navigation browser workflow against the new head; fix any failures.
+2. Inspect rendered preview at 320/360/390/430px and desktop; verify the six-item bottom navigation and comments sheet with actual viewport/keyboard behavior.
+3. Continue feature-entry-point audit for Home, Explore/search, creator profile, sounds, saved/collections, notifications, context/provenance, and Studio; map each to existing routes/services before changing interaction structure.
+4. Keep all unverified features at B/C/D until real journeys, authorization and persistence are evidenced.
