@@ -208,10 +208,16 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     setActiveThreadRootId(null);
     setReplyingTo(null);
     setDraft("");
+    setFiles([]);
     setCommentFilter("all");
     setReactionSummaryFor(null);
     setDismissedCommentIds(new Set());
+    setMenuFor(null);
+    setConfirmDelete(null);
+    setReportCommentId(null);
+    setEmojiOpen(false);
     allCommentsScrollTopRef.current = 0;
+    cancelMedia();
   }, [targetId]);
 
   // The virtual keyboard can shrink the visual viewport without changing 100dvh.
