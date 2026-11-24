@@ -91,8 +91,12 @@ assert.match(referenceCss, /--ff-green:\s*#22e58a/, "reference design includes t
 assert.match(referenceCss, /--ff-violet:\s*#635bff/, "reference design retains the Fresh violet accent");
 assert.match(referenceCss, /\.fresh-flow-home-hero/, "reference styling covers the Fresh Flow Home hero");
 assert.match(referenceCss, /\.fresh-flow-stream\[data-discovery\] \.fresh-flow-actions/, "reference styling covers the Shorts action rail");
-assert.match(referenceCss, /\.fresh-flow-hub\s+\.fresh-comments-backdrop\s*\{[^}]*z-index:\s*420[^}]*padding-bottom:\s*env\(safe-area-inset-bottom\)/s, "comments sheet uses the full lower viewport and only respects the device safe area");
-assert.match(referenceCss, /\.fresh-flow-bottom-nav\s*\{[^}]*z-index:\s*430/s, "persistent bottom navigation layers above the comments backdrop");
+assert.match(referenceCss, /\.fresh-flow-hub\s+\.fresh-comments-backdrop\s*\{[^}]*z-index:\s*440[^}]*padding-bottom:\s*env\(safe-area-inset-bottom\)/s, "comments modal owns the full lower viewport above the bottom navigation");
+assert.match(referenceCss, /\.fresh-flow-bottom-nav\s*\{[^}]*z-index:\s*430/s, "bottom navigation remains below the comments modal");
+assert.match(referenceCss, /\.fresh-flow-hub\s+\.fresh-comments\s*\{[^}]*min-height:\s*58dvh/s, "comments panel retains a tall minimum height");
+assert.match(panel, /const SHEET_DEFAULT = 88/ , "comments open at a tall 88 percent viewport height");
+assert.match(panel, /const SHEET_MAX = 94/ , "comments can expand further when dragged");
+assert.match(panelCss, /\.sheet-drag-handle[^}]*touch-action:none/, "comments drag handle supports touch resizing");
 assert.match(flowHub, /setVisibility\(!open\)/, "opening comments hides the bottom navigation and closing restores it");
 assert.match(flowHub, /commentsOpenRef\.current \|\| \(target instanceof Element && target\.closest\("\.fresh-comments-backdrop"\)\)/, "comment-list scrolling never overrides modal navigation visibility");
 assert.match(referenceCss, /safe-area-inset-bottom/, "reference styling respects device bottom safe areas");
