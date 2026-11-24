@@ -24,6 +24,10 @@ assert.ok(blockStart >= 0 && blockEnd > blockStart, "comment block action exists
 const blockBody = panel.slice(blockStart, blockEnd);
 assert.match(blockBody, /blockAccount\(user\.id, authorId\)/, "Block writes to the real user_blocks service");
 assert.doesNotMatch(blockBody, /setCreatorMuted/, "Block never substitutes a mute");
+assert.match(panel, /uploadedPaths\.push\(path\)/, "successful media uploads are tracked for cleanup");
+assert.match(panel, /storage\.from\("comment-media"\)\.remove\(uploadedPaths\)/, "failed comment submissions clean up uploaded files");
+assert.match(panel, /storage\.from\("comment-media"\)\.remove\(mediaPaths\)/, "deleting a comment removes its owned media objects");
+assert.match(panel, /commentMediaPathFromUrl/, "media cleanup only targets URLs from the comment-media bucket");
 const muteStart = panel.indexOf("async function muteAuthor(");
 const muteEnd = panel.indexOf("\n  }", muteStart);
 assert.ok(muteStart >= 0 && muteEnd > muteStart, "comment mute action exists");
