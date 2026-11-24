@@ -380,3 +380,71 @@ All C/D gaps remain in scope. None is permission to remove a feature.
 
 
 **Latest reference-direction head:** `83c423c2e5474cecb90e68504cd7d623cf0467e5`. PR #326 remains open and mergeable. Vercel and Netlify preview statuses are pending at the latest check; no completed GitHub Actions run was returned for this exact head during the check. Do not mark the new visual layer as browser-verified until those checks complete.
+
+
+## Fresh Flow & Fresh Shorts feature-accessibility audit (2026-11-24 — live PR #326 recheck)
+
+**Audit source ref:** `12cce069e8a753890322ce1e29eb07b904fecfc5`  
+**PR:** [#326](https://github.com/kanarafat54-boop/fresh-web-lite/pull/326)  
+**Scope:** Existing Fresh Flow Home, media worlds, Shorts, comments/social, creator surfaces, search/sounds, context/safety, navigation and the shared Creator Studio. This is a repository and live-CI audit, not a claim of physical-device or signed-in production verification.
+
+### Product boundary and preservation confirmation
+
+- Fresh Studio / Create Studio remains part of Fresh Flow. The application routes all system creation through the shared `FreshStudioApp`; `ShortsStudio` is a Shorts domain workspace, not a competing editor.
+- `freshFlowStudioIntegration.ts` declares 24 system profiles; `verify-fresh-flow-studio-integration.mjs` checks 24 registry systems, 24 unique matching profiles, capability dependencies and Shorts-origin context handoff.
+- Shorts create intents identify `fresh-shorts` and retain source creator, media URL, caption and action intent where supplied. The static contract does not prove every capture/editor/provider/publishing path is live.
+- The universal platform Home remains distinct from Fresh Flow Home. Existing routes, backend contracts and user data are preservation boundaries.
+- The original master DOCX remains an unchanged historical reference. The checked-in Markdown scope addendum supersedes only the old Fresh Studio exclusions. The separately named reconciled DOCX was not found in the accessible Library listing or checked repository paths; it is not claimed as read.
+
+### Feature accessibility and implementation grades
+
+| Product area | Existing entry point / implementation evidence | Access, backend and verification findings | Grade |
+|---|---|---|---|
+| Fresh Flow Home | Parent bottom navigation → Home; `FreshFlowHome`; Home hero, Create and expandable 24-system directory | Distinct from universal Home. Existing system directory and real entry points are retained. Recommendation examples must not be mistaken for live personalized inventory. Responsive browser test covers the shell; personalization journeys remain unverified. | B |
+| Media worlds / discovery | `FreshFlowHub.tsx`; top media navigation, Flow Switch and Home directory | Eight top destinations remain: Discover, Videos, News / Posts, Live, VR / AR, Podcasts, Music and Others. All 24 system profiles remain in the registry. Top navigation is horizontally scrollable on narrow screens. | B |
+| Parent navigation | `BottomNav.tsx`, `BottomNav.css`, Fresh Flow shell | Six destinations remain: Home, Shorts, Creator Studio, Video, Messages and Fresh Mail. The navigation is not replaced by a Shorts-only bar. Browser layout tests enforce six 44px targets. | B |
+| Shorts discovery | `FreshFlowShortsStream.tsx`, discovery tabs and filter surfaces | For You, Following, Friends, Trending, Fresh Picks, Learn and Relax are present; filtering is contextual rather than permanently crowding the player. Real feed ordering, pagination, personalization and error recovery require signed-in/live data verification. | B |
+| Shorts player / playback | `FreshFlowShortsExperience.tsx`, `FreshFlowShortsStream.tsx`, player action rail and contextual menu | Media-first layout with creator, reaction, comments, repost/share/save and More actions; secondary tools include playback speed, captions, Data Saver and creation/context actions. Browser and real-media playback recovery, adaptive quality, caption track availability and device memory remain unverified. | B |
+| Comments and composer | `CommentPanel.tsx`, `CommentPanel.css`; player comment action | Text, audio/video recording, image/gallery/file attachments, mixed-media payloads, sorting, filters, reaction breakdown, author actions, report/block/mute and creator controls have implementation paths. Composer is separated from independently scrolling comments and accounts for visual viewport/keyboard changes. | B |
+| Replies and nested threads | Shared comments component; `parent_id` thread model; focused thread view | Root resolution, nested rendering, reply counts and restoration of the previous comments scroll position exist. Pagination, large-thread behavior and signed-in multi-format reply journeys remain unverified. | B |
+| Comment edit | Author comment menu / database contract | No live `short_comments` UPDATE RLS policy or `updated_at` field was observed in the prior live schema inspection. Do not expose a nonfunctional edit action; design a least-privilege additive policy/history contract first. | D |
+| Comment reactions | `commentReactions.ts`, shared reaction model and database reaction rows | Reaction summary and selected reaction behavior are implemented. Confirm the live allowed reaction set and all 17 master-spec values, persistence, counts and privacy of reactor lists before A. | B |
+| Repost / share / save | Player action rail, share panel, universal interaction adapter and creator repost service | Existing interaction paths are preserved. Creator Reposts tab now reads real `short_reposts` rows and filters blocked/hidden original authors; search and creator repost source-contract tests exist. Cross-surface share targets, quote repost, save collections and browser journeys remain to verify. | B |
+| Search | Fresh Flow search icon → `FreshFlowSearchSurface`; `searchService.ts` | Real full-text RPCs with fallback, people, posts, videos, topics and Web Info paths. Sounds category groups stored `sound_name` values (up to 200 loaded rows) and opens the existing sound page; use counts can be capped, not global totals. No voice/image search is evidenced. | B |
+| Sounds | Search → Sounds; sound topic page; sound reuse event to Shorts camera | Real sound attribution and sound-name records are reused. Verify creator restrictions, camera/editor handoff and media-worker-dependent mixing on a physical device. | B |
+| Creator profiles | Tap creator/avatar or People search result → `ShortsCreatorProfile.tsx` | Shorts, Reposts, Playlists and About tabs; follow/unfollow, stats, playlist management, message, report and block paths exist. Public collections, profile sharing/link route and complete follower/following navigation remain incomplete or unverified. | C |
+| Saved Shorts / history / collections | Player More menu → Saved Shorts / History; collection/playlist surfaces | Existing entry points and services are retained. Verify CRUD, privacy, ownership, cross-device persistence and history controls end to end. | B |
+| Notifications | Shorts header More → Notifications | In-app activity, category/read/clear/preferences and comment/reply/mention trigger foundations exist. Comment-reaction notifications and reliable background push are not evidenced. | C |
+| Privacy / safety / moderation | Player and comment More menus; report, block, mute, privacy and moderation services | Report/block/mute and audience controls have real service paths. Full creator moderation queue, appeals, hide/restrict controls, audit trail and end-to-end authorization still need coverage. | B |
+| Context / provenance / TrueMode | Player More → Context and sources; creator declarations and remix lineage | Keep creator-declared origin distinct from independently verified evidence. Do not invent an independent provenance or TrueMode result where no authoritative service exists. Full context coverage remains incomplete. | C |
+| Fresh Studio | Home Create, Studio bottom destination, Shorts Create/Camera and contextual create/remix/duet/quote/edit intents | One shared Studio app; Shorts workspace remains within it. Preserve dashboard, camera, import/upload, editor, templates, drafts, projects, analytics, earnings disclosures, publishing and return-to-origin. Full signed-in capture → project → edit → processing → publish → return journey is not yet verified. | B |
+| System-to-Studio integration | Registry + `freshFlowStudioIntegration.ts` + shared Studio project service | Static contract verifies 24/24 system profiles and source-system metadata handoff. It does not establish that all 24 provider/editor/publishing destinations are operational. | B |
+| Accessibility / safe areas / bottom navigation | Comment dialog semantics and focus handling; CSS safe-area/clearance rules; browser scripts | Escape close, focus containment/restoration, virtual viewport observation, reduced motion, 44px targets and player clearance have source/browser contracts. Physical Android keyboard, camera, microphone and screen-reader passes remain outstanding. | B |
+| Offline / loading / recovery / performance | Feed and media states, pagination guards, performance policy/scripts | Loading, empty, offline and unavailable states exist in parts of the product. Verify every upload/comment failure, retry, duplicate submission, media cleanup, buffering and low-memory path. | B |
+| Comment media security | `comment-media` storage bucket; new `20261124120000_fresh_comment_media_server_limits.sql` migration | Prior live inspection found public bucket reads, owner-folder writes and no server-side size/MIME limits. This PR adds a 50 MiB and MIME allowlist migration, but it is an unapplied owner-review artifact; no production setting or data was changed. Reassess private/restricted media delivery and retention before applying. | C |
+
+### Latest CI diagnosis and corrective commits
+
+The live PR head `69f828e95983af1bb1648ccffe1997c11c849262` had two completed failing jobs:
+
+1. **Fresh Flow Navigation Browser Test** — 32 failures, all reporting that the eight top media tabs were below the required 44px minimum at 320, 360, 390 and 430px. The mobile `.fresh-shorts-header .fresh-flow-header-world-nav button` rule overrode the general 44px rule with 36px.
+2. **Fresh Shorts Production Gate** — the comment accessibility source-contract test used an over-escaped regular expression for `FreshFlowReferenceDirection.css`, so it rejected the valid stylesheet import in `FreshFlowHub.tsx`.
+
+Corrective commits on this branch:
+- `f50f10e079134a7377536962dbad4e6e2f857059` — correct the stylesheet import assertion without removing it.
+- `12cce069e8a753890322ce1e29eb07b904fecfc5` — restore the 44px minimum height for the mobile media-world navigation buttons.
+
+The new head `12cce069e8a753890322ce1e29eb07b904fecfc5` triggered a fresh set of 14 workflows, including the Fresh Shorts Production Gate, Fresh Flow Navigation Browser Test, build gate, isolated PostgreSQL security and isolated migration replay. At the time of this inventory update, those runs were still in progress; no pass is inferred from a running status. Vercel was pending for this head. Recheck the exact current PR head and all checks before promoting or merging.
+
+### PR and migration-description accuracy
+
+The changed-file list includes `supabase/migrations/20261124120000_fresh_comment_media_server_limits.sql`. The migration is additive and unapplied by the engineer; it configures the existing `comment-media` bucket to 50 MiB and an explicit MIME allowlist for future uploads. Therefore the PR statement “No database schema ... is changed” is too broad if read as saying no database change file is included. The accurate statement is: **No production database schema, bucket setting, policy or data was changed; an additive, unapplied storage-bucket limits migration is included for owner review.**
+
+### Verification boundary
+
+- No A grade is awarded from this audit.
+- Successful build, migration replay, RLS or static source contracts do not prove the signed-in user journey.
+- Playwright browser tests are not physical Android-device verification.
+- No Android soft keyboard, low-memory, camera/microphone permission or physical-device test is claimed.
+- Do not merge PR #326 until the new-head workflows pass, the preview is exercised, the migration description is accurate, and remaining release gates are reviewed.
+- All C/D requirements remain in scope. No capability is removed to make the interface simpler.
