@@ -21,7 +21,17 @@ assert.match(panel, /<textarea[\s\S]*?onKeyDown=\{\(event\) => \{ if \(event\.ke
 assert.match(panel, /aria-label="Attach an image"/, "single-image attachment has a dedicated entry point");
 assert.match(panel, /aria-label="Choose image gallery"/, "multi-image gallery has a dedicated entry point");
 assert.match(panel, /aria-label="Attach audio, video or other files"/, "the general media/file attachment path is preserved");
-assert.match(panel, /aria-label="Attach images or files"/, "attachment picker has an accessible button");
+assert.match(panel, /profile_details").select\("user_id,avatar_url"\)/, "comment avatars use the privacy-filtered profile details view");
+assert.match(panel, /authorAvatarUrl: avatarMap\.get\(row\.author_id\)/, "comment cards receive public-author avatars");
+assert.match(panel, /authorVerified: Boolean\(profileMap\.get\(row\.author_id\)\?\.verified\)/, "verified status is shown only from public profile data");
+assert.match(panel, /comment-creator-badge/, "Short creators receive a subtle identity badge on their comments");
+assert.match(panel, /useState<CommentSortMode>\("relevant"\)/, "comments default to a useful relevant conversation");
+assert.match(panel, /comment-filter-row/, "comment media and conversation filters are exposed");
+assert.match(panel, /\["creator", "Creator replies"\]/, "creator replies have a dedicated filter");
+assert.match(panel, /\["questions", "Questions"\]/, "questions have a dedicated filter");
+assert.match(panel, /comment-reply-count/, "comment cards expose reply counts");
+assert.match(panel, /comment-reaction-summary/, "reaction counts open an accessible breakdown");
+assert.match(panel, /aria-label="Attach audio, video or other files"/, "general media and file attachment path remains accessible");
 assert.match(panel, /content: draft\.trim\(\),/, "media-only comments satisfy the live non-null content column");
 assert.doesNotMatch(panel, /content: draft\.trim\(\)\s*\|\|\s*null/, "media-only comments are not inserted with null content");
 
