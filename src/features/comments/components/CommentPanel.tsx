@@ -353,7 +353,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
       .update({ content: nextContent })
       .eq("id", commentId)
       .eq("author_id", user.id)
-      .select("id,content,updated_at")
+      .select("id,content,updated_at,moderation_state")
       .maybeSingle();
 
     if (updateError) {
@@ -370,12 +370,13 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     }
 
     const updateTree = (rows: ViewRow[]): ViewRow[] => rows.map((row) => row.id === commentId
-      ? { ...row, content: data.content, updated_at: data.updated_at ?? new Date().toISOString() }
+      ? { ...row, content: data.content, updated_at: data.updated_at ?? new Date().toISOString(), moderation_state: data.moderation_state }
       : { ...row, replies: updateTree(row.replies) });
     setComments(updateTree);
     cancelEditComment();
-    setNotice("Comment updated.");
-    announceInteraction("Comment updated");
+    const heldForReview = data.moderation_state === "pending";
+    setNotice(heldForReview ? "Comment saved and held for review." : "Comment updated.");
+    announceInteraction(heldForReview ? "Comment saved and held for review" : "Comment updated");
   }
 
   async function reviewHeld(commentId: string, approve: boolean) {
