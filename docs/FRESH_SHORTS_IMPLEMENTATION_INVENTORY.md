@@ -510,3 +510,26 @@ Project status was healthy. The health advisor returned no findings. The followi
 ### Release decision
 
 PR #326 remains open and unmerged. Do not merge until the latest-head navigation browser test passes, the current preview is rechecked, and owners explicitly resolve the reaction-constraint migration, comment-media exposure/limits, and remaining source-context gaps. C/D requirements remain in scope; none are removed to make the interface simpler.
+
+
+## 2026-11-24 comments modal and bottom-navigation correction
+
+**Implementation commits:** `371fd60`, `645b958`, `244c3ec`, `476d808`, `52c017a`, `417949d` (see branch history for full SHAs).
+
+### Product decision
+When a user opens the Shorts Comments panel, the Fresh Flow bottom navigation must not be displayed. It is unrelated to the active comment task, consumes scarce screen space, visually competes with the composer, and can imply that navigation remains part of the active surface. The comments sheet is now treated as a focused modal interaction. The six destinations remain available as soon as the panel closes; no navigation destination or route is removed.
+
+### Changes made
+- The existing `fresh-flow-comments-visibility` event now tells Fresh Flow to hide the bottom bar while comments are open and restore it on close.
+- The comments backdrop no longer reserves 68px for the bottom navigation. It uses the full lower viewport while respecting device safe areas.
+- The dialog now exposes `aria-modal="true"`.
+- Keyboard focus is trapped inside the comments panel in both Tab directions; Escape and the close control dismiss it; focus returns to the original Comments trigger.
+- Comment list scrolling remains independent and does not accidentally reveal the bottom bar while the modal is open.
+- Browser coverage now checks the bottom bar is hidden during comments, returns after Escape and close-button dismissal, and focus wraps within the modal.
+
+### Grade and verification
+- Comments UI/modal accessibility: **B pending CI rerun**. The underlying comment CRUD, reaction constraint and media storage findings recorded above remain separate backend gaps; this presentation change does not resolve them.
+- Bottom-navigation behavior while comments are open: **B pending CI rerun**. The previous behavior intentionally left the bar visible; this change corrects that interaction based on the product-owner direction.
+- Automated tests updated: `scripts/browser-test-fresh-shorts.mjs` and `scripts/test-fresh-shorts-comment-accessibility.mjs`.
+- Latest code head at the time of this entry: `417949d0598ba2a2d474db050125a2e1b27061da`. GitHub Actions validation was triggered for the preceding code head and is being rechecked on the final documentation head. Do not claim browser or CI success until the new run completes.
+- No production database mutation, migration application, PR merge or production deployment was performed.
