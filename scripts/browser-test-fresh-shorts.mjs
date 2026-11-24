@@ -321,7 +321,10 @@ for (const width of WIDTHS) {
   const stats = (await profile.locator(".shorts-profile-stats dt").allInnerTexts()).map((t) => t.trim());
   check(JSON.stringify(stats) === JSON.stringify(["Following", "Followers", "Likes"]), `${tag} profile stats are Following · Followers · Likes`);
   const ptabs = (await profile.locator(".shorts-profile-tabs button").allInnerTexts()).map((t) => t.trim());
-  check(JSON.stringify(ptabs) === JSON.stringify(["Shorts", "Playlists", "About"]), `${tag} profile tabs are Shorts · Playlists · About`);
+  check(JSON.stringify(ptabs) === JSON.stringify(["Shorts", "Reposts", "Playlists", "About"]), `${tag} profile tabs are Shorts · Reposts · Playlists · About`);
+  const repostsTab = profile.locator(".shorts-profile-tabs button", { hasText: "Reposts" });
+  await repostsTab.click();
+  check(await repostsTab.getAttribute("aria-pressed") === "true", `${tag} Reposts tab opens as an accessible creator section`);
   check(await profile.getByRole("button", { name: "Follow" }).isVisible() && await profile.getByRole("button", { name: "Message" }).isVisible(), `${tag} profile has Follow and Message`);
   await profile.locator(".shorts-profile-tabs button", { hasText: "Playlists" }).click();
   check(await profile.locator('[aria-label="Creator playlists"]').isVisible(), `${tag} Playlists tab shows the creator playlists section`);
