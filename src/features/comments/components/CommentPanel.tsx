@@ -42,6 +42,7 @@ type ViewRow = Row & {
   authorName: string;
   authorUsername: string;
   authorAvatarUrl: string | null;
+  authorVerified: boolean;
   replies: ViewRow[];
 };
 
@@ -385,6 +386,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
       authorName: profileMap.get(row.author_id)?.full_name ?? "Unknown",
       authorUsername: profileMap.get(row.author_id)?.username ?? "unknown",
       authorAvatarUrl: avatarMap.get(row.author_id) ?? null,
+      authorVerified: Boolean(profileMap.get(row.author_id)?.verified),
       replies: [],
     }));
     setComments(buildTree(rows));
@@ -584,6 +586,8 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
           <div className="comment-body">
             <div className="comment-header">
               <button type="button" className="comment-author-profile" onClick={() => openProfile(comment.author_id)}>{comment.authorUsername !== "unknown" ? comment.authorUsername : comment.authorName}</button>
+              {comment.authorVerified && <span className="comment-verified-badge" role="img" aria-label="Verified account">✓</span>}
+              {targetType === "short" && comment.author_id === shortAuthorId && <span className="comment-creator-badge">Creator</span>}
               <span className="post-time">{timeAgo(comment.created_at)}</span>
             </div>
             {held && <span className="short-comment-held" role="status">{user?.id === comment.author_id ? "Held for review. Only you and the creator can see this until it is approved." : "Held for your review."}</span>}
