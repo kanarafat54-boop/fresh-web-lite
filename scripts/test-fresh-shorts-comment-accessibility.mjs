@@ -82,7 +82,7 @@ assert.match(playerCss, /#635bff/, "Fresh Flow refresh uses the master violet ac
 assert.doesNotMatch(playerCss, /#42e58b/, "the prior green accent no longer overrides the master identity");
 
 
-assert.match(flowHub, /FreshFlowReferenceDirection\\.css/, "Fresh Flow hub loads the additive reference-direction design layer");
+assert.match(flowHub, /FreshFlowReferenceDirection\.css/, "Fresh Flow hub loads the additive reference-direction design layer");
 assert.match(referenceCss, /--ff-canvas:\\s*#0d0d12/, "reference design uses the Fresh Flow midnight canvas token");
 assert.match(referenceCss, /--ff-green:\\s*#22e58a/, "reference design includes the Fresh green accent");
 assert.match(referenceCss, /--ff-violet:\\s*#635bff/, "reference design retains the Fresh violet accent");
