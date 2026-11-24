@@ -542,3 +542,11 @@ When a user opens the Shorts Comments panel, the Fresh Flow bottom navigation mu
 - No reaction rows are deleted or rewritten. The migration has not been applied to production.
 - `scripts/test-fresh-shorts-comment-reactions.mjs` now asserts both old constraint drops, canonical recreation, validation and preservation of all 18 reaction values.
 - Grade remains **B pending isolated migration replay and release** until CI proves the entire migration chain and production deployment applies it through the approved release process.
+
+
+### Final modal layering detail
+
+- The bottom-navigation `visibility` change is immediate; only opacity/transform retain their short transition. This prevents the navigation from remaining visible during a fade-out when Comments opens.
+- The Comments backdrop uses z-index 440, above the Fresh Flow bottom bar's z-index 430, as a second layer of protection while the modal mounts.
+- The modal backdrop now owns the full lower viewport. The sheet still respects the device's bottom safe area.
+- The source-contract test asserts the modal backdrop's 440 layer and the bottom navigation's 430 layer.
