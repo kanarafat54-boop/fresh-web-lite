@@ -1,0 +1,222 @@
+/* Fresh Flow reference direction — additive design layer.
+   Preserve all routes, feature entry points, content contracts and existing interactions. */
+.fresh-flow-hub {
+  --ff-canvas: #0d0d12;
+  --ff-surface: #12121a;
+  --ff-surface-raised: #191925;
+  --ff-violet: #635bff;
+  --ff-violet-bright: #7c3aed;
+  --ff-green: #22e58a;
+  --ff-line: rgba(226, 230, 245, .10);
+  --ff-muted: #a7a8b8;
+  background:
+    radial-gradient(ellipse at 8% 0%, rgba(34,229,138,.055), transparent 28rem),
+    radial-gradient(ellipse at 94% 4%, rgba(99,91,255,.10), transparent 32rem),
+    var(--ff-canvas);
+  color: #f7f7fb;
+}
+.fresh-flow-hub .fresh-flow-unified-header {
+  min-height: 58px;
+  padding: max(8px, env(safe-area-inset-top)) clamp(12px, 2.5vw, 24px) 8px;
+  border-bottom: 1px solid var(--ff-line);
+  background: rgba(13,13,18,.94);
+  backdrop-filter: blur(22px) saturate(145%);
+  -webkit-backdrop-filter: blur(22px) saturate(145%);
+}
+.fresh-flow-hub .fresh-flow-unified-mark {
+  background: linear-gradient(145deg, var(--ff-green), #0ebc76 55%, var(--ff-violet));
+  color: #06130d;
+  box-shadow: 0 0 22px rgba(34,229,138,.16);
+}
+.fresh-flow-hub .fresh-flow-brand-wordmark strong { letter-spacing: -.025em; }
+.fresh-flow-hub .fresh-flow-header-world-nav { scrollbar-width: none; }
+.fresh-flow-hub .fresh-flow-header-world-nav button {
+  min-height: 40px;
+  border-radius: 999px;
+  color: #c3c4d1;
+}
+.fresh-flow-hub .fresh-flow-header-world-nav button.active,
+.fresh-flow-hub .fresh-flow-header-world-nav button[aria-current="page"] {
+  border-color: rgba(34,229,138,.30);
+  background: rgba(34,229,138,.09);
+  color: #eafff4;
+}
+.fresh-flow-hub .fresh-flow-search-icon-button,
+.fresh-flow-hub .fresh-flow-unified-profile {
+  min-width: 42px;
+  min-height: 42px;
+  border-color: var(--ff-line);
+  background: var(--ff-surface-raised);
+}
+.fresh-flow-hub :is(button,a,input,select,textarea):focus-visible {
+  outline: 2px solid var(--ff-green);
+  outline-offset: 3px;
+}
+
+/* Home: premium editorial hero and readable, real system directory. */
+.fresh-flow-hub .fresh-flow-home-page {
+  background: transparent;
+  padding: 14px clamp(12px, 2.2vw, 24px) calc(112px + env(safe-area-inset-bottom));
+}
+.fresh-flow-hub .fresh-flow-home-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid rgba(34,229,138,.17);
+  border-radius: 24px;
+  background:
+    radial-gradient(ellipse at 88% 18%, rgba(99,91,255,.36), transparent 42%),
+    radial-gradient(ellipse at 4% 100%, rgba(34,229,138,.18), transparent 46%),
+    linear-gradient(135deg, #191925, #101018 72%);
+  box-shadow: 0 20px 54px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.045);
+}
+.fresh-flow-hub .fresh-flow-home-eyebrow,
+.fresh-flow-hub .fresh-flow-section-kicker { color: #8ef4bd; }
+.fresh-flow-hub .fresh-flow-home-hero h1 { max-width: 760px; letter-spacing: -.055em; }
+.fresh-flow-hub .fresh-flow-home-hero h1 strong,
+.fresh-flow-hub .fresh-flow-home-hero h1 em { color: var(--ff-green); }
+.fresh-flow-hub .fresh-flow-home-hero > p,
+.fresh-flow-hub .fresh-flow-feed-description { color: #b8bac9; }
+.fresh-flow-hub .fresh-flow-compose {
+  min-height: 50px;
+  border-color: rgba(255,255,255,.12);
+  border-radius: 15px;
+  background: rgba(7,8,14,.58);
+}
+.fresh-flow-hub .fresh-flow-compose-avatar {
+  background: linear-gradient(145deg, var(--ff-green), #0eaf72);
+  color: #06130d;
+}
+.fresh-flow-hub .fresh-flow-compose-arrow,
+.fresh-flow-hub .fresh-flow-text-action,
+.fresh-flow-hub .fresh-flow-all-systems-link { color: #a99fff; }
+.fresh-flow-hub .fresh-flow-system-count {
+  border-color: rgba(34,229,138,.22);
+  background: rgba(34,229,138,.07);
+  color: #c8fbe0;
+}
+.fresh-flow-hub .fresh-flow-recommendation-card,
+.fresh-flow-hub .fresh-flow-directory-card {
+  border-color: var(--ff-line);
+  border-radius: 17px;
+  background: linear-gradient(155deg, var(--ff-surface-raised), var(--ff-surface));
+}
+.fresh-flow-hub .fresh-flow-recommendation-card:hover,
+.fresh-flow-hub .fresh-flow-directory-card:hover {
+  border-color: rgba(34,229,138,.34);
+}
+.fresh-flow-hub .fresh-flow-home-footer-cta {
+  border-color: rgba(99,91,255,.26);
+  background: linear-gradient(110deg, rgba(99,91,255,.13), rgba(34,229,138,.055));
+}
+.fresh-flow-hub .fresh-flow-home-footer-cta button {
+  background: linear-gradient(110deg, var(--ff-green), #16c981);
+  color: #06130d;
+}
+
+/* Shorts: keep the media dominant, while making discovery and the action rail legible. */
+.fresh-flow-hub .fresh-flow-stream[data-discovery] .fresh-flow-tabs button.active {
+  box-shadow: inset 0 -3px 0 var(--ff-green);
+  color: #fff;
+}
+.fresh-flow-hub .fresh-flow-stream[data-discovery] .fresh-flow-actions button {
+  min-width: 46px;
+  min-height: 46px;
+  border-radius: 14px;
+}
+.fresh-flow-hub .fresh-flow-stream[data-discovery] .fresh-flow-actions button:focus-visible {
+  outline: 2px solid var(--ff-green);
+  outline-offset: 1px;
+}
+.fresh-flow-hub .fresh-flow-stream[data-discovery] .fresh-flow-meta {
+  text-shadow: 0 1px 12px rgba(0,0,0,.8);
+}
+.fresh-flow-hub .fresh-flow-stream[data-discovery] .fresh-flow-sound-link,
+.fresh-flow-hub .fresh-flow-stream[data-discovery] .fresh-flow-hashtag { color: #a9f4ca; }
+
+/* Comments are a true foreground task: above navigation, with their own safe scrolling area. */
+.fresh-flow-hub .fresh-comments-backdrop {
+  z-index: 420;
+  align-items: flex-end;
+  padding-top: max(8px, env(safe-area-inset-top));
+  padding-bottom: 0;
+  background: rgba(2,3,8,.72);
+  overscroll-behavior: contain;
+}
+.fresh-flow-hub .fresh-comments {
+  width: min(100%, 620px);
+  min-height: 55dvh;
+  max-height: calc(100dvh - max(8px, env(safe-area-inset-top)));
+  border: 1px solid rgba(124,58,237,.34);
+  border-bottom: 0;
+  border-radius: 24px 24px 0 0;
+  background: linear-gradient(180deg, #191925, #101018 30%);
+  box-shadow: 0 -24px 70px rgba(0,0,0,.56), 0 0 34px rgba(99,91,255,.09);
+}
+.fresh-flow-hub .fresh-comments .comment-panel-header {
+  min-height: 54px;
+  padding: 8px 14px 10px;
+  border-bottom: 1px solid var(--ff-line);
+}
+.fresh-flow-hub .fresh-comments .comment-list {
+  min-height: 0;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.fresh-flow-hub .fresh-comments .comment-composer {
+  padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+  border-top-color: rgba(255,255,255,.10);
+  background: rgba(18,18,26,.98);
+}
+.fresh-flow-hub .fresh-comments textarea.comment-input {
+  background: #0d0d12;
+  border-color: rgba(255,255,255,.13);
+}
+.fresh-flow-hub .fresh-comments .comment-send {
+  background: linear-gradient(145deg, var(--ff-violet), #4f46e5);
+}
+.fresh-flow-hub .fresh-comments .comment-filter-row .reply-btn[aria-pressed="true"] {
+  border-color: rgba(34,229,138,.4);
+  background: rgba(34,229,138,.10);
+  color: #baf8d4;
+}
+
+/* Six established destinations remain visible; the active state uses both Fresh accents. */
+.fresh-flow-bottom-nav {
+  z-index: 100;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(13,13,18,.96);
+  box-shadow: 0 -8px 36px rgba(0,0,0,.30), 0 0 24px rgba(99,91,255,.08);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+}
+.fresh-flow-bottom-nav .fresh-flow-nav-item.active {
+  border-color: rgba(34,229,138,.30);
+  background: linear-gradient(145deg, rgba(34,229,138,.11), rgba(99,91,255,.17));
+  color: #eafff4;
+}
+.fresh-flow-bottom-nav .fresh-flow-nav-item.active .fresh-flow-nav-glyph { color: var(--ff-green); }
+.fresh-flow-bottom-nav .fresh-flow-nav-item.active::before {
+  background: linear-gradient(90deg, var(--ff-green), var(--ff-violet));
+  box-shadow: 0 0 14px rgba(34,229,138,.32);
+}
+
+@media (max-width: 640px) {
+  .fresh-flow-hub .fresh-flow-unified-header { gap: 8px; padding-inline: 10px; }
+  .fresh-flow-hub .fresh-flow-brand-wordmark small { display: none; }
+  .fresh-flow-hub .fresh-flow-header-world-nav { gap: 2px; }
+  .fresh-flow-hub .fresh-flow-header-world-nav button { min-height: 38px; padding-inline: 9px; font-size: .76rem; }
+  .fresh-flow-hub .fresh-flow-home-page { padding: 10px 10px calc(112px + env(safe-area-inset-bottom)); }
+  .fresh-flow-hub .fresh-flow-home-hero { border-radius: 20px; padding: 16px 14px; }
+  .fresh-flow-hub .fresh-flow-home-shortcuts { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .fresh-flow-hub .fresh-flow-home-shortcut { min-height: 68px; }
+  .fresh-flow-hub .fresh-comments { width: 100%; border-radius: 20px 20px 0 0; }
+}
+@media (max-width: 360px) {
+  .fresh-flow-hub .fresh-flow-brand-wordmark strong { font-size: .92rem; }
+  .fresh-flow-hub .fresh-flow-header-world-nav button { padding-inline: 7px; font-size: .70rem; }
+  .fresh-flow-hub .fresh-flow-actions { right: 5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fresh-flow-hub *, .fresh-flow-hub *::before, .fresh-flow-hub *::after { scroll-behavior: auto; }
+}
