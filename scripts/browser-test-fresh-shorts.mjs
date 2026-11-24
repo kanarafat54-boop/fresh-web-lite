@@ -362,10 +362,13 @@ for (const width of WIDTHS) {
   check(!!sheetBox && sheetBox.y > 40 && sheetBox.y + sheetBox.height <= 760 + 1 && sheetBox.width <= width + 1, `${tag} Comments sheet is a bottom sheet inside the viewport`);
   check((await sheet.locator("h3").innerText().catch(() => "")).startsWith("Comments"), `${tag} Comments sheet is titled Comments`);
   check(await sheet.getAttribute("aria-modal") === "true" && Boolean(await sheet.getAttribute("aria-labelledby")), `${tag} Comments sheet exposes modal semantics`);
-  const stacking = await sheet.evaluate((element) => ({
-    panel: Number.parseInt(getComputedStyle(element).zIndex, 10) || 0,
-    nav: Number.parseInt(getComputedStyle(document.querySelector("nav.fresh-flow-bottom-nav")).zIndex, 10) || 0,
-  }));
+  const stacking = await sheet.evaluate((element) => {
+    const layer = element.closest(".comment-panel-backdrop") ?? element;
+    return {
+      panel: Number.parseInt(getComputedStyle(layer).zIndex, 10) || 0,
+      nav: Number.parseInt(getComputedStyle(document.querySelector("nav.fresh-flow-bottom-nav")).zIndex, 10) || 0,
+    };
+  });
   check(stacking.panel > stacking.nav, `${tag} Comments sheet stacks above bottom navigation (${stacking.panel} > ${stacking.nav})`);
   const list = sheet.locator(".comment-list");
   if (await list.count()) {
