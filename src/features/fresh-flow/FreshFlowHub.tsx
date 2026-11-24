@@ -121,7 +121,7 @@ export default function FreshFlowHub() {
       commentsOpenRef.current = open;
       if (scrollIdleTimer.current) clearTimeout(scrollIdleTimer.current);
       scrollIdleTimer.current = null;
-      setVisibility(true);
+      setVisibility(!open);
     };
     const markScrolling = (event: Event) => {
       const target = event.target;
