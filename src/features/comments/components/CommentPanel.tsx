@@ -114,6 +114,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const [pinningId, setPinningId] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<CommentSortMode>("relevant");
   const [commentFilter, setCommentFilter] = useState<CommentFilter>("all");
+  const [reactionSummaryFor, setReactionSummaryFor] = useState<string | null>(null);
   const [mutedAuthors, setMutedAuthors] = useState<Set<string>>(new Set());
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -610,6 +611,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
                   return <a key={index} href={attachment.url} target="_blank" rel="noreferrer">{attachment.altText ?? "Open attachment"}</a>;
                 })}
                 <button className="reply-btn" onClick={() => setReplyingTo({ id: comment.id, authorName: comment.authorName })}>Reply</button>
+                {comment.replies.length > 0 && <span className="comment-reply-count">{compact(countAll(comment.replies))} replies</span>}
                 {targetType === "short" && depth === 0 && user?.id === shortAuthorId && !isGuest && <button className="reply-btn" type="button" disabled={pinningId === comment.id} onClick={() => void togglePinned(comment.id, Boolean(comment.pinned_at))}>{pinningId === comment.id ? "…" : comment.pinned_at ? "Unpin" : "Pin"}</button>}
                 <button className="reply-btn" onClick={() => setMenuFor(menuFor === comment.id ? null : comment.id)} aria-expanded={menuFor === comment.id} aria-label="More comment actions">⋯</button>
                 {menuFor === comment.id && (
@@ -644,9 +646,21 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
           )}
         </div>
         {targetType === "short" && !hidden && breakdownChips(reactions[comment.id] ?? emptySummary()).length > 0 && (
-          <div className="comment-reaction-chips" aria-label="Reactions">
-            {breakdownChips(reactions[comment.id] ?? emptySummary()).map((chip) => <span key={chip.type} className="comment-reaction-chip" title={chip.label}><span aria-hidden="true">{chip.emoji}</span> {compact(chip.count)}</span>)}
-          </div>
+          <>
+            <div className="comment-reaction-chips" role="group" aria-label="Reaction summary">
+              {breakdownChips(reactions[comment.id] ?? emptySummary()).map((chip) => (
+                <button key={chip.type} type="button" className="comment-reaction-chip" title={chip.label} aria-label={`${compact(chip.count)} ${chip.label} reactions`} onClick={() => setReactionSummaryFor(reactionSummaryFor === comment.id ? null : comment.id)}>
+                  <span aria-hidden="true">{chip.emoji}</span> {compact(chip.count)}
+                </button>
+              ))}
+            </div>
+            {reactionSummaryFor === comment.id && (
+              <div className="comment-reaction-summary" role="region" aria-label="Reaction breakdown">
+                <div className="comment-reaction-summary-header"><strong>Reactions</strong><button type="button" className="back-btn" onClick={() => setReactionSummaryFor(null)} aria-label="Close reaction summary">×</button></div>
+                {breakdownChips(reactions[comment.id] ?? emptySummary()).map((chip) => <span key={chip.type} className="comment-reaction-chip"><span aria-hidden="true">{chip.emoji}</span> {chip.label}: {compact(chip.count)}</span>)}
+              </div>
+            )}
+          </>
         )}
         {pickerFor === comment.id && (
           <div className="comment-reaction-picker" role="group" aria-label="Choose a reaction">
