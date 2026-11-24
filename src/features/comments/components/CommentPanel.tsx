@@ -160,8 +160,8 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const currentUserName = typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : user?.email ?? "You";
-  const currentUserAvatar = currentUserAvatarUrl ?? (typeof user?.user_metadata?.avatar_url === "string" ? user.user_metadata.avatar_url : typeof user?.user_metadata?.picture === "string" ? user.user_metadata.picture : null);
+  const currentUserName = user?.fullName?.trim() || user?.username || user?.email || "You";
+  const currentUserAvatar = currentUserAvatarUrl ?? user?.avatar ?? null;
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
