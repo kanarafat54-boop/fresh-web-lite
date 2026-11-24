@@ -134,12 +134,13 @@
 .fresh-flow-hub .fresh-flow-stream[data-discovery] .fresh-flow-sound-link,
 .fresh-flow-hub .fresh-flow-stream[data-discovery] .fresh-flow-hashtag { color: #a9f4ca; }
 
-/* Comments are a true foreground task: above navigation, with their own safe scrolling area. */
+/* Comments sit above the player but stop before the persistent Fresh Flow navigation. */
 .fresh-flow-hub .fresh-comments-backdrop {
   z-index: 420;
+  box-sizing: border-box;
   align-items: flex-end;
   padding-top: max(8px, env(safe-area-inset-top));
-  padding-bottom: 0;
+  padding-bottom: calc(68px + env(safe-area-inset-bottom));
   background: rgba(2,3,8,.72);
   overscroll-behavior: contain;
 }
@@ -164,7 +165,7 @@
   scrollbar-width: thin;
 }
 .fresh-flow-hub .fresh-comments .comment-composer {
-  padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+  padding: 8px 10px 10px;
   border-top-color: rgba(255,255,255,.10);
   background: rgba(18,18,26,.98);
 }
@@ -183,7 +184,7 @@
 
 /* Six established destinations remain visible; the active state uses both Fresh accents. */
 .fresh-flow-bottom-nav {
-  z-index: 100;
+  z-index: 430;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(13,13,18,.96);
   box-shadow: 0 -8px 36px rgba(0,0,0,.30), 0 0 24px rgba(99,91,255,.08);
