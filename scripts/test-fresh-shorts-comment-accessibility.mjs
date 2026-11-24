@@ -6,6 +6,10 @@ const panelCss = readFileSync("src/features/comments/components/CommentPanel.css
 const playerCss = readFileSync("src/features/fresh-flow/components/FreshFlowVisualRefresh.css", "utf8");
 const navCss = readFileSync("src/app/components/BottomNav.css", "utf8");
 
+const referenceCss = readFileSync("src/features/fresh-flow/components/FreshFlowReferenceDirection.css", "utf8");
+const flowHub = readFileSync("src/features/fresh-flow/FreshFlowHub.tsx", "utf8");
+
+
 assert.match(panel, /role="dialog" aria-modal="true" aria-labelledby="fresh-comments-title"/, "comments sheet exposes modal semantics and a visible title");
 assert.match(panel, /onCloseRef\.current\(\)/, "Escape closes the dialog without rebinding its focus effect");
 assert.match(panel, /previousFocus\?\.focus\(\)/, "closing restores focus to the invoking control");
@@ -76,5 +80,16 @@ assert.match(navCss, /\.fresh-flow-bottom-nav \.fresh-nav-label\{font-size:\.6re
 assert.match(navCss, /\.fresh-flow-bottom-nav \.fresh-flow-nav-item\.active\{[\s\S]*?rgba\(79,70,229/, "active Flow navigation state uses the indigo master accent");
 assert.match(playerCss, /#635bff/, "Fresh Flow refresh uses the master violet accent");
 assert.doesNotMatch(playerCss, /#42e58b/, "the prior green accent no longer overrides the master identity");
+
+
+assert.match(flowHub, /FreshFlowReferenceDirection\\.css/, "Fresh Flow hub loads the additive reference-direction design layer");
+assert.match(referenceCss, /--ff-canvas:\\s*#0d0d12/, "reference design uses the Fresh Flow midnight canvas token");
+assert.match(referenceCss, /--ff-green:\\s*#22e58a/, "reference design includes the Fresh green accent");
+assert.match(referenceCss, /--ff-violet:\\s*#635bff/, "reference design retains the Fresh violet accent");
+assert.match(referenceCss, /\\.fresh-flow-home-hero/, "reference styling covers the Fresh Flow Home hero");
+assert.match(referenceCss, /\\.fresh-flow-stream\\[data-discovery\\] \\.fresh-flow-actions/, "reference styling covers the Shorts action rail");
+assert.match(referenceCss, /\\.fresh-comments-backdrop\\s*\\{[^}]*z-index:\\s*420/s, "comments surface stacks above persistent bottom navigation");
+assert.match(referenceCss, /safe-area-inset-bottom/, "reference styling respects device bottom safe areas");
+assert.match(referenceCss, /prefers-reduced-motion/, "reference styling includes reduced-motion handling");
 
 console.log("Fresh Shorts comment accessibility, media-only submission, block/mute separation and navigation-clearance contracts: PASS");
