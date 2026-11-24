@@ -647,6 +647,9 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     return map;
   }, [comments]);
 
+  const threadComments = activeThreadRootId ? displayComments.filter((comment) => comment.id === activeThreadRootId) : displayComments;
+  const threadReplyCount = threadComments[0] ? countAll(threadComments[0].replies) : 0;
+
   function renderComment(comment: ViewRow, depth = 0): React.ReactNode {
     const like = likes[comment.id] ?? { count: 0, mine: false };
     const hidden = isCommentHiddenState(comment.moderation_state);
@@ -762,7 +765,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
         <div className="sheet-drag-handle" onPointerDown={(event) => { dragY.current = event.clientY; dragH.current = sheetHeight; }} onPointerMove={(event) => { if (event.buttons === 1 && dragY.current !== null) setSheetHeight(Math.min(SHEET_MAX, Math.max(SHEET_MIN, dragH.current + ((dragY.current - event.clientY) / window.innerHeight) * 100))); }} onPointerUp={() => { dragY.current = null; setSheetHeight((height) => height > (SHEET_MIN + SHEET_MAX) / 2 ? SHEET_MAX : SHEET_MIN); }} />
         <div className="comment-panel-header">
           {activeThreadRootId && <button type="button" className="comment-thread-back" onClick={backToAllComments} aria-label="Back to all comments">← All comments</button>}
-          <h3 id="fresh-comments-title">{activeThreadRootId ? "Thread" : "Comments"}{comments.length ? ` (${compact(countAll(comments))})` : ""}</h3>
+          <h3 id="fresh-comments-title">{activeThreadRootId ? (threadReplyCount ? `Thread (${compact(threadReplyCount)} replies)` : "Thread") : `Comments${comments.length ? ` (${compact(countAll(comments))})` : ""}`}</h3>
           <button className="back-btn comment-close-btn" onClick={onClose} aria-label="Close comments"><CloseIcon size={20} /></button>
           {!activeThreadRootId && <div className="comment-sort-row">
             {([ ["relevant", "Relevant"], ["newest", "Newest"], ["liked", "Most liked"], ["oldest", "Oldest"] ] as Array<[CommentSortMode, string]>).map(([mode, label]) => (
