@@ -12,7 +12,7 @@ import type { UniversalCommentAttachment, InteractionMediaKind } from "../../../
 import { rankRootsBySignal } from "../../../core/platform/commentSignalRanking";
 import { sortCommentRoots, mentionQueryAt, insertMention, splitMentions, type CommentSortMode } from "../core/commentTools";
 import { loadMutedCreators, setCreatorMuted } from "../../fresh-flow/core/shortsSafety";
-import { loadBlockedIds } from "../../fresh-flow/core/userBlocksService";
+import { blockAccount, loadBlockedIds } from "../../fresh-flow/core/userBlocksService";
 import { withoutBlockedAuthors } from "../../fresh-flow/core/userBlocks";
 import ShortsReportSheet from "../../fresh-flow/components/ShortsReportSheet";
 import { explainControlError, isCommentHiddenState } from "../../fresh-flow/core/shortsPrivacy";
@@ -222,11 +222,29 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     setNotice(result === "restricted" ? `Restricted ${name}. Their future comments on your Shorts are held for your approval. They are not told.` : result === "unavailable" ? "Restrict is not available yet." : "Fresh could not restrict that account. Try again.");
   }
 
+  async function muteAuthor(authorId: string, name: string) {
+    setMenuFor(null);
+    if (!user || isGuest) { setNotice("Sign in to mute someone."); return; }
+    try {
+      setMutedAuthors(await setCreatorMuted(user.id, authorId, true));
+      setNotice(`Muted ${name}. Their comments and Shorts are hidden for you.`);
+    } catch {
+      setNotice("Fresh could not save that mute. Try again.");
+    }
+  }
+
   async function blockAuthor(authorId: string, name: string) {
     setMenuFor(null);
     if (!user || isGuest) { setNotice("Sign in to block someone."); return; }
-    try { setMutedAuthors(await setCreatorMuted(user.id, authorId, true)); setNotice(`Blocked ${name}. Their comments and Shorts are hidden for you.`); }
-    catch { setNotice("Fresh could not save that. Try again."); }
+    const outcome = await blockAccount(user.id, authorId);
+    if (outcome === "blocked") {
+      setNotice(`Blocked ${name}. Their comments and Shorts are hidden for you.`);
+      await loadComments();
+    } else if (outcome === "unavailable") {
+      setNotice("Blocking is waiting for the Fresh account-safety database update.");
+    } else {
+      setNotice("Fresh could not block that account. Try again.");
+    }
   }
 
   useEffect(() => {
@@ -507,6 +525,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
                       <>
                         <button type="button" className="reply-btn" onClick={() => void reportComment(comment.id)}>Report</button>
                         {targetType === "short" && user?.id === shortAuthorId && !isGuest && <button type="button" className="reply-btn" onClick={() => void restrictAuthor(comment.author_id, comment.authorName)}>Restrict {comment.authorUsername !== "unknown" ? `@${comment.authorUsername}` : comment.authorName}</button>}
+                        <button type="button" className="reply-btn" onClick={() => void muteAuthor(comment.author_id, comment.authorName)}>Mute {comment.authorUsername !== "unknown" ? `@${comment.authorUsername}` : comment.authorName}</button>
                         <button type="button" className="reply-btn" onClick={() => void blockAuthor(comment.author_id, comment.authorName)}>Block {comment.authorUsername !== "unknown" ? `@${comment.authorUsername}` : comment.authorName}</button>
                       </>
                     )}
