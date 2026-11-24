@@ -124,6 +124,47 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const stream = useRef<MediaStream | null>(null);
   const chunks = useRef<BlobPart[]>([]);
   const live = useRef<HTMLVideoElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
+
+  // Keep keyboard and screen-reader users inside the open modal, and return focus
+  // to the control that opened it when the sheet closes.
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusableSelector = 'button:not([disabled]), input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+    const focusable = () => Array.from(panel.querySelectorAll<HTMLElement>(focusableSelector)).filter((element) => element.getAttribute("aria-hidden") !== "true");
+    (focusable()[0] ?? panel).focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusable();
+      if (!items.length) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    panel.addEventListener("keydown", handleKeyDown);
+    return () => {
+      panel.removeEventListener("keydown", handleKeyDown);
+      previousFocus?.focus();
+    };
+  }, [onClose]);
 
   const displayComments = useMemo(() => {
     const visible = comments.filter((row) => !mutedAuthors.has(row.author_id));
@@ -505,10 +546,10 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
 
   return (
     <div className="comment-panel-backdrop fresh-comments-backdrop" onClick={onClose}>
-      <div className="comment-panel fresh-comments" role="dialog" aria-label="Comments" style={{ height: `${sheetHeight}dvh`, maxHeight: "calc(100dvh - env(safe-area-inset-top))" }} onClick={(event) => event.stopPropagation()}>
+      <div ref={panelRef} className="comment-panel fresh-comments" role="dialog" aria-modal="true" aria-labelledby="fresh-comments-title" tabIndex={-1} style={{ height: `${sheetHeight}dvh`, maxHeight: "calc(100dvh - env(safe-area-inset-top))" }} onClick={(event) => event.stopPropagation()}>
         <div className="sheet-drag-handle" onPointerDown={(event) => { dragY.current = event.clientY; dragH.current = sheetHeight; }} onPointerMove={(event) => { if (event.buttons === 1 && dragY.current !== null) setSheetHeight(Math.min(SHEET_MAX, Math.max(SHEET_MIN, dragH.current + ((dragY.current - event.clientY) / window.innerHeight) * 100))); }} onPointerUp={() => { dragY.current = null; setSheetHeight((height) => height > (SHEET_MIN + SHEET_MAX) / 2 ? SHEET_MAX : SHEET_MIN); }} />
         <div className="comment-panel-header">
-          <h3>Comments{comments.length ? ` (${compact(countAll(comments))})` : ""}</h3>
+          <h3 id="fresh-comments-title">Comments{comments.length ? ` (${compact(countAll(comments))})` : ""}</h3>
           <button className="back-btn comment-close-btn" onClick={onClose} aria-label="Close comments"><CloseIcon size={20} /></button>
           <div className="comment-sort-row">
             {([ ["relevant", "Relevant"], ["newest", "Newest"], ["liked", "Most liked"], ["oldest", "Oldest"] ] as Array<[CommentSortMode, string]>).map(([mode, label]) => (
@@ -535,13 +576,18 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
         {!isGuest && user ? <>
           {mentionHits.length > 0 && <div className="quick-reaction-row" role="listbox" aria-label="Mention suggestions">{mentionHits.map((hit) => <button key={hit.username} type="button" role="option" aria-selected="false" className="quick-reaction-chip" onClick={() => { setDraft((value) => insertMention(value, hit.username)); setMentionHits([]); }}>@{hit.username}</button>)}</div>}
           {emojiOpen && <div className="quick-reaction-row">{QUICK_REACTIONS.map((reaction) => <button key={reaction} className="quick-reaction-chip" onClick={() => setDraft((value) => value + reaction)} aria-label={`Add ${reaction}`}>{reaction}</button>)}</div>}
-          <div className="comment-input-row">
-            <input type="text" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={replyingTo ? `Reply to ${replyingTo.authorName}...` : "Add a comment..."} className="comment-input" aria-label="Add a comment" onKeyDown={(event) => { if (event.key === "Enter") void addComment(); }} />
-            <button className="icon-only-btn" onClick={() => setEmojiOpen((open) => !open)} aria-label="Emoji" aria-pressed={emojiOpen}>☺</button>
-            <label className="icon-only-btn" aria-label="Attach images or files"><input hidden type="file" multiple accept="image/*,audio/*,video/*,.pdf,.txt,.doc,.docx" onChange={(event) => selectFiles(event.target.files)} />📎</label>
-            <button className="icon-only-btn" onClick={() => void startRecording("audio")} aria-label="Record audio"><MicIcon size={18} /></button>
-            <button className="icon-only-btn" onClick={() => void startRecording("video")} aria-label="Record video"><VideoCameraIcon size={18} /></button>
-            <button className="comment-send" onClick={() => void addComment()} disabled={posting} aria-label={posting ? "Posting" : "Send comment"}>{posting ? "…" : <SendIcon size={16} />}</button>
+          <div className="comment-composer">
+            <div className="comment-input-row">
+              <input type="text" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={replyingTo ? `Reply to ${replyingTo.authorName}...` : "Add a comment..."} className="comment-input" aria-label="Add a comment" onKeyDown={(event) => { if (event.key === "Enter") void addComment(); }} />
+              <button type="button" className="icon-only-btn" onClick={() => setEmojiOpen((open) => !open)} aria-label="Emoji" aria-pressed={emojiOpen}>☺</button>
+              <button type="button" className="comment-send" onClick={() => void addComment()} disabled={posting} aria-label={posting ? "Posting" : "Send comment"}>{posting ? "…" : <SendIcon size={16} />}</button>
+            </div>
+            <div className="comment-tools-row" aria-label="Comment attachments and recording">
+              <button type="button" className="icon-only-btn" onClick={() => attachmentInputRef.current?.click()} aria-label="Attach images or files">📎</button>
+              <input ref={attachmentInputRef} className="comment-file-input" type="file" multiple accept="image/*,audio/*,video/*,.pdf,.txt,.doc,.docx" onChange={(event) => { selectFiles(event.target.files); event.currentTarget.value = ""; }} tabIndex={-1} aria-hidden="true" />
+              <button type="button" className="icon-only-btn" onClick={() => void startRecording("audio")} aria-label="Record audio"><MicIcon size={18} /></button>
+              <button type="button" className="icon-only-btn" onClick={() => void startRecording("video")} aria-label="Record video"><VideoCameraIcon size={18} /></button>
+            </div>
           </div>
           {files.length > 0 && <div aria-label="Selected attachments">{files.map((file, index) => <span key={`${file.name}-${index}`} className="quick-reaction-chip">{file.name}<button onClick={() => setFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Remove ${file.name}`}>×</button></span>)}</div>}
         </> : <p className="empty-state">Register to comment.</p>}
