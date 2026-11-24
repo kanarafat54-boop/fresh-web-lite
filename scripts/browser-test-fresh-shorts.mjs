@@ -368,7 +368,7 @@ for (const width of WIDTHS) {
   await sheet.waitFor({ state: "visible", timeout: 8000 }).catch(() => undefined);
   check(await sheet.isVisible().catch(() => false), `${tag} Comments sheet opens`);
   const sheetBox = await sheet.boundingBox().catch(() => null);
-  check(!!sheetBox && sheetBox.y > 40 && sheetBox.y + sheetBox.height <= 760 + 1 && sheetBox.width <= width + 1, `${tag} Comments sheet is a bottom sheet inside the viewport`);
+  check(!!sheetBox && sheetBox.y > 40 && sheetBox.height >= (await page.evaluate(() => window.innerHeight)) * 0.8 && sheetBox.y + sheetBox.height <= (await page.evaluate(() => window.innerHeight)) + 1 && sheetBox.width <= width + 1, `${tag} Comments sheet opens tall (at least 80% of the viewport) inside the viewport`);
   check((await sheet.locator("h3").innerText().catch(() => "")).startsWith("Comments"), `${tag} Comments sheet is titled Comments`);
   check(await sheet.getAttribute("aria-modal") === "true" && Boolean(await sheet.getAttribute("aria-labelledby")), `${tag} Comments sheet exposes modal semantics`);
   await page.waitForFunction(() => {
