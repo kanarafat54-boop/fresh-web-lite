@@ -214,7 +214,7 @@
 
 /* Fresh Flow tucks away both navigation bars during active scrolling. */
 .fresh-flow-bottom-nav.flow-navigation-hidden{opacity:0;transform:translate(-50%,calc(100% + 16px));pointer-events:none;visibility:hidden;}
-.fresh-flow-bottom-nav{transition:opacity 180ms ease,transform 180ms ease,visibility 180ms ease;}
+.fresh-flow-bottom-nav{transition:opacity 180ms ease,transform 180ms ease;} /* visibility changes immediately so modal surfaces never expose the bar */
 @media(prefers-reduced-motion:reduce){.fresh-flow-bottom-nav{transition:none;}}
 
 
