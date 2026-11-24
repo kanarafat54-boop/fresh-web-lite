@@ -14,7 +14,7 @@ assert.match(migration, /if new\.content is distinct from old\.content then[\s\S
 assert.match(migration, /before update on public\.short_comments/i);
 assert.match(migration, /revoke update on table public\.short_comments from public, anon, authenticated/i);
 assert.match(migration, /grant update \(content, updated_at\) on table public\.short_comments to authenticated/i);
-assert.match(migration, /for update\s+to authenticated\s+using \(\(select auth\.uid\(\)\) = author_id\)\s+with check \(\(select auth\.uid\(\)\) = author_id\)/i);
+assert.match(migration, /for update\s+to authenticated[\s\S]*using \([\s\S]*auth\.uid\(\)[\s\S]*author_id[\s\S]*auth\.jwt\(\)[\s\S]*is_anonymous[\s\S]*with check \([\s\S]*auth\.uid\(\)[\s\S]*author_id[\s\S]*auth\.jwt\(\)[\s\S]*is_anonymous/i, "policy excludes anonymous auth users and requires the author id on old and new rows");
 assert.doesNotMatch(migration, /security definer|\bdelete\s+from\b|\bdrop\s+table\b|\btruncate\b/i);
 
 assert.match(component, /async function saveCommentEdit\(/);
