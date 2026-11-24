@@ -471,7 +471,7 @@ The changed-file list includes `supabase/migrations/20261124120000_fresh_comment
 | Media worlds | Top media navigation: Discover, Videos, News / Posts, Live, VR / AR, Podcasts, Music, Others; Flow Switch and 24 Studio profiles | **B** — entry points and registry are present. Provider-specific worlds are not all complete; the current system experience explicitly leaves some artist/album destinations unbuilt. |
 | Shorts discovery and player | Shorts → For You / Following / Friends / Trending / Fresh Picks / Learn / Relax; player rail and More menu | **B** — controls and secondary actions are discoverable. Real-media playback recovery, adaptive quality and device-level behavior still need verification. |
 | Comments and threads | Player Comments → independently scrolling dialog, filters, composer, replies and attachment controls | **B** — responsive dialog, keyboard/focus handling, safe-area and stacking contracts are present. The browser run is synthetic and does not prove signed-in backend journeys. |
-| Comment edit | Author comment menu / database | **D** — live `short_comments` has no UPDATE RLS policy and no `updated_at` column. Do not expose edit as working until a reviewed owner-scoped update/history design exists. |
+| Comment edit | Author's More menu → Edit comment for own visible Shorts text comments; Save/Cancel and Edited marker | **B** — PR branch adds an additive `updated_at` migration, column-scoped content writes, authenticated author-only UPDATE RLS excluding anonymous auth users, and UPDATE triggers that re-run existing block and creator moderation controls. Contract test and isolated migration replay pass; production migration is not applied and signed-in live persistence remains unverified. |
 | Comment reactions | Reaction picker → `short_comment_reactions` | **C** — see live duplicate CHECK constraint finding below. The expanded reaction UI is present, but eight newer values are rejected by the remaining legacy constraint. |
 | Comment media | Comment composer → image/audio/video/file attachment | **C** — client and source-contract validation exist, but the live bucket is public-read and has no server-side size/MIME restrictions. The PR migration is unapplied. |
 | Creator profile | Tap creator/avatar or People search → Shorts / Reposts / Playlists / About | **C** — four tabs exist and Reposts is backed by a real query. The master asks for Videos and Collections as distinct concepts; Shorts/Playlists are not yet demonstrated as complete equivalents. |
@@ -503,13 +503,13 @@ Project status was healthy. The health advisor returned no findings. The followi
 - On `ff1d6eafbe71794d41e0e3439b8ed64549fcc7ec`, the two-navigation layout checks passed at 320/360/390/430px, but the broader browser script reported 4 failures out of 472 because its profile-tab assertion expected the old `Shorts / Playlists / About` layout.
 - The product profile already contains `Shorts / Reposts / Playlists / About`. The browser contract was corrected to expect the four tabs and verify Reposts is selectable in commit `b47d8e2ab0d19943fb51875460c84f6ec38d958d`.
 - On `b47d8e2`, Fresh Shorts Production Gate passed, including comment accessibility, search/sounds, Reposts and comment-media contracts. Fresh Web Lite build gate passed TypeScript, production build, lint, Studio contracts and Phase 15–24 certification. Isolated PostgreSQL security tests, isolated full migration replay, Fresh Connect RLS, Fresh ID, Fresh AI integrity/training, Fresh Mail, Fresh Knowledge Retrieval, TRUEMODE and Long Video Analytics checks passed.
-- The Fresh Flow Navigation Browser Test is the remaining check at this snapshot. Its two-navigation layout step passed; the full Shorts pager/comment-dialog interaction step for 320/360/390/430px was still running. Recheck it on the latest PR head before merge.
+- On the latest code head `0fcdd96cc81edfd4a8c395ea48df75448fee7996`, all 14 PR workflow checks passed: Fresh Shorts Production Gate, TypeScript/build/lint, isolated full migration replay, Phase 0 PostgreSQL, Fresh Connect RLS, Fresh ID, Fresh AI integrity/training, Fresh Mail, Fresh Knowledge Retrieval, TRUEMODE and Long Video Analytics. The navigation browser workflow passed the two-navigation layout and full Shorts pager/comment-dialog behavior at 320/360/390/430px.
 - Vercel preview for `b47d8e2` is READY: [preview](https://fresh-web-lite-7h4zsll07-kanarafat54-boops-projects.vercel.app). `/` and `/flow/shorts` returned HTTP 200, as did the JS/CSS assets. Netlify preview status is successful. No Vercel runtime error logs or unresolved toolbar threads were returned; absence of logs is not proof of an error-free client session.
 - No physical Android device test is claimed. No production deployment, migration application, production data mutation or PR merge occurred.
 
 ### Release decision
 
-PR #326 remains open and unmerged. Do not merge until the latest-head navigation browser test passes, the current preview is rechecked, and owners explicitly resolve the reaction-constraint migration, comment-media exposure/limits, and remaining source-context gaps. C/D requirements remain in scope; none are removed to make the interface simpler.
+PR #326 remains open and unmerged. The latest-head browser test is green. Do not merge until owners explicitly resolve the reaction-constraint migration, comment-media exposure/limits, and remaining source-context gaps, and approve the comment-editing migration release sequence. C/D requirements remain in scope; none are removed to make the interface simpler.
 
 
 ## 2026-11-24 comments modal and bottom-navigation correction
@@ -528,7 +528,7 @@ When a user opens the Shorts Comments panel, the Fresh Flow bottom navigation mu
 - Browser coverage now checks the bottom bar is hidden during comments, returns after Escape and close-button dismissal, and focus wraps within the modal.
 
 ### Grade and verification
-- Comments UI/modal accessibility: **B pending CI rerun**. The underlying comment CRUD, reaction constraint and media storage findings recorded above remain separate backend gaps; this presentation change does not resolve them.
+- Comments UI/modal accessibility: **B — latest-head browser CI passed**. The comment-editing migration is separately prepared and CI-validated but not applied to production; reaction constraint and media storage findings remain separate.
 - Bottom-navigation behavior while comments are open: **B pending CI rerun**. The previous behavior intentionally left the bar visible; this change corrects that interaction based on the product-owner direction.
 - Automated tests updated: `scripts/browser-test-fresh-shorts.mjs` and `scripts/test-fresh-shorts-comment-accessibility.mjs`.
 - Latest code head at the time of this entry: `417949d0598ba2a2d474db050125a2e1b27061da`. GitHub Actions validation was triggered for the preceding code head and is being rechecked on the final documentation head. Do not claim browser or CI success until the new run completes.
@@ -571,3 +571,30 @@ When a user opens the Shorts Comments panel, the Fresh Flow bottom navigation mu
 - Full browser/CI validation is pending for the latest commit. Do not mark the new geometry as browser-verified until the latest navigation run passes.
 
 **Scope preserved:** This is a presentation and interaction sizing change only. It does not remove comments, replies, filters, reactions, media attachments, moderation actions, notifications, or any Fresh Flow navigation destination.
+
+
+## 2026-11-24 Owner-only Shorts comment editing — latest status
+
+This section supersedes the earlier D-grade comment-editing entries above.
+
+**Implementation**
+- Added `supabase/migrations/20261124160000_fresh_shorts_comment_editing.sql`.
+- Existing comments are backfilled with `updated_at = created_at`, preserving their original creation time. The timestamp trigger advances `updated_at` only when comment text actually changes; pin and moderation changes do not create a false Edited marker.
+- Client UPDATE is restricted to the `content` and trigger-maintained `updated_at` columns. Table-wide UPDATE grants are revoked from `PUBLIC`, `anon` and `authenticated`; authenticated non-anonymous users receive only the required column-level grant.
+- RLS requires the authenticated user's ID to match `author_id` in both `USING` and `WITH CHECK`, and excludes anonymous auth users.
+- Text edits re-run the existing `guard_short_comment_blocks()` and `short_comment_controls()` triggers. Current blocks, creator comment-audience restrictions, restricted-account holds and keyword holds therefore remain enforced on edits. The UI applies the returned moderation state and tells the author when the edit is held for review.
+- The Edit entry is limited to the current user's visible Shorts text comments. Media attachments, author, parent/Short linkage, moderation fields and pin status are not client-editable. This first pass does not provide an edit-history log or media-attachment replacement.
+
+**Validation on latest code head `0fcdd96cc81edfd4a8c395ea48df75448fee7996`**
+- Fresh Shorts Production Gate passed, including the new comment-editing ownership/moderation contract, existing Shorts contracts, lint and production build.
+- Full isolated Supabase migration replay from an empty local database passed, including both UPDATE triggers and the RLS/grant migration.
+- Fresh Web Lite build gate passed TypeScript, production build and lint.
+- Fresh Flow Navigation Browser Test passed responsive layout and Shorts pager/Comments modal interactions at 320/360/390/430px.
+- All 14 PR workflow checks passed.
+- Netlify preview status is successful. Vercel's provider check hit the account build-rate limit; this is an infrastructure quota, not a reported application build failure.
+- Browser coverage is synthetic/guest-session coverage. It does not prove signed-in comment editing against the live database, physical Android keyboard/accessibility behavior, or live production persistence.
+
+**Production boundary**
+- The connected production `public.short_comments` table still has no `updated_at` column or UPDATE policy because this migration has not been applied.
+- No production schema, row, RLS policy, storage bucket or deployment configuration was changed.
+- Apply this migration only through the normal reviewed migration release, coordinated before exposing the Edit UI in production. PR #326 remains open and unmerged.
