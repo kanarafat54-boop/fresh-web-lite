@@ -379,9 +379,15 @@ for (const width of WIDTHS) {
   const backdropCoversNavigation = await sheet.evaluate((element) => {
     const layer = element.closest(".comment-panel-backdrop");
     const nav = document.querySelector("nav.fresh-flow-bottom-nav");
-    return Boolean(layer && nav && layer.getBoundingClientRect().bottom >= nav.getBoundingClientRect().bottom);
+    if (!layer || !nav) return false;
+    const layerRect = layer.getBoundingClientRect();
+    const layerZ = Number.parseInt(getComputedStyle(layer).zIndex, 10) || 0;
+    const navZ = Number.parseInt(getComputedStyle(nav).zIndex, 10) || 0;
+    // The hidden nav is translated below the viewport; compare the modal with
+    // the viewport edge, then verify stacking order instead of the transformed nav rect.
+    return layerRect.bottom >= window.innerHeight - 1 && layerZ > navZ;
   });
-  check(backdropCoversNavigation, `${tag} Comments modal owns the bottom navigation area`);
+  check(backdropCoversNavigation, `${tag} Comments modal covers the viewport bottom above hidden navigation`);
   const list = sheet.locator(".comment-list");
   if (await list.count()) {
     const overflowY = await list.evaluate((element) => getComputedStyle(element).overflowY);
