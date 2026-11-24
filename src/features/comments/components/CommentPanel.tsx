@@ -35,6 +35,7 @@ type Row = {
   parent_id: string | null;
   moderation_state?: string;
   created_at: string;
+  updated_at?: string | null;
   pinned_at?: string | null;
 };
 
@@ -133,6 +134,9 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const [mutedAuthors, setMutedAuthors] = useState<Set<string>>(new Set());
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [reportCommentId, setReportCommentId] = useState<string | null>(null);
   const [mentionHits, setMentionHits] = useState<Array<{ username: string; name: string }>>([]);
@@ -217,6 +221,8 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     setDismissedCommentIds(new Set());
     setMenuFor(null);
     setConfirmDelete(null);
+    setEditingCommentId(null);
+    setEditDraft("");
     setReportCommentId(null);
     setEmojiOpen(false);
     allCommentsScrollTopRef.current = 0;
@@ -316,6 +322,55 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     }
     setNotice(cleanupFailed ? "Comment deleted. Some attached media could not be cleaned up yet." : "Comment deleted.");
     await loadComments();
+  }
+
+  function beginEditComment(comment: ViewRow) {
+    if (!user || isGuest || targetType !== "short" || comment.author_id !== user.id || isCommentHiddenState(comment.moderation_state) || comment.moderation_state === "pending") return;
+    setMenuFor(null);
+    setConfirmDelete(null);
+    setEditingCommentId(comment.id);
+    setEditDraft(comment.content ?? "");
+    setError(null);
+  }
+
+  function cancelEditComment() {
+    setEditingCommentId(null);
+    setEditDraft("");
+    setSavingEdit(false);
+  }
+
+  async function saveCommentEdit(commentId: string) {
+    if (!user || isGuest || targetType !== "short" || editingCommentId !== commentId || savingEdit) return;
+    setSavingEdit(true);
+    setError(null);
+    const { data, error: updateError } = await supabase
+      .from("short_comments")
+      .update({ content: editDraft.trim() })
+      .eq("id", commentId)
+      .eq("author_id", user.id)
+      .select("id,content,updated_at")
+      .maybeSingle();
+
+    if (updateError) {
+      setError(/updated_at|schema cache|column/i.test(updateError.message)
+        ? "Comment editing is waiting for the Fresh Shorts database migration."
+        : updateError.message);
+      setSavingEdit(false);
+      return;
+    }
+    if (!data) {
+      setError("Fresh could not update this comment. Check that the editing migration is active and that you own this comment.");
+      setSavingEdit(false);
+      return;
+    }
+
+    const updateTree = (rows: ViewRow[]): ViewRow[] => rows.map((row) => row.id === commentId
+      ? { ...row, content: data.content, updated_at: data.updated_at ?? new Date().toISOString() }
+      : { ...row, replies: updateTree(row.replies) });
+    setComments(updateTree);
+    cancelEditComment();
+    setNotice("Comment updated.");
+    announceInteraction("Comment updated");
   }
 
   async function reviewHeld(commentId: string, approve: boolean) {
@@ -431,12 +486,15 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   async function loadComments() {
     setLoading(true);
     setError(null);
+    const commentColumns = targetType === "short"
+      ? "id,author_id,content,audio_url,video_url,attachments,parent_id,moderation_state,created_at,updated_at,pinned_at"
+      : "id,author_id,content,audio_url,video_url,attachments,parent_id,moderation_state,created_at";
     const primary = await supabase.from(table)
-      .select("id,author_id,content,audio_url,video_url,attachments,parent_id,moderation_state,created_at,pinned_at")
+      .select(commentColumns)
       .eq(column, targetId).order("created_at", { ascending: true });
     let data: any[] | null = primary.data as any[] | null;
     let queryError: any = primary.error;
-    if (targetType === "short" && primary.error && /pinned_at|column/i.test(primary.error.message)) {
+    if (targetType === "short" && primary.error && /updated_at|pinned_at|column/i.test(primary.error.message)) {
       const fallback = await supabase.from(table)
         .select("id,author_id,content,audio_url,video_url,attachments,parent_id,moderation_state,created_at")
         .eq(column, targetId).order("created_at", { ascending: true });
@@ -472,6 +530,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     const rows: ViewRow[] = (data ?? []).map((row: any) => ({
       ...row,
       pinned_at: row.pinned_at ?? null,
+      updated_at: row.updated_at ?? row.created_at,
       attachments: Array.isArray(row.attachments) ? row.attachments : [],
       authorName: profileMap.get(row.author_id)?.full_name ?? "Unknown",
       authorUsername: profileMap.get(row.author_id)?.username ?? "unknown",
@@ -682,6 +741,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
               {comment.authorVerified && <span className="comment-verified-badge" role="img" aria-label="Verified account">✓</span>}
               {targetType === "short" && comment.author_id === shortAuthorId && <span className="comment-creator-badge">Creator</span>}
               <span className="post-time">{timeAgo(comment.created_at)}</span>
+              {comment.updated_at && new Date(comment.updated_at).getTime() > new Date(comment.created_at).getTime() && <span className="post-time" aria-label="Edited">Edited</span>}
             </div>
             {held && <span className="short-comment-held" role="status">{user?.id === comment.author_id ? "Held for review. Only you and the creator can see this until it is approved." : "Held for your review."}</span>}
             {held && targetType === "short" && user?.id === shortAuthorId && !isGuest && (
@@ -695,24 +755,35 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
               <p className="empty-state">This comment is {comment.moderation_state}.</p>
             ) : (
               <>
-                {comment.content && <p className="comment-content">{splitMentions(comment.content).map((part, i) => part.mention ? <button key={i} type="button" className="comment-mention" onClick={() => { const known = mentionIds.get(part.mention!.toLowerCase()); if (known) openProfile(known); }}>{part.text}</button> : <span key={i}>{part.text}</span>)}</p>}
+                {editingCommentId === comment.id ? (
+                  <div className="comment-edit-form">
+                    <textarea aria-label="Edit comment" rows={3} maxLength={4000} value={editDraft} onChange={(event) => setEditDraft(event.target.value)} />
+                    <div className="comment-edit-actions">
+                      <button type="button" className="reply-btn" disabled={savingEdit} onClick={() => void saveCommentEdit(comment.id)}>{savingEdit ? "Saving…" : "Save changes"}</button>
+                      <button type="button" className="reply-btn" disabled={savingEdit} onClick={cancelEditComment}>Cancel</button>
+                    </div>
+                  </div>
+                ) : comment.content && <p className="comment-content">{splitMentions(comment.content).map((part, i) => part.mention ? <button key={i} type="button" className="comment-mention" onClick={() => { const known = mentionIds.get(part.mention!.toLowerCase()); if (known) openProfile(known); }}>{part.text}</button> : <span key={i}>{part.text}</span>)}</p>}
                 {comment.attachments.map((attachment, index) => {
                   if (attachment.kind === "video") return <video key={index} controls src={attachment.url} className="comment-video-player" />;
                   if (attachment.kind === "audio") return <audio key={index} controls src={attachment.url} className="comment-audio-player" />;
                   if (attachment.kind === "image") return <img key={index} src={attachment.url} alt={attachment.altText ?? "Comment attachment"} className="comment-image" />;
                   return <a key={index} href={attachment.url} target="_blank" rel="noreferrer">{attachment.altText ?? "Open attachment"}</a>;
                 })}
-                <button className="reply-btn" onClick={() => openReplyThread(comment)}>Reply</button>
-                {comment.replies.length > 0 && <span className="comment-reply-count">{compact(countAll(comment.replies))} {countAll(comment.replies) === 1 ? "reply" : "replies"}</span>}
-                {targetType === "short" && depth === 0 && user?.id === shortAuthorId && !isGuest && <button className="reply-btn" type="button" disabled={pinningId === comment.id} onClick={() => void togglePinned(comment.id, Boolean(comment.pinned_at))}>{pinningId === comment.id ? "…" : comment.pinned_at ? "Unpin" : "Pin"}</button>}
-                <button className="reply-btn" onClick={() => setMenuFor(menuFor === comment.id ? null : comment.id)} aria-expanded={menuFor === comment.id} aria-label="More comment actions">⋯</button>
-                {menuFor === comment.id && (
+                {editingCommentId !== comment.id && <>
+                  <button className="reply-btn" onClick={() => openReplyThread(comment)}>Reply</button>
+                  {comment.replies.length > 0 && <span className="comment-reply-count">{compact(countAll(comment.replies))} {countAll(comment.replies) === 1 ? "reply" : "replies"}</span>}
+                  {targetType === "short" && depth === 0 && user?.id === shortAuthorId && !isGuest && <button className="reply-btn" type="button" disabled={pinningId === comment.id} onClick={() => void togglePinned(comment.id, Boolean(comment.pinned_at))}>{pinningId === comment.id ? "…" : comment.pinned_at ? "Unpin" : "Pin"}</button>}
+                  <button className="reply-btn" onClick={() => setMenuFor(menuFor === comment.id ? null : comment.id)} aria-expanded={menuFor === comment.id} aria-label="More comment actions">⋯</button>
+                </>}
+                {editingCommentId !== comment.id && menuFor === comment.id && (
                   <span className="comment-menu" role="group" aria-label="Comment actions">
                     {user && comment.author_id === user.id ? (
                       confirmDelete === comment.id ? (
                         <button type="button" className="reply-btn" onClick={() => void deleteComment(comment.id)}>Confirm delete</button>
                       ) : (
                         <>
+                          {targetType === "short" && !held && comment.content?.trim() && <button type="button" className="reply-btn" onClick={() => beginEditComment(comment)}>Edit comment</button>}
                           {comment.content?.trim() && <button type="button" className="reply-btn" onClick={() => void copyCommentText(comment.content ?? "")}>Copy text</button>}
                           <button type="button" className="reply-btn" onClick={() => void shareComment(comment)}>Share comment</button>
                           <button type="button" className="reply-btn" onClick={() => setConfirmDelete(comment.id)}>Delete my comment</button>
