@@ -383,6 +383,14 @@ for (const width of WIDTHS) {
   }
   const sheetText = await sheet.innerText().catch(() => "");
   check(sheetText.includes("Register to comment") || (await sheet.getByPlaceholder("Add a comment...").count()) === 1, `${tag} Comments sheet has the composer or a sign-in prompt`);
+  const relevantSort = sheet.getByRole("button", { name: "Relevant" });
+  check(await relevantSort.getAttribute("aria-pressed") === "true", `${tag} comment sorting defaults to Relevant`);
+  const commentFilters = sheet.getByRole("group", { name: "Filter comments" });
+  check(await commentFilters.getByRole("button").count() === 7, `${tag} all seven comment filters remain discoverable`);
+  await commentFilters.getByRole("button", { name: "Audio" }).click();
+  check(await commentFilters.getByRole("button", { name: "Audio" }).getAttribute("aria-pressed") === "true", `${tag} audio comment filter is interactive`);
+  await commentFilters.getByRole("button", { name: "All" }).click();
+  check(await commentFilters.getByRole("button", { name: "All" }).getAttribute("aria-pressed") === "true", `${tag} All comments filter restores the full conversation`);
   await page.waitForFunction(() => {
     const dialog = document.querySelector('[role="dialog"][aria-labelledby="fresh-comments-title"]');
     return Boolean(dialog && dialog.contains(document.activeElement));
