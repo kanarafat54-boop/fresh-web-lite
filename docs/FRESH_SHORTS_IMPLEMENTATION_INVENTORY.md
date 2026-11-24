@@ -448,3 +448,65 @@ The changed-file list includes `supabase/migrations/20261124120000_fresh_comment
 - No Android soft keyboard, low-memory, camera/microphone permission or physical-device test is claimed.
 - Do not merge PR #326 until the new-head workflows pass, the preview is exercised, the migration description is accurate, and remaining release gates are reviewed.
 - All C/D requirements remain in scope. No capability is removed to make the interface simpler.
+
+
+## 2026-11-24 live audit corrections and expanded backend evidence
+
+**Code audit snapshot:** `b47d8e2ab0d19943fb51875460c84f6ec38d958d`  
+**PR #326:** open; mergeable; 109 commits ahead of `main`, 0 behind; 27 changed files.  
+**Important:** This section supersedes earlier optimistic grades where live repository or database evidence found a gap. No A grade is awarded.
+
+### Specification reconciliation
+
+- The original `Fresh_Shorts_Master_Product_and_Engineering_Specification.docx` was opened and its extracted 859-line contents reviewed as the historical baseline.
+- The checked-in `docs/FRESH_SHORTS_MASTER_SPEC_SCOPE_RECONCILIATION_2026-11-24.md` was reviewed. It makes Fresh Studio / Create Studio part of Fresh Flow and supersedes only the prior exclusion; it does not remove the other master requirements.
+- The separately named `Fresh_Shorts_Master_Specification_Reconciled_2026-11-24.docx` was not found in the accessible Library listing or checked repository paths. Do not claim that DOCX was reviewed; the Markdown scope addendum is the available reconciliation artifact.
+- All repository edits in this session were committed through GitHub. No local repository checkout was available, so there was no separate local working tree to inspect.
+
+### Corrected feature grades and access findings
+
+| Requirement | Current user path / evidence | Corrected grade and remaining work |
+|---|---|---|
+| Fresh Flow Home shell and media-world directory | Fresh Flow Home → hero, top media navigation, expandable 24-system directory; bottom navigation → Home | **B** — shell and access paths exist. The Home recommendation cards are explicitly example content, not a live personalized cross-world recommendation feed; recommendation fulfillment is **C**. |
+| Media worlds | Top media navigation: Discover, Videos, News / Posts, Live, VR / AR, Podcasts, Music, Others; Flow Switch and 24 Studio profiles | **B** — entry points and registry are present. Provider-specific worlds are not all complete; the current system experience explicitly leaves some artist/album destinations unbuilt. |
+| Shorts discovery and player | Shorts → For You / Following / Friends / Trending / Fresh Picks / Learn / Relax; player rail and More menu | **B** — controls and secondary actions are discoverable. Real-media playback recovery, adaptive quality and device-level behavior still need verification. |
+| Comments and threads | Player Comments → independently scrolling dialog, filters, composer, replies and attachment controls | **B** — responsive dialog, keyboard/focus handling, safe-area and stacking contracts are present. The browser run is synthetic and does not prove signed-in backend journeys. |
+| Comment edit | Author comment menu / database | **D** — live `short_comments` has no UPDATE RLS policy and no `updated_at` column. Do not expose edit as working until a reviewed owner-scoped update/history design exists. |
+| Comment reactions | Reaction picker → `short_comment_reactions` | **C** — see live duplicate CHECK constraint finding below. The expanded reaction UI is present, but eight newer values are rejected by the remaining legacy constraint. |
+| Comment media | Comment composer → image/audio/video/file attachment | **C** — client and source-contract validation exist, but the live bucket is public-read and has no server-side size/MIME restrictions. The PR migration is unapplied. |
+| Creator profile | Tap creator/avatar or People search → Shorts / Reposts / Playlists / About | **C** — four tabs exist and Reposts is backed by a real query. The master asks for Videos and Collections as distinct concepts; Shorts/Playlists are not yet demonstrated as complete equivalents. |
+| Search and sounds | Header search → People, Shorts, topics, sounds and Web Info; sound result → sound page / reuse | **B** — real search RPC/fallback and stored sound-name grouping exist. Sound aggregation is capped at the 200 loaded rows; do not present it as a global usage count. |
+| Reposts, shares and saves | Player action rail / More menu; creator profile Reposts tab | **B** — service paths and source contracts exist. Verify signed-in cross-device persistence and quote/repost lineage in the full browser journey. |
+| Notifications | Shorts header More → Notifications | **C** — in-app tabs and read/clear/preferences foundations exist. Some signed-out/device-local states are explicitly local-only; complete cross-device and background push delivery is not verified. |
+| Context, provenance and TrueMode | Player More → Context and sources | **C** — preserve creator declarations and source lineage, but do not present a declaration as independent verification. Full lineage and recommendation-explanation coverage remain outstanding. |
+| Shared Fresh Studio shell | Fresh Flow Create, bottom Creator Studio, Shorts create handoff | **B** — one embedded shared Studio app; the Shorts workspace is a section within it, not a second editor. The 24-profile static contract passes. |
+| Shorts-to-Studio provenance | Shorts Create/Remix/Duet/Quote/Edit → shared Studio publishing dashboard | **C** — session-scoped create intent carries action, source Short ID, source creator ID, media URL and caption. The dashboard reads it and pre-fills caption; publish maps source Short ID for remix/duet. However source creator/media URL are not persisted to draft/published records, quote lineage is not stored, and direct Shorts publishing does not persist `sourceSystemId` to the publish record. Generic Studio project creation does persist its system ID. Edit/collaborate/effects/captions intents are not all implemented as complete workflows. |
+| Studio templates and complete creation | Shared Studio → Create / Projects / device tools / Publish | **C/D** — dashboard, projects, device tools, editing and publishing foundations exist. The current Create Project surface explicitly reports templates unavailable and continuing an existing project unavailable; not all system-specific editors are complete. |
+| Return-to-origin | Shorts create intent → Studio → publish/back | **C** — feed refresh and return callbacks exist, but source context is not fully persisted through draft/publish and the complete origin-return journey is not yet verified. |
+| Mobile / accessibility | Browser viewports 320/360/390/430px; dialog semantics and focus behavior | **B** for browser-emulated viewport coverage. **Not verified** on a physical Android device, keyboard, camera/microphone permissions, screen reader or low-memory hardware. |
+| Performance / offline / recovery | Feed pagination, media states, database and browser contracts | **C** — partial loading/empty/error/offline handling exists; full low-bandwidth retry, upload recovery, background processing and offline journeys remain unverified. |
+
+### Live Supabase findings (read-only inspection; no production mutations)
+
+Project status was healthy. The health advisor returned no findings. The following live schema/policy findings are material to Fresh Flow / Shorts:
+
+1. **Duplicate reaction constraints:** `public.short_comment_reactions` has both `short_comment_reactions_type_check` (the legacy 10-value check) and `short_comment_reactions_reaction_type_check` (the expanded 18-value check). The applied widening migration drops/recreates the latter name but does not drop the legacy `short_comment_reactions_type_check`. PostgreSQL enforces both, so the eight newer values — Curious, Inspire, Insightful, Agree, Disagree, Helpful, Question and Respect — remain rejected. A new corrective migration is required. It was not created or applied in this session; do not change production directly.
+2. **Comment editing:** `short_comments` has no UPDATE policy and no `updated_at` column. Owner delete and insert paths exist; editing remains D.
+3. **Attachment storage:** the live `comment-media` bucket is `public=true`, with `file_size_limit=null` and `allowed_mime_types=null`. Public reads and owner-folder writes/deletes exist. The new `20261124120000_fresh_comment_media_server_limits.sql` migration is not in the live migration ledger and has not been applied. It sets a 50 MiB limit and MIME allowlist but does not change public-read behavior.
+4. **Draft and social access:** `creator_drafts` has owner-scoped SELECT/INSERT/UPDATE/DELETE policies. `short_comment_reactions` writes are owner-scoped but rows are publicly readable. `short_reposts` has public read and owner-scoped write paths.
+5. **Sound reuse privacy:** `short_sound_reuse_allowed(uuid)` is SECURITY DEFINER and executable by anon; it returns a creator's `sound_reuse_allowed` boolean. Confirm that this preference is intentionally public and keep the function limited to that boolean.
+6. **Security advisor:** broader project findings include 30 RLS-enabled tables without policies, 4 anon-callable and 16 authenticated-callable SECURITY DEFINER functions, and leaked-password protection disabled. These include systems outside Fresh Flow; review individually rather than adding blanket policies.
+7. **Performance advisor:** 82 RLS init-plan warnings, 7 unindexed foreign keys, 8 multiple-permissive-policy warnings and 123 currently unused indexes. Shorts-related RLS warnings include `short_reposts`, `saved_shorts`, `short_comment_reactions`, `short_captions` and `short_gifts`; unindexed foreign keys include `short_appeals.appellant_id` and `short_moderation_decisions.report_id`; `fresh_short_collection_items` has multiple permissive SELECT policies. Several Shorts indexes are currently reported unused. Do not drop indexes from a single low-traffic snapshot; first collect representative query and usage evidence.
+
+### Latest CI, deployment and browser evidence
+
+- On `ff1d6eafbe71794d41e0e3439b8ed64549fcc7ec`, the two-navigation layout checks passed at 320/360/390/430px, but the broader browser script reported 4 failures out of 472 because its profile-tab assertion expected the old `Shorts / Playlists / About` layout.
+- The product profile already contains `Shorts / Reposts / Playlists / About`. The browser contract was corrected to expect the four tabs and verify Reposts is selectable in commit `b47d8e2ab0d19943fb51875460c84f6ec38d958d`.
+- On `b47d8e2`, Fresh Shorts Production Gate passed, including comment accessibility, search/sounds, Reposts and comment-media contracts. Fresh Web Lite build gate passed TypeScript, production build, lint, Studio contracts and Phase 15–24 certification. Isolated PostgreSQL security tests, isolated full migration replay, Fresh Connect RLS, Fresh ID, Fresh AI integrity/training, Fresh Mail, Fresh Knowledge Retrieval, TRUEMODE and Long Video Analytics checks passed.
+- The Fresh Flow Navigation Browser Test is the remaining check at this snapshot. Its two-navigation layout step passed; the full Shorts pager/comment-dialog interaction step for 320/360/390/430px was still running. Recheck it on the latest PR head before merge.
+- Vercel preview for `b47d8e2` is READY: [preview](https://fresh-web-lite-7h4zsll07-kanarafat54-boops-projects.vercel.app). `/` and `/flow/shorts` returned HTTP 200, as did the JS/CSS assets. Netlify preview status is successful. No Vercel runtime error logs or unresolved toolbar threads were returned; absence of logs is not proof of an error-free client session.
+- No physical Android device test is claimed. No production deployment, migration application, production data mutation or PR merge occurred.
+
+### Release decision
+
+PR #326 remains open and unmerged. Do not merge until the latest-head navigation browser test passes, the current preview is rechecked, and owners explicitly resolve the reaction-constraint migration, comment-media exposure/limits, and remaining source-context gaps. C/D requirements remain in scope; none are removed to make the interface simpler.
