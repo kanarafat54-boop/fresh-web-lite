@@ -73,7 +73,7 @@ type FreshFlowShortsStreamProps = {
   onImmersiveChange?: (immersive: boolean) => void;
   onOpenTopic?: (topic: string) => void;
   immersive?: boolean;
-  onOpenCreate?: (intent?: { action?: string; sourceShortId?: string; sourceVideoUrl?: string }) => void;
+  onOpenCreate?: (intent?: { action?: string; sourceShortId?: string; sourceAuthorId?: string; sourceVideoUrl?: string; sourceCaption?: string }) => void;
 };
 
 /** Layer B from architecture: For You · Following · Trending · Learn · Relax · More */
@@ -958,7 +958,7 @@ export default function FreshFlowShortsStream({
     } catch {
       /* ignore */
     }
-    onOpenCreate?.({ action, sourceShortId: short.id, sourceVideoUrl: short.videoUrl });
+    onOpenCreate?.({ action, sourceShortId: short.id, sourceAuthorId: short.authorId, sourceVideoUrl: short.videoUrl, sourceCaption: short.caption });
     window.dispatchEvent(new CustomEvent("fresh-open-creator", { detail: intent }));
   }
 
