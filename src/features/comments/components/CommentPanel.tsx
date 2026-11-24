@@ -322,9 +322,13 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     const text = comment.content?.trim() || `Comment from ${comment.authorName}`;
     const shareData = { title: "Fresh comment", text, url: window.location.href };
     try {
-      if (navigator.share) await navigator.share(shareData);
-      else await navigator.clipboard.writeText(`${text}\n${shareData.url}`);
-      setNotice("Comment shared.");
+      if (navigator.share) {
+        await navigator.share(shareData);
+        setNotice("Comment shared.");
+      } else {
+        await navigator.clipboard.writeText(`${text}\n${shareData.url}`);
+        setNotice("Comment copied for sharing.");
+      }
     } catch (shareError) {
       if (shareError instanceof DOMException && shareError.name === "AbortError") return;
       setNotice("Fresh could not share that comment.");
