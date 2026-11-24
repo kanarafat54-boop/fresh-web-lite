@@ -36,7 +36,7 @@ assert.match(panel, /function backToAllComments/, "thread view returns to all co
 assert.match(panel, /allCommentsScrollTopRef\.current = commentListRef\.current\?\.scrollTop/, "all-comments scroll position is saved before opening a thread");
 assert.match(panel, /commentListRef\.current\.scrollTop = allCommentsScrollTopRef\.current/, "all-comments scroll position is restored when leaving a thread");
 assert.match(panel, /aria-label=\{activeThreadRootId \? "Thread replies" : "All comments"\}/, "thread view is announced accessibly");
-assert.match(panel, /Thread \(\$\{compact\(threadReplyCount\)\} replies\)/, "thread header reports reply count");
+assert.match(panel, /threadReplyCount === 1 \? "reply" : "replies"/, "thread header reports a correctly pluralized reply count");
 assert.match(panel, /comment-reaction-summary/, "reaction counts open an accessible breakdown");
 assert.match(panel, /async function copyCommentText/, "authors can copy their comment text");
 assert.match(panel, /async function shareComment/, "comments have a native share or clipboard fallback");
