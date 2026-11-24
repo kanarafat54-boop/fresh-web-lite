@@ -30,6 +30,13 @@ assert.match(panel, /comment-filter-row/, "comment media and conversation filter
 assert.match(panel, /\["creator", "Creator replies"\]/, "creator replies have a dedicated filter");
 assert.match(panel, /\["questions", "Questions"\]/, "questions have a dedicated filter");
 assert.match(panel, /comment-reply-count/, "comment cards expose reply counts");
+assert.match(panel, /function findRootComment/, "nested replies resolve to their root thread");
+assert.match(panel, /function openReplyThread/, "Reply opens a focused thread view");
+assert.match(panel, /function backToAllComments/, "thread view returns to all comments");
+assert.match(panel, /allCommentsScrollTopRef\.current = commentListRef\.current\?\.scrollTop/, "all-comments scroll position is saved before opening a thread");
+assert.match(panel, /commentListRef\.current\.scrollTop = allCommentsScrollTopRef\.current/, "all-comments scroll position is restored when leaving a thread");
+assert.match(panel, /aria-label=\{activeThreadRootId \? "Thread replies" : "All comments"\}/, "thread view is announced accessibly");
+assert.match(panel, /Thread \(\$\{compact\(threadReplyCount\)\} replies\)/, "thread header reports reply count");
 assert.match(panel, /comment-reaction-summary/, "reaction counts open an accessible breakdown");
 assert.match(panel, /async function copyCommentText/, "authors can copy their comment text");
 assert.match(panel, /async function shareComment/, "comments have a native share or clipboard fallback");
