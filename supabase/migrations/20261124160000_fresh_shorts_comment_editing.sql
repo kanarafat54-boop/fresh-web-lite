@@ -18,7 +18,12 @@ security invoker
 set search_path = pg_catalog
 as $$
 begin
-  new.updated_at := now();
+  if new.content is distinct from old.content then
+    new.updated_at := now();
+  else
+    -- Pinning and moderation changes must not make the comment look text-edited.
+    new.updated_at := old.updated_at;
+  end if;
   return new;
 end;
 $$;
