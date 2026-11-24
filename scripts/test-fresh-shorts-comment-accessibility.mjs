@@ -31,6 +31,12 @@ assert.match(panel, /\["creator", "Creator replies"\]/, "creator replies have a 
 assert.match(panel, /\["questions", "Questions"\]/, "questions have a dedicated filter");
 assert.match(panel, /comment-reply-count/, "comment cards expose reply counts");
 assert.match(panel, /comment-reaction-summary/, "reaction counts open an accessible breakdown");
+assert.match(panel, /async function copyCommentText/, "authors can copy their comment text");
+assert.match(panel, /async function shareComment/, "comments have a native share or clipboard fallback");
+assert.match(panel, /function markNotInterested/, "viewers can dismiss an unwanted comment");
+assert.match(panel, /Comment hidden for this session\./, "session-only dismissal is communicated honestly");
+assert.match(panel, /Copy Short link/, "viewers can copy the current Short link from a comment");
+assert.match(panel, /Share comment/, "comment share action is discoverable");
 assert.match(panel, /aria-label="Attach audio, video or other files"/, "general media and file attachment path remains accessible");
 assert.match(panel, /content: draft\.trim\(\),/, "media-only comments satisfy the live non-null content column");
 assert.doesNotMatch(panel, /content: draft\.trim\(\)\s*\|\|\s*null/, "media-only comments are not inserted with null content");
