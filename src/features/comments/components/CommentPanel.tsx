@@ -341,11 +341,16 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
 
   async function saveCommentEdit(commentId: string) {
     if (!user || isGuest || targetType !== "short" || editingCommentId !== commentId || savingEdit) return;
+    const nextContent = editDraft.trim();
+    if (!nextContent) {
+      setError("Comment text cannot be empty.");
+      return;
+    }
     setSavingEdit(true);
     setError(null);
     const { data, error: updateError } = await supabase
       .from("short_comments")
-      .update({ content: editDraft.trim() })
+      .update({ content: nextContent })
       .eq("id", commentId)
       .eq("author_id", user.id)
       .select("id,content,updated_at")
