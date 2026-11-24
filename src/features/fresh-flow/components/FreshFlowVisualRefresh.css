@@ -450,10 +450,10 @@
 
 /* Keep the player action rail and creator caption area above the persistent six-destination Flow bar.
    The media remains full-bleed; only interactive overlays reserve navigation clearance. */
-:root{--fresh-flow-nav-clearance:calc(76px + env(safe-area-inset-bottom))}
+:root{--fresh-flow-nav-clearance:calc(82px + env(safe-area-inset-bottom))}
 .fresh-flow-stream .fresh-flow-overlay{bottom:var(--fresh-flow-nav-clearance)}
 .fresh-flow-stream .fresh-flow-actions{bottom:var(--fresh-flow-nav-clearance)}
 @media(max-height:700px){
-  :root{--fresh-flow-nav-clearance:calc(68px + env(safe-area-inset-bottom))}
+  :root{--fresh-flow-nav-clearance:calc(76px + env(safe-area-inset-bottom))}
   .fresh-flow-stream .fresh-flow-actions{gap:8px}
 }
