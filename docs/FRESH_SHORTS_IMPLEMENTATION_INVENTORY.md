@@ -255,3 +255,89 @@ The following grades apply to the 12 milestones in Part 16 of the master specifi
 - **C / Partial:** an explicit subset of the requirement remains incomplete.
 - **D / Missing or blocked:** no safe implementation or an unavailable prerequisite. Keep it in the ledger with a next action.
 - These grades never remove scope. All D items remain required unless the product owner explicitly changes the requirement.
+
+
+## Full feature-accessibility and live-contract audit (2026-11-24)
+
+This update supplements the 2026-11-23 preservation grade. It records an inspection of the current PR #326 branch and the connected Fresh Web Lite Supabase project. It does not promote unverified features to A and does not change product scope.
+
+### Authoritative material checked
+
+- Read all 17 pages of `Fresh_Shorts_Master_Product_and_Engineering_Specification.docx`.
+- Read `docs/FRESH_SHORTS_MASTER_SPEC_SCOPE_RECONCILIATION_2026-11-24.md`. It supersedes only the historic Fresh Studio exclusion; all other requirements remain.
+- The named `Fresh_Shorts_Master_Specification_Reconciled_2026-11-24.docx` was not present in the accessible Library listing or at the checked repository root/docs paths. Do not claim that this DOCX was read. The repository Markdown addendum is the reconciled scope authority available in this branch.
+- Read this implementation inventory and inspected PR #326, its branch, diff, reviews, source files and workflow jobs.
+- PR #326 remains open and unmerged. The latest branch head at the time of this audit update was `c65dab9d6bc220a23965be69cd4740c5285006c4`. No review submissions or inline review threads were returned during the initial review check.
+
+### Feature entry-point and discoverability map
+
+| Feature / requirement | Current entry point and access path | Accessibility / preservation finding | Grade |
+|---|---|---|---|
+| Fresh Flow Home | Bottom navigation → Home; Home hero → Create; “Explore all 24 systems” expands the directory | All 24 registry systems remain reachable through the directory. Home labels several recommendation cards as examples rather than live content. Mobile Home reserves bottom space for navigation. | B |
+| Fresh Flow media worlds | Fresh Flow header top navigation; Flow Switch; system directory | Shorts header exposes Live, VR/AR, Podcasts, Music and Others. Flow Switch and Home directory retain the wider system registry. | B |
+| Search | Search icon in the Fresh Flow header; Shorts scope opens Shorts Explore | Current search tabs are Videos, Posts, News, Web Info, People and Topics. The master Shorts search contract also requires a Sounds category; that dedicated category is not present in this search tab set. | C |
+| Notifications | Shorts header More menu → Notifications | In-app activity, category tabs, read/clear controls, preferences and appeals have entry points. Foreground browser/device notification support is not proof of background push delivery. | B |
+| Create / Camera | Shorts header More menu → Add/Create or Camera; player secondary creation actions; Home Create → shared Studio | Create intents retain source Short, creator, media URL, caption and action metadata where supplied. Verify actual capture, upload, editing and publish journeys. | B |
+| Shorts discovery | Shorts stream discovery tabs and Filters sheet | Current stream exposes For You, Following, Friends, Trending, Fresh Picks, Learn and Relax, with a separate filter sheet. | B |
+| Shorts playback | Stream media surface; tap play/pause, double-tap like, long-press playback options; progress control | Full media remains primary. Creator, reaction, comment, share, save, repost and More controls are on the action rail; additional controls remain in contextual surfaces. | B |
+| Secondary player actions | Player More menu and Fresh AI/context surfaces | Includes gifts, Fresh AI, sound, playback speed, captions, Data Saver, context/source, recommendation controls, comment audience controls, remix/duet/quote/edit/collaboration intents, mute/block/report and related actions. Some capabilities are intentionally contextual rather than permanently displayed. | B |
+| Saved Shorts and watch history | Player More menu → Saved Shorts / History | Both sheets have a discoverable entry in the secondary action menu; preserve these paths and verify account persistence and cross-device behavior. | B |
+| Creator profile | Tap creator identity/avatar on a Short or People search result | Current tabs are Shorts, Playlists and About. Master requirements additionally include Videos, public Reposts, Collections, Share profile and creator notification preferences; these are not established by the inspected component. | C |
+| Comment panel | Player comment action rail | Existing panel has nested replies, sorting, reaction picker, pinning, report, restrict, block/mute, text/media attachments and recording foundations. The panel now has modal semantics, keyboard focus handling, Escape close, focus restoration and a two-row composer. | B |
+| Comment editing | No current edit entry in the author's comment menu | Live `short_comments` has no UPDATE RLS policy and no `updated_at` column. Editing is blocked until a least-privilege additive database contract and UI journey are designed and verified. | D |
+| Comment threads | Inline nested `parent_id` replies in CommentPanel | Recursive tree rendering exists. A separate thread screen, pagination, reply counts and large-thread behavior are not established. | B |
+| Comment media | Composer attachment button; audio/video recording; inline image/audio/video playback | Frontend validator caps six files and applies client-side MIME/size checks. Current display is basic inline media; image viewer, gallery reorder/preview, waveform, transcript and playback-speed controls remain incomplete. | B |
+| Comment moderation | Per-comment More menu; creator pin and held-comment review | Reporting and creator restriction/pinning foundations exist. Block and mute were previously conflated; the comment menu now uses the real account-blocking service and a separate mute action. Highlight, hide, restrict-replies and full moderation controls still need coverage. | B |
+| Fresh Studio | Fresh Flow bottom navigation; Home Create; Shorts Create/Camera and contextual creation actions | One shared `FreshStudioApp` is used. Studio sections include Dashboard, Shorts, Content, Create, Device tools, Publish, Analytics, Audio, Design, Distribute, Earn and Settings; mobile exposes primary sections and a drawer. Shorts Studio remains a domain workspace inside it. | B |
+| 24 system-to-Studio profiles | Fresh Flow registry and `freshFlowStudioIntegration.ts` | 24 registered systems and 24 matching Studio profiles are asserted by the integration contract. This is an architectural/static contract, not proof that every provider/editor/publishing destination is live. | B |
+| Context, provenance and TrueMode | Player More → Context and sources; creator declarations and remix lineage | Preserve existing context and source surfaces. Creator-declared origin must remain distinct from independently verified evidence. | C |
+| Navigation obstruction | Fixed six-destination parent bar; comment modal overlay; Shorts player overlay CSS | The player caption/action overlays now reserve bottom-navigation clearance. Comments remain above the bar at z-index 10000. Home and embedded Studio also reserve bottom space. Device/keyboard verification remains outstanding. | B |
+
+### Live database and storage evidence
+
+The connected project `Fresh Web Lite` (`fwbbyowalnfckpmbutcz`) was active and healthy when inspected. Read-only SQL was used; no production schema, policy, bucket or data was changed.
+
+| Live object | Observed contract | Product implication |
+|---|---|---|
+| `public.short_comments` | RLS enabled. SELECT policy hides pending comments except from the author and the Short's creator. INSERT checks `auth.uid() = author_id`; DELETE checks the same ownership. No UPDATE policy exists. | Text/media insert, read and owner-delete paths have database policies. Edit cannot work yet. |
+| `public.short_comments.content` | NOT NULL. `attachments` is also NOT NULL. No `updated_at` column was present. | The composer previously sent NULL for media-only comments, conflicting with the live schema. The payload now sends an empty string for an attachment-only comment. Edit timestamps/history need an additive schema plan. |
+| `public.short_comment_reactions` | SELECT policy is `true`; INSERT/DELETE/UPDATE are scoped to the current user. | Reaction persistence has owner checks. Public reactor visibility should be reviewed against the spec's “where privacy permits” requirement. |
+| `public.user_blocks` | SELECT/INSERT/DELETE are scoped to `blocker_id = auth.uid()`. | The existing block service is suitable for the comment action; the UI had incorrectly called the mute service and is now corrected. |
+| `public.fresh_user_preferences` | Owner-scoped policy for all operations. | The separate mute preference path remains distinct from account blocking. |
+| Storage bucket `comment-media` | Bucket is public; no bucket file-size limit or MIME allowlist is configured. Object INSERT is restricted to the authenticated user's folder; owner UPDATE/DELETE policies exist; public read is allowed. | Client-side limits are not server-side limits. Public URLs may not be appropriate for private/restricted media. Review visibility, MIME/size enforcement and retention before changing bucket behavior. |
+| Security Advisor | Warnings include callable SECURITY DEFINER functions. The comment-specific pin/review/comment-mode functions inspected include `auth.uid()` and creator-ownership checks; they still need least-privilege EXECUTE grants reviewed. | Do not treat the warning as proof of an exploit, but do not ignore it. Review each function's purpose, auth check, search_path and grants. |
+
+### Additive changes made on PR #326
+
+The following are implementation changes, not claims of completed product verification:
+
+- `8d4fc826` — introduced dialog semantics, focus containment, Escape close and focus restoration; began the two-row comment composer.
+- `21f8b188` — added compact, touch-sized composer rows and visible keyboard focus styles.
+- `a375d6d2` — reserved space above the persistent bottom navigation for the Shorts caption and action rail.
+- `069da58a` and `8f9a5c4c` — aligned the visual-refresh and embedded Shorts Studio accent colors with the master violet/indigo identity.
+- `1ee87a75` — stabilized focus management so changing parent callbacks do not repeatedly steal focus.
+- `76ca82f0` — removed duplicated safe-area padding from the comment text row.
+- `f525258e` — separated actual account blocking from muting in the comment menu.
+- `3a5530a4` — changed attachment-only comment payloads to send an empty string instead of NULL, matching the live non-null content column.
+- `01b89137`, `12909484`, `c65dab9d` — added a regression contract script, package command and Fresh Shorts gate step for modal semantics, keyboard behavior, media-only submission, block/mute separation and navigation clearance.
+
+### Verification status and limits
+
+- The earlier PR #326 head `d15896ff8988d9fafe881576186aad4cf2c52ede` had successful Fresh Shorts, build and navigation workflow runs. Its navigation browser job reported 320/360/390/430px layout checks and Shorts pager checks; it did not establish a full comment-panel keyboard/recording journey.
+- The new source regression assertions were executed against the fetched branch files during this audit: **14/14 assertions passed**. This is a source-contract check, not a browser interaction test.
+- For commit `3a5530a4`, Fresh Shorts Production Gate, Fresh Flow Navigation Browser Test, Fresh Web Lite build gate and related workflows were observed in progress. The subsequent commit `c65dab9d` adds the regression test to the gate; its own workflow result must be checked after GitHub Actions starts and completes.
+- No physical Android device was available for this audit. Do not claim Android keyboard, camera, microphone, safe-area or low-memory verification.
+- No production Supabase migration, bucket setting or policy was changed.
+- The reconciled DOCX named in the brief was not located; the Markdown scope addendum was read and is preserved.
+
+### Remaining priority work
+
+1. **P0 — Finish traceability:** reconcile every remaining master requirement against its actual route, service, table, policy, storage bucket, test and production migration state.
+2. **P1 — Verify the navigation fix:** browser-test player rail/caption positions with the six-item bottom bar at 320/360/390/430px and verify scrolling/keyboard behavior.
+3. **P2 — Complete comments safely:** design a least-privilege author edit policy and timestamp/history contract; add pagination, media filters, reply counts, creator highlights, richer media previews and proper attachment cleanup; test the entire signed-in journey.
+4. **P3 — Harden comment media:** set server-side size/MIME constraints and determine whether private/restricted comment attachments need authenticated delivery. Do not break playback for public Shorts.
+5. **P4 — Restore missing discoverability and profile scope:** add the Sounds search category and account for creator Videos, Reposts, Collections, profile sharing and notification preferences without deleting existing tabs.
+6. **P5 — Complete Studio verification:** test Shorts record/import → project → editor → upload/processing → publish → return-to-origin, including source metadata and authorization.
+7. **P6 — Device and release proof:** run browser interaction tests, low-memory Android tests, keyboard/safe-area/permission/offline cases, then verify preview and production independently.
+
+All C/D gaps remain in scope. None is permission to remove a feature.
