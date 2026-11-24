@@ -30,6 +30,13 @@ const migration = fs.readFileSync(new URL("../supabase/migrations/20261105100000
 for (const r of COMMENT_REACTIONS) assert.ok(migration.includes(`'${r.type}'`), `${r.type} allowed by the migration`);
 for (const t of ["like", "dislike", "love", "laugh", "wow", "sad", "angry", "fire", "clap", "support"]) assert.ok(migration.includes(`'${t}'`), `previous type ${t} still allowed`);
 assert.ok(!/\bdelete\s+from\b|\bdrop\s+table\b|\btruncate\b/i.test(migration), "migration changes no data");
+const correction = fs.readFileSync(new URL("../supabase/migrations/20261124150000_fix_short_comment_reaction_constraints.sql", import.meta.url), "utf8");
+assert.match(correction, /drop constraint if exists short_comment_reactions_type_check/i, "corrective migration removes the legacy narrow constraint");
+assert.match(correction, /drop constraint if exists short_comment_reactions_reaction_type_check/i, "corrective migration replaces the widened constraint safely");
+assert.match(correction, /add constraint short_comment_reactions_reaction_type_check/i, "corrective migration leaves one canonical widened constraint");
+assert.match(correction, /validate constraint short_comment_reactions_reaction_type_check/i, "corrective migration validates all existing reaction rows");
+for (const r of COMMENT_REACTIONS) assert.ok(correction.includes(`'${r.type}'`), `corrective migration preserves ${r.type}`);
+assert.ok(!/\bdelete\s+from\b|\bdrop\s+table\b|\btruncate\b/i.test(correction), "corrective migration changes no reaction data");
 const original = fs.readFileSync(new URL("../supabase/migrations/20260824000000_shorts_interaction_depth.sql", import.meta.url), "utf8");
 assert.equal(COMMENT_REACTIONS.filter((r) => r.needsMigration).every((r) => !original.includes(`'${r.type}'`)), true, "flagged types are exactly the ones the original constraint lacked");
 assert.equal(COMMENT_REACTIONS.filter((r) => !r.needsMigration).every((r) => original.includes(`'${r.type}'`)), true);
