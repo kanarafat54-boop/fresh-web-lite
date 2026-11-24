@@ -222,3 +222,36 @@ A grade is not a deletion decision. Every B/C/D item remains in the preservation
 - Latest implementation commit at time of this note: `ff54f27da745140ed224f5a35d5a6d3a5c6d49ea`.
 - Fresh Shorts Production Gate, Fresh Web Lite build gate and Fresh Flow Navigation Browser Test were triggered for this commit; their final conclusions must be read before promoting any related grade to A.
 - The visual refresh is not a substitute for real-device visual review. Verify 320/360/390/430px layouts, keyboard/focus, reduced motion, comment/media attachment flows, camera permissions, offline/retry states and actual Studio publishing on signed-in Android.
+
+
+## Master specification milestone grades (2026-11-24)
+
+The following grades apply to the 12 milestones in Part 16 of the master specification. They are repository-inspection grades, not production certification. No milestone receives A until its relevant end-to-end and failure-path evidence is recorded.
+
+| Spec milestone | Grade | Existing foundation to preserve | Remaining work / proof |
+|---|---|---|---|
+| P0 — Repository audit and preservation | **B** | Existing feature inventory, architecture maps, migrations, test gates, Studio integration registry and this reconciliation addendum | Complete the requirement-by-requirement trace against every route, service, schema, storage policy, open PR and production migration state |
+| P1 — Shorts navigation and feed | **B** | Fresh Flow navigation, Shorts experience, discovery tabs, explore/topic surfaces, feed services and deep links | Browser/device validation of all feed tabs, ranking controls, navigation/back behavior, pagination, duplicates, offline recovery and empty/error states |
+| P2 — Player and playback reliability | **B** | Vertical stream/player, playback telemetry, captions, quality controls, Data Saver and performance services | Validate image/audio/text media modes, adaptive quality, memory/decoder cleanup, buffering, background/resume, accessibility alternatives and low-memory Android |
+| P3 — Text comments and replies | **B** | Shared CommentPanel, thread/reply services, comment sorting, pinned/highlighted controls and persistence migrations | Verify server-confirmed writes, pagination, edit/delete ownership, nested threads, duplicate prevention, failure reconciliation and notification links |
+| P4 — Audio and video comments | **B** | Audio/video/image attachment composer and playback foundations, media upload/processing contracts, mixed-media comment/reply paths | Verify microphone/camera/gallery permission handling, recording lifecycle, attachment processing, mixed-media retry, playback ducking and end-to-end thread persistence |
+| P5 — Reactions and social interactions | **B** | Short/comment/reply reaction model, reaction selector, repost/share/save/follow services and universal interaction integration | Validate every specified reaction type, selected-state reconciliation, concurrent counts, repost attribution, share privacy and cross-surface relationship consistency |
+| P6 — Creator profiles and following | **B** | ShortsCreatorProfile, playlists, follow state, creator actions and activity notifications | Verify privacy rules, profile tabs, mute/block/restrict/report, follow persistence and creator notification preferences |
+| P7 — Sound and audio discovery | **B** | Sound pages/topics, attribution, sound reuse, recording handoff and media playback foundations | Verify rights/permission enforcement, use counts, attribution lineage, audio-only Short behavior, overlap prevention and device audio behavior |
+| P8 — Search, trending and personalization | **B** | ShortsExplore, topic pages, filters, trending/following surfaces and preference controls | Prove ranking inputs and preference effects with real service data; validate search history, safe search, category filters, regional/global controls and reset |
+| P9 — Sharing, reposts and collections | **B** | Share/deep-link services, repost relationships, saved/history sheets, playlists and collection persistence foundations | Verify Android share sheet and Fresh destinations, private-link authorization, collection CRUD, history pause/clear, cross-device sync and attribution |
+| P10 — Context, provenance and TrueMode | **C** | Context panel, creator/source declarations, remix lineage and existing Fresh AI / TrueMode integration points | Distinguish creator-declared context from independently verified evidence; verify provenance links, AI-generated/remixed disclosures, recommendation explanations and unavailable-service behavior |
+| P11 — Moderation, privacy and notifications | **B** | Reporting, blocking/muting, moderation state, privacy controls, appeals foundations, in-app notifications and category preferences | Verify server-side/API/media authorization, reviewer boundaries, appeals workflow, quiet mode and actual push delivery while app is closed |
+| P12 — Performance, accessibility and full verification | **B** | Data Saver, lazy loading, telemetry, loading/error/empty handling, accessibility attributes, responsive CSS and CI gates | Complete WCAG review, reduced-motion/focus/contrast/text-scale checks, 320–430px browser coverage, offline/permission/unsupported-device paths and physical Android testing |
+
+### Cross-cutting Fresh Studio integration grade
+
+**B — Integrated in code; end-to-end verification incomplete.** Fresh Studio remains the shared Fresh Flow Creator Studio. The 24-system registry/profile contract and project-origin metadata path are preserved. The Shorts create intent now passes the `fresh-shorts` source-system ID plus source Short, creator ID, media URL, caption and action metadata into the shared Studio route. Required proof: browser journey through draft, upload/processing, publish confirmation, remix/duet attribution, return-to-feed behavior, and server-side authorization.
+
+### Grade discipline
+
+- **A / Verified:** only after UI, route, state, backend, authorization, persistence, success, failure and relevant device checks pass.
+- **B / Implemented:** existing code is present but proof remains.
+- **C / Partial:** an explicit subset of the requirement remains incomplete.
+- **D / Missing or blocked:** no safe implementation or an unavailable prerequisite. Keep it in the ledger with a next action.
+- These grades never remove scope. All D items remain required unless the product owner explicitly changes the requirement.
