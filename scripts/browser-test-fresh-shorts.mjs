@@ -371,14 +371,17 @@ for (const width of WIDTHS) {
   check(!!sheetBox && sheetBox.y > 40 && sheetBox.y + sheetBox.height <= 760 + 1 && sheetBox.width <= width + 1, `${tag} Comments sheet is a bottom sheet inside the viewport`);
   check((await sheet.locator("h3").innerText().catch(() => "")).startsWith("Comments"), `${tag} Comments sheet is titled Comments`);
   check(await sheet.getAttribute("aria-modal") === "true" && Boolean(await sheet.getAttribute("aria-labelledby")), `${tag} Comments sheet exposes modal semantics`);
-  const stacking = await sheet.evaluate((element) => {
-    const layer = element.closest(".comment-panel-backdrop") ?? element;
-    return {
-      panel: Number.parseInt(getComputedStyle(layer).zIndex, 10) || 0,
-      nav: Number.parseInt(getComputedStyle(document.querySelector("nav.fresh-flow-bottom-nav")).zIndex, 10) || 0,
-    };
+  await page.waitForFunction(() => {
+    const nav = document.querySelector("nav.fresh-flow-bottom-nav");
+    return Boolean(nav && getComputedStyle(nav).visibility === "hidden");
   });
-  check(stacking.panel > stacking.nav, `${tag} Comments sheet stacks above bottom navigation (${stacking.panel} > ${stacking.nav})`);
+  check(!(await page.locator("nav.fresh-flow-bottom-nav").isVisible()), `${tag} bottom navigation is hidden while Comments is open`);
+  const backdropCoversNavigation = await sheet.evaluate((element) => {
+    const layer = element.closest(".comment-panel-backdrop");
+    const nav = document.querySelector("nav.fresh-flow-bottom-nav");
+    return Boolean(layer && nav && layer.getBoundingClientRect().bottom >= nav.getBoundingClientRect().bottom);
+  });
+  check(backdropCoversNavigation, `${tag} Comments modal owns the bottom navigation area`);
   const list = sheet.locator(".comment-list");
   if (await list.count()) {
     const overflowY = await list.evaluate((element) => getComputedStyle(element).overflowY);
@@ -404,11 +407,13 @@ for (const width of WIDTHS) {
   check(await sheet.evaluate((element) => element.contains(document.activeElement)), `${tag} Tab remains inside the Comments dialog`);
   await page.keyboard.press("Escape");
   check(!(await sheet.isVisible().catch(() => false)), `${tag} Escape closes the Comments sheet`);
+  check(await page.locator("nav.fresh-flow-bottom-nav").isVisible(), `${tag} bottom navigation returns after Comments closes`);
   check(await commentsTrigger.evaluate((element) => document.activeElement === element), `${tag} closing Comments restores focus to its trigger`);
   await commentsTrigger.click();
   await sheet.waitFor({ state: "visible", timeout: 8000 }).catch(() => undefined);
   await sheet.getByRole("button", { name: "Close comments" }).click();
   check(!(await sheet.isVisible().catch(() => false)), `${tag} close button closes the Comments sheet`);
+  check(await page.locator("nav.fresh-flow-bottom-nav").isVisible(), `${tag} bottom navigation returns after close button dismissal`);
 
   // Fresh AI button: compact and top-right, so it never covers the action rail or bottom navigation.
   const aiBox = await page.locator(".global-fresh-ai-trigger").first().boundingBox().catch(() => null);
