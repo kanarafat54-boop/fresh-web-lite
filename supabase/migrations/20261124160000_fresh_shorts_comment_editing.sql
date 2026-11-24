@@ -35,6 +35,18 @@ create trigger short_comments_set_updated_at
 before update on public.short_comments
 for each row execute function public.set_short_comment_updated_at();
 
+-- Re-run the same server-side block and creator comment controls used at INSERT.
+-- An edit must not bypass a new block, audience restriction, or keyword hold.
+drop trigger if exists guard_short_comment_blocks_on_edit on public.short_comments;
+create trigger guard_short_comment_blocks_on_edit
+before update of content on public.short_comments
+for each row execute function public.guard_short_comment_blocks();
+
+drop trigger if exists short_comment_controls_on_edit on public.short_comments;
+create trigger short_comment_controls_on_edit
+before update of content on public.short_comments
+for each row execute function public.short_comment_controls();
+
 -- Remove table-wide UPDATE grants. A commenter can change only the text and the
 -- timestamp maintained by the trigger; moderation, ownership, pinning, media,
 -- parent/Short linkage and creation metadata remain outside the client write surface.
