@@ -161,7 +161,8 @@
     "test:fresh-studio-speech": "node --no-warnings scripts/verify-fresh-studio-speech.mjs",
     "test:fresh-studio-image": "node --experimental-strip-types --no-warnings scripts/test-fresh-studio-image.mjs",
     "test:evidence-passport": "node scripts/verify-evidence-passport.mjs",
-    "test:claim-evidence": "node --no-warnings scripts/verify-claim-evidence.mjs"
+    "test:claim-evidence": "node --no-warnings scripts/verify-claim-evidence.mjs",
+    "test:fresh-shorts-comment-accessibility": "node scripts/test-fresh-shorts-comment-accessibility.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
