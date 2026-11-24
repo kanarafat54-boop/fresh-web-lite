@@ -43,6 +43,7 @@ assert.match(playerCss, /\.fresh-flow-stream \.fresh-flow-actions\{bottom:var\(-
 assert.match(playerCss, /--fresh-flow-nav-clearance:calc\(82px/, "player clearance accounts for the readable six-item navigation");
 assert.match(navCss, /\.fresh-flow-bottom-nav \.fresh-nav-label\{font-size:clamp\(\.62rem/, "six-item navigation labels are readable");
 assert.match(navCss, /\.fresh-flow-bottom-nav \.fresh-nav-label\{font-size:\.6rem\}/, "narrow-phone labels retain a readable minimum");
+assert.match(navCss, /\.fresh-flow-bottom-nav \.fresh-flow-nav-item\.active\{[\s\S]*?rgba\(79,70,229/, "active Flow navigation state uses the indigo master accent");
 assert.match(playerCss, /#635bff/, "Fresh Flow refresh uses the master violet accent");
 assert.doesNotMatch(playerCss, /#42e58b/, "the prior green accent no longer overrides the master identity");
 
