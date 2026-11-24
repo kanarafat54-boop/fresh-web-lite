@@ -75,6 +75,16 @@ function buildTree(rows: ViewRow[]): ViewRow[] {
   return roots;
 }
 
+function findRootComment(rows: ViewRow[], targetId: string, root: ViewRow | null = null): ViewRow | null {
+  for (const row of rows) {
+    const currentRoot = root ?? row;
+    if (row.id === targetId) return currentRoot;
+    const nested = findRootComment(row.replies, targetId, currentRoot);
+    if (nested) return nested;
+  }
+  return null;
+}
+
 function countAll(rows: ViewRow[]): number {
   return rows.reduce((total, row) => total + 1 + countAll(row.replies), 0);
 }
@@ -116,6 +126,9 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const [commentFilter, setCommentFilter] = useState<CommentFilter>("all");
   const [reactionSummaryFor, setReactionSummaryFor] = useState<string | null>(null);
   const [dismissedCommentIds, setDismissedCommentIds] = useState<Set<string>>(() => new Set());
+  const [activeThreadRootId, setActiveThreadRootId] = useState<string | null>(null);
+  const commentListRef = useRef<HTMLDivElement>(null);
+  const allCommentsScrollTopRef = useRef(0);
   const [mutedAuthors, setMutedAuthors] = useState<Set<string>>(new Set());
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -339,6 +352,22 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     setDismissedCommentIds((current) => new Set(current).add(commentId));
     setMenuFor(null);
     setNotice("Comment hidden for this session.");
+  }
+
+  function openReplyThread(comment: ViewRow) {
+    const root = findRootComment(comments, comment.id) ?? comment;
+    allCommentsScrollTopRef.current = commentListRef.current?.scrollTop ?? 0;
+    setActiveThreadRootId(root.id);
+    setReplyingTo({ id: comment.id, authorName: comment.authorName });
+    requestAnimationFrame(() => { if (commentListRef.current) commentListRef.current.scrollTop = 0; });
+  }
+
+  function backToAllComments() {
+    setActiveThreadRootId(null);
+    setReplyingTo(null);
+    requestAnimationFrame(() => {
+      if (commentListRef.current) commentListRef.current.scrollTop = allCommentsScrollTopRef.current;
+    });
   }
 
   async function muteAuthor(authorId: string, name: string) {
@@ -652,7 +681,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
                   if (attachment.kind === "image") return <img key={index} src={attachment.url} alt={attachment.altText ?? "Comment attachment"} className="comment-image" />;
                   return <a key={index} href={attachment.url} target="_blank" rel="noreferrer">{attachment.altText ?? "Open attachment"}</a>;
                 })}
-                <button className="reply-btn" onClick={() => setReplyingTo({ id: comment.id, authorName: comment.authorName })}>Reply</button>
+                <button className="reply-btn" onClick={() => openReplyThread(comment)}>Reply</button>
                 {comment.replies.length > 0 && <span className="comment-reply-count">{compact(countAll(comment.replies))} replies</span>}
                 {targetType === "short" && depth === 0 && user?.id === shortAuthorId && !isGuest && <button className="reply-btn" type="button" disabled={pinningId === comment.id} onClick={() => void togglePinned(comment.id, Boolean(comment.pinned_at))}>{pinningId === comment.id ? "…" : comment.pinned_at ? "Unpin" : "Pin"}</button>}
                 <button className="reply-btn" onClick={() => setMenuFor(menuFor === comment.id ? null : comment.id)} aria-expanded={menuFor === comment.id} aria-label="More comment actions">⋯</button>
@@ -732,14 +761,15 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
       <div ref={panelRef} className="comment-panel fresh-comments" role="dialog" aria-modal="true" aria-labelledby="fresh-comments-title" tabIndex={-1} style={{ height: `calc(var(--fresh-comments-vh, 1dvh) * ${sheetHeight})`, maxHeight: "calc(var(--fresh-comments-vh, 1dvh) * 100 - env(safe-area-inset-top))" }} onClick={(event) => event.stopPropagation()}>
         <div className="sheet-drag-handle" onPointerDown={(event) => { dragY.current = event.clientY; dragH.current = sheetHeight; }} onPointerMove={(event) => { if (event.buttons === 1 && dragY.current !== null) setSheetHeight(Math.min(SHEET_MAX, Math.max(SHEET_MIN, dragH.current + ((dragY.current - event.clientY) / window.innerHeight) * 100))); }} onPointerUp={() => { dragY.current = null; setSheetHeight((height) => height > (SHEET_MIN + SHEET_MAX) / 2 ? SHEET_MAX : SHEET_MIN); }} />
         <div className="comment-panel-header">
-          <h3 id="fresh-comments-title">Comments{comments.length ? ` (${compact(countAll(comments))})` : ""}</h3>
+          {activeThreadRootId && <button type="button" className="comment-thread-back" onClick={backToAllComments} aria-label="Back to all comments">← All comments</button>}
+          <h3 id="fresh-comments-title">{activeThreadRootId ? "Thread" : "Comments"}{comments.length ? ` (${compact(countAll(comments))})` : ""}</h3>
           <button className="back-btn comment-close-btn" onClick={onClose} aria-label="Close comments"><CloseIcon size={20} /></button>
-          <div className="comment-sort-row">
+          {!activeThreadRootId && <div className="comment-sort-row">
             {([ ["relevant", "Relevant"], ["newest", "Newest"], ["liked", "Most liked"], ["oldest", "Oldest"] ] as Array<[CommentSortMode, string]>).map(([mode, label]) => (
               <button key={mode} type="button" className="reply-btn" onClick={() => setSortMode(mode)} aria-pressed={sortMode === mode} title={mode === "relevant" ? "Domain expertise / signal-value ranking" : undefined}>{label}</button>
             ))}
-          </div>
-          {targetType === "short" && (
+          </div>}
+          {!activeThreadRootId && targetType === "short" && (
             <div className="comment-filter-row" role="group" aria-label="Filter comments">
               {([
                 ["all", "All"], ["text", "Text"], ["audio", "Audio"], ["video", "Video"],
@@ -750,10 +780,10 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
             </div>
           )}
         </div>
-        <div className="comment-list">
+        <div ref={commentListRef} className="comment-list" aria-label={activeThreadRootId ? "Thread replies" : "All comments"}>
           {loading && <p className="empty-state">Loading comments...</p>}
           {!loading && !comments.length && <p className="empty-state">No comments yet. Be the first.</p>}
-          {displayComments.map((comment) => renderComment(comment))}
+          {(activeThreadRootId ? displayComments.filter((comment) => comment.id === activeThreadRootId) : displayComments).map((comment) => renderComment(comment))}
         </div>
         {error && <p className="auth-error" role="alert">{error}</p>}
         {notice && <p className="empty-state" role="status">{notice}</p>}
