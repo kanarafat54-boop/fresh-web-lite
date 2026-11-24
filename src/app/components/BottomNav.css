@@ -216,3 +216,12 @@
 .fresh-flow-bottom-nav.flow-navigation-hidden{opacity:0;transform:translate(-50%,calc(100% + 16px));pointer-events:none;visibility:hidden;}
 .fresh-flow-bottom-nav{transition:opacity 180ms ease,transform 180ms ease,visibility 180ms ease;}
 @media(prefers-reduced-motion:reduce){.fresh-flow-bottom-nav{transition:none;}}
+
+
+/* Fresh Flow labels remain readable across all six destinations on narrow phones. */
+.fresh-flow-bottom-nav .fresh-flow-nav-item{min-height:54px;padding:3px 1px;gap:2px}
+.fresh-flow-bottom-nav .fresh-nav-label{font-size:clamp(.62rem,2.5vw,.7rem);line-height:1.08;font-weight:700;white-space:normal;overflow-wrap:anywhere}
+@media(max-width:360px){
+  .fresh-flow-bottom-nav .fresh-flow-nav-item{min-height:52px}
+  .fresh-flow-bottom-nav .fresh-nav-label{font-size:.6rem}
+}
