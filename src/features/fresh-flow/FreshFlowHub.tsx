@@ -111,20 +111,33 @@ export default function FreshFlowHub() {
   }, []);
   const [searchSeed, setSearchSeed] = useState<{ tab: "videos" | "posts" | "news" | "web" | "people" | "topics"; query: string } | null>(null);
   const scrollIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const commentsOpenRef = useRef(false);
   useEffect(() => {
     const setVisibility = (visible: boolean) => {
       window.dispatchEvent(new CustomEvent("fresh-flow-navigation-visibility", { detail: { visible } }));
     };
-    const markScrolling = () => {
+    const commentsVisibility = (event: Event) => {
+      const open = (event as CustomEvent<{ open?: boolean }>).detail?.open === true;
+      commentsOpenRef.current = open;
+      if (scrollIdleTimer.current) clearTimeout(scrollIdleTimer.current);
+      scrollIdleTimer.current = null;
+      setVisibility(true);
+    };
+    const markScrolling = (event: Event) => {
+      const target = event.target;
+      if (commentsOpenRef.current || (target instanceof Element && target.closest(".fresh-comments-backdrop"))) return;
       setVisibility(false);
       if (scrollIdleTimer.current) clearTimeout(scrollIdleTimer.current);
       scrollIdleTimer.current = setTimeout(() => setVisibility(true), 700);
     };
+    window.addEventListener("fresh-flow-comments-visibility", commentsVisibility);
     document.addEventListener("scroll", markScrolling, { passive: true, capture: true });
     window.addEventListener("scroll", markScrolling, { passive: true });
     return () => {
+      window.removeEventListener("fresh-flow-comments-visibility", commentsVisibility);
       document.removeEventListener("scroll", markScrolling, true);
       window.removeEventListener("scroll", markScrolling);
+      commentsOpenRef.current = false;
       if (scrollIdleTimer.current) clearTimeout(scrollIdleTimer.current);
       window.dispatchEvent(new CustomEvent("fresh-flow-navigation-visibility", { detail: { visible: true } }));
     };
