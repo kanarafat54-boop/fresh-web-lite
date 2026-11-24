@@ -119,3 +119,6 @@
   .fresh-comments .comment-input-row .comment-send,
   .fresh-comments .comment-tools-row .icon-only-btn{flex-basis:42px;min-width:42px}
 }
+
+/* The safe-area inset belongs to the sheet container, not the text row. */
+.fresh-comments .comment-input-row{padding-bottom:0;background:transparent}
