@@ -141,3 +141,12 @@
 
 .fresh-comments .comment-avatar{overflow:hidden}
 .fresh-comments .comment-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
+
+
+.fresh-comments .comment-filter-row{
+  display:flex;align-items:center;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;
+  padding:4px 12px 8px;scrollbar-width:none;white-space:nowrap;
+}
+.fresh-comments .comment-filter-row::-webkit-scrollbar{display:none}
+.fresh-comments .comment-filter-row .reply-btn{flex:0 0 auto;min-height:34px;padding:6px 10px;border-radius:999px}
+.fresh-comments .comment-filter-row .reply-btn[aria-pressed="true"]{background:rgba(99,91,255,.2);border-color:rgba(99,91,255,.55);color:#fff}
