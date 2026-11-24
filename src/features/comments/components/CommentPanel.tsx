@@ -45,6 +45,8 @@ type ViewRow = Row & {
   replies: ViewRow[];
 };
 
+type CommentFilter = "all" | "text" | "audio" | "video" | "images" | "creator" | "questions";
+
 const TABLE_MAP: Record<CommentTargetType, string> = {
   post: "post_comments",
   short: "short_comments",
@@ -109,7 +111,8 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const [shortAuthorId, setShortAuthorId] = useState<string | null>(null);
   const [currentUserAvatarUrl, setCurrentUserAvatarUrl] = useState<string | null>(null);
   const [pinningId, setPinningId] = useState<string | null>(null);
-  const [sortMode, setSortMode] = useState<CommentSortMode>("oldest");
+  const [sortMode, setSortMode] = useState<CommentSortMode>("relevant");
+  const [commentFilter, setCommentFilter] = useState<CommentFilter>("all");
   const [mutedAuthors, setMutedAuthors] = useState<Set<string>>(new Set());
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -215,9 +218,24 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     const visible = comments.filter((row) => !mutedAuthors.has(row.author_id));
     const stripReplies = (row: ViewRow): ViewRow => ({ ...row, replies: row.replies.filter((reply) => !mutedAuthors.has(reply.author_id)).map(stripReplies) });
     const cleaned = visible.map(stripReplies);
-    const ordered = sortMode === "relevant" ? rankRootsBySignal(cleaned) as ViewRow[] : sortCommentRoots(cleaned, sortMode, (id) => likes[id]?.count ?? 0);
+    const matchesFilter = (row: ViewRow) => {
+      if (commentFilter === "all") return true;
+      if (commentFilter === "text") return Boolean(row.content?.trim());
+      if (commentFilter === "audio") return Boolean(row.audio_url || row.attachments.some((item) => item.kind === "audio"));
+      if (commentFilter === "video") return Boolean(row.video_url || row.attachments.some((item) => item.kind === "video"));
+      if (commentFilter === "images") return row.attachments.some((item) => item.kind === "image");
+      if (commentFilter === "creator") return Boolean(shortAuthorId && row.author_id === shortAuthorId);
+      return /[?？]/.test(row.content ?? "");
+    };
+    const filterTree = (row: ViewRow): ViewRow | null => {
+      const replies = row.replies.map(filterTree).filter((reply): reply is ViewRow => reply !== null);
+      if (!matchesFilter(row) && !replies.length) return null;
+      return { ...row, replies };
+    };
+    const filtered = cleaned.map(filterTree).filter((row): row is ViewRow => row !== null);
+    const ordered = sortMode === "relevant" ? rankRootsBySignal(filtered) as ViewRow[] : sortCommentRoots(filtered, sortMode, (id) => likes[id]?.count ?? 0);
     return [...ordered].sort((a, b) => Number(Boolean(b.pinned_at)) - Number(Boolean(a.pinned_at)));
-  }, [comments, sortMode, mutedAuthors, likes]);
+  }, [comments, sortMode, commentFilter, mutedAuthors, likes, shortAuthorId]);
 
   useEffect(() => {
     if (!user || isGuest) return;
@@ -349,7 +367,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     let profiles: any[] = [];
     let avatarProfiles: any[] = [];
     if (ids.length) {
-      const result = await supabase.from("user_public_profiles").select("id,full_name,username").in("id", ids);
+      const result = await supabase.from("user_public_profiles").select("id,full_name,username,verified").in("id", ids);
       profiles = result.data ?? [];
     }
     if (profileIds.length) {
@@ -652,6 +670,16 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
               <button key={mode} type="button" className="reply-btn" onClick={() => setSortMode(mode)} aria-pressed={sortMode === mode} title={mode === "relevant" ? "Domain expertise / signal-value ranking" : undefined}>{label}</button>
             ))}
           </div>
+          {targetType === "short" && (
+            <div className="comment-filter-row" role="group" aria-label="Filter comments">
+              {([
+                ["all", "All"], ["text", "Text"], ["audio", "Audio"], ["video", "Video"],
+                ["images", "Images"], ["creator", "Creator replies"], ["questions", "Questions"],
+              ] as Array<[CommentFilter, string]>).map(([filter, label]) => (
+                <button key={filter} type="button" className="reply-btn" onClick={() => setCommentFilter(filter)} aria-pressed={commentFilter === filter} disabled={filter === "creator" && !shortAuthorId}>{label}</button>
+              ))}
+            </div>
+          )}
         </div>
         <div className="comment-list">
           {loading && <p className="empty-state">Loading comments...</p>}
