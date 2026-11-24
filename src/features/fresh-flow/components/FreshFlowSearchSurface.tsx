@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLayout } from "../../../app/contexts/useLayout";
 import {
   searchVideos, searchPosts, searchNews, searchWebInfo, searchPeople, searchTopics, searchSounds,
@@ -48,6 +48,11 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
   const [sounds, setSounds] = useState<SoundResult[]>([]);
   const [soundPage, setSoundPage] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  const soundPageRef = useRef(soundPage);
+  onCloseRef.current = onClose;
+  soundPageRef.current = soundPage;
   const [recent, setRecent] = useState<string[]>(() => readRecent(scope));
 
   const run = async (activeTab: SearchTab, q: string) => {
@@ -81,8 +86,47 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusableSelector = 'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+    const focusable = () => Array.from(surface.querySelectorAll<HTMLElement>(focusableSelector))
+      .filter((element) => element.getAttribute("aria-hidden") !== "true" && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== "hidden");
+    (focusable()[0] ?? surface).focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        if (soundPageRef.current) setSoundPage(null);
+        else onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusable();
+      if (!items.length) {
+        event.preventDefault();
+        surface.focus();
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    surface.addEventListener("keydown", handleKeyDown);
+    return () => {
+      surface.removeEventListener("keydown", handleKeyDown);
+      previousFocus?.focus();
+    };
+  }, []);
+
   return (
-    <div className="fresh-flow-search-surface" role="dialog" aria-modal="true" aria-label="Fresh search">
+    <div ref={surfaceRef} className="fresh-flow-search-surface" role="dialog" aria-modal="true" aria-label="Fresh search" tabIndex={-1}>
       <header className="fresh-flow-search-header">
         <input
           autoFocus
