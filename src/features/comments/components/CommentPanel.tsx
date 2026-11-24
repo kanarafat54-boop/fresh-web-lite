@@ -115,6 +115,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const [sortMode, setSortMode] = useState<CommentSortMode>("relevant");
   const [commentFilter, setCommentFilter] = useState<CommentFilter>("all");
   const [reactionSummaryFor, setReactionSummaryFor] = useState<string | null>(null);
+  const [dismissedCommentIds, setDismissedCommentIds] = useState<Set<string>>(() => new Set());
   const [mutedAuthors, setMutedAuthors] = useState<Set<string>>(new Set());
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -217,8 +218,8 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   }, []);
 
   const displayComments = useMemo(() => {
-    const visible = comments.filter((row) => !mutedAuthors.has(row.author_id));
-    const stripReplies = (row: ViewRow): ViewRow => ({ ...row, replies: row.replies.filter((reply) => !mutedAuthors.has(reply.author_id)).map(stripReplies) });
+    const visible = comments.filter((row) => !mutedAuthors.has(row.author_id) && !dismissedCommentIds.has(row.id));
+    const stripReplies = (row: ViewRow): ViewRow => ({ ...row, replies: row.replies.filter((reply) => !mutedAuthors.has(reply.author_id) && !dismissedCommentIds.has(reply.id)).map(stripReplies) });
     const cleaned = visible.map(stripReplies);
     const matchesFilter = (row: ViewRow) => {
       if (commentFilter === "all") return true;
@@ -237,7 +238,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     const filtered = cleaned.map(filterTree).filter((row): row is ViewRow => row !== null);
     const ordered = sortMode === "relevant" ? rankRootsBySignal(filtered) as ViewRow[] : sortCommentRoots(filtered, sortMode, (id) => likes[id]?.count ?? 0);
     return [...ordered].sort((a, b) => Number(Boolean(b.pinned_at)) - Number(Boolean(a.pinned_at)));
-  }, [comments, sortMode, commentFilter, mutedAuthors, likes, shortAuthorId]);
+  }, [comments, sortMode, commentFilter, mutedAuthors, likes, shortAuthorId, dismissedCommentIds]);
 
   useEffect(() => {
     if (!user || isGuest) return;
@@ -297,6 +298,43 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     if (!user || isGuest) { setNotice("Sign in to restrict someone."); return; }
     const result = await restrictAccount(user.id, authorId);
     setNotice(result === "restricted" ? `Restricted ${name}. Their future comments on your Shorts are held for your approval. They are not told.` : result === "unavailable" ? "Restrict is not available yet." : "Fresh could not restrict that account. Try again.");
+  }
+
+  async function copyCommentText(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setNotice("Comment text copied.");
+    } catch {
+      setNotice("Clipboard access is unavailable in this browser.");
+    }
+  }
+
+  async function copyShortLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setNotice("Short link copied.");
+    } catch {
+      setNotice("Clipboard access is unavailable in this browser.");
+    }
+  }
+
+  async function shareComment(comment: ViewRow) {
+    const text = comment.content?.trim() || `Comment from ${comment.authorName}`;
+    const shareData = { title: "Fresh comment", text, url: window.location.href };
+    try {
+      if (navigator.share) await navigator.share(shareData);
+      else await navigator.clipboard.writeText(`${text}\n${shareData.url}`);
+      setNotice("Comment shared.");
+    } catch (shareError) {
+      if (shareError instanceof DOMException && shareError.name === "AbortError") return;
+      setNotice("Fresh could not share that comment.");
+    }
+  }
+
+  function markNotInterested(commentId: string) {
+    setDismissedCommentIds((current) => new Set(current).add(commentId));
+    setMenuFor(null);
+    setNotice("Comment hidden for this session.");
   }
 
   async function muteAuthor(authorId: string, name: string) {
@@ -617,15 +655,24 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
                 {menuFor === comment.id && (
                   <span className="comment-menu" role="group" aria-label="Comment actions">
                     {user && comment.author_id === user.id ? (
-                      confirmDelete === comment.id
-                        ? <button type="button" className="reply-btn" onClick={() => void deleteComment(comment.id)}>Confirm delete</button>
-                        : <button type="button" className="reply-btn" onClick={() => setConfirmDelete(comment.id)}>Delete my comment</button>
+                      confirmDelete === comment.id ? (
+                        <button type="button" className="reply-btn" onClick={() => void deleteComment(comment.id)}>Confirm delete</button>
+                      ) : (
+                        <>
+                          {comment.content?.trim() && <button type="button" className="reply-btn" onClick={() => void copyCommentText(comment.content ?? "")}>Copy text</button>}
+                          <button type="button" className="reply-btn" onClick={() => void shareComment(comment)}>Share comment</button>
+                          <button type="button" className="reply-btn" onClick={() => setConfirmDelete(comment.id)}>Delete my comment</button>
+                        </>
+                      )
                     ) : (
                       <>
                         <button type="button" className="reply-btn" onClick={() => void reportComment(comment.id)}>Report</button>
                         {targetType === "short" && user?.id === shortAuthorId && !isGuest && <button type="button" className="reply-btn" onClick={() => void restrictAuthor(comment.author_id, comment.authorName)}>Restrict {comment.authorUsername !== "unknown" ? `@${comment.authorUsername}` : comment.authorName}</button>}
                         <button type="button" className="reply-btn" onClick={() => void muteAuthor(comment.author_id, comment.authorName)}>Mute {comment.authorUsername !== "unknown" ? `@${comment.authorUsername}` : comment.authorName}</button>
                         <button type="button" className="reply-btn" onClick={() => void blockAuthor(comment.author_id, comment.authorName)}>Block {comment.authorUsername !== "unknown" ? `@${comment.authorUsername}` : comment.authorName}</button>
+                        <button type="button" className="reply-btn" onClick={() => markNotInterested(comment.id)}>Not interested</button>
+                        <button type="button" className="reply-btn" onClick={() => void copyShortLink()}>Copy Short link</button>
+                        <button type="button" className="reply-btn" onClick={() => void shareComment(comment)}>Share comment</button>
                       </>
                     )}
                   </span>
