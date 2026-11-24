@@ -10,6 +10,7 @@ assert.match(panel, /role="dialog" aria-modal="true" aria-labelledby="fresh-comm
 assert.match(panel, /onCloseRef\.current\(\)/, "Escape closes the dialog without rebinding its focus effect");
 assert.match(panel, /previousFocus\?\.focus\(\)/, "closing restores focus to the invoking control");
 assert.match(panel, /panel\.addEventListener\("keydown", handleKeyDown\)/, "keyboard focus is trapped within the open comments sheet");
+assert.match(panel, /getClientRects\(\)\.length > 0/, "hidden controls are excluded from the focus cycle");
 assert.match(panel, /window\.visualViewport/, "virtual-keyboard viewport is observed");
 assert.match(panel, /--fresh-comments-vh/, "comment sheet height follows the visible viewport when the keyboard opens");
 assert.match(panel, /className="comment-composer"/, "composer is separated from the scrollable comment list");
