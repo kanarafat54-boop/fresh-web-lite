@@ -550,3 +550,24 @@ When a user opens the Shorts Comments panel, the Fresh Flow bottom navigation mu
 - The Comments backdrop uses z-index 440, above the Fresh Flow bottom bar's z-index 430, as a second layer of protection while the modal mounts.
 - The modal backdrop now owns the full lower viewport. The sheet still respects the device's bottom safe area.
 - The source-contract test asserts the modal backdrop's 440 layer and the bottom navigation's 430 layer.
+
+
+## 2026-11-24 TikTok-style tall Comments sheet
+
+**Product direction:** Shorts Comments should open as a tall, bottom-anchored modal sheet similar to the interaction pattern used by TikTok. The previous 55% default left too much of the video visible and made the comments area feel cramped.
+
+### Implemented
+- Default sheet height is now **88% of the visible viewport**.
+- Touch dragging can resize between **58% and 94%** of the viewport.
+- The rounded top corners, centered drag handle, dimmed video backdrop and full-height modal layering are retained.
+- The comment list remains independently scrollable; the composer remains a separate fixed flex region at the bottom.
+- Virtual-keyboard viewport tracking and device safe-area handling remain in place.
+- The drag handle has a larger touch target without changing its visual size.
+- The bottom navigation remains hidden for the full modal lifetime and returns on dismissal.
+
+### Verification added
+- Browser geometry assertion now requires at least 80% viewport height at 320/360/390/430px test widths.
+- Source contract verifies 88% default, 94% expansion ceiling, 58% minimum, modal z-index 440 above navigation z-index 430, and touch drag support.
+- Full browser/CI validation is pending for the latest commit. Do not mark the new geometry as browser-verified until the latest navigation run passes.
+
+**Scope preserved:** This is a presentation and interaction sizing change only. It does not remove comments, replies, filters, reactions, media attachments, moderation actions, notifications, or any Fresh Flow navigation destination.
