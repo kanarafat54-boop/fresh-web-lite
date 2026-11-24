@@ -36,4 +36,8 @@ for (const id of ["videos", "posts", "news", "web", "people", "topics"]) assert.
 assert.match(surface, /id: "sounds", label: "Sounds"/);
 assert.match(surface, /searchSounds\(q\)/);
 assert.match(surface, /<ShortsTopicPage kind="sound"/);
+assert.match(surface, /role="dialog" aria-modal="true" aria-label="Fresh search"/, "search surface is an accessible modal");
+assert.match(surface, /surface\.addEventListener\("keydown", handleKeyDown\)/, "search traps keyboard focus");
+assert.match(surface, /onCloseRef\.current\(\)/, "Escape closes search");
+assert.match(surface, /soundPageRef\.current/, "Escape closes the nested sound page before closing search");
 console.log("Fresh search Sounds category: PASS");
