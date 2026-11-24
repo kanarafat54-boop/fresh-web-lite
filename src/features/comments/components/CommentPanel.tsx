@@ -430,7 +430,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
       const payload = {
         [column]: targetId,
         author_id: user.id,
-        content: draft.trim() || null,
+        content: draft.trim(),
         audio_url: attachments.find((item) => item.kind === "audio")?.url ?? null,
         video_url: attachments.find((item) => item.kind === "video")?.url ?? null,
         attachments,
