@@ -165,8 +165,8 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  // Focus the comments sheet on open, but keep the shared app navigation reachable.
-  // This is a non-modal sheet because Fresh Flow navigation remains visible and usable.
+  // Comments are a focused modal surface: hide shared navigation and keep keyboard focus
+  // inside the sheet until it closes, then restore the invoking control.
   useEffect(() => {
     const panel = panelRef.current;
     if (!panel) return;
@@ -179,6 +179,23 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
       if (event.key === "Escape") {
         event.preventDefault();
         onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusable();
+      if (!items.length) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !panel.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !panel.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
       }
     };
     panel.addEventListener("keydown", handleKeyDown);
@@ -761,7 +778,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
 
   return (
     <div className="comment-panel-backdrop fresh-comments-backdrop" onClick={onClose}>
-      <div ref={panelRef} className="comment-panel fresh-comments" role="dialog" aria-modal="false" aria-labelledby="fresh-comments-title" tabIndex={-1} style={{ height: `calc(var(--fresh-comments-vh, 1dvh) * ${sheetHeight})`, maxHeight: "calc(var(--fresh-comments-vh, 1dvh) * 100 - env(safe-area-inset-top))" }} onClick={(event) => event.stopPropagation()}>
+      <div ref={panelRef} className="comment-panel fresh-comments" role="dialog" aria-modal="true" aria-labelledby="fresh-comments-title" tabIndex={-1} style={{ height: `calc(var(--fresh-comments-vh, 1dvh) * ${sheetHeight})`, maxHeight: "calc(var(--fresh-comments-vh, 1dvh) * 100 - env(safe-area-inset-top))" }} onClick={(event) => event.stopPropagation()}>
         <div className="sheet-drag-handle" onPointerDown={(event) => { dragY.current = event.clientY; dragH.current = sheetHeight; }} onPointerMove={(event) => { if (event.buttons === 1 && dragY.current !== null) setSheetHeight(Math.min(SHEET_MAX, Math.max(SHEET_MIN, dragH.current + ((dragY.current - event.clientY) / window.innerHeight) * 100))); }} onPointerUp={() => { dragY.current = null; setSheetHeight((height) => height > (SHEET_MIN + SHEET_MAX) / 2 ? SHEET_MAX : SHEET_MIN); }} />
         <div className="comment-panel-header">
           {activeThreadRootId && <button type="button" className="comment-thread-back" onClick={backToAllComments} aria-label="Back to all comments">← All comments</button>}
