@@ -16,6 +16,11 @@ assert.match(panel, /--fresh-comments-vh/, "comment sheet height follows the vis
 assert.match(panel, /className="comment-composer"/, "composer is separated from the scrollable comment list");
 assert.match(panel, /className="comment-input-row"/, "text entry and send controls occupy the primary composer row");
 assert.match(panel, /className="comment-tools-row" role="group"/, "attachment and recording tools occupy a labelled secondary row");
+assert.match(panel, /className="comment-composer-avatar"/, "first composer row includes the current-user avatar");
+assert.match(panel, /<textarea[\s\S]*?onKeyDown=\{\(event\) => \{ if \(event\.key === "Enter" && !event\.shiftKey\)/, "comment writing expands and preserves Shift+Enter newlines");
+assert.match(panel, /aria-label="Attach an image"/, "single-image attachment has a dedicated entry point");
+assert.match(panel, /aria-label="Choose image gallery"/, "multi-image gallery has a dedicated entry point");
+assert.match(panel, /aria-label="Attach audio, video or other files"/, "the general media/file attachment path is preserved");
 assert.match(panel, /aria-label="Attach images or files"/, "attachment picker has an accessible button");
 assert.match(panel, /content: draft\.trim\(\),/, "media-only comments satisfy the live non-null content column");
 assert.doesNotMatch(panel, /content: draft\.trim\(\)\s*\|\|\s*null/, "media-only comments are not inserted with null content");
@@ -36,6 +41,8 @@ assert.ok(muteStart >= 0 && muteEnd > muteStart, "comment mute action exists");
 assert.match(panel.slice(muteStart, muteEnd), /setCreatorMuted/, "Mute retains its separate preference service");
 
 assert.match(panelCss, /\.comment-composer/, "two-row composer styles exist");
+assert.match(panelCss, /\.comment-composer-avatar/, "current-user avatar has a dedicated compact style");
+assert.match(panelCss, /textarea\.comment-input:focus\{min-height:72px/, "comment composer expands while writing");
 assert.match(panelCss, /\.comment-tools-row button:focus-visible/, "secondary composer controls have visible focus");
 assert.match(panelCss, /padding-bottom:0;background:transparent/, "safe-area padding is not duplicated on the text row");
 assert.match(playerCss, /--fresh-flow-nav-clearance/, "Shorts overlays reserve space above persistent bottom navigation");
