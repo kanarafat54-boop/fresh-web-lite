@@ -279,7 +279,7 @@ export default function FreshFlowHub() {
             }}
           />
         ) : isShortsRoute ? (
-          <FreshFlowShortsExperience onOpenTopic={openTopicSearch} />
+          <FreshFlowShortsExperience onOpenTopic={openTopicSearch} onOpenStudio={(systemId) => { setStudioSourceSystemId(systemId); setActiveRoute("fresh-flow-system-fresh-studio"); }} />
         ) : independentSystem ? (
           <FreshFlowSystemExperience
             system={independentSystem}
