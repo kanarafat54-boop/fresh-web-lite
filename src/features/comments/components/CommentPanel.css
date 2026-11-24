@@ -122,3 +122,19 @@
 
 /* The safe-area inset belongs to the sheet container, not the text row. */
 .fresh-comments .comment-input-row{padding-bottom:0;background:transparent}
+
+
+/* Match the master composer contract: avatar + expandable writing row, then four media tools. */
+.fresh-comments .comment-composer-avatar{
+  flex:0 0 32px;width:32px;height:32px;border-radius:50%;overflow:hidden;
+  display:grid;place-items:center;background:linear-gradient(145deg,#635bff,#4f46e5);
+  color:#fff;font-size:.8rem;font-weight:800;line-height:1;
+}
+.fresh-comments .comment-composer-avatar img{display:block;width:100%;height:100%;object-fit:cover}
+.fresh-comments textarea.comment-input{
+  display:block;align-self:center;min-height:44px;max-height:120px;height:44px;
+  padding:10px 12px;line-height:1.35;resize:none;overflow-y:auto;white-space:pre-wrap;
+}
+.fresh-comments textarea.comment-input:focus{min-height:72px;outline:2px solid rgba(99,91,255,.55);outline-offset:1px}
+.fresh-comments .comment-tools-row{justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.fresh-comments .comment-tools-row::-webkit-scrollbar{display:none}
