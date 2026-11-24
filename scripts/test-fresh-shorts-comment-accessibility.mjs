@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 const panel = readFileSync("src/features/comments/components/CommentPanel.tsx", "utf8");
 const panelCss = readFileSync("src/features/comments/components/CommentPanel.css", "utf8");
 const playerCss = readFileSync("src/features/fresh-flow/components/FreshFlowVisualRefresh.css", "utf8");
+const navCss = readFileSync("src/app/components/BottomNav.css", "utf8");
 
 assert.match(panel, /role="dialog" aria-modal="true" aria-labelledby="fresh-comments-title"/, "comments sheet exposes modal semantics and a visible title");
 assert.match(panel, /onCloseRef\.current\(\)/, "Escape closes the dialog without rebinding its focus effect");
@@ -38,6 +39,9 @@ assert.match(panelCss, /\.comment-tools-row button:focus-visible/, "secondary co
 assert.match(panelCss, /padding-bottom:0;background:transparent/, "safe-area padding is not duplicated on the text row");
 assert.match(playerCss, /--fresh-flow-nav-clearance/, "Shorts overlays reserve space above persistent bottom navigation");
 assert.match(playerCss, /\.fresh-flow-stream \.fresh-flow-actions\{bottom:var\(--fresh-flow-nav-clearance\)\}/, "Shorts action rail uses navigation clearance");
+assert.match(playerCss, /--fresh-flow-nav-clearance:calc\(82px/, "player clearance accounts for the readable six-item navigation");
+assert.match(navCss, /\.fresh-flow-bottom-nav \.fresh-nav-label\{font-size:clamp\(\.62rem/, "six-item navigation labels are readable");
+assert.match(navCss, /\.fresh-flow-bottom-nav \.fresh-nav-label\{font-size:\.6rem\}/, "narrow-phone labels retain a readable minimum");
 assert.match(playerCss, /#635bff/, "Fresh Flow refresh uses the master violet accent");
 assert.doesNotMatch(playerCss, /#42e58b/, "the prior green accent no longer overrides the master identity");
 
