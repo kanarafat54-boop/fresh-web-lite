@@ -31,6 +31,8 @@ jobs:
 
       - name: Comment accessibility and preservation contract
         run: npm run test:fresh-shorts-comment-accessibility
+      - name: Search Sounds category
+        run: npm run test:fresh-search-sounds
 
       - name: Playlists and pinned comments contract
         run: npm run test:fresh-shorts-playlists

@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import { useLayout } from "../../../app/contexts/useLayout";
 import {
-  searchVideos, searchPosts, searchNews, searchWebInfo, searchPeople, searchTopics,
-  type VideoResult, type PostResult, type PersonResult, type TopicResult,
+  searchVideos, searchPosts, searchNews, searchWebInfo, searchPeople, searchTopics, searchSounds,
+  type VideoResult, type PostResult, type PersonResult, type TopicResult, type SoundResult,
 } from "../core/searchService";
 import type { IntelligenceResponse } from "../../ai/intelligence";
 import ShortsExplore from "./ShortsExplore";
+import ShortsTopicPage from "./ShortsTopicPage";
 import { requestOpenShort } from "../core/shortsExplore";
 import { addRecent, cleanQuery, readRecent, removeRecent, writeRecent } from "../core/recentSearches";
 import "./FreshFlowSearchSurface.css";
 
-type SearchTab = "videos" | "posts" | "news" | "web" | "people" | "topics";
+type SearchTab = "videos" | "posts" | "news" | "web" | "people" | "sounds" | "topics";
 
 const TABS: Array<{ id: SearchTab; label: string }> = [
   { id: "videos", label: "Videos" },
@@ -18,6 +19,7 @@ const TABS: Array<{ id: SearchTab; label: string }> = [
   { id: "news", label: "News" },
   { id: "web", label: "Web Info" },
   { id: "people", label: "People" },
+  { id: "sounds", label: "Sounds" },
   { id: "topics", label: "Topics" },
 ];
 
@@ -43,6 +45,8 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
   const [webInfo, setWebInfo] = useState<IntelligenceResponse | null>(null);
   const [people, setPeople] = useState<PersonResult[]>([]);
   const [topics, setTopics] = useState<TopicResult[]>([]);
+  const [sounds, setSounds] = useState<SoundResult[]>([]);
+  const [soundPage, setSoundPage] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
   const [recent, setRecent] = useState<string[]>(() => readRecent(scope));
 
@@ -58,6 +62,7 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
       else if (activeTab === "news") setNews(await searchNews(q));
       else if (activeTab === "web") setWebInfo(await searchWebInfo(q));
       else if (activeTab === "people") setPeople(await searchPeople(q));
+      else if (activeTab === "sounds") setSounds(await searchSounds(q));
       else if (activeTab === "topics") setTopics(await searchTopics(q));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Search failed.");
@@ -150,6 +155,20 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
             </ul>
           )
         )}
+        {!loading && !error && searched && tab === "sounds" && (
+          sounds.length === 0 ? <p className="fresh-flow-empty">No matching sounds found.</p> : (
+            <ul className="fresh-flow-search-list" aria-label="Sound results">
+              {sounds.map((sound) => (
+                <li key={sound.name}>
+                  <button type="button" className="fresh-flow-search-person" onClick={() => setSoundPage(sound.name)}>
+                    <strong>♪ {sound.name}</strong>
+                    <small>{sound.useCount}{sound.capped ? "+" : ""} {sound.useCount === 1 && !sound.capped ? "Short" : "Shorts"}</small>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )
+        )}
         {!loading && !error && searched && tab === "topics" && (
           topics.length === 0 ? <p className="fresh-flow-empty">No matching topics found.</p> : (
             <ul className="fresh-flow-search-list">
@@ -180,8 +199,11 @@ export default function FreshFlowSearchSurface({ onClose, initialTab, initialQue
             onSearchTopic={(tag) => { setQuery(tag); setTab("videos"); void run("videos", tag); }}
           />
         )}
-        {!searched && scope !== "shorts" && <p className="fresh-flow-empty">Search Videos, Posts, News, Web Info, People and Topics across Fresh.</p>}
+        {!searched && scope !== "shorts" && <p className="fresh-flow-empty">Search Videos, Posts, News, Web Info, People, Sounds and Topics across Fresh.</p>}
       </div>
+      {soundPage && (
+        <ShortsTopicPage kind="sound" value={soundPage} onClose={() => setSoundPage(null)} onOpenShort={() => { setSoundPage(null); setActiveRoute("fresh-flow-shorts"); onClose(); }} />
+      )}
     </div>
   );
 }

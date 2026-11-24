@@ -31,6 +31,15 @@ export type TopicResult = {
   sourceKind: "video" | "post";
 };
 
+export type SoundResult = {
+  /** Exact sound_name, as used by the sound page. */
+  name: string;
+  /** Shorts found for this sound among the loaded rows. */
+  useCount: number;
+  /** True when the row limit was reached, so the real count may be higher. */
+  capped: boolean;
+};
+
 async function namesFor(authorIds: string[]): Promise<Map<string, string>> {
   if (authorIds.length === 0) return new Map();
   const { data } = await supabase.from("user_public_profiles").select("id, full_name, username").in("id", authorIds);
@@ -152,4 +161,38 @@ export async function searchTopics(query: string, limit = 15): Promise<TopicResu
     ...posts.map((p) => ({ tag, sampleCaption: p.content, sourceId: p.id, sourceKind: "post" as const })),
   ];
   return results.slice(0, limit);
+}
+
+const SOUND_SEARCH_ROW_LIMIT = 200;
+
+/** Group Shorts rows by sound_name, most-used first. Pure so it can be tested without a database. */
+export function groupSoundRows(rows: Array<{ sound_name?: string | null }>, limit: number, capped: boolean): SoundResult[] {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const name = typeof row.sound_name === "string" ? row.sound_name.trim() : "";
+    if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, limit)
+    .map(([name, useCount]) => ({ name, useCount, capped }));
+}
+
+/**
+ * Sounds are real: they are the sound_name values already stored on Shorts, and each result opens the existing
+ * sound page. Blocked or hidden creators are filtered like every other search. Nothing is invented.
+ */
+export async function searchSounds(query: string, limit = 20): Promise<SoundResult[]> {
+  const term = query.trim().replace(/^[♪#]\s*/, "");
+  if (!term) return [];
+  const escaped = term.replace(/[\\%_]/g, (char) => `\\${char}`);
+  const { data, error } = await supabase
+    .from("shorts")
+    .select("author_id, sound_name")
+    .ilike("sound_name", `%${escaped}%`)
+    .order("view_count", { ascending: false })
+    .limit(SOUND_SEARCH_ROW_LIMIT);
+  if (error) throw new Error(error.message);
+  const rows = await keepVisibleAuthors(data ?? [], (r: any) => String(r.author_id));
+  return groupSoundRows(rows as Array<{ sound_name?: string | null }>, limit, (data ?? []).length >= SOUND_SEARCH_ROW_LIMIT);
 }
