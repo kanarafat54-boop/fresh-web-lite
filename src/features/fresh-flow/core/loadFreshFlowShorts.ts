@@ -19,7 +19,7 @@ export type FreshFlowLoadOptions = {
 };
 
 const BASE_SHORT_COLUMNS = "id, author_id, caption, sound_name, chapters, video_url, like_count, comment_count, view_count, repost_count, created_at";
-const EXTRA_SHORT_COLUMNS = "remix_of_short_id, duet_of_short_id, duration_seconds, language";
+const EXTRA_SHORT_COLUMNS = "remix_of_short_id, duet_of_short_id, duration_seconds, language, allow_download";
 
 export async function loadFreshFlowShorts(
   userId: string | null,
@@ -106,6 +106,7 @@ export async function loadFreshFlowShorts(
       caption: row.caption ?? "",
       soundName: row.sound_name,
       videoUrl: row.video_url,
+      allowDownload: row.allow_download === true,
       likeCount: row.like_count,
       commentCount: row.comment_count,
       viewCount: row.view_count ?? 0,
