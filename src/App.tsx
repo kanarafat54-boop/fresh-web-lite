@@ -1,6 +1,7 @@
 import "./features/shorts/components/shorts-flow.css";
 import AppShell from "./app/AppShell";
 import MemphisArafatPage from "./features/creator/MemphisArafatPage";
+import FreshTechPage from "./features/creator/FreshTechPage";
 
 /**
  * The root application is intentionally thin.
@@ -11,6 +12,10 @@ export default function App() {
 
   if (path === "/memphis-arafat") {
     return <MemphisArafatPage />;
+  }
+
+  if (path === "/fresh-tech") {
+    return <FreshTechPage />;
   }
 
   return <AppShell />;
