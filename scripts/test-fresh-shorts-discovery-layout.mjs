@@ -18,7 +18,7 @@ assert.match(css, /\.fresh-flow-tabs-secondary\s*\{/);
 assert.match(css, /\.fresh-flow-tabs-secondary button\s*\{/);
 const comments = read("src/features/comments/components/CommentPanel.tsx");
 assert.match(css, /expanded action list sits beside, not over, the right action rail/);
-assert.match(css, /\.fresh-flow-stream\\[data-discovery\\] \\.fresh-flow-advanced \\{[\\s\\S]*?right: 68px/);
+assert.match(css, /\.fresh-flow-stream\[data-discovery\] \.fresh-flow-advanced \{[\s\S]*?right: 68px/);
 assert.match(comments, /useState\(targetType === "short" \? 66 : SHEET_DEFAULT\)/);
 assert.match(comments, /useRef\(targetType === "short" \? 66 : SHEET_DEFAULT\)/);
 console.log("Fresh Shorts discovery, side panel and compact comments sheet: PASS");
