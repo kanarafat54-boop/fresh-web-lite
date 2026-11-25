@@ -634,7 +634,8 @@ export default function FreshFlowShortsStream({
     const video = item?.querySelector<HTMLVideoElement>("video");
     if (!item || !video) return;
     const fill = item.querySelector<HTMLElement>(".fresh-flow-progress-fill");
-    const tracker = new WatchTracker();
+    let tracker = new WatchTracker();
+    let historyWasEnabled = prefsRef.current.watchHistoryEnabled;
     let started = false;
     const onTime = () => {
       const durationMs = video.duration * 1000;
