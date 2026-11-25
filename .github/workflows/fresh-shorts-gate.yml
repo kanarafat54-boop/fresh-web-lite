@@ -39,6 +39,8 @@ jobs:
         run: npm run test:fresh-creator-reposts
       - name: Comment media server limits
         run: npm run test:fresh-comment-media-limits
+      - name: Shorts More menu grouping
+        run: npm run test:fresh-shorts-more-menu
 
       - name: Playlists and pinned comments contract
         run: npm run test:fresh-shorts-playlists

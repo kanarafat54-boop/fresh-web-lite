@@ -1191,12 +1191,14 @@ export default function FreshFlowShortsStream({
                 )}
                 {advancedOpen && index === currentIndex && (
                   <div className="fresh-flow-advanced" role="group" aria-label="More actions">
+                    <p className="fresh-flow-advanced-heading">Support and explore</p>
                     <button type="button" onClick={() => { setAdvancedOpen(false); void handleGift(short, "100"); }} aria-label="Send gift">
                       <span className="fresh-flow-menu-icon"><ShortsIcons.GiftIcon size={18} /></span> Send gift{(giftTotals.get(short.id)?.count ?? 0) > 0 ? ` · ${giftTotals.get(short.id)?.count}` : ""}
                     </button>
                     <button type="button" onClick={() => { setAdvancedOpen(false); setFreshAiPanelOpen(true); }}>
                       <span className="fresh-flow-menu-icon"><ShortsIcons.AskAIIcon size={18} /></span> Ask Fresh AI
                     </button>
+                    <p className="fresh-flow-advanced-heading">Playback and captions</p>
                     <button type="button" onClick={toggleSound}>
                       <span className="fresh-flow-menu-icon">{soundOn ? <ShortsIcons.VolumeOnIcon size={18} /> : <ShortsIcons.VolumeOffIcon size={18} />}</span> {soundOn ? "Mute sound" : "Turn sound on"}
                     </button>
@@ -1225,6 +1227,7 @@ export default function FreshFlowShortsStream({
                     <button type="button" onClick={() => { const next = nextDataSaverMode(dataSaverMode); setDataSaverMode(next); writeDataSaverMode(next); }} title="Stops downloading upcoming Shorts ahead of time. Does not change video quality.">
                       <span className="fresh-flow-menu-icon"><ShortsIcons.DataSaverIcon size={18} /></span> {dataSaverLabel(dataSaverMode, dataSaverActive)}
                     </button>
+                    <p className="fresh-flow-advanced-heading">About this Short</p>
                     <button type="button" onClick={() => { setAdvancedOpen(false); setContextShortId(short.id); }} title="Details about this Short and an on-demand evidence check">
                       <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Context and sources
                     </button>
@@ -1237,11 +1240,7 @@ export default function FreshFlowShortsStream({
                     <button type="button" onClick={() => { setAdvancedOpen(false); setProvenanceShortId(short.id); }} title="Where this Short comes from, as declared by its creator">
                       <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Origin
                     </button>
-                    {user && !isGuest && isReviewer(user.role) ? (
-                      <button type="button" onClick={() => { setAdvancedOpen(false); setReviewOpen(true); }} title="Reports and appeals waiting for a reviewer">
-                        <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Review queue
-                      </button>
-                    ) : null}
+                    {user && !isGuest ? <p className="fresh-flow-advanced-heading">Your library and privacy</p> : null}
                     {user && !isGuest ? (
                       <button type="button" onClick={() => { setAdvancedOpen(false); setSavedOpen(true); }} title="Shorts you saved">
                         <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Saved Shorts
@@ -1257,8 +1256,15 @@ export default function FreshFlowShortsStream({
                         <span className="fresh-flow-menu-icon"><ShortsIcons.ManageIcon size={18} /></span> Privacy and safety
                       </button>
                     ) : null}
+                    {user && !isGuest && isReviewer(user.role) ? <p className="fresh-flow-advanced-heading">Moderation</p> : null}
+                    {user && !isGuest && isReviewer(user.role) ? (
+                      <button type="button" onClick={() => { setAdvancedOpen(false); setReviewOpen(true); }} title="Reports and appeals waiting for a reviewer">
+                        <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Review queue
+                      </button>
+                    ) : null}
                     {user && !isGuest && short.authorId === user.id ? (
                       <>
+                        <p className="fresh-flow-advanced-heading">Your Short</p>
                         <button type="button" onClick={() => { setAdvancedOpen(false); void changeCommentsMode(short.id, "everyone"); }}>
                           <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Comments here: everyone
                         </button>
@@ -1270,12 +1276,14 @@ export default function FreshFlowShortsStream({
                         </button>
                       </>
                     ) : null}
+                    <p className="fresh-flow-advanced-heading">Create from this Short</p>
                     {ADVANCED_ACTIONS.map((a) => (
                       <button key={a.id} type="button" onClick={() => openAdvanced(a.id, short)} title={a.description}>
                         <span className="fresh-flow-menu-icon">{a.icon}</span> {a.label}
                       </button>
                     ))}
                     <hr className="fresh-flow-advanced-divider" aria-hidden="true" />
+                    <p className="fresh-flow-advanced-heading">Your feed and safety</p>
                     <button type="button" onClick={() => void updateTopicPrefs(short, "more")}>
                       <span className="fresh-flow-menu-icon"><ShortsIcons.MoreLikeIcon size={18} /></span> Show more like this
                     </button>
