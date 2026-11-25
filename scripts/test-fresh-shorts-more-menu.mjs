@@ -10,8 +10,8 @@ assert.ok(start > 0, "More actions menu must exist");
 const end = stream.indexOf("\n                  </div>\n                )}", start);
 const menu = stream.slice(start, end);
 
-// Preservation: all 30 original controls remain, plus the new Add to collection action (31 buttons total).
-assert.equal((menu.match(/<button/g) ?? []).length, 31, "the More menu keeps all original controls and adds Add to collection");
+// Preservation: all 30 original controls remain, plus Add to collection and the creator download-permission control (32 buttons total).
+assert.equal((menu.match(/<button/g) ?? []).length, 32, "the More menu keeps all original controls, Add to collection and the creator download-permission control");
 assert.equal((menu.match(/ADVANCED_ACTIONS\.map/g) ?? []).length, 1, "Quote, Remix, Duet, Collaborate, Edit tools, Captions and Effects remain");
 assert.equal((menu.match(/<div/g) ?? []).length, 0, "no wrapper elements: the row styles target direct children of the menu");
 
@@ -19,7 +19,7 @@ assert.equal((menu.match(/<div/g) ?? []).length, 0, "no wrapper elements: the ro
 const labels = [
   "Send gift", "Ask Fresh AI", "Mute sound", "Playback speed", "Captions: On", "Write captions", "Upload captions",
   "Context and sources", "Why am I seeing this?", "Predictions", "Origin", "Review queue", "Saved Shorts", "Watch history",
-  "Add to collection", "Privacy and safety", "Comments here: everyone", "Comments here: people I follow", "Comments here: off",
+  "Add to collection", "Privacy and safety", "Comments here: everyone", "Comments here: people I follow", "Comments here: off", "Allow downloads:",
   "Show more like this", "Show less like this", "Hide topic", "Manage recommendations", "Not interested", "Mute @", "Block @", "Blocked accounts", "Report",
 ];
 for (const label of labels) assert.ok(menu.includes(label), `menu still offers "${label}"`);
@@ -44,6 +44,7 @@ under("Your library and privacy", "Add to collection", "Moderation");
 under("Your library and privacy", "Privacy and safety", "Moderation");
 under("Moderation", "Review queue", "Your Short");
 under("Your Short", "Comments here: off", "Create from this Short");
+under("Your Short", "Allow downloads:", "Create from this Short");
 under("Create from this Short", "ADVANCED_ACTIONS.map", "Your feed and safety");
 under("Your feed and safety", "Not interested");
 under("Your feed and safety", "Block @");
