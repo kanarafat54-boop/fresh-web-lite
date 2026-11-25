@@ -34,7 +34,7 @@ assert.match(loader, /allow_download/);
 assert.match(loader, /allowDownload: row\.allow_download === true/);
 assert.match(service, /\.eq\("author_id", userId\)/);
 assert.match(service, /\.update\(\{ allow_download: allowDownload \}\)/);
-assert.match(service, /\/api\/ai\/ask\\?__fresh_short_download=1/);
+assert.match(service, /\/api\/ai\/ask\?__fresh_short_download=1/);
 assert.match(stream, /short\.allowDownload \? \(/);
 assert.match(stream, /Allow downloads: \{short\.allowDownload \? "On" : "Off"\}/);
 assert.match(handler, /authClient\.auth\.getUser\(token\)/);
