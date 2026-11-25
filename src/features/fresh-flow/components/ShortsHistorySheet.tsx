@@ -4,14 +4,15 @@ import { clearWatchHistory, loadWatchHistory, removeFromHistory, type HistoryIte
 import { shortWatchPath } from "../core/shortsLinks";
 import "./shortsContextPanel.css";
 
-type Props = { userId: string; onClose: () => void };
+type Props = { userId: string; historyEnabled: boolean; onHistoryEnabledChange: (enabled: boolean) => Promise<void>; onClose: () => void };
 
 /** Watch history: the Shorts this viewer really watched, with remove and clear controls. */
-export default function ShortsHistorySheet({ userId, onClose }: Props) {
+export default function ShortsHistorySheet({ userId, historyEnabled, onHistoryEnabledChange, onClose }: Props) {
   const [items, setItems] = useState<HistoryItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [changingHistory, setChangingHistory] = useState(false);
   const closeRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
@@ -45,6 +46,12 @@ export default function ShortsHistorySheet({ userId, onClose }: Props) {
         <div className="shorts-sheet-header">
           <h3>Watch history</h3>
           <button ref={closeRef} type="button" className="shorts-sheet-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+        <div className="shorts-history-setting">
+          <div><strong>Save Watch History</strong><span>{historyEnabled ? "On — new watch milestones are saved and can inform recommendations." : "Paused — existing history is kept; new watch milestones are not saved."}</span></div>
+          <button type="button" role="switch" aria-checked={historyEnabled} disabled={changingHistory} onClick={async () => { setChangingHistory(true); try { await onHistoryEnabledChange(!historyEnabled); } finally { setChangingHistory(false); } }}>
+            {changingHistory ? "Saving…" : historyEnabled ? "On" : "Off"}
+          </button>
         </div>
         <p className="shorts-why-note">Shorts you watched at least a quarter of. Removing or clearing also removes them from what your recommendations learn from.</p>
         {error ? <p role="alert">{error}</p> : null}
