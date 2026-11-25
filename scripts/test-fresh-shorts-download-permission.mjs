@@ -26,7 +26,7 @@ assert.equal(shortDownloadFilename(shortId), `fresh-short-${shortId}.mp4`);
 
 assert.match(migration, /allow_download boolean not null default false/);
 assert.match(migration, /revoke update on table public\.shorts from public, anon, authenticated/i);
-assert.match(migration, /grant update \(allow_download\) on public\.shorts to authenticated/i);
+assert.match(migration, /grant update \(allow_download\) on table public\.shorts to authenticated/i);
 assert.match(migration, /for update\s+to authenticated\s+using \(\(select auth\.uid\(\)\) = author_id\)\s+with check \(\(select auth\.uid\(\)\) = author_id\)/i);
 
 assert.match(type, /allowDownload\?: boolean/);
