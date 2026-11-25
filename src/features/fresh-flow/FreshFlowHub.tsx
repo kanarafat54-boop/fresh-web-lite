@@ -248,17 +248,17 @@ export default function FreshFlowHub() {
               <button type="button" className="fresh-flow-search-icon-button fresh-flow-header-more-toggle" onClick={() => setHeaderMenuOpen((open) => !open)} aria-label="More Fresh Shorts options" aria-expanded={headerMenuOpen} aria-haspopup="true" title="More"><ShortsIcons.RailMoreIcon size={22} /></button>
             )}
             <div className={`fresh-flow-header-more-list${headerMenuOpen ? " open" : ""}`} onClick={() => setHeaderMenuOpen(false)}>
-              {shortsHeader && (
-              <>
-                <button type="button" className="fresh-flow-search-icon-button fresh-shorts-bell" onClick={() => setShortsNotificationsOpen(true)} aria-label="Notifications" title="Notifications"><ShortsIcons.BellIcon size={22} /></button>
-                <button type="button" className="fresh-flow-search-icon-button fresh-shorts-add" onClick={() => openCreator("create")} aria-label="Add or create a Short" title="Add / Create"><ShortsIcons.NavCreateIcon size={22} /></button>
-                <button type="button" className="fresh-flow-search-icon-button fresh-shorts-camera" onClick={() => openCreator("camera")} aria-label="Open camera to record a Short" title="Camera"><ShortsIcons.CameraIcon size={22} /></button>
-              </>
-            )}
-            <button type="button" className="fresh-flow-search-icon-button fresh-flow-switch-open" onClick={() => setFlowSwitchOpen(true)} aria-label="All media worlds and Flow profile photo" title="All media worlds"><ShortsIcons.WorldsGridIcon size={22} /></button>
-            <button type="button" className="fresh-flow-unified-profile" title="Profile" onClick={() => setActiveRoute("profile")} aria-label="Open your main Fresh ID profile">
-              {mainProfileAvatarUrl ? <img src={mainProfileAvatarUrl} alt="" /> : <span>{isAuthenticated ? (user?.email?.slice(0, 1).toUpperCase() || "M") : "?"}</span>}
-            </button>
+              {isOverview && (
+                <>
+                  <button type="button" className="fresh-flow-search-icon-button fresh-shorts-bell" onClick={() => setShortsNotificationsOpen(true)} aria-label="Notifications" title="Notifications"><ShortsIcons.BellIcon size={22} /></button>
+                  <button type="button" className="fresh-flow-search-icon-button fresh-shorts-add" onClick={() => openCreator("create")} aria-label="Add or create a Short" title="Add / Create"><ShortsIcons.NavCreateIcon size={22} /></button>
+                  <button type="button" className="fresh-flow-search-icon-button fresh-shorts-camera" onClick={() => openCreator("camera")} aria-label="Open camera to record a Short" title="Camera"><ShortsIcons.CameraIcon size={22} /></button>
+                  <button type="button" className="fresh-flow-unified-profile" title="Profile" onClick={() => setActiveRoute("profile")} aria-label="Open your main Fresh ID profile">
+                    {mainProfileAvatarUrl ? <img src={mainProfileAvatarUrl} alt="" /> : <span>{isAuthenticated ? (user?.email?.slice(0, 1).toUpperCase() || "M") : "?"}</span>}
+                  </button>
+                </>
+              )}
+              <button type="button" className="fresh-flow-search-icon-button fresh-flow-switch-open" onClick={() => setFlowSwitchOpen(true)} aria-label="All media worlds and Flow profile photo" title="All media worlds"><ShortsIcons.WorldsGridIcon size={22} /></button>
             </div>
           </div>
         </header>
@@ -337,7 +337,7 @@ export default function FreshFlowHub() {
           onOpenTemplates={() => { setShortsCreateMode(null); try { sessionStorage.setItem("fresh-flow-create-intent", JSON.stringify({ action: "create", requestedAt: new Date().toISOString() })); } catch { /* ignore */ } setActiveRoute("fresh-flow-system-fresh-studio"); }}
         />
       )}
-      {shortsNotificationsOpen && isShortsRoute && (
+      {shortsNotificationsOpen && isOverview && (
         <ShortsNotifications
           onClose={() => setShortsNotificationsOpen(false)}
           onOpenCreator={(authorId) => { window.dispatchEvent(new CustomEvent("fresh-shorts-open-creator", { detail: { authorId } })); }}
