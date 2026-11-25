@@ -34,8 +34,10 @@ export async function requestShortDownload(shortId: string): Promise<string> {
   const payload = await response.json().catch(() => ({})) as { signedUrl?: string; error?: string };
   if (!response.ok || !payload.signedUrl) throw new Error(payload.error || "Fresh could not prepare this download.");
 
+  if (!supabaseUrl) throw new Error("Fresh storage is not configured.");
+  const expectedOrigin = new URL(supabaseUrl).origin;
   const signed = new URL(payload.signedUrl);
-  if (signed.protocol !== "https:" || signed.origin !== new URL(supabaseUrl).origin) {
+  if (signed.protocol !== "https:" || signed.origin !== expectedOrigin) {
     throw new Error("Fresh returned an invalid download location.");
   }
   return signed.href;
