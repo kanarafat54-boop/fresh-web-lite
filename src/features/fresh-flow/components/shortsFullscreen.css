@@ -196,6 +196,40 @@
   /* Keep a comfortable touch target around the small badge. */
   .fresh-flow-shorts-fullscreen .fresh-flow-rail-follow::after { content: ""; position: absolute; inset: -11px; }
 
+  /* The More panel is a compact companion to the rail, never a full-width sheet. */
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-advanced {
+    position: absolute;
+    z-index: 24;
+    right: 64px;
+    bottom: calc(80px + env(safe-area-inset-bottom));
+    width: min(224px, calc(100vw - 84px));
+    max-height: min(54dvh, 440px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 10px;
+    border-radius: 18px;
+    scrollbar-width: thin;
+  }
+  .fresh-flow-shorts-fullscreen .fresh-flow-advanced > button {
+    min-height: 40px;
+    padding: 7px 9px;
+    gap: 8px;
+    border-radius: 11px;
+    font-size: 0.82rem;
+  }
+  .fresh-flow-shorts-fullscreen .fresh-flow-advanced-heading {
+    margin-top: 8px;
+    font-size: 0.65rem;
+  }
+  .fresh-flow-shorts-fullscreen .fresh-flow-advanced-heading:first-child { margin-top: 0; }
+  .fresh-flow-shorts-fullscreen .fresh-flow-more-arrow {
+    display: block;
+    font-size: 32px;
+    font-weight: 400;
+    line-height: 0.8;
+    transform: translateX(-1px);
+  }
+
   /* Caption block: creator first, then caption, then sound, sitting just above the navigation. */
   .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-meta {
     left: 14px;
