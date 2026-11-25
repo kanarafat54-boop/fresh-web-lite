@@ -15,13 +15,14 @@ export async function loadShortPrefs(userId: string): Promise<ShortPrefs> {
     mutedCreators: asList(data.muted_creators),
     showLessTopics: asList(settings.show_less_topics),
     tasteResetAt: typeof settings.taste_reset_at === "string" ? settings.taste_reset_at : null,
+    watchHistoryEnabled: settings.watch_history_enabled !== false,
   };
 }
 
 /** Saves the viewer's own preferences (owner-only RLS). Merges into content_settings so other settings survive. */
 export async function saveShortPrefs(userId: string, prefs: ShortPrefs): Promise<void> {
   const { data: existing } = await supabase.from("fresh_user_preferences").select("user_id, content_settings").eq("user_id", userId).maybeSingle();
-  const settings = { ...((existing?.content_settings ?? {}) as Record<string, unknown>), show_less_topics: prefs.showLessTopics, taste_reset_at: prefs.tasteResetAt };
+  const settings = { ...((existing?.content_settings ?? {}) as Record<string, unknown>), show_less_topics: prefs.showLessTopics, taste_reset_at: prefs.tasteResetAt, watch_history_enabled: prefs.watchHistoryEnabled !== false };
   const row = { interests: prefs.interests, muted_topics: prefs.mutedTopics, muted_creators: prefs.mutedCreators, content_settings: settings, updated_at: new Date().toISOString() };
   const { error } = existing
     ? await supabase.from("fresh_user_preferences").update(row).eq("user_id", userId)
