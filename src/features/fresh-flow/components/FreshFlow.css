@@ -181,3 +181,32 @@
 .fresh-flow-meta h3.expanded{max-height:34vh;overflow-y:auto}
 .fresh-flow-caption-toggle{min-height:0;padding:0;border:0;background:transparent;color:#fff;font:inherit;font-weight:800;opacity:.85;cursor:pointer}
 .fresh-flow-verified{margin-left:4px;color:#8b85ff;font-size:.8em}
+
+
+/* Fresh Shorts reference layout: two compact discovery rows above the vertical feed. */
+.fresh-flow-stream[data-discovery] .fresh-flow-tabs-primary { top: 4px; }
+.fresh-flow-stream[data-discovery] .fresh-flow-tabs-secondary {
+  top: 48px;
+  justify-content: flex-start;
+  gap: 6px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+.fresh-flow-stream[data-discovery] .fresh-flow-tabs-secondary button {
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 999px;
+  background: rgba(8,10,16,.56);
+  font-size: .76rem;
+}
+.fresh-flow-stream[data-discovery] .fresh-flow-tabs-secondary button.active {
+  border-color: rgba(139,92,246,.82);
+  background: rgba(99,91,255,.28);
+  box-shadow: inset 0 -2px 0 #8b5cf6;
+}
+@media (max-width: 360px) {
+  .fresh-flow-stream[data-discovery] .fresh-flow-tabs-primary button { padding-left: 7px; padding-right: 7px; font-size: .78rem; }
+  .fresh-flow-stream[data-discovery] .fresh-flow-tabs-secondary { top: 46px; gap: 4px; }
+  .fresh-flow-stream[data-discovery] .fresh-flow-tabs-secondary button { padding-left: 8px; padding-right: 8px; }
+}
