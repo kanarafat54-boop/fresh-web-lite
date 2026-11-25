@@ -1271,8 +1271,8 @@ export default function FreshFlowShortsStream({
                       <span>Download</span>
                     </button>
                   ) : null}
-                  <button type="button" onClick={() => setAdvancedOpen((v) => !v)} aria-label="More" aria-expanded={advancedOpen && index === currentIndex}>
-                    <span><ShortsIcons.RailMoreIcon size={28} /></span>
+                  <button type="button" onClick={() => setAdvancedOpen((v) => !v)} aria-label="More actions" title="More actions" aria-expanded={advancedOpen && index === currentIndex}>
+                    <span className="fresh-flow-more-arrow" aria-hidden="true">‹</span>
                   </button>
                 </div>
                 {freshAiPanelOpen && index === currentIndex && (
