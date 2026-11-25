@@ -210,3 +210,21 @@
   .fresh-flow-stream[data-discovery] .fresh-flow-tabs-secondary { top: 46px; gap: 4px; }
   .fresh-flow-stream[data-discovery] .fresh-flow-tabs-secondary button { padding-left: 8px; padding-right: 8px; }
 }
+
+
+/* Fresh Shorts: the expanded action list sits beside, not over, the right action rail. */
+.fresh-flow-stream[data-discovery] .fresh-flow-advanced {
+  right: 68px;
+  bottom: calc(92px + env(safe-area-inset-bottom));
+  width: min(270px, calc(100% - 84px));
+  max-height: 56vh;
+  overflow-y: auto;
+}
+@media (max-width: 360px) {
+  .fresh-flow-stream[data-discovery] .fresh-flow-advanced {
+    right: 62px;
+    width: min(252px, calc(100% - 76px));
+    max-height: 52vh;
+    padding: 10px;
+  }
+}
