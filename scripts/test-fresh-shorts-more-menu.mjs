@@ -11,7 +11,7 @@ const end = stream.indexOf("\n                  </div>\n                )}", sta
 const menu = stream.slice(start, end);
 
 // Preservation: the regrouping must not add or remove a single control (30 buttons, one registry map).
-assert.equal((menu.match(/<button/g) ?? []).length, 30, "the More menu keeps all 30 controls");
+assert.equal((menu.match(/<button/g) ?? []).length, 30, "the More menu keeps all 31 controls");
 assert.equal((menu.match(/ADVANCED_ACTIONS\.map/g) ?? []).length, 1, "Quote, Remix, Duet, Collaborate, Edit tools, Captions and Effects remain");
 assert.equal((menu.match(/<div/g) ?? []).length, 0, "no wrapper elements: the row styles target direct children of the menu");
 
@@ -19,7 +19,7 @@ assert.equal((menu.match(/<div/g) ?? []).length, 0, "no wrapper elements: the ro
 const labels = [
   "Send gift", "Ask Fresh AI", "Mute sound", "Playback speed", "Captions: On", "Write captions", "Upload captions",
   "Context and sources", "Why am I seeing this?", "Predictions", "Origin", "Review queue", "Saved Shorts", "Watch history",
-  "Privacy and safety", "Comments here: everyone", "Comments here: people I follow", "Comments here: off",
+  "Add to collection", "Privacy and safety", "Comments here: everyone", "Comments here: people I follow", "Comments here: off",
   "Show more like this", "Show less like this", "Hide topic", "Manage recommendations", "Not interested", "Mute @", "Block @", "Blocked accounts", "Report",
 ];
 for (const label of labels) assert.ok(menu.includes(label), `menu still offers "${label}"`);
@@ -40,6 +40,7 @@ under("Playback and captions", "Playback speed", "About this Short");
 under("About this Short", "Context and sources", "Your library and privacy");
 under("About this Short", "Origin", "Your library and privacy");
 under("Your library and privacy", "Saved Shorts", "Moderation");
+under("Your library and privacy", "Add to collection", "Moderation");
 under("Your library and privacy", "Privacy and safety", "Moderation");
 under("Moderation", "Review queue", "Your Short");
 under("Your Short", "Comments here: off", "Create from this Short");
