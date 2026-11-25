@@ -21,6 +21,29 @@ export default function FreshTechPage() {
       document.head.appendChild(meta)
     }
     meta.content = description
+
+    let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]')
+    if (!canonical) {
+      canonical = document.createElement('link')
+      canonical.rel = 'canonical'
+      document.head.appendChild(canonical)
+    }
+    canonical.href = 'https://fresh-web-lite.vercel.app/fresh-tech'
+
+    const setProperty = (property: string, content: string) => {
+      let tag = document.querySelector<HTMLMetaElement>(`meta[property="${property}"]`)
+      if (!tag) {
+        tag = document.createElement('meta')
+        tag.setAttribute('property', property)
+        document.head.appendChild(tag)
+      }
+      tag.content = content
+    }
+    setProperty('og:type', 'website')
+    setProperty('og:title', 'Fresh Tech | Built by Ara6')
+    setProperty('og:description', description)
+    setProperty('og:url', 'https://fresh-web-lite.vercel.app/fresh-tech')
+
     let schema = document.getElementById('fresh-tech-schema') as HTMLScriptElement | null
     if (!schema) {
       schema = document.createElement('script')
