@@ -73,7 +73,7 @@ async function diagnose(page, label) {
 
 const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"] });
 const WIDTHS = [320, 360, 390, 430];
-// On phones every header control except Search lives in the "more" menu; open it before using one.
+// On phones, the Shorts header More menu exposes the Flow Switch; Home-only creator controls stay on Home.
 async function openHeaderMenu(page) {
   const list = page.locator("header .fresh-flow-header-more-list");
   if (!(await list.evaluate((el) => el.classList.contains("open")))) await page.locator('header [aria-label="More Fresh Shorts options"]').click();
@@ -119,6 +119,10 @@ for (const width of WIDTHS) {
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
   await page.waitForSelector("nav.fresh-flow-bottom-nav", { timeout: 15000 });
+  for (const label of ["Notifications", "Add or create a Short", "Open camera to record a Short", "Open your main Fresh ID profile"]) {
+    const box = await page.locator(`header [aria-label="${label}"]`).first().boundingBox();
+    check(Boolean(box) && box.x >= 0 && box.x + box.width <= width + 0.5 && box.width >= 36 && box.height >= 36, `${tag} Home header control "${label}" is on-screen and tappable`);
+  }
   await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Shorts" }).click();
   await page.waitForSelector(".fresh-flow-item", { timeout: 15000 });
   await page.waitForTimeout(800);
@@ -142,7 +146,7 @@ for (const width of WIDTHS) {
   check(/y\s+mandatory/.test(geo.snap), `${tag} vertical mandatory snap`);
   const rail = await page.evaluate(() => {
     const item = document.querySelector(".fresh-flow-item");
-    const tabs = document.querySelector(".fresh-flow-tabs");
+    const tabs = document.querySelector(".fresh-flow-tabs-secondary") || document.querySelector(".fresh-flow-tabs-primary");
     const nav = document.querySelector("nav.fresh-flow-bottom-nav");
     const meta = item.querySelector(".fresh-flow-meta");
     const itemBox = item.getBoundingClientRect();
@@ -153,7 +157,7 @@ for (const width of WIDTHS) {
     return { count: boxes.length, top: Math.min(...boxes.map((r) => r.top)), bottom: Math.max(...boxes.map((r) => r.bottom)), itemBottom: itemBox.bottom, tabsBottom, navTop, metaBottom };
   });
   const modes = (await page.locator('.fresh-flow-tabs [role="tab"]').allInnerTexts()).map((t) => t.replace(/^\S+\s/, "").trim());
-  check(JSON.stringify(modes) === JSON.stringify(["For You", "Following", "Friends", "Trending", "Fresh Picks", "Learn", "Relax"]), `${tag} discovery modes are For You · Following · Friends · Trending · Fresh Picks · Learn · Relax (got ${modes.join(" · ")})`);
+  check(JSON.stringify(modes) === JSON.stringify(["Fresh Picks", "Learn", "Relax", "For You", "Trending", "Friends", "Following"]), `${tag} discovery modes are For You · Following · Friends · Trending · Fresh Picks · Learn · Relax (got ${modes.join(" · ")})`);
   check((await page.locator(".fresh-flow-item").first().locator(".fresh-flow-rail-avatar").count()) === 1, `${tag} rail starts with the creator profile photo`);
   check(rail.count >= 7, `${tag} action rail has profile, react, comment, repost, save, share and more (${rail.count})`);
   check(rail.top >= rail.tabsBottom - 1 && rail.bottom <= rail.itemBottom + 1, `${tag} every action sits inside the visible Short, below the tabs (${Math.round(rail.top)} >= ${Math.round(rail.tabsBottom)})`);
@@ -188,11 +192,16 @@ for (const width of WIDTHS) {
   const shortsTabs = (await page.locator('nav[aria-label="Fresh Flow media"] button').evaluateAll((els) => els.map((el) => (el.textContent || "").trim())));
   check(JSON.stringify(shortsTabs) === JSON.stringify(["Live", "VR / AR", "Podcasts", "Music", "Others"]), `${tag} Shorts top navigation is Live · VR / AR · Podcasts · Music · Others (got ${shortsTabs.join(" · ")})`);
   check((await page.locator("header .fresh-shorts-brand").textContent()).includes("Fresh Shorts"), `${tag} Shorts world header is branded Fresh Shorts`);
-  for (const label of ["Search Fresh Flow", "More Fresh Shorts options", "Notifications", "Add or create a Short", "Open camera to record a Short", "All media worlds and Flow profile photo", "Open your main Fresh ID profile"]) {
-    if (label === "Notifications") await openHeaderMenu(page);
+  for (const label of ["Search Fresh Flow", "More Fresh Shorts options"]) {
     const box = await page.locator(`header [aria-label="${label}"]`).first().boundingBox();
-    check(Boolean(box) && box.x >= 0 && box.x + box.width <= width + 0.5 && box.width >= 36 && box.height >= 36, `${tag} header control "${label}" is on-screen and tappable`);
+    check(Boolean(box) && box.x >= 0 && box.x + box.width <= width + 0.5 && box.width >= 36 && box.height >= 36, `${tag} Shorts header control "${label}" is on-screen and tappable`);
   }
+  for (const label of ["Notifications", "Add or create a Short", "Open camera to record a Short", "Open your main Fresh ID profile"]) {
+    check(await page.locator(`header [aria-label="${label}"]`).count() === 0, `${tag} Home-only control "${label}" is not duplicated in Shorts`);
+  }
+  await openHeaderMenu(page);
+  const switchBox = await page.locator('header [aria-label="All media worlds and Flow profile photo"]').boundingBox();
+  check(Boolean(switchBox) && switchBox.x >= 0 && switchBox.x + switchBox.width <= width + 0.5, `${tag} Flow Switch remains reachable from the Shorts More menu`);
   await page.locator('header [aria-label="More Fresh Shorts options"]').click();
   check(await page.locator("header .fresh-flow-header-more-list.open").count() === 0, `${tag} header menu closes again`);
   check(await page.locator("nav.fresh-flow-bottom-nav").isVisible(), `${tag} bottom navigation visible on Shorts when idle`);
