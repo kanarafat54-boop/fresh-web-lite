@@ -169,6 +169,7 @@ export default function FreshFlowShortsStream({
   const [whyShortId, setWhyShortId] = useState<string | null>(null);
   const [predictionShortId, setPredictionShortId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [watchHistoryEnabled, setWatchHistoryEnabled] = useState(true);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [provenanceShortId, setProvenanceShortId] = useState<string | null>(null);
@@ -190,6 +191,19 @@ export default function FreshFlowShortsStream({
   useEffect(() => {
     if (quiet.reason) document.querySelectorAll("video").forEach((video) => video.pause());
   }, [quiet.reason]);
+  async function changeWatchHistory(enabled: boolean) {
+    if (!user || isGuest) return;
+    const next = { ...prefsRef.current, watchHistoryEnabled: enabled };
+    try {
+      await saveShortPrefs(user.id, next);
+      prefsRef.current = next;
+      setWatchHistoryEnabled(enabled);
+      pushNotification({ title: enabled ? "Watch History on" : "Watch History paused", message: enabled ? "New watched Shorts can appear in your history and inform recommendations." : "New watch milestones will not be added to your history or taste profile. Existing history is kept.", type: "success" });
+    } catch {
+      pushNotification({ title: "Watch History setting not saved", message: "Fresh could not save this preference. Try again.", type: "error" });
+    }
+  }
+
   async function changeCommentsMode(shortId: string, mode: AudienceChoice) {
     const result = await setShortCommentsMode(shortId, mode);
     pushNotification({
@@ -286,10 +300,11 @@ export default function FreshFlowShortsStream({
       const result = await loadFreshFlowShorts(user?.id ?? null, isGuest, options);
       if (user && !isGuest) {
         prefsRef.current = await loadShortPrefs(user.id);
+        setWatchHistoryEnabled(prefsRef.current.watchHistoryEnabled);
         // Blocked accounts are hidden from the feed the same way muted creators are.
         const blockedIds = await loadBlockedIds(user.id);
         mutedCreatorsRef.current = new Set([...prefsRef.current.mutedCreators, ...blockedIds]);
-      } else { prefsRef.current = EMPTY_PREFS; mutedCreatorsRef.current = new Set(); }
+      } else { prefsRef.current = EMPTY_PREFS; setWatchHistoryEnabled(true); mutedCreatorsRef.current = new Set(); }
       let candidates = result.shorts.filter((s) => !mutedCreatorsRef.current.has(s.authorId));
       if (tab === "following") candidates = candidates.filter((s) => s.isFollowingAuthor);
       else if (tab === "friends") {
@@ -628,16 +643,23 @@ export default function FreshFlowShortsStream({
       if (fill) fill.style.width = `${Math.min(100, (positionMs / durationMs) * 100)}%`;
       if (video.paused) return;
       if (!started) { started = true; track("play_start", activeShortId, positionMs, durationMs); }
-      const tick = tracker.update(positionMs, durationMs);
-      for (const milestone of tick.milestones) track(milestone, activeShortId, positionMs, durationMs);
-      if (tick.completedLoop) track("complete", activeShortId, positionMs, durationMs);
+      const historyEnabled = prefsRef.current.watchHistoryEnabled;
+      if (historyEnabled !== historyWasEnabled) {
+        tracker = new WatchTracker();
+        historyWasEnabled = historyEnabled;
+      }
+      if (historyEnabled) {
+        const tick = tracker.update(positionMs, durationMs);
+        for (const milestone of tick.milestones) track(milestone, activeShortId, positionMs, durationMs);
+        if (tick.completedLoop) track("complete", activeShortId, positionMs, durationMs);
+      }
     };
     video.addEventListener("timeupdate", onTime);
     return () => {
       video.removeEventListener("timeupdate", onTime);
       if (!started) return;
       const durationMs = video.duration * 1000;
-      if (tracker.leave(durationMs) === "skip") track("skip", activeShortId, Math.round(video.currentTime * 1000), Number.isFinite(durationMs) ? Math.round(durationMs) : undefined);
+      if (historyWasEnabled && tracker.leave(durationMs) === "skip") track("skip", activeShortId, Math.round(video.currentTime * 1000), Number.isFinite(durationMs) ? Math.round(durationMs) : undefined);
     };
   }, [activeShortId]);
 
@@ -1052,7 +1074,7 @@ export default function FreshFlowShortsStream({
           />
         </div>
       ) : null}
-      {historyOpen && user && !isGuest ? <ShortsHistorySheet userId={user.id} onClose={() => setHistoryOpen(false)} /> : null}
+      {historyOpen && user && !isGuest ? <ShortsHistorySheet userId={user.id} historyEnabled={watchHistoryEnabled} onHistoryEnabledChange={changeWatchHistory} onClose={() => setHistoryOpen(false)} /> : null}
       {provenanceShortId && shorts.find((item) => item.id === provenanceShortId) ? (() => {
         const target = shorts.find((item) => item.id === provenanceShortId)!;
         return <ShortsProvenanceSheet shortId={target.id} authorId={target.authorId} authorName={target.authorUsername ? `@${target.authorUsername}` : target.authorName} onClose={() => setProvenanceShortId(null)} />;
