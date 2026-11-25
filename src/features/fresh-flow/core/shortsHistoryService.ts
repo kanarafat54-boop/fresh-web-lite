@@ -41,7 +41,7 @@ export async function removeFromHistory(userId: string, mediaId: string): Promis
   return !error;
 }
 
-/** Deletes all of the viewer's own Shorts events. Returns false on failure. */
+/** Deletes only the viewer's watch milestones, preserving likes, comments and other Short activity. */
 export async function clearWatchHistory(userId: string): Promise<boolean> {
   const { error } = await supabase.from("fresh_flow_events").delete().eq("actor_id", userId).eq("world", "short").in("event_type", WATCH_EVENT_TYPES);
   return !error;
