@@ -14,7 +14,7 @@ export async function loadCreatorPlaylists(authorId: string): Promise<FreshShort
     .from("fresh_short_collections")
     .select("id,title,description,visibility,created_at,fresh_short_collection_items(short_id,position)")
     .eq("user_id", authorId)
-    .eq("kind", "playlist")
+    .in("kind", ["playlist", "collection"])
     .eq("visibility", "public")
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -35,7 +35,7 @@ export async function loadMyShortPlaylists(userId: string): Promise<FreshShortPl
     .from("fresh_short_collections")
     .select("id,title,description,visibility,created_at,fresh_short_collection_items(short_id,position)")
     .eq("user_id", userId)
-    .eq("kind", "playlist")
+    .in("kind", ["playlist", "collection"])
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((row: any) => ({
@@ -61,6 +61,51 @@ export async function createShortPlaylist(userId: string, title: string, descrip
     .single();
   if (error) throw error;
   return data.id;
+}
+
+export async function loadMyShortCollections(userId: string): Promise<FreshShortPlaylist[]> {
+  const { data, error } = await supabase
+    .from("fresh_short_collections")
+    .select("id,title,description,visibility,created_at,fresh_short_collection_items(short_id,position)")
+    .eq("user_id", userId)
+    .eq("kind", "collection")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description ?? null,
+    visibility: row.visibility,
+    createdAt: row.created_at,
+    shortIds: (row.fresh_short_collection_items ?? [])
+      .sort((a: any, b: any) => a.position - b.position)
+      .map((item: any) => item.short_id),
+  }));
+}
+
+export async function createShortCollection(
+  userId: string,
+  title: string,
+  description: string,
+  visibility: "private" | "public",
+): Promise<string> {
+  const cleanTitle = title.trim();
+  if (!cleanTitle || cleanTitle.length > 80) throw new Error("Collection title must be between 1 and 80 characters.");
+  if (description.length > 500) throw new Error("Description must be 500 characters or fewer.");
+  const { data, error } = await supabase
+    .from("fresh_short_collections")
+    .insert({ user_id: userId, kind: "collection", title: cleanTitle, description: description.trim() || null, visibility })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id;
+}
+
+export async function addShortToCollection(collectionId: string, shortId: string, position: number): Promise<void> {
+  const { error } = await supabase
+    .from("fresh_short_collection_items")
+    .upsert({ collection_id: collectionId, short_id: shortId, position }, { onConflict: "collection_id,short_id" });
+  if (error) throw error;
 }
 
 export async function addShortToPlaylist(playlistId: string, shortId: string, position: number): Promise<void> {
