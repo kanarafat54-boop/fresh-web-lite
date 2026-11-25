@@ -1291,12 +1291,14 @@ export default function FreshFlowShortsStream({
                     </button>
                     {user && !isGuest ? <p className="fresh-flow-advanced-heading">Your library and privacy</p> : null}
                     {user && !isGuest ? (
-                      <button type="button" onClick={() => { setAdvancedOpen(false); setSavedOpen(true); }} title="Shorts you saved">
-                        <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Saved Shorts
-                      </button>
-                      <button type="button" onClick={() => { setAdvancedOpen(false); setCollectionShortId(short.id); }} title="Add this Short to one of your public or private collections">
-                        <span className="fresh-flow-menu-icon"><ShortsIcons.RailSaveIcon size={18} /></span> Add to collection
-                      </button>
+                      <>
+                        <button type="button" onClick={() => { setAdvancedOpen(false); setSavedOpen(true); }} title="Shorts you saved">
+                          <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Saved Shorts
+                        </button>
+                        <button type="button" onClick={() => { setAdvancedOpen(false); setCollectionShortId(short.id); }} title="Add this Short to one of your public or private collections">
+                          <span className="fresh-flow-menu-icon"><ShortsIcons.RailSaveIcon size={18} /></span> Add to collection
+                        </button>
+                      </>
                     ) : null}
                     {user && !isGuest ? (
                       <button type="button" onClick={() => { setAdvancedOpen(false); setHistoryOpen(true); }} title="Shorts you watched, with remove and clear controls">
