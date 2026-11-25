@@ -5,6 +5,8 @@ const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), "
 const service = read("src/features/fresh-flow/core/shortsPlaylists.ts");
 const profile = read("src/features/fresh-flow/components/ShortsCreatorProfile.tsx");
 const comments = read("src/features/comments/components/CommentPanel.tsx");
+const collections = read("src/features/fresh-flow/components/ShortsCollectionsSheet.tsx");
+const stream = read("src/features/fresh-flow/components/FreshFlowShortsStream.tsx");
 const migration = read("supabase/migrations/20261102120000_fresh_short_collections_and_comment_pin.sql");
 const hardening = read("supabase/migrations/20261102140000_harden_fresh_short_comment_pinning.sql");
 
@@ -14,6 +16,11 @@ for (const token of ["loadCreatorPlaylists", "loadMyShortPlaylists", "createShor
 for (const token of ["Create a public playlist", "Add to collection or playlist", "loadCreatorPlaylists", "loadMyShortPlaylists"]) {
   assert.ok(profile.includes(token), `creator playlist UI missing ${token}`);
 }
+for (const token of ["Private — only me", "Public — visible on my profile", "createShortCollection", "addShortToCollection", "loadMyShortCollections"]) {
+  assert.ok(collections.includes(token), `personal collections UI missing ${token}`);
+}
+assert.ok(stream.includes("ShortsCollectionsSheet"), "the player More actions opens the personal collections sheet");
+assert.ok(stream.includes("Add to collection"), "the current Short can be added to a collection");
 for (const token of ["pin_short_comment", "Pinned by creator", "togglePinned", "shortAuthorId"]) {
   assert.ok(comments.includes(token), `comment pin UI missing ${token}`);
 }
