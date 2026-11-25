@@ -43,6 +43,8 @@ jobs:
         run: npm run test:fresh-shorts-more-menu
       - name: Shorts discovery layout and Home header ownership
         run: npm run test:fresh-shorts-discovery-layout
+      - name: Shorts public and private collections UI
+        run: npm run test:fresh-shorts-collections
       - name: Creator-controlled download permission and server gate
         run: npm run test:fresh-shorts-download-permission
 
