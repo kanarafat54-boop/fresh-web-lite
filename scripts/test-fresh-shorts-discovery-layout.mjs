@@ -23,6 +23,11 @@ assert.doesNotMatch(fullscreenCss, /\.fresh-flow-stream\[data-discovery\] \.fres
 const comments = read("src/features/comments/components/CommentPanel.tsx");
 assert.match(css, /expanded action list sits beside, not over, the right action rail/);
 assert.match(css, /\.fresh-flow-stream\[data-discovery\] \.fresh-flow-advanced \{[\s\S]*?right: 68px/);
+assert.match(fullscreenCss, /\.fresh-flow-shorts-fullscreen \.fresh-flow-stream\[data-discovery\] \.fresh-flow-advanced\s*\{[^}]*right:\s*64px[^}]*width:\s*min\(224px, calc\(100vw - 84px\)\)/s);
+assert.match(fullscreenCss, /\.fresh-flow-shorts-fullscreen \.fresh-flow-advanced > button\s*\{[^}]*min-height:\s*40px/s);
+assert.match(stream, /aria-label="More actions" title="More actions"[^>]*aria-expanded/);
+assert.match(stream, /className="fresh-flow-more-arrow" aria-hidden="true">‹<\/span>/);
+
 assert.match(comments, /useState\(targetType === "short" \? 66 : SHEET_DEFAULT\)/);
 assert.match(comments, /useRef\(targetType === "short" \? 66 : SHEET_DEFAULT\)/);
 console.log("Fresh Shorts discovery, side panel and compact comments sheet: PASS");
