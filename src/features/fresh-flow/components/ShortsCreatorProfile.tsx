@@ -150,7 +150,7 @@ export default function ShortsCreatorProfile({ authorId, onClose, onOpenShort, o
           )}
           <nav className="shorts-profile-tabs" aria-label="Creator sections">
             {(["shorts", "reposts", "playlists", "about"] as Tab[]).map((id) => (
-              <button key={id} type="button" className={tab === id ? "active" : ""} aria-pressed={tab === id} onClick={() => { setTab(id); setPlaylistNotice(null); }}>{id === "shorts" ? "Shorts" : id === "reposts" ? "Reposts" : id === "playlists" ? "Playlists" : "About"}</button>
+              <button key={id} type="button" className={tab === id ? "active" : ""} aria-pressed={tab === id} onClick={() => { setTab(id); setPlaylistNotice(null); }}>{id === "shorts" ? "Shorts" : id === "reposts" ? "Reposts" : id === "playlists" ? "Collections" : "About"}</button>
             ))}
           </nav>
           {tab === "shorts" && (data.shorts.length === 0 ? <p className="shorts-profile-note">No Shorts yet.</p> : (
@@ -163,8 +163,8 @@ export default function ShortsCreatorProfile({ authorId, onClose, onOpenShort, o
                   </button>
                   {isSelf && playlists.length > 0 && (
                     <div className="shorts-profile-add-row">
-                      <select aria-label="Choose playlist" value={addToPlaylist[short.id] ?? ""} onChange={(event) => setAddToPlaylist((current) => ({ ...current, [short.id]: event.target.value }))}>
-                        <option value="">Add to playlist…</option>
+                      <select aria-label="Choose collection or playlist" value={addToPlaylist[short.id] ?? ""} onChange={(event) => setAddToPlaylist((current) => ({ ...current, [short.id]: event.target.value }))}>
+                        <option value="">Add to collection or playlist…</option>
                         {playlists.map((playlist) => <option key={playlist.id} value={playlist.id}>{playlist.title}</option>)}
                       </select>
                       <button type="button" onClick={() => void addShort(short.id)} disabled={!addToPlaylist[short.id]}>Add</button>
@@ -192,17 +192,17 @@ export default function ShortsCreatorProfile({ authorId, onClose, onOpenShort, o
             )
           )}
           {tab === "playlists" && (
-            <section className="shorts-profile-playlists" aria-label="Creator playlists">
+            <section className="shorts-profile-playlists" aria-label="Creator collections and playlists">
               {isSelf && (
                 <form className="shorts-profile-playlist-form" onSubmit={(event) => { event.preventDefault(); void createPlaylist(); }}>
-                  <h3>Create a playlist</h3>
+                  <h3>Create a public playlist</h3>
                   <input value={playlistTitle} onChange={(event) => setPlaylistTitle(event.target.value)} placeholder="Playlist name" maxLength={80} required aria-label="Playlist name" />
                   <textarea value={playlistDescription} onChange={(event) => setPlaylistDescription(event.target.value)} placeholder="Description (optional)" maxLength={500} rows={2} aria-label="Playlist description" />
                   <button type="submit" disabled={playlistBusy || !playlistTitle.trim()}>{playlistBusy ? "Creating…" : "Create public playlist"}</button>
                 </form>
               )}
               {playlistNotice && <p className="shorts-profile-note" role="status">{playlistNotice}</p>}
-              {!playlists.length && <p className="shorts-profile-note">{isSelf ? "Create your first playlist, then add Shorts from the Shorts tab." : "This creator hasn't published any playlists yet."}</p>}
+              {!playlists.length && <p className="shorts-profile-note">{isSelf ? "Create a collection from a Short, or create a public playlist here." : "This creator hasn't published any collections or playlists yet."}</p>}
               {playlists.map((playlist) => (
                 <section className="shorts-profile-playlist" key={playlist.id}>
                   <header><div><h3>{playlist.title}</h3>{playlist.description && <p>{playlist.description}</p>}</div><span>{(playlistShorts[playlist.id] ?? []).length} Shorts</span></header>
