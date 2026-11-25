@@ -23,18 +23,30 @@ export function mergeReposts(reposts: RepostRow[], shorts: ShortRow[]): CreatorR
     });
 }
 
+type RefTable = "short_reposts" | "short_likes";
+
 /**
- * Shorts this creator has reposted. Reposts are publicly readable (RLS "Reposts viewable by everyone"), and the
- * original authors are filtered the same way as search, so a viewer never sees content from someone they blocked
- * or who blocked them. Throws on a read error so the tab can show a real failure instead of an empty list.
+ * Both tables hold (short_id, user_id, created_at), so one reader serves the reposts and likes lists. The original
+ * authors are filtered the same way as search, so a viewer never sees content from someone they blocked or who
+ * blocked them. Throws on a read error so the caller can show a real failure instead of an empty list.
  */
-export async function loadCreatorReposts(creatorId: string, limit = 40): Promise<CreatorRepost[]> {
-  const { data: repostRows, error } = await supabase.from("short_reposts").select("short_id, created_at").eq("user_id", creatorId).order("created_at", { ascending: false }).limit(limit);
+async function loadShortsFromRefTable(table: RefTable, userId: string, limit: number): Promise<CreatorRepost[]> {
+  const { data: refRows, error } = await supabase.from(table).select("short_id, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(limit);
   if (error) throw new Error(error.message);
-  const reposts = (repostRows ?? []) as RepostRow[];
-  if (reposts.length === 0) return [];
-  const { data: shortRows, error: shortError } = await supabase.from("shorts").select("id, author_id, caption, video_url, view_count").in("id", reposts.map((row) => row.short_id));
+  const refs = (refRows ?? []) as RepostRow[];
+  if (refs.length === 0) return [];
+  const { data: shortRows, error: shortError } = await supabase.from("shorts").select("id, author_id, caption, video_url, view_count").in("id", refs.map((row) => row.short_id));
   if (shortError) throw new Error(shortError.message);
   const visible = await keepVisibleAuthors((shortRows ?? []) as ShortRow[], (row) => String(row.author_id));
-  return mergeReposts(reposts, visible);
+  return mergeReposts(refs, visible);
+}
+
+/** Shorts this creator has reposted. Reposts are publicly readable (RLS "Reposts viewable by everyone"). */
+export function loadCreatorReposts(creatorId: string, limit = 40): Promise<CreatorRepost[]> {
+  return loadShortsFromRefTable("short_reposts", creatorId, limit);
+}
+
+/** Shorts the signed-in viewer has liked. Callers pass the viewer's own id; this is never used for other people's likes. */
+export function loadLikedShorts(viewerId: string, limit = 40): Promise<CreatorRepost[]> {
+  return loadShortsFromRefTable("short_likes", viewerId, limit);
 }

@@ -267,6 +267,9 @@
 .fresh-flow-advanced > button:disabled { opacity: 0.5; cursor: default; }
 .fresh-flow-advanced > button:active { background: rgba(109, 74, 255, 0.28); }
 .fresh-flow-advanced .fresh-flow-menu-icon { display: inline-grid; place-items: center; color: #9b82ff; }
+/* Section headings in the More menu. They are labels, not controls; the rows stay direct children so the button styles above still apply. */
+.fresh-flow-advanced-heading { margin: 10px 4px 0; padding: 0; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #a5a1ff; }
+.fresh-flow-advanced-heading:first-child { margin-top: 0; }
 
 /* Like button: always full white (pink once liked), never dimmed, even if a default button style applies. */
 .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions .short-like-btn,
