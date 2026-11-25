@@ -31,7 +31,7 @@ export function shortDownloadFilename(shortId: string): string {
  * Verifies the Fresh ID session and the creator's persisted allow_download flag
  * before issuing a short-lived attachment URL. The existing post-videos bucket
  * is public for backwards-compatible playback, so this gates Fresh's official
- * download action; it is not DRM and cannot stop retrieval of a public media URL.
+ * download action; it is not DRM and cannot stop a viewer from saving a publicly accessible media URL.
  */
 type DownloadEnv = Record<string, string | undefined>;
 
