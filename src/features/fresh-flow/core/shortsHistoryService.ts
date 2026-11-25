@@ -5,6 +5,7 @@ export type HistoryItem = HistoryEntry & { caption: string | null; creator: stri
 
 const EVENT_LIMIT = 600;
 const ITEM_LIMIT = 100;
+const WATCH_EVENT_TYPES = ["play_25", "play_50", "play_75", "complete"] as const;
 
 /** The viewer's own watched Shorts, newest first. Throws on a read error so the screen can say so. */
 export async function loadWatchHistory(userId: string): Promise<HistoryItem[]> {
@@ -13,7 +14,7 @@ export async function loadWatchHistory(userId: string): Promise<HistoryItem[]> {
     .select("media_id, event_type, created_at")
     .eq("actor_id", userId)
     .eq("world", "short")
-    .in("event_type", ["play_25", "play_50", "play_75", "complete"])
+    .in("event_type", WATCH_EVENT_TYPES)
     .order("created_at", { ascending: false })
     .limit(EVENT_LIMIT);
   if (error) throw new Error(error.message);
@@ -36,12 +37,12 @@ export async function loadWatchHistory(userId: string): Promise<HistoryItem[]> {
 
 /** Deletes the viewer's own watch events for one Short. Returns false on failure. */
 export async function removeFromHistory(userId: string, mediaId: string): Promise<boolean> {
-  const { error } = await supabase.from("fresh_flow_events").delete().eq("actor_id", userId).eq("world", "short").eq("media_id", mediaId);
+  const { error } = await supabase.from("fresh_flow_events").delete().eq("actor_id", userId).eq("world", "short").eq("media_id", mediaId).in("event_type", WATCH_EVENT_TYPES);
   return !error;
 }
 
 /** Deletes all of the viewer's own Shorts events. Returns false on failure. */
 export async function clearWatchHistory(userId: string): Promise<boolean> {
-  const { error } = await supabase.from("fresh_flow_events").delete().eq("actor_id", userId).eq("world", "short");
+  const { error } = await supabase.from("fresh_flow_events").delete().eq("actor_id", userId).eq("world", "short").in("event_type", WATCH_EVENT_TYPES);
   return !error;
 }
