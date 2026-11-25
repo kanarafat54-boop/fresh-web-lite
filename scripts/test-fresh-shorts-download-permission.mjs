@@ -9,7 +9,8 @@ const loader = read("src/features/fresh-flow/core/loadFreshFlowShorts.ts");
 const type = read("src/features/shorts/types/short.ts");
 const service = read("src/features/fresh-flow/core/shortsDownloadService.ts");
 const stream = read("src/features/fresh-flow/components/FreshFlowShortsStream.tsx");
-const api = read("api/shorts/download.ts");
+const api = read("api/ai/ask.ts");
+const handler = read("src/server/shortDownload.ts");
 
 const supabaseUrl = "https://project.supabase.co";
 const creator = "11111111-1111-4111-8111-111111111111";
@@ -38,8 +39,9 @@ assert.match(stream, /short\.allowDownload \? \(/);
 assert.match(stream, /Allow downloads: \{short\.allowDownload \? "On" : "Off"\}/);
 assert.match(api, /authClient\.auth\.getUser\(token\)/);
 assert.match(api, /short\.allow_download !== true/);
-assert.match(api, /extractShortVideoObjectPath/);
+assert.match(handler, /extractShortVideoObjectPath/);
 assert.match(api, /createSignedUrl\(objectPath, 60, \{ download:/);
-assert.match(api, /cannot stop a viewer from saving a publicly accessible media URL/);
+assert.match(handler, /cannot stop a viewer from saving a publicly accessible media URL/);
+assert.match(api, /__fresh_short_download/);
 
 console.log("fresh-shorts-download-permission: ok");
