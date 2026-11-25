@@ -49,7 +49,7 @@ const stream = fs.readFileSync(new URL("../src/features/fresh-flow/components/Fr
 const sheet = fs.readFileSync(new URL("../src/features/fresh-flow/components/ShortsHistorySheet.tsx", import.meta.url), "utf8");
 assert.match(prefsLogic, /watchHistoryEnabled: boolean/);
 assert.match(prefsLogic, /watchHistoryEnabled: true/);
-assert.match(prefsService, /watch_history_enabled: settings\.watch_history_enabled !== false/);
+assert.match(prefsService, /watchHistoryEnabled: settings\.watch_history_enabled !== false/);
 assert.match(prefsService, /watch_history_enabled: prefs\.watchHistoryEnabled !== false/);
 assert.match(stream, /if \(historyEnabled\) \{[\s\S]*?tracker\.update/);
 assert.match(stream, /watchHistoryEnabled: enabled/);
