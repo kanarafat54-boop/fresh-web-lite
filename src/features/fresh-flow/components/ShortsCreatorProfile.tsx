@@ -150,7 +150,7 @@ export default function ShortsCreatorProfile({ authorId, onClose, onOpenShort, o
           )}
           <nav className="shorts-profile-tabs" aria-label="Creator sections">
             {(["shorts", "reposts", "playlists", "about"] as Tab[]).map((id) => (
-              <button key={id} type="button" className={tab === id ? "active" : ""} aria-pressed={tab === id} onClick={() => { setTab(id); setPlaylistNotice(null); }}>{id === "shorts" ? "Shorts" : id === "reposts" ? "Reposts" : id === "playlists" ? "Collections" : "About"}</button>
+              <button key={id} type="button" className={tab === id ? "active" : ""} aria-pressed={tab === id} onClick={() => { setTab(id); setPlaylistNotice(null); }}>{id === "shorts" ? "Shorts" : id === "reposts" ? "Reposts" : id === "playlists" ? "Playlists" : "About"}</button>
             ))}
           </nav>
           {tab === "shorts" && (data.shorts.length === 0 ? <p className="shorts-profile-note">No Shorts yet.</p> : (
