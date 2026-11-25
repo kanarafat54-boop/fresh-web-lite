@@ -88,6 +88,9 @@ const SUB_TABS: Array<{ id: SubTab; label: string; icon: ReactNode }> = [
   { id: "relax", label: "Relax", icon: <ShortsIcons.RelaxIcon size={16} /> },
 ];
 
+const PRIMARY_SUB_TABS = SUB_TABS.filter((tab) => ["more", "learn", "relax", "for-you"].includes(tab.id));
+const SECONDARY_SUB_TABS = SUB_TABS.filter((tab) => ["trending", "friends", "following"].includes(tab.id));
+
 const ADVANCED_ACTIONS: Array<{ id: AdvancedAction; label: string; icon: ReactNode; description: string }> = [
   { id: "quote", label: "Quote", icon: <ShortsIcons.QuoteIcon size={18} />, description: "Create a quoted response to this Short." },
   { id: "remix", label: "Remix", icon: <ShortsIcons.RemixIcon size={18} />, description: "Open Creator Studio to remix this Short." },
@@ -984,8 +987,8 @@ export default function FreshFlowShortsStream({
 
   return (
     <div className="fresh-flow-stream" data-discovery={subTab}>
-      <header className="fresh-flow-tabs" role="tablist" aria-label="Fresh Short discovery">
-        {SUB_TABS.map((tab) => (
+      <header className="fresh-flow-tabs fresh-flow-tabs-primary" role="tablist" aria-label="Fresh Shorts primary discovery">
+        {PRIMARY_SUB_TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
@@ -1002,6 +1005,20 @@ export default function FreshFlowShortsStream({
           {activeFilterCount(shortFilters) > 0 ? <span className="fresh-flow-filter-badge" aria-hidden="true">{activeFilterCount(shortFilters)}</span> : null}
         </button>
       </header>
+      <nav className="fresh-flow-tabs fresh-flow-tabs-secondary" role="tablist" aria-label="Shorts community discovery">
+        {SECONDARY_SUB_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={subTab === tab.id}
+            className={subTab === tab.id ? "active" : ""}
+            onClick={() => setSubTab(tab.id)}
+          >
+            <span aria-hidden>{tab.icon}</span> {tab.label}
+          </button>
+        ))}
+      </nav>
       {!online && shorts.length > 0 ? <div className="fresh-shorts-offline-banner" role="status">You are offline. Showing Shorts already loaded.</div> : null}
       {blockSheet && user && !isGuest ? (
         <ShortsBlockedSheet
