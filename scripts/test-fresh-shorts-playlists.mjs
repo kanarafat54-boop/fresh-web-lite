@@ -27,6 +27,9 @@ for (const token of ["pin_short_comment", "Pinned by creator", "togglePinned", "
 assert.match(migration, /fresh_short_collections/);
 assert.match(migration, /fresh_short_collection_items/);
 assert.match(migration, /enable row level security/i);
+assert.match(migration, /fresh_short_collections_read[\\s\\S]*?visibility = 'public' or \\(select auth\\.uid\\(\\)\\) = user_id/i, "collection rows are public only when visibility is public; otherwise owner-only");
+assert.match(migration, /fresh_short_collection_items_read[\\s\\S]*?c\\.visibility = 'public' or c\\.user_id = \\(select auth\\.uid\\(\\)\\)/i, "private collection items inherit collection visibility");
+assert.match(migration, /fresh_short_collection_items_write[\\s\\S]*?c\\.user_id = \\(select auth\\.uid\\(\\)\\)/i, "only the collection owner can write its items");
 assert.match(migration, /Only the creator of this Short can pin comments/);
 assert.match(hardening, /short_comments_one_pin_per_short_idx/);
 assert.match(hardening, /for update/i);
