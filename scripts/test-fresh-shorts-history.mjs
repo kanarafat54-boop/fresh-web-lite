@@ -41,4 +41,19 @@ const svc = fs.readFileSync(new URL("../src/features/fresh-flow/core/shortsHisto
 assert.ok((svc.match(/\.eq\("actor_id", userId\)/g) ?? []).length >= 3, "every query is scoped to the viewer");
 assert.ok(!/\.delete\(\)(?![^;]*actor_id)/.test(svc), "no unscoped delete");
 assert.ok(svc.includes("return !error"), "failures are reported, not hidden");
+
+// Watch History is a durable, owner-scoped preference. Pausing keeps old entries but blocks new milestones.
+const prefsLogic = fs.readFileSync(new URL("../src/features/fresh-flow/core/shortsPrefsLogic.ts", import.meta.url), "utf8");
+const prefsService = fs.readFileSync(new URL("../src/features/fresh-flow/core/shortsPreferences.ts", import.meta.url), "utf8");
+const stream = fs.readFileSync(new URL("../src/features/fresh-flow/components/FreshFlowShortsStream.tsx", import.meta.url), "utf8");
+const sheet = fs.readFileSync(new URL("../src/features/fresh-flow/components/ShortsHistorySheet.tsx", import.meta.url), "utf8");
+assert.match(prefsLogic, /watchHistoryEnabled: boolean/);
+assert.match(prefsLogic, /watchHistoryEnabled: true/);
+assert.match(prefsService, /watch_history_enabled: settings\.watch_history_enabled !== false/);
+assert.match(prefsService, /watch_history_enabled: prefs\.watchHistoryEnabled !== false/);
+assert.match(stream, /if \(historyEnabled\) \{[\s\S]*?tracker\.update/);
+assert.match(stream, /watchHistoryEnabled: enabled/);
+assert.match(sheet, /role="switch" aria-checked=\{historyEnabled\}/);
+assert.match(sheet, /onHistoryEnabledChange\(!historyEnabled\)/);
+
 console.log("fresh-shorts-history: ok");
