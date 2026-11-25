@@ -43,4 +43,23 @@ assert.match(profile, /Loading reposts/);
 assert.match(profile, /role="alert">\{repostError\}/);
 assert.match(profile, /No reposts to show/);
 assert.match(profile, /loadCreatorReposts\(authorId\)/);
+// The four profile tabs must fit on one row (a fixed 3-column grid would wrap the fourth tab).
+const profileCss = read("src/features/fresh-flow/components/ShortsCreatorProfile.css");
+const tabsRule = profileCss.match(/\.shorts-profile-tabs\{[^}]*\}/)?.[0] ?? "";
+assert.ok(tabsRule && !/repeat\(3,/.test(tabsRule), "profile tab bar must not be fixed at three columns");
+
+// My Collections: the Saved sheet gains Liked and Reposted tabs and keeps the Saved behaviour intact.
+const sheet = read("src/features/fresh-flow/components/ShortsSavedSheet.tsx");
+assert.match(sheet, /saved: "Saved", liked: "Liked", reposted: "Reposted"/, "Saved, Liked and Reposted tabs");
+assert.match(sheet, /role="tablist"/);
+assert.match(sheet, /role="tab"[^>]*aria-selected=\{tab === id\}/, "tabs expose their selected state");
+assert.match(sheet, /loadLikedShorts\(userId\)/, "Liked uses the viewer's own id");
+assert.match(sheet, /loadCreatorReposts\(userId\)/, "Reposted uses the viewer's own id");
+assert.match(sheet, /loadSavedShorts\(userId\)/, "Saved list is still loaded");
+assert.match(sheet, /removeShortInteraction\(userId, shortId, "save"\)/, "unsave is preserved");
+assert.match(sheet, /Nothing saved yet/, "saved empty state is preserved");
+assert.match(sheet, /could not load your \$\{TAB_LABELS\[tab\]\.toLowerCase\(\)\} Shorts/, "Liked/Reposted show a real error");
+assert.match(loader, /export function loadLikedShorts\(viewerId: string/, "likes loader exists");
+assert.match(loader, /"short_reposts" \| "short_likes"/, "likes and reposts share one reader");
+assert.match(read("src/features/fresh-flow/components/shortsContextPanel.css"), /\.shorts-sheet-tabs button\[aria-selected="true"\]/, "selected sheet tab is styled");
 console.log("Creator profile Reposts tab: PASS");

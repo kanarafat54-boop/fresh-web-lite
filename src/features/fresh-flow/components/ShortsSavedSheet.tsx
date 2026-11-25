@@ -4,7 +4,11 @@ import { dayLabel } from "../core/shortsHistory";
 import { filterSaved, type SavedItem } from "../core/shortsSaved";
 import { loadSavedShorts } from "../core/shortsSavedService";
 import { shortWatchPath } from "../core/shortsLinks";
+import { loadCreatorReposts, loadLikedShorts, type CreatorRepost } from "../core/creatorReposts";
 import "./shortsContextPanel.css";
+
+type ListTab = "saved" | "liked" | "reposted";
+const TAB_LABELS: Record<ListTab, string> = { saved: "Saved", liked: "Liked", reposted: "Reposted" };
 
 type Props = { userId: string; onClose: () => void; onUnsaved: (shortId: string) => void };
 
@@ -14,6 +18,9 @@ export default function ShortsSavedSheet({ userId, onClose, onUnsaved }: Props) 
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [tab, setTab] = useState<ListTab>("saved");
+  const [others, setOthers] = useState<CreatorRepost[] | null>(null);
+  const [othersError, setOthersError] = useState<string | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
@@ -28,6 +35,16 @@ export default function ShortsSavedSheet({ userId, onClose, onUnsaved }: Props) 
     loadSavedShorts(userId).then((rows) => { if (!cancelled) setItems(rows); }).catch(() => { if (!cancelled) setError("Fresh could not load your saved Shorts. Check your connection and try again."); });
     return () => { cancelled = true; };
   }, [userId]);
+
+  useEffect(() => {
+    if (tab === "saved") return undefined;
+    let cancelled = false;
+    setOthers(null); setOthersError(null);
+    (tab === "liked" ? loadLikedShorts(userId) : loadCreatorReposts(userId))
+      .then((rows) => { if (!cancelled) setOthers(rows); })
+      .catch(() => { if (!cancelled) setOthersError(`Fresh could not load your ${TAB_LABELS[tab].toLowerCase()} Shorts. Check your connection and try again.`); });
+    return () => { cancelled = true; };
+  }, [tab, userId]);
 
   async function unsave(shortId: string) {
     setNote(null);
@@ -47,6 +64,28 @@ export default function ShortsSavedSheet({ userId, onClose, onUnsaved }: Props) 
           <h3>Saved Shorts</h3>
           <button ref={closeRef} type="button" className="shorts-sheet-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
+        <div role="tablist" aria-label="Your Shorts lists" className="shorts-sheet-tabs">
+          {(Object.keys(TAB_LABELS) as ListTab[]).map((id) => (
+            <button key={id} type="button" role="tab" id={`shorts-list-tab-${id}`} aria-selected={tab === id} aria-controls="shorts-list-panel" onClick={() => setTab(id)}>{TAB_LABELS[id]}</button>
+          ))}
+        </div>
+        <div id="shorts-list-panel" role="tabpanel" aria-labelledby={`shorts-list-tab-${tab}`}>
+        {tab !== "saved" ? (
+          othersError ? <p role="alert">{othersError}</p>
+          : others === null ? <p>Loading…</p>
+          : others.length === 0 ? <p>{tab === "liked" ? "Nothing liked yet. Like a Short and it will appear here." : "Nothing reposted yet. Repost a Short and it will appear here."}</p>
+          : (
+            <ul className="shorts-history-list" aria-label={`${TAB_LABELS[tab]} Shorts`}>
+              {others.map((item) => (
+                <li key={item.id}>
+                  <div className="shorts-history-row">
+                    <a href={shortWatchPath(item.id)} onClick={onClose}><strong>{item.caption.trim() || "Untitled Short"}</strong></a>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )
+        ) : (<>
         {error ? <p role="alert">{error}</p> : null}
         {!error && items === null ? <p>Loading…</p> : null}
         {items && items.length === 0 && !error ? <p>Nothing saved yet. Use Save on a Short and it will appear here.</p> : null}
@@ -78,6 +117,8 @@ export default function ShortsSavedSheet({ userId, onClose, onUnsaved }: Props) 
           </ul>
         ) : null}
         {note ? <p role="status">{note}</p> : null}
+        </>)}
+        </div>
       </div>
     </div>
   );
