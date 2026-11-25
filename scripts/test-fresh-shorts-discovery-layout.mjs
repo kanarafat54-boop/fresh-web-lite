@@ -6,8 +6,8 @@ const stream = read("src/features/fresh-flow/components/FreshFlowShortsStream.ts
 const hub = read("src/features/fresh-flow/FreshFlowHub.tsx");
 const css = read("src/features/fresh-flow/components/FreshFlow.css");
 
-const primary = stream.match(/const PRIMARY_SUB_TABS = SUB_TABS\.filter\(\(tab\) => \[(.*?)\]\.includes\(tab\.id\)\);/)?.[1] ?? "";
-const secondary = stream.match(/const SECONDARY_SUB_TABS = SUB_TABS\.filter\(\(tab\) => \[(.*?)\]\.includes\(tab\.id\)\);/)?.[1] ?? "";
+const primary = stream.match(/const PRIMARY_SUB_TAB_ORDER: SubTab\[\] = \[([^\]]+)\];/)?.[1] ?? "";
+const secondary = stream.match(/const SECONDARY_SUB_TAB_ORDER: SubTab\[\] = \[([^\]]+)\];/)?.[1] ?? "";
 assert.deepEqual([...primary.matchAll(/"([^"]+)"/g)].map((m) => m[1]), ["more", "learn", "relax", "for-you"]);
 assert.deepEqual([...secondary.matchAll(/"([^"]+)"/g)].map((m) => m[1]), ["trending", "friends", "following"]);
 assert.match(stream, /fresh-flow-tabs-primary[\s\S]*?PRIMARY_SUB_TABS\.map/);
