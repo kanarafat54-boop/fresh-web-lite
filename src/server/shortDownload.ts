@@ -27,6 +27,12 @@ export function shortDownloadFilename(shortId: string): string {
   return `fresh-short-${shortId}.mp4`;
 }
 
+/**
+ * Verifies the Fresh ID session and the creator's persisted allow_download flag
+ * before issuing a short-lived attachment URL. The existing post-videos bucket
+ * is public for backwards-compatible playback, so this gates Fresh's official
+ * download action; it is not DRM and cannot stop retrieval of a public media URL.
+ */
 type DownloadEnv = Record<string, string | undefined>;
 
 export async function handleShortDownload(req: Request, env: DownloadEnv = process.env): Promise<Response> {
