@@ -88,8 +88,14 @@ const SUB_TABS: Array<{ id: SubTab; label: string; icon: ReactNode }> = [
   { id: "relax", label: "Relax", icon: <ShortsIcons.RelaxIcon size={16} /> },
 ];
 
-const PRIMARY_SUB_TABS = SUB_TABS.filter((tab) => ["more", "learn", "relax", "for-you"].includes(tab.id));
-const SECONDARY_SUB_TABS = SUB_TABS.filter((tab) => ["trending", "friends", "following"].includes(tab.id));
+const PRIMARY_SUB_TAB_ORDER: SubTab[] = ["more", "learn", "relax", "for-you"];
+const SECONDARY_SUB_TAB_ORDER: SubTab[] = ["trending", "friends", "following"];
+const orderedSubTabs = (ids: SubTab[]) => ids.flatMap((id) => {
+  const tab = SUB_TABS.find((candidate) => candidate.id === id);
+  return tab ? [tab] : [];
+});
+const PRIMARY_SUB_TABS = orderedSubTabs(PRIMARY_SUB_TAB_ORDER);
+const SECONDARY_SUB_TABS = orderedSubTabs(SECONDARY_SUB_TAB_ORDER);
 
 const ADVANCED_ACTIONS: Array<{ id: AdvancedAction; label: string; icon: ReactNode; description: string }> = [
   { id: "quote", label: "Quote", icon: <ShortsIcons.QuoteIcon size={18} />, description: "Create a quoted response to this Short." },
