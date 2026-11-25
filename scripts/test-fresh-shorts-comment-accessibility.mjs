@@ -96,6 +96,9 @@ assert.match(referenceCss, /\.fresh-flow-bottom-nav\s*\{[^}]*z-index:\s*430/s, "
 assert.match(referenceCss, /\.fresh-flow-hub\s+\.fresh-comments\s*\{[^}]*min-height:\s*58dvh/s, "comments panel retains a tall minimum height");
 assert.match(panel, /const SHEET_DEFAULT = 88/ , "comments open at a tall 88 percent viewport height");
 assert.match(panel, /const SHEET_MAX = 94/ , "comments can expand further when dragged");
+assert.match(panel, /targetType === "short" \? 66 : SHEET_DEFAULT/ , "Shorts comments open at two thirds (66 percent) so the Short stays visible");
+assert.match(panel, /keyboardOpen \? SHEET_MAX : sheetHeight/ , "with the keyboard open the sheet fills the visible area so the composer stays usable");
+assert.match(panel, /setKeyboardOpen\(keyboardInset > KEYBOARD_INSET_PX\)/ , "keyboard state follows the visual viewport");
 assert.match(panelCss, /\.sheet-drag-handle[^}]*touch-action:none/, "comments drag handle supports touch resizing");
 assert.match(flowHub, /setVisibility\(!open\)/, "opening comments hides the bottom navigation and closing restores it");
 assert.match(flowHub, /commentsOpenRef\.current \|\| \(target instanceof Element && target\.closest\("\.fresh-comments-backdrop"\)\)/, "comment-list scrolling never overrides modal navigation visibility");
