@@ -24,6 +24,8 @@ export interface Short {
   caption: string;
   soundName: string | null;
   videoUrl: string;
+  /** Creator opt-in for the official Fresh Shorts download action. */
+  allowDownload?: boolean;
   likeCount: number;
   commentCount: number;
   viewCount: number;
