@@ -63,6 +63,8 @@ const QUICK_REACTIONS = ["❤️", "😂", "😮", "😢", "🔥", "👏", "🙌
 const SHEET_MIN = 58;
 const SHEET_DEFAULT = 88;
 const SHEET_MAX = 94;
+/** A visual viewport this much shorter than the window means the on-screen keyboard is open. */
+const KEYBOARD_INSET_PX = 80;
 
 function buildTree(rows: ViewRow[]): ViewRow[] {
   const map = new Map<string, ViewRow>(rows.map((row) => [row.id, { ...row, replies: [] }]));
@@ -146,6 +148,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [sheetHeight, setSheetHeight] = useState(targetType === "short" ? 66 : SHEET_DEFAULT);
   const [recordMode, setRecordMode] = useState<"none" | "audio" | "video">("none");
   const [recording, setRecording] = useState(false);
@@ -242,6 +245,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
       backdrop.style.bottom = `${keyboardInset}px`;
       backdrop.style.boxSizing = "border-box";
       panel.style.setProperty("--fresh-comments-vh", `${visibleHeight / 100}px`);
+      setKeyboardOpen(keyboardInset > KEYBOARD_INSET_PX);
     };
     updateViewport();
     viewport?.addEventListener("resize", updateViewport);
@@ -856,7 +860,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
 
   return (
     <div className="comment-panel-backdrop fresh-comments-backdrop" onClick={onClose}>
-      <div ref={panelRef} className="comment-panel fresh-comments" role="dialog" aria-modal="true" aria-labelledby="fresh-comments-title" tabIndex={-1} style={{ height: `calc(var(--fresh-comments-vh, 1dvh) * ${sheetHeight})`, maxHeight: "calc(var(--fresh-comments-vh, 1dvh) * 100 - env(safe-area-inset-top))" }} onClick={(event) => event.stopPropagation()}>
+      <div ref={panelRef} className="comment-panel fresh-comments" role="dialog" aria-modal="true" aria-labelledby="fresh-comments-title" tabIndex={-1} style={{ height: `calc(var(--fresh-comments-vh, 1dvh) * ${keyboardOpen ? SHEET_MAX : sheetHeight})`, maxHeight: "calc(var(--fresh-comments-vh, 1dvh) * 100 - env(safe-area-inset-top))" }} onClick={(event) => event.stopPropagation()}>
         <div className="sheet-drag-handle" role="presentation" aria-hidden="true" onPointerDown={(event) => { dragY.current = event.clientY; dragH.current = sheetHeight; }} onPointerMove={(event) => { if (event.buttons === 1 && dragY.current !== null) setSheetHeight(Math.min(SHEET_MAX, Math.max(SHEET_MIN, dragH.current + ((dragY.current - event.clientY) / window.innerHeight) * 100))); }} onPointerUp={() => { dragY.current = null; setSheetHeight((height) => height > (SHEET_MIN + SHEET_MAX) / 2 ? SHEET_MAX : SHEET_MIN); }} />
         <div className="comment-panel-header">
           {activeThreadRootId && <button type="button" className="comment-thread-back" onClick={backToAllComments} aria-label="Back to all comments">← All comments</button>}
