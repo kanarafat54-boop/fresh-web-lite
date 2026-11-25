@@ -37,10 +37,10 @@ assert.match(service, /\.update\(\{ allow_download: allowDownload \}\)/);
 assert.match(service, /\/api\/ai\/ask\\?__fresh_short_download=1/);
 assert.match(stream, /short\.allowDownload \? \(/);
 assert.match(stream, /Allow downloads: \{short\.allowDownload \? "On" : "Off"\}/);
-assert.match(api, /authClient\.auth\.getUser\(token\)/);
-assert.match(api, /short\.allow_download !== true/);
+assert.match(handler, /authClient\.auth\.getUser\(token\)/);
+assert.match(handler, /short\.allow_download !== true/);
 assert.match(handler, /extractShortVideoObjectPath/);
-assert.match(api, /createSignedUrl\(objectPath, 60, \{ download:/);
+assert.match(handler, /createSignedUrl\(objectPath, 60, \{ download:/);
 assert.match(handler, /cannot stop a viewer from saving a publicly accessible media URL/);
 assert.match(api, /__fresh_short_download/);
 
