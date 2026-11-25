@@ -20,7 +20,7 @@ assert.equal(extractShortVideoObjectPath(url, supabaseUrl, creator), `${creator}
 assert.equal(extractShortVideoObjectPath(url, supabaseUrl, "33333333-3333-4333-8333-333333333333"), null, "object folder must match the creator");
 assert.equal(extractShortVideoObjectPath(url.replace("project.supabase.co", "attacker.example"), supabaseUrl, creator), null, "reject foreign storage hosts");
 assert.equal(extractShortVideoObjectPath(url.replace("/object/public/post-videos/", "/object/public/other-bucket/"), supabaseUrl, creator), null, "reject other buckets");
-assert.equal(extractShortVideoObjectPath(url.replace("short-", "%2E%2E/short-"), supabaseUrl, creator), null, "reject traversal segments");
+assert.equal(extractShortVideoObjectPath(`${supabaseUrl}/storage/v1/object/public/post-videos/${creator}/%2E%2E/secret.mp4`, supabaseUrl, creator), null, "reject traversal segments");
 assert.equal(shortDownloadFilename(shortId), `fresh-short-${shortId}.mp4`);
 
 assert.match(migration, /allow_download boolean not null default false/);
