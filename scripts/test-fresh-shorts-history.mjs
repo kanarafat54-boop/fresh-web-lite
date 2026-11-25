@@ -41,7 +41,7 @@ const svc = fs.readFileSync(new URL("../src/features/fresh-flow/core/shortsHisto
 assert.ok((svc.match(/\.eq\("actor_id", userId\)/g) ?? []).length >= 3, "every query is scoped to the viewer");
 assert.ok(!/\.delete\(\)(?![^;]*actor_id)/.test(svc), "no unscoped delete");
 assert.ok(svc.includes("return !error"), "failures are reported, not hidden");
-assert.equal((svc.match(/\\.in\\("event_type", WATCH_EVENT_TYPES\\)/g) ?? []).length, 3, "history reads and deletes only watch milestones, preserving likes and other activity");
+assert.equal((svc.match(/\.in\("event_type", WATCH_EVENT_TYPES\)/g) ?? []).length, 3, "history reads and deletes only watch milestones, preserving likes and other activity");
 
 // Watch History is a durable, owner-scoped preference. Pausing keeps old entries but blocks new milestones.
 const prefsLogic = fs.readFileSync(new URL("../src/features/fresh-flow/core/shortsPrefsLogic.ts", import.meta.url), "utf8");
