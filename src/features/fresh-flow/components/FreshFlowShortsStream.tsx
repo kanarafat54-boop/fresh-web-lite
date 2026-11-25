@@ -6,6 +6,7 @@ import ShortsWhySheet from "./ShortsWhySheet";
 import ShortsPredictionSheet from "./ShortsPredictionSheet";
 import ShortsHistorySheet from "./ShortsHistorySheet";
 import ShortsSavedSheet from "./ShortsSavedSheet";
+import ShortsCollectionsSheet from "./ShortsCollectionsSheet";
 import type { WhyInput } from "../core/shortsWhy";
 import { activeCue, parseCaptionFile, pickTrack, readCaptionsOn, writeCaptionsOn, type CaptionCue, type CaptionTrack } from "../core/shortsCaptions";
 import { loadCaptionTracks, saveCreatorCaptions } from "../core/shortCaptionsService";
@@ -182,6 +183,7 @@ export default function FreshFlowShortsStream({
   const [captionWriter, setCaptionWriter] = useState<{ shortId: string; duration: number } | null>(null);
   const [privacy, setPrivacy] = useState<ShortsPrivacySettings>({ ...DEFAULT_PRIVACY });
   const [savedOpen, setSavedOpen] = useState(false);
+  const [collectionShortId, setCollectionShortId] = useState<string | null>(null);
   const [blockSheet, setBlockSheet] = useState<{ target: { id: string; name: string } | null } | null>(null);
   const quiet = useQuietBreak(privacy, Boolean(user && !isGuest));
   useEffect(() => {
@@ -1082,6 +1084,7 @@ export default function FreshFlowShortsStream({
         </div>
       ) : null}
       {historyOpen && user && !isGuest ? <ShortsHistorySheet userId={user.id} historyEnabled={watchHistoryEnabled} onHistoryEnabledChange={changeWatchHistory} onClose={() => setHistoryOpen(false)} /> : null}
+      {collectionShortId && user && !isGuest ? <ShortsCollectionsSheet userId={user.id} shortId={collectionShortId} onClose={() => setCollectionShortId(null)} /> : null}
       {provenanceShortId && shorts.find((item) => item.id === provenanceShortId) ? (() => {
         const target = shorts.find((item) => item.id === provenanceShortId)!;
         return <ShortsProvenanceSheet shortId={target.id} authorId={target.authorId} authorName={target.authorUsername ? `@${target.authorUsername}` : target.authorName} onClose={() => setProvenanceShortId(null)} />;
@@ -1290,6 +1293,9 @@ export default function FreshFlowShortsStream({
                     {user && !isGuest ? (
                       <button type="button" onClick={() => { setAdvancedOpen(false); setSavedOpen(true); }} title="Shorts you saved">
                         <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Saved Shorts
+                      </button>
+                      <button type="button" onClick={() => { setAdvancedOpen(false); setCollectionShortId(short.id); }} title="Add this Short to one of your public or private collections">
+                        <span className="fresh-flow-menu-icon"><ShortsIcons.RailSaveIcon size={18} /></span> Add to collection
                       </button>
                     ) : null}
                     {user && !isGuest ? (
