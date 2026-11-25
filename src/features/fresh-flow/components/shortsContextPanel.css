@@ -64,3 +64,12 @@
 .shorts-sheet .shorts-sheet-tabs button { min-height: 44px; border: 0; background: transparent; color: rgba(255, 255, 255, 0.62); font: inherit; font-weight: 700; cursor: pointer; box-shadow: inset 0 -2px 0 transparent; }
 .shorts-sheet .shorts-sheet-tabs button[aria-selected="true"] { color: #fff; box-shadow: inset 0 -2px 0 #8b5cf6; }
 .shorts-sheet .shorts-sheet-tabs button:focus-visible { outline: 2px solid #a5a1ff; outline-offset: -2px; }
+
+
+.shorts-history-setting { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:10px 0 14px; padding:12px; border:1px solid rgba(255,255,255,.12); border-radius:14px; background:rgba(255,255,255,.045); }
+.shorts-history-setting > div { display:grid; gap:4px; min-width:0; }
+.shorts-history-setting strong { font-size:.9rem; }
+.shorts-history-setting span { color:rgba(255,255,255,.68); font-size:.78rem; line-height:1.35; }
+.shorts-history-setting button[role="switch"] { flex:0 0 auto; min-width:58px; min-height:36px; margin:0; padding:0 12px; border:1px solid rgba(139,92,246,.65); border-radius:999px; background:rgba(99,91,255,.24); color:#fff; text-align:center; font-weight:750; }
+.shorts-history-setting button[role="switch"][aria-checked="false"] { border-color:rgba(255,255,255,.2); background:rgba(255,255,255,.08); }
+.shorts-history-setting button[role="switch"]:disabled { opacity:.6; }
