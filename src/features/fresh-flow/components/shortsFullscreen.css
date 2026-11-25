@@ -116,12 +116,21 @@
   .fresh-flow-shorts-fullscreen .fresh-flow-header-more-list .fresh-flow-unified-profile img,
   .fresh-flow-shorts-fullscreen .fresh-flow-header-more-list .fresh-flow-unified-profile > span { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; }
 
-  /* Tabs: For You / Following, bold white, violet underline on the active one. */
-  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-tabs {
+  /* Keep the two discovery rows distinct. A shared .fresh-flow-tabs rule here
+     previously gave both rows the same top offset and made them overlap on phones. */
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-tabs-primary {
     top: calc(2px + env(safe-area-inset-top));
     right: 84px;
     justify-content: flex-start;
     padding: 0 8px;
+    z-index: 22;
+  }
+  .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-tabs-secondary {
+    top: calc(46px + env(safe-area-inset-top));
+    right: 84px;
+    justify-content: flex-start;
+    padding: 0 8px;
+    z-index: 21;
   }
   .fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-tabs {
     -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
