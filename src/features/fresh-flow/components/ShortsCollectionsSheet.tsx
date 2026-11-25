@@ -89,16 +89,34 @@ export default function ShortsCollectionsSheet({ userId, shortId, onClose }: Pro
         {collections === null && !error ? <p>Loading collections…</p> : null}
         {collections?.length === 0 ? <p>You have no collections yet. Create one above.</p> : null}
         {collections?.length ? (
-          <ul className="shorts-collection-list">
-            {collections.map((collection) => (
-              <li key={collection.id}>
-                <div><strong>{collection.title}</strong><span>{collection.visibility === "private" ? "Private" : "Public"} · {collection.shortIds.length} Shorts</span></div>
-                <button type="button" disabled={busy || collection.shortIds.includes(shortId)} onClick={() => void addToCollection(collection)}>
-                  {collection.shortIds.includes(shortId) ? "Added" : "Add"}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className="shorts-collection-groups">
+            {(["public", "private"] as const).map((group) => {
+              const groupCollections = collections.filter((collection) => collection.visibility === group);
+              if (!groupCollections.length) return null;
+              const isPublic = group === "public";
+              return (
+                <section className="shorts-collection-group" data-visibility={group} key={group} aria-label={isPublic ? "Public collections" : "Private collections"}>
+                  <div className="shorts-collection-group-heading">
+                    <div><strong>{isPublic ? "Public collections" : "Private collections"}</strong><span>{isPublic ? "Visible on your profile" : "Only visible to you"}</span></div>
+                    <span>{groupCollections.length}</span>
+                  </div>
+                  <ul className="shorts-collection-list">
+                    {groupCollections.map((collection) => (
+                      <li key={collection.id} data-visibility={collection.visibility}>
+                        <div>
+                          <strong>{collection.title}</strong>
+                          <span>{collection.shortIds.length} {collection.shortIds.length === 1 ? "Short" : "Shorts"}</span>
+                        </div>
+                        <button type="button" disabled={busy || collection.shortIds.includes(shortId)} onClick={() => void addToCollection(collection)}>
+                          {collection.shortIds.includes(shortId) ? "Added" : "Add"}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              );
+            })}
+          </div>
         ) : null}
         {notice ? <p role="status">{notice}</p> : null}
       </section>
