@@ -64,6 +64,7 @@ import { loadPrivacy, setShortCommentsMode } from "../core/shortsPrivacyService"
 import { useQuietBreak } from "../core/useQuietBreak";
 import { loadBlockedIds } from "../core/userBlocksService";
 import { addressForPlayingShort } from "../core/shortsLinks";
+import { requestShortDownload, setShortDownloadPermission } from "../core/shortsDownloadService";
 import "./FreshFlow.css";
 
 type SubTab = ShortDiscoveryId;
@@ -209,6 +210,46 @@ export default function FreshFlowShortsStream({
       pushNotification({ title: enabled ? "Watch History on" : "Watch History paused", message: enabled ? "New watched Shorts can appear in your history and inform recommendations." : "New watch milestones will not be added to your history or taste profile. Existing history is kept.", type: "success" });
     } catch {
       pushNotification({ title: "Watch History setting not saved", message: "Fresh could not save this preference. Try again.", type: "error" });
+    }
+  }
+
+  async function changeShortDownloadPermission(short: Short) {
+    if (!user || isGuest || short.authorId !== user.id) return;
+    const next = !short.allowDownload;
+    try {
+      const saved = await setShortDownloadPermission(user.id, short.id, next);
+      setShorts((current) => current.map((item) => item.id === short.id ? { ...item, allowDownload: saved } : item));
+      pushNotification({
+        title: saved ? "Downloads allowed" : "Downloads disabled",
+        message: saved ? "Viewers can now use Fresh's official download action for this Short." : "Fresh's official download action is now hidden for this Short.",
+        type: "success",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      pushNotification({
+        title: "Download permission not saved",
+        message: /allow_download|schema cache|column/i.test(message)
+          ? "This setting is waiting for the Fresh Shorts download-permission database migration."
+          : message || "Fresh could not save this setting. Try again.",
+        type: "error",
+      });
+    }
+  }
+
+  async function downloadShort(short: Short) {
+    if (!short.allowDownload) {
+      pushNotification({ title: "Download unavailable", message: "The creator has not allowed downloads for this Short.", type: "error" });
+      return;
+    }
+    try {
+      const url = await requestShortDownload(short.id);
+      window.location.assign(url);
+    } catch (error) {
+      pushNotification({
+        title: "Download unavailable",
+        message: error instanceof Error ? error.message : "Fresh could not prepare this download. Try again.",
+        type: "error",
+      });
     }
   }
 
@@ -1224,6 +1265,12 @@ export default function FreshFlowShortsStream({
                     <span><ShortsIcons.RailRepostIcon size={28} /></span>
                     <span>{short.repostCount || "Repost"}</span>
                   </button>
+                  {short.allowDownload ? (
+                    <button type="button" onClick={() => void downloadShort(short)} aria-label="Download Short">
+                      <span aria-hidden="true">⬇</span>
+                      <span>Download</span>
+                    </button>
+                  ) : null}
                   <button type="button" onClick={() => setAdvancedOpen((v) => !v)} aria-label="More" aria-expanded={advancedOpen && index === currentIndex}>
                     <span><ShortsIcons.RailMoreIcon size={28} /></span>
                   </button>
@@ -1327,6 +1374,9 @@ export default function FreshFlowShortsStream({
                         </button>
                         <button type="button" onClick={() => { setAdvancedOpen(false); void changeCommentsMode(short.id, "nobody"); }}>
                           <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Comments here: off
+                        </button>
+                        <button type="button" onClick={() => { setAdvancedOpen(false); void changeShortDownloadPermission(short); }} aria-pressed={Boolean(short.allowDownload)} title="Let viewers use Fresh's official download action for this Short.">
+                          <span className="fresh-flow-menu-icon">⬇</span> Allow downloads: {short.allowDownload ? "On" : "Off"}
                         </button>
                       </>
                     ) : null}
