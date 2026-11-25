@@ -33,7 +33,7 @@ export async function handleShortDownload(req: Request, env: DownloadEnv = proce
   const send = (body: unknown, status = 200) => Response.json(body, { status, headers: { "cache-control": "no-store" } });
   if (req.method !== "POST") return send({ error: "Method not allowed." }, 405);
 
-  const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\\s+/i, "");
+  const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!token) return send({ error: "Authentication required." }, 401);
 
   let body: { shortId?: unknown };
