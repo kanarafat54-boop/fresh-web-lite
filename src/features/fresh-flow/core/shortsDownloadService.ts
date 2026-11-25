@@ -23,7 +23,7 @@ export async function requestShortDownload(shortId: string): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error("Sign in to download this Short.");
 
-  const response = await fetch("/api/shorts/download", {
+  const response = await fetch("/api/ai/ask?__fresh_short_download=1", {
     method: "POST",
     headers: {
       authorization: `Bearer ${session.access_token}`,
