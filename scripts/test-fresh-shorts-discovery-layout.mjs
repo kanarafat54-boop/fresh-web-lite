@@ -5,6 +5,7 @@ const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), "
 const stream = read("src/features/fresh-flow/components/FreshFlowShortsStream.tsx");
 const hub = read("src/features/fresh-flow/FreshFlowHub.tsx");
 const css = read("src/features/fresh-flow/components/FreshFlow.css");
+const fullscreenCss = read("src/features/fresh-flow/components/shortsFullscreen.css");
 
 const primary = stream.match(/const PRIMARY_SUB_TAB_ORDER: SubTab\[\] = \[([^\]]+)\];/)?.[1] ?? "";
 const secondary = stream.match(/const SECONDARY_SUB_TAB_ORDER: SubTab\[\] = \[([^\]]+)\];/)?.[1] ?? "";
@@ -16,6 +17,9 @@ assert.match(hub, /isOverview && \([\s\S]*?fresh-shorts-bell[\s\S]*?fresh-shorts
 assert.match(hub, /shortsNotificationsOpen && isOverview/);
 assert.match(css, /\.fresh-flow-tabs-secondary\s*\{/);
 assert.match(css, /\.fresh-flow-tabs-secondary button\s*\{/);
+assert.match(fullscreenCss, /\.fresh-flow-tabs-primary\s*\{[^}]*top:\s*calc\(2px \+ env\(safe-area-inset-top\)\)/s);
+assert.match(fullscreenCss, /\.fresh-flow-tabs-secondary\s*\{[^}]*top:\s*calc\(46px \+ env\(safe-area-inset-top\)\)/s);
+assert.doesNotMatch(fullscreenCss, /\.fresh-flow-stream\[data-discovery\] \.fresh-flow-tabs\s*\{[^}]*top:/s, "fullscreen must not assign one shared top offset to both discovery rows");
 const comments = read("src/features/comments/components/CommentPanel.tsx");
 assert.match(css, /expanded action list sits beside, not over, the right action rail/);
 assert.match(css, /\.fresh-flow-stream\[data-discovery\] \.fresh-flow-advanced \{[\s\S]*?right: 68px/);
