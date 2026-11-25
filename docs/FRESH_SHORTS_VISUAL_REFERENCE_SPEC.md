@@ -17,7 +17,9 @@ Status: active implementation specification, updated 2026-11-25.
 - Keep the vertical player as the dominant surface.
 - Keep core actions on the right rail; the rail arrow opens the existing expandable More actions panel beside the rail.
 - Keep comments in a resizable bottom sheet. Target approximately 66% of viewport height initially, with keyboard-aware resizing.
-- Do not expose Download until a real creator-controlled permission is stored and enforced by the backend. If the creator has not enabled it, no download action is shown.
+- Creator download permission is opt-in per Short, stored in `shorts.allow_download` with a default of `false`. Only the creator can change it; the official viewer Download action appears only when enabled.
+- The shared server API verifies the viewer's Fresh ID session and reads the persisted permission before issuing a 60-second signed attachment URL. Keep the service key server-side.
+- Current `post-videos` storage is still a public bucket for backwards-compatible playback. This gates Fresh's official download action; it is not DRM and cannot prevent a viewer from saving an already-public media URL. A later private-bucket cutover requires migrating playback and creator media flows together.
 - Preserve sound attribution, remix permissions, reporting, blocking and recommendation controls.
 
 ## Viewer library and history
