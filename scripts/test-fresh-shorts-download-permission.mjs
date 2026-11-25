@@ -4,7 +4,7 @@ import { extractShortVideoObjectPath, shortDownloadFilename } from "../src/serve
 
 const root = new URL("../", import.meta.url);
 const read = (path) => fs.readFileSync(new URL(path, root), "utf8");
-const migration = read("supabase/migrations/20261125103000_fresh_shorts_creator_download_permission.sql");
+const migration = read("supabase/migrations/20261125084945_fresh_shorts_creator_download_permission.sql");
 const loader = read("src/features/fresh-flow/core/loadFreshFlowShorts.ts");
 const type = read("src/features/shorts/types/short.ts");
 const service = read("src/features/fresh-flow/core/shortsDownloadService.ts");
