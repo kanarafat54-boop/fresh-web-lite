@@ -7,9 +7,11 @@ export type ShortPrefs = {
   showLessTopics: string[];
   /** Watch history older than this no longer shapes the taste profile (reset without deleting events). */
   tasteResetAt: string | null;
+  /** Whether new watched Shorts are recorded in Watch History and used as new taste signals. */
+  watchHistoryEnabled: boolean;
 };
 
-export const EMPTY_PREFS: ShortPrefs = { interests: [], mutedTopics: [], mutedCreators: [], showLessTopics: [], tasteResetAt: null };
+export const EMPTY_PREFS: ShortPrefs = { interests: [], mutedTopics: [], mutedCreators: [], showLessTopics: [], tasteResetAt: null, watchHistoryEnabled: true };
 
 export function hashtagsOf(caption: string): string[] {
   return [...new Set([...caption.matchAll(/#([\p{L}\p{N}_]+)/gu)].map((m) => m[1].toLowerCase()))];
