@@ -8,10 +8,10 @@ const comments = read("src/features/comments/components/CommentPanel.tsx");
 const migration = read("supabase/migrations/20261102120000_fresh_short_collections_and_comment_pin.sql");
 const hardening = read("supabase/migrations/20261102140000_harden_fresh_short_comment_pinning.sql");
 
-for (const token of ["loadCreatorPlaylists", "loadMyShortPlaylists", "createShortPlaylist", "addShortToPlaylist", "loadPlaylistShorts"]) {
+for (const token of ["loadCreatorPlaylists", "loadMyShortPlaylists", "createShortPlaylist", "addShortToPlaylist", "loadMyShortCollections", "createShortCollection", "addShortToCollection", "loadPlaylistShorts"]) {
   assert.ok(service.includes(token), `playlist service missing ${token}`);
 }
-for (const token of ["Create a playlist", "Create public playlist", "Add to playlist", "loadCreatorPlaylists", "loadMyShortPlaylists"]) {
+for (const token of ["Create a public playlist", "Add to collection or playlist", "loadCreatorPlaylists", "loadMyShortPlaylists"]) {
   assert.ok(profile.includes(token), `creator playlist UI missing ${token}`);
 }
 for (const token of ["pin_short_comment", "Pinned by creator", "togglePinned", "shortAuthorId"]) {
