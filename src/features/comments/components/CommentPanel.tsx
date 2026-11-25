@@ -146,7 +146,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sheetHeight, setSheetHeight] = useState(SHEET_DEFAULT);
+  const [sheetHeight, setSheetHeight] = useState(targetType === "short" ? 66 : SHEET_DEFAULT);
   const [recordMode, setRecordMode] = useState<"none" | "audio" | "video">("none");
   const [recording, setRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
@@ -156,7 +156,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const [pickerFor, setPickerFor] = useState<string | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const dragY = useRef<number | null>(null);
-  const dragH = useRef(SHEET_DEFAULT);
+  const dragH = useRef(targetType === "short" ? 66 : SHEET_DEFAULT);
   const recorder = useRef<MediaRecorder | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const chunks = useRef<BlobPart[]>([]);
