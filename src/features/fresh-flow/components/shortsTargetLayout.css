@@ -233,10 +233,10 @@
 
   /* ---- Rail: round chevron for More, one color for the saved state ----------------------------- */
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions .fresh-flow-more-button {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     margin-top: 4px;
     padding: 0;
     border: 1px solid rgba(255, 255, 255, 0.14);
