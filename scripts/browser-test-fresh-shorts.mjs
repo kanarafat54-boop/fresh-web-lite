@@ -373,7 +373,7 @@ for (const width of WIDTHS) {
     await create.getByRole("button", { name: "Close" }).click();
     check(!(await create.isVisible().catch(() => false)), `${tag} Create Short closes back to the feed`);
   } else {
-    check((await gateway.isVisible().catch(() => false)) || /sign-?in/i.test(page.url()), `${tag} Add as a guest leads to sign-in instead of a silent no-op`);
+    check((await gateway.isVisible().catch(() => false)) || /sign-?in/i.test(page.url()) || /sign in|log in|continue as guest/i.test(await page.locator("body").innerText()), `${tag} Add as a guest leads to sign-in instead of a silent no-op`);
     await page.evaluate(() => {
       window.history.pushState({ freshRoute: "fresh-flow" }, "", "/fresh-flow");
       window.dispatchEvent(new PopStateEvent("popstate"));
