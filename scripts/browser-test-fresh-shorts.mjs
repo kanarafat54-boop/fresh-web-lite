@@ -175,15 +175,13 @@ for (const width of WIDTHS) {
   const reportBox = await page.locator('[aria-label="Report this Short"]').boundingBox();
   check(Boolean(reportBox) && reportBox.x >= -1 && reportBox.x + reportBox.width <= width + 1, `${tag} Report sheet sits on screen above the feed`);
   await page.locator('[aria-label="Report this Short"] [aria-label="Close"]').click();
-  // Long-press opens playback options; the progress bar is a seek control.
+  // Press-and-hold is intentionally NOT a gesture; playback speed lives in the More actions panel.
   const tapBox = await page.locator(".fresh-flow-item .fresh-flow-tap-layer").first().boundingBox();
   await page.mouse.move(tapBox.x + tapBox.width / 2, tapBox.y + tapBox.height * 0.4);
   await page.mouse.down();
   await page.waitForTimeout(700);
   await page.mouse.up();
-  await page.locator('[aria-label="Playback options"]').waitFor({ timeout: 5000 });
-  check((await page.locator('[aria-label="Playback speed"] button').count()) === 4, `${tag} long-press shows four playback speeds`);
-  await page.locator('[aria-label="Playback options"] [aria-label="Close"]').click();
+  check((await page.locator('[aria-label="Playback options"]').count()) === 0, `${tag} press-and-hold does not open anything`);
   const seek = await page.locator('.fresh-flow-item [role="slider"][aria-label="Seek"]').first().boundingBox();
   check(Boolean(seek) && seek.width > width * 0.9, `${tag} progress bar is a full-width seek control`);
   // Shorts is full-screen: the media-world row is kept in the page but folded away so the video fills the screen

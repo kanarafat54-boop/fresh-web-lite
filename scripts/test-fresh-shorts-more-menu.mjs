@@ -72,15 +72,15 @@ assert.match(quick, /short\.authorId !== user\?\.id && !followingAuthors\.has\(s
 assert.match(css, /\.fresh-flow-quick-actions\s*\{[^}]*grid-template-columns: repeat\(3/, "Quick actions are a three-column tile grid");
 console.log("Shorts More menu grouping: PASS");
 
-// Gesture shortcuts into the More actions panel (triple tap, hold -> "More actions").
+// Gesture shortcuts into the More actions panel (triple tap). Long-press was removed on purpose..
 {
   const stream = (await import("node:fs")).readFileSync("src/features/fresh-flow/components/FreshFlowShortsStream.tsx", "utf8");
   const gestureChecks = [
     ["tap tracker counts taps", /lastTapRef = useRef<\{ id: string; at: number; count: number \}/.test(stream)],
     ["double tap still likes", /count === 1 && now - last\.at < DOUBLE_TAP_MS[\s\S]{0,400}handleReaction\(short\.id, "like"/.test(stream)],
     ["triple tap opens More actions", /count === 2 && now - last\.at < DOUBLE_TAP_MS[\s\S]{0,200}setAdvancedOpen\(true\)/.test(stream)],
-    ["hold sheet links to More actions", /shorts-more-from-hold[^>]*onClick=\{\(\) => \{ setPlaybackFor\(null\); setAdvancedOpen\(true\); \}\}/.test(stream)],
-    ["hold sheet keeps playback speeds", /aria-label="Playback speed"/.test(stream)],
+    ["long-press is gone", !/LongPress|longPressed|shorts-more-from-hold/.test(stream)],
+    ["playback speed stays reachable from the More menu", /setPlaybackFor\(\{ index, rate[\s\S]{0,200}Playback speed/.test(stream)],
   ];
   for (const [name, ok] of gestureChecks) {
     if (!ok) { console.error(`FAIL gesture: ${name}`); process.exitCode = 1; } else console.log(`ok gesture: ${name}`);

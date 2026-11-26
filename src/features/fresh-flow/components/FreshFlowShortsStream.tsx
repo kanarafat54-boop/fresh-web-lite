@@ -292,8 +292,6 @@ export default function FreshFlowShortsStream({
   const [recoOpen, setRecoOpen] = useState(false);
   const [expandedCaptions, setExpandedCaptions] = useState<Set<string>>(new Set());
   const [playbackFor, setPlaybackFor] = useState<{ index: number; rate: number } | null>(null);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressed = useRef(false);
   const [topicPage, setTopicPage] = useState<{ kind: TopicKind; value: string } | null>(null);
   const mutedCreatorsRef = useRef<Set<string>>(new Set());
   const prefsRef = useRef<ShortPrefs>(EMPTY_PREFS);
@@ -881,19 +879,6 @@ export default function FreshFlowShortsStream({
     }, DOUBLE_TAP_MS);
   }
 
-  function startLongPress(index: number) {
-    longPressed.current = false;
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
-    longPressTimer.current = setTimeout(() => {
-      longPressed.current = true;
-      setPlaybackFor({ index, rate: activeVideo(index)?.playbackRate ?? 1 });
-    }, 500);
-  }
-
-  function cancelLongPress() {
-    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
-  }
-
   function setRate(rate: number) {
     if (!playbackFor) return;
     const video = activeVideo(playbackFor.index);
@@ -1210,7 +1195,7 @@ export default function FreshFlowShortsStream({
                 preload={preloadFor(index, currentIndex, prefetchRadius)}
                 onError={(e) => retryVideo(e.currentTarget, 0)}
               />
-              <button type="button" className="fresh-flow-tap-layer" onPointerDown={() => startLongPress(index)} onPointerUp={cancelLongPress} onPointerLeave={cancelLongPress} onPointerCancel={cancelLongPress} onContextMenu={(event) => event.preventDefault()} onClick={() => { if (longPressed.current) { longPressed.current = false; return; } handleTap(short, index); }} aria-label="Play or pause. Double tap to like. Press and hold for playback options." />
+              <button type="button" className="fresh-flow-tap-layer" onClick={() => handleTap(short, index)} aria-label="Play or pause. Double tap to like. Triple tap for more actions." />
               {playFlash?.id === short.id && <span key={playFlash.key} className="fresh-flow-play-flash" aria-hidden="true">{playFlash.paused ? "❚❚" : "▶"}</span>}
               {heartBurst?.id === short.id && <span key={heartBurst.key} className="fresh-flow-heart-burst" aria-hidden="true">❤</span>}
               {index === currentIndex && soundBlocked && (
@@ -1484,7 +1469,6 @@ export default function FreshFlowShortsStream({
               ))}
             </div>
             <button type="button" onClick={() => { toggleSound(); }}>{soundOn ? "🔊 Mute sound" : "🔇 Turn sound on"}</button>
-            <button type="button" className="shorts-more-from-hold" onClick={() => { setPlaybackFor(null); setAdvancedOpen(true); }}>⋯ More actions</button>
             <p>Captions: this Short has no caption track yet. Auto captions need the video worker connection.</p>
           </div>
         </div>
