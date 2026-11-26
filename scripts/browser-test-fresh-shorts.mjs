@@ -362,17 +362,30 @@ for (const width of WIDTHS) {
   check(!(await notify.isVisible().catch(() => false)), `${tag} Notifications closes`);
 
   // Create Short (design screen 5): camera tools, Upload and Templates, close returns to the feed.
+  // Guests are sent to sign-in by the Add button (creating needs an account); signed-in users get the dialog.
   await page.locator('header [aria-label="Add or create a Short"]').click();
   const create = page.getByRole("dialog", { name: "Create Short" });
-  await create.waitFor({ state: "visible", timeout: 8000 }).catch(() => undefined);
-  check(await create.isVisible().catch(() => false), `${tag} Create Short opens from the Add button`);
-  const toolText = (await create.locator(".shorts-create-tools").innerText().catch(() => "")).replace(/\s+/g, " ");
-  for (const tool of ["Flip", "Speed", "Filters", "Beauty", "Timer"]) check(toolText.includes(tool), `${tag} Create Short has the ${tool} tool`);
-  const barText = (await create.locator(".shorts-create-bar").innerText().catch(() => "")).replace(/\s+/g, " ");
-  check(barText.includes("Upload") && barText.includes("Templates"), `${tag} Create Short has Upload and Templates`);
-  check(await create.locator(".shorts-create-record").count() === 1, `${tag} Create Short has the record button`);
-  await create.getByRole("button", { name: "Close" }).click();
-  check(!(await create.isVisible().catch(() => false)), `${tag} Create Short closes back to the feed`);
+  const gateway = page.locator(".fresh-id-gateway");
+  await Promise.race([
+    create.waitFor({ state: "visible", timeout: 8000 }),
+    gateway.waitFor({ state: "visible", timeout: 8000 }),
+  ]).catch(() => undefined);
+  if (await create.isVisible().catch(() => false)) {
+    const toolText = (await create.locator(".shorts-create-tools").innerText().catch(() => "")).replace(/\s+/g, " ");
+    for (const tool of ["Flip", "Speed", "Filters", "Beauty", "Timer"]) check(toolText.includes(tool), `${tag} Create Short has the ${tool} tool`);
+    const barText = (await create.locator(".shorts-create-bar").innerText().catch(() => "")).replace(/\s+/g, " ");
+    check(barText.includes("Upload") && barText.includes("Templates"), `${tag} Create Short has Upload and Templates`);
+    check(await create.locator(".shorts-create-record").count() === 1, `${tag} Create Short has the record button`);
+    await create.getByRole("button", { name: "Close" }).click();
+    check(!(await create.isVisible().catch(() => false)), `${tag} Create Short closes back to the feed`);
+  } else {
+    check(await gateway.isVisible().catch(() => false), `${tag} Add as a guest leads to sign-in instead of a silent no-op`);
+    await page.evaluate(() => {
+      window.history.pushState({ freshRoute: "fresh-flow" }, "", "/fresh-flow");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await page.waitForSelector("nav.fresh-flow-bottom-nav", { timeout: 15000 });
+  }
   await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Shorts" }).click();
   await page.waitForSelector(".fresh-flow-item", { timeout: 8000 });
 
