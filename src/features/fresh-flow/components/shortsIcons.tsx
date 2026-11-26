@@ -67,6 +67,8 @@ export const VolumeOffIcon = (p: ShortsIconProps) => svg(p, <><path d="M4 9.5v5h
 export const SpeedIcon = (p: ShortsIconProps) => svg(p, <><path d="M4 18a8 8 0 1 1 16 0" /><path d="m12 18 4-6" /><circle cx="12" cy="18" r="1" fill="currentColor" /></>);
 export const QuoteIcon = (p: ShortsIconProps) => svg(p, <><path d="M5 17v-4a5 5 0 0 1 5-5" /><path d="M5 13h4v4H5zM14 17v-4a5 5 0 0 1 5-5" /><path d="M14 13h4v4h-4z" /></>);
 export const RemixIcon = (p: ShortsIconProps) => svg(p, <><path d="M3 7h4l10 10h4" /><path d="M3 17h4l3-3M14 10l3-3h4" /><path d="m19 5 2 2-2 2M19 15l2 2-2 2" /></>);
+export const DownloadIcon = (p: ShortsIconProps) => svg(p, <><path d="M12 4v11" /><path d="m7 11 5 5 5-5" /><path d="M5 20h14" /></>);
+export const SoundNoteIcon = (p: ShortsIconProps) => svg(p, <><path d="M9 18V6l10-2v12" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="16.5" cy="16" r="2.5" /></>);
 export const DuetIcon = (p: ShortsIconProps) => svg(p, <><rect x="3" y="5" width="8" height="14" rx="2" /><rect x="13" y="5" width="8" height="14" rx="2" /></>);
 export const CollabIcon = (p: ShortsIconProps) => svg(p, <><circle cx="8.5" cy="9" r="3" /><circle cx="15.5" cy="9" r="3" /><path d="M3 20a5.5 5.5 0 0 1 11-1M13 19a5.5 5.5 0 0 1 8 .5" /></>);
 export const EditToolsIcon = (p: ShortsIconProps) => svg(p, <><circle cx="6" cy="7" r="2.5" /><circle cx="6" cy="17" r="2.5" /><path d="m8 8.5 12 8M8 15.5l12-8" /></>);

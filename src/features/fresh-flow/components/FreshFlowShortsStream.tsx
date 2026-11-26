@@ -1287,6 +1287,34 @@ export default function FreshFlowShortsStream({
                 )}
                 {advancedOpen && index === currentIndex && (
                   <div className="fresh-flow-advanced" role="group" aria-label="More actions">
+                    <div className="fresh-flow-quick-actions" role="group" aria-label="Quick actions">
+                      {short.allowDownload ? (
+                        <button type="button" onClick={() => { setAdvancedOpen(false); void downloadShort(short); }}>
+                          <ShortsIcons.DownloadIcon size={22} /><span>Download</span>
+                        </button>
+                      ) : null}
+                      <button type="button" onClick={() => openAdvanced("remix", short)}>
+                        <ShortsIcons.RemixIcon size={22} /><span>Remix</span>
+                      </button>
+                      {user && !isGuest ? (
+                        <button type="button" onClick={() => { setAdvancedOpen(false); setCollectionShortId(short.id); }}>
+                          <ShortsIcons.RailSaveIcon size={22} /><span>Add to Collection</span>
+                        </button>
+                      ) : null}
+                      {short.soundName ? (
+                        <button type="button" onClick={() => { setAdvancedOpen(false); setTopicPage({ kind: "sound", value: short.soundName as string }); }}>
+                          <ShortsIcons.SoundNoteIcon size={22} /><span>Use Sound</span>
+                        </button>
+                      ) : null}
+                      {short.authorId !== user?.id && !followingAuthors.has(short.authorId) ? (
+                        <button type="button" onClick={() => { setAdvancedOpen(false); void handleFollow(short); }}>
+                          <ShortsIcons.FollowingIcon size={22} /><span>Follow Creator</span>
+                        </button>
+                      ) : null}
+                      <button type="button" onClick={() => { setAdvancedOpen(false); setReportTarget(short); }}>
+                        <FlagIcon size={22} /><span>Report</span>
+                      </button>
+                    </div>
                     <p className="fresh-flow-advanced-heading">Support and explore</p>
                     <button type="button" onClick={() => { setAdvancedOpen(false); void handleGift(short, "100"); }} aria-label="Send gift">
                       <span className="fresh-flow-menu-icon"><ShortsIcons.GiftIcon size={18} /></span> Send gift{(giftTotals.get(short.id)?.count ?? 0) > 0 ? ` · ${giftTotals.get(short.id)?.count}` : ""}

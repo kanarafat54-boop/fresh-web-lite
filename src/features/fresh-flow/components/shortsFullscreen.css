@@ -330,3 +330,10 @@
 }
 :root[data-theme="light"] .fresh-flow-shorts-fullscreen .fresh-comments .sheet-drag-handle { background: rgba(255, 255, 255, 0.28); }
 :root[data-theme="light"] .fresh-flow-shorts-fullscreen .fresh-comments .comment-input { border-color: rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.06); color: #fff; }
+/* Quick actions: the six most-used More actions as a tile grid. The full grouped list stays below it. */
+.fresh-flow-advanced .fresh-flow-quick-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 4px; }
+.fresh-flow-advanced .fresh-flow-quick-actions button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 64px; padding: 8px 4px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; background: rgba(255, 255, 255, 0.06); color: #fff; font: inherit; font-size: 0.72rem; font-weight: 700; line-height: 1.15; text-align: center; cursor: pointer; }
+.fresh-flow-advanced .fresh-flow-quick-actions button:active { background: rgba(109, 74, 255, 0.28); }
+.fresh-flow-advanced .fresh-flow-quick-actions button:focus-visible { outline: 2px solid #a5a1ff; outline-offset: 2px; }
+.fresh-flow-advanced .fresh-flow-quick-actions svg { color: #a5a1ff; }
+

@@ -11,9 +11,9 @@ const end = stream.indexOf("\n                  </div>\n                )}", sta
 const menu = stream.slice(start, end);
 
 // Preservation: all 30 original controls remain, plus Add to collection and the creator download-permission control (32 buttons total).
-assert.equal((menu.match(/<button/g) ?? []).length, 32, "the More menu keeps all original controls, Add to collection and the creator download-permission control");
+assert.equal((menu.match(/<button/g) ?? []).length, 38, "the More menu keeps all 32 original controls and adds 6 Quick action tiles");
 assert.equal((menu.match(/ADVANCED_ACTIONS\.map/g) ?? []).length, 1, "Quote, Remix, Duet, Collaborate, Edit tools, Captions and Effects remain");
-assert.equal((menu.match(/<div/g) ?? []).length, 0, "no wrapper elements: the row styles target direct children of the menu");
+assert.equal((menu.match(/<div/g) ?? []).length, 1, "the only wrapper is the Quick actions grid; every other row stays a direct child of the menu");
 
 // Every capability is still reachable by its original label.
 const labels = [
@@ -56,4 +56,18 @@ assert.match(menu, /\{user && !isGuest && isReviewer\(user\.role\) \? <p classNa
 
 // Headings are labels: styled, and not styled as the button rows.
 assert.match(css, /\.fresh-flow-advanced-heading\s*\{[^}]*text-transform: uppercase/);
+// Quick actions grid (the "More Actions" card in the UI references): six tiles that reuse existing handlers.
+const qStart = menu.indexOf('className="fresh-flow-quick-actions"');
+assert.ok(qStart >= 0 && qStart < menu.indexOf('fresh-flow-advanced-heading">Support and explore<'), "Quick actions sit at the top of the More menu");
+const quick = menu.slice(qStart, menu.indexOf("</div>", qStart));
+assert.equal((quick.match(/<button/g) ?? []).length, 6, "six Quick action tiles");
+for (const [label, handler] of [["Download", "downloadShort(short)"], ["Remix", 'openAdvanced("remix", short)'], ["Add to Collection", "setCollectionShortId(short.id)"], ["Use Sound", 'setTopicPage({ kind: "sound"'], ["Follow Creator", "handleFollow(short)"], ["Report", "setReportTarget(short)"]]) {
+  assert.ok(quick.includes(`<span>${label}</span>`), `Quick action "${label}" exists`);
+  assert.ok(quick.includes(handler), `"${label}" reuses the existing handler ${handler}`);
+}
+assert.match(quick, /\{short\.allowDownload \? \(/, "Download only appears when the creator allowed it");
+assert.match(quick, /\{user && !isGuest \? \(/, "Add to Collection needs a signed-in account, like the full menu row");
+assert.match(quick, /\{short\.soundName \? \(/, "Use Sound only appears when the Short has a sound");
+assert.match(quick, /short\.authorId !== user\?\.id && !followingAuthors\.has\(short\.authorId\)/, "Follow Creator is hidden for your own Short and for creators you follow");
+assert.match(css, /\.fresh-flow-quick-actions\s*\{[^}]*grid-template-columns: repeat\(3/, "Quick actions are a three-column tile grid");
 console.log("Shorts More menu grouping: PASS");
