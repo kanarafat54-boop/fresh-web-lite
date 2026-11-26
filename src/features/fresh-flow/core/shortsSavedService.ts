@@ -9,7 +9,7 @@ export async function loadSavedShorts(userId: string): Promise<SavedItem[]> {
   if (error) throw new Error(error.message);
   const rows = (data ?? []) as SavedRow[];
   if (rows.length === 0) return [];
-  const { data: shortRows } = await supabase.from("shorts").select("id, author_id, caption").in("id", rows.map((row) => row.short_id));
+  const { data: shortRows } = await supabase.from("shorts").select("id, author_id, caption, video_url").in("id", rows.map((row) => row.short_id));
   const shorts = new Map(((shortRows ?? []) as SavedShortInfo[]).map((row) => [row.id, row]));
   const authorIds = [...new Set([...shorts.values()].map((row) => row.author_id))];
   const names = new Map<string, string>();

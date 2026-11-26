@@ -5,6 +5,7 @@ import ShortsContextPanel from "./ShortsContextPanel";
 import ShortsWhySheet from "./ShortsWhySheet";
 import ShortsPredictionSheet from "./ShortsPredictionSheet";
 import ShortsHistorySheet from "./ShortsHistorySheet";
+import ShortsInfoStrip from "./ShortsInfoStrip";
 import ShortsSavedSheet from "./ShortsSavedSheet";
 import ShortsCollectionsSheet from "./ShortsCollectionsSheet";
 import type { WhyInput } from "../core/shortsWhy";
@@ -1267,17 +1268,9 @@ export default function FreshFlowShortsStream({
                   </button>
                 </div>
                 {short.allowDownload ? (
-                  <button type="button" className="fresh-flow-context-strip" data-kind="download" onClick={() => setAdvancedOpen(true)}>
-                    <ShortsIcons.InfoIcon size={18} />
-                    <span className="fresh-flow-context-strip-text">Download is available because this creator enabled it.</span>
-                    <ShortsIcons.ChevronRightIcon size={18} />
-                  </button>
+                  <ShortsInfoStrip kind="download" placement="overlay" onClick={() => setAdvancedOpen(true)}>Download is available because this creator enabled it.</ShortsInfoStrip>
                 ) : (
-                  <button type="button" className="fresh-flow-context-strip" data-kind="context" onClick={() => setContextShortId(short.id)}>
-                    <ShortsIcons.InfoIcon size={18} />
-                    <span className="fresh-flow-context-strip-text"><strong>Fresh Context:</strong> {short.caption?.trim() ? "Learn more about this topic" : "About this Short"}</span>
-                    <ShortsIcons.ChevronRightIcon size={18} />
-                  </button>
+                  <ShortsInfoStrip kind="context" placement="overlay" onClick={() => setContextShortId(short.id)}><strong>Fresh Context:</strong> {short.caption?.trim() ? "Learn more about this topic" : "About this Short"}</ShortsInfoStrip>
                 )}
                 {freshAiPanelOpen && index === currentIndex && (
                   <div className="fresh-flow-ai-panel">

@@ -129,3 +129,11 @@
   .shorts-context-panel { padding-left:12px; padding-right:12px; }
   .shorts-context-facts div { grid-template-columns:76px minmax(0,1fr); }
 }
+
+/* Rows with a first-frame thumbnail (watch history, saved, liked, reposted). */
+.shorts-history-row .shorts-history-link { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.shorts-history-row .shorts-history-text { display: grid; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.shorts-history-row .shorts-history-link .short-thumb { width: 48px; }
+.shorts-history-row .shorts-history-text { font-size: 1rem; opacity: 1; }
+.shorts-history-row .shorts-history-text > span { font-size: 0.82rem; opacity: 0.75; }
+.shorts-history-row .short-thumb, .shorts-history-row .short-thumb span { opacity: 1; font-size: inherit; }

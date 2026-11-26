@@ -169,6 +169,7 @@
     "test:fresh-comment-media-limits": "node scripts/test-fresh-comment-media-limits.mjs",
     "test:fresh-shorts-more-menu": "node scripts/test-fresh-shorts-more-menu.mjs",
     "test:fresh-shorts-discovery-layout": "node scripts/test-fresh-shorts-discovery-layout.mjs",
+    "test:fresh-shorts-shared-ui": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-shared-ui.mjs",
     "test:fresh-shorts-download-permission": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-download-permission.mjs",
     "test:fresh-shorts-collections": "node scripts/test-fresh-shorts-collections.mjs"
   },

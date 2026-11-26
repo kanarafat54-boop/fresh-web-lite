@@ -1,0 +1,27 @@
+/* Shared look of the info strip. Where it sits inside the player is set by .fresh-flow-context-strip in shortsTargetLayout.css. */
+.shorts-info-strip {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  margin: 8px 0;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(14, 11, 40, 0.82);
+  color: #fff;
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1.25;
+  text-align: left;
+  text-shadow: none;
+}
+button.shorts-info-strip { cursor: pointer; }
+button.shorts-info-strip:focus-visible { outline: 2px solid #a5a1ff; outline-offset: 2px; }
+.shorts-info-strip > svg { flex: 0 0 auto; color: #cfc6ff; }
+.shorts-info-strip-text { flex: 1 1 auto; min-width: 0; }
+.shorts-info-strip-text strong { font-weight: 800; }
+/* Inside a sheet the strip is quieter than in the player. */
+.shorts-sheet .shorts-info-strip { background: rgba(255, 255, 255, 0.05); }

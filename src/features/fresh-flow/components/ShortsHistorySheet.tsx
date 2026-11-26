@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { dayLabel, progressLabel } from "../core/shortsHistory";
 import { clearWatchHistory, loadWatchHistory, removeFromHistory, type HistoryItem } from "../core/shortsHistoryService";
 import { shortWatchPath } from "../core/shortsLinks";
+import ShortThumbnail from "./ShortThumbnail";
+import ShortsBottomSheet from "./ShortsBottomSheet";
+import ShortsInfoStrip from "./ShortsInfoStrip";
 import "./shortsContextPanel.css";
 
 type Props = { userId: string; historyEnabled: boolean; onHistoryEnabledChange: (enabled: boolean) => Promise<void>; onClose: () => void };
@@ -13,14 +16,6 @@ export default function ShortsHistorySheet({ userId, historyEnabled, onHistoryEn
   const [note, setNote] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [changingHistory, setChangingHistory] = useState(false);
-  const closeRef = useRef<HTMLButtonElement | null>(null);
-
-  useEffect(() => {
-    closeRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,19 +36,14 @@ export default function ShortsHistorySheet({ userId, historyEnabled, onHistoryEn
 
   let lastDay = "";
   return (
-    <div className="shorts-sheet-backdrop" onClick={onClose}>
-      <div className="shorts-sheet" role="dialog" aria-modal="true" aria-label="Watch history" onClick={(event) => event.stopPropagation()}>
-        <div className="shorts-sheet-header">
-          <h3>Watch history</h3>
-          <button ref={closeRef} type="button" className="shorts-sheet-close" onClick={onClose} aria-label="Close">✕</button>
-        </div>
+    <ShortsBottomSheet title="Watch history" onClose={onClose}>
         <div className="shorts-history-setting">
           <div><strong>Save Watch History</strong><span>{historyEnabled ? "On — new watch milestones are saved and can inform recommendations." : "Paused — existing history is kept; new watch milestones are not saved."}</span></div>
           <button type="button" role="switch" aria-checked={historyEnabled} disabled={changingHistory} onClick={async () => { setChangingHistory(true); try { await onHistoryEnabledChange(!historyEnabled); } finally { setChangingHistory(false); } }}>
             {changingHistory ? "Saving…" : historyEnabled ? "On" : "Off"}
           </button>
         </div>
-        <p className="shorts-why-note">Shorts you watched at least a quarter of. Removing or clearing also removes them from what your recommendations learn from.</p>
+        <ShortsInfoStrip kind="notice">Shorts you watched at least a quarter of. Removing or clearing also removes them from what your recommendations learn from.</ShortsInfoStrip>
         {error ? <p role="alert">{error}</p> : null}
         {!error && items === null ? <p>Loading…</p> : null}
         {items && items.length === 0 && !error ? <p>Nothing here yet. Shorts you watch will appear in this list.</p> : null}
@@ -68,12 +58,15 @@ export default function ShortsHistorySheet({ userId, historyEnabled, onHistoryEn
                   {heading ? <h4>{heading}</h4> : null}
                   <div className="shorts-history-row">
                     {item.available ? (
-                      <a href={shortWatchPath(item.mediaId)} onClick={onClose}>
-                        <strong>{item.caption?.trim() || "Untitled Short"}</strong>
-                        <span>{item.creator} · {progressLabel(item.furthest)}{item.sessions > 1 ? ` · ${item.sessions} times` : ""}</span>
+                      <a href={shortWatchPath(item.mediaId)} onClick={onClose} className="shorts-history-link">
+                        <ShortThumbnail videoUrl={item.videoUrl} />
+                        <span className="shorts-history-text">
+                          <strong>{item.caption?.trim() || "Untitled Short"}</strong>
+                          <span>{item.creator} · {progressLabel(item.furthest)}{item.sessions > 1 ? ` · ${item.sessions} times` : ""}</span>
+                        </span>
                       </a>
                     ) : (
-                      <div><strong>No longer available</strong><span>{progressLabel(item.furthest)}</span></div>
+                      <div className="shorts-history-link"><ShortThumbnail videoUrl={null} /><span className="shorts-history-text"><strong>No longer available</strong><span>{progressLabel(item.furthest)}</span></span></div>
                     )}
                     <button type="button" aria-label="Remove from watch history" onClick={() => void remove(item.mediaId)}>✕</button>
                   </div>
@@ -92,7 +85,6 @@ export default function ShortsHistorySheet({ userId, historyEnabled, onHistoryEn
             </div>
           ) : <button type="button" className="shorts-why-controls" onClick={() => setConfirmClear(true)}>Clear watch history</button>
         ) : null}
-      </div>
-    </div>
+    </ShortsBottomSheet>
   );
 }

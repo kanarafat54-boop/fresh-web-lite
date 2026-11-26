@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { removeShortInteraction } from "../../shorts/core/ShortsUniversalInteractionAdapter";
 import { dayLabel } from "../core/shortsHistory";
 import { filterSaved, type SavedItem } from "../core/shortsSaved";
 import { loadSavedShorts } from "../core/shortsSavedService";
 import { shortWatchPath } from "../core/shortsLinks";
 import { loadCreatorReposts, loadLikedShorts, type CreatorRepost } from "../core/creatorReposts";
+import ShortThumbnail from "./ShortThumbnail";
+import ShortsBottomSheet from "./ShortsBottomSheet";
 import "./shortsContextPanel.css";
 
 type ListTab = "saved" | "liked" | "reposted";
@@ -21,14 +23,6 @@ export default function ShortsSavedSheet({ userId, onClose, onUnsaved }: Props) 
   const [tab, setTab] = useState<ListTab>("saved");
   const [others, setOthers] = useState<CreatorRepost[] | null>(null);
   const [othersError, setOthersError] = useState<string | null>(null);
-  const closeRef = useRef<HTMLButtonElement | null>(null);
-
-  useEffect(() => {
-    closeRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,12 +52,7 @@ export default function ShortsSavedSheet({ userId, onClose, onUnsaved }: Props) 
   const visible = items ? filterSaved(items, query) : [];
   let lastDay = "";
   return (
-    <div className="shorts-sheet-backdrop" onClick={onClose}>
-      <div className="shorts-sheet" role="dialog" aria-modal="true" aria-label="Saved Shorts" onClick={(event) => event.stopPropagation()}>
-        <div className="shorts-sheet-header">
-          <h3>Saved Shorts</h3>
-          <button ref={closeRef} type="button" className="shorts-sheet-close" onClick={onClose} aria-label="Close">✕</button>
-        </div>
+    <ShortsBottomSheet title="Saved Shorts" onClose={onClose}>
         <div role="tablist" aria-label="Your Shorts lists" className="shorts-sheet-tabs">
           {(Object.keys(TAB_LABELS) as ListTab[]).map((id) => (
             <button key={id} type="button" role="tab" id={`shorts-list-tab-${id}`} aria-selected={tab === id} aria-controls="shorts-list-panel" onClick={() => setTab(id)}>{TAB_LABELS[id]}</button>
@@ -79,7 +68,10 @@ export default function ShortsSavedSheet({ userId, onClose, onUnsaved }: Props) 
               {others.map((item) => (
                 <li key={item.id}>
                   <div className="shorts-history-row">
-                    <a href={shortWatchPath(item.id)} onClick={onClose}><strong>{item.caption.trim() || "Untitled Short"}</strong></a>
+                    <a href={shortWatchPath(item.id)} onClick={onClose} className="shorts-history-link">
+                      <ShortThumbnail videoUrl={item.videoUrl} />
+                      <span className="shorts-history-text"><strong>{item.caption.trim() || "Untitled Short"}</strong></span>
+                    </a>
                   </div>
                 </li>
               ))}
@@ -102,12 +94,15 @@ export default function ShortsSavedSheet({ userId, onClose, onUnsaved }: Props) 
                   {heading ? <h4>{`Saved ${/^(today|yesterday)$/i.test(heading) ? heading.toLowerCase() : heading}`}</h4> : null}
                   <div className="shorts-history-row">
                     {item.available ? (
-                      <a href={shortWatchPath(item.shortId)} onClick={onClose}>
-                        <strong>{item.caption?.trim() || "Untitled Short"}</strong>
-                        <span>{item.creator}</span>
+                      <a href={shortWatchPath(item.shortId)} onClick={onClose} className="shorts-history-link">
+                        <ShortThumbnail videoUrl={item.videoUrl} />
+                        <span className="shorts-history-text">
+                          <strong>{item.caption?.trim() || "Untitled Short"}</strong>
+                          <span>{item.creator}</span>
+                        </span>
                       </a>
                     ) : (
-                      <div><strong>No longer available</strong><span>This Short can no longer be shown. You can remove it from your saved list.</span></div>
+                      <div className="shorts-history-link"><ShortThumbnail videoUrl={null} /><span className="shorts-history-text"><strong>No longer available</strong><span>This Short can no longer be shown. You can remove it from your saved list.</span></span></div>
                     )}
                     <button type="button" aria-label="Remove from saved" onClick={() => void unsave(item.shortId)}>✕</button>
                   </div>
@@ -119,7 +114,6 @@ export default function ShortsSavedSheet({ userId, onClose, onUnsaved }: Props) 
         {note ? <p role="status">{note}</p> : null}
         </>)}
         </div>
-      </div>
-    </div>
+    </ShortsBottomSheet>
   );
 }

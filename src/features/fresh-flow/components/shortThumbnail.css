@@ -1,0 +1,42 @@
+/* First-frame thumbnail for a Short. Portrait 9:16 so it matches the player; size it from the parent. */
+.short-thumb {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+  width: 52px;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border-radius: 10px;
+  background: linear-gradient(160deg, #2a1f6e 0%, #120f33 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.short-thumb video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  background: #000;
+}
+.short-thumb-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(190, 176, 255, 0.85);
+}
+.short-thumb-duration {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.74);
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+.short-thumb-lg { width: 100%; border-radius: 14px; }
+.short-thumb-lg .short-thumb-duration { right: 6px; bottom: 6px; font-size: 0.74rem; }
