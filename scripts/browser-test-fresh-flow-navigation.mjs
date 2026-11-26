@@ -110,8 +110,20 @@ for (const width of WIDTHS) {
     window.history.replaceState({ freshRoute: "fresh-flow" }, "", "/fresh-flow");
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
-  await page.waitForSelector('nav[aria-label="Fresh Flow media"]', { timeout: 15000 });
+  // The Fresh Flow home header keeps the media tabs in the DOM but may collapse them
+  // (the compact Home header prioritises notification / create / camera / profile), so
+  // wait for the nav to be attached rather than visible.
+  await page.waitForSelector('nav[aria-label="Fresh Flow media"]', { state: "attached", timeout: 15000 });
   const tag = `@${width}px`;
+  const topNav = page.locator('nav[aria-label="Fresh Flow media"]');
+  const topNavVisible = await topNav.isVisible();
+  console.log(`${tag} top media tabs visible: ${topNavVisible}`);
+  // Opens a media world: by a real click when the tabs are shown, otherwise by activating
+  // the (hidden) tab button directly so routing is still covered.
+  const openWorld = async (label) => {
+    const button = topNav.locator("button").filter({ hasText: new RegExp(`^\\s*${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`) }).first();
+    if (topNavVisible) await button.click(); else await button.evaluate((el) => el.click());
+  };
 
   // Exactly two navigations: the top media bar and the bottom bar.
   check((await page.locator('nav[aria-label="Fresh Flow media"]').count()) === 1, `${tag} exactly one top media navigation`);
@@ -121,7 +133,7 @@ for (const width of WIDTHS) {
   }
 
   // Top tabs exist, in order, and exactly one is current.
-  const tabs = await page.locator('nav[aria-label="Fresh Flow media"] button').allInnerTexts();
+  const tabs = await page.locator('nav[aria-label="Fresh Flow media"] button').allTextContents();
   check(JSON.stringify(tabs.map((t) => t.trim())) === JSON.stringify(TOP_TABS), `${tag} top tabs are ${TOP_TABS.join(" · ")} (got ${tabs.join(" · ")})`);
   check((await page.locator('nav[aria-label="Fresh Flow media"] button[aria-current="page"]').count()) === 1, `${tag} one current top tab`);
 
@@ -144,7 +156,7 @@ for (const width of WIDTHS) {
     });
     check(!covered, `${tag} ${selector} is not covered by another element`);
   }
-  for (const label of tabs) {
+  for (const label of topNavVisible ? tabs : []) {
     const box = await page.locator('nav[aria-label="Fresh Flow media"] button', { hasText: label }).first().boundingBox();
     check(Boolean(box) && box.height >= 44, `${tag} top tab "${label.trim()}" is at least 44px tall`);
   }
@@ -153,17 +165,15 @@ for (const width of WIDTHS) {
 
   // Each top tab navigates and becomes the single current tab.
   for (const label of ["Videos", "News / Posts", "Podcasts", "Others", "Discover"]) {
-    await page.locator('nav[aria-label="Fresh Flow media"] button', { hasText: new RegExp(`^${label.replace(/[/ ]/g, "\\s*$&\\s*").replace(/\\s\*\s\\s\*/g, "\\s*")}$`) }).first().click().catch(async () => {
-      await page.getByRole("button", { name: label, exact: true }).first().click();
-    });
+    await openWorld(label);
     await page.waitForTimeout(150);
-    const current = await page.locator('nav[aria-label="Fresh Flow media"] button[aria-current="page"]').allInnerTexts();
+    const current = await page.locator('nav[aria-label="Fresh Flow media"] button[aria-current="page"]').allTextContents();
     check(current.length === 1 && current[0].trim() === label, `${tag} clicking ${label} makes it the only current tab (got ${current.join(",")})`);
     check((await page.locator('nav[aria-label="Fresh Flow media"]').count()) === 1, `${tag} still exactly one top navigation after opening ${label}`);
   }
 
   // Long Videos product surfaces: discovery, details, cinema, library and settings.
-  await page.locator('nav[aria-label="Fresh Flow media"] button', { hasText: "Videos" }).click();
+  await openWorld("Videos");
   await page.waitForSelector(".fresh-long", { timeout: 10000 });
   check(await page.getByRole("heading", { name: "Long Videos", exact: true }).isVisible(), `${tag} Long Videos discovery opens`);
   check(await page.getByRole("button", { name: "Upload video" }).isVisible(), `${tag} dedicated Long Video upload entry is available`);

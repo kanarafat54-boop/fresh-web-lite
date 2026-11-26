@@ -276,7 +276,7 @@ export default function FreshFlowShortsStream({
   const [playFlash, setPlayFlash] = useState<{ id: string; paused: boolean; key: number } | null>(null);
   const [heartBurst, setHeartBurst] = useState<{ id: string; key: number } | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
-  const lastTapRef = useRef<{ id: string; at: number } | null>(null);
+  const lastTapRef = useRef<{ id: string; at: number; count: number } | null>(null);
   const tapTimerRef = useRef<number | null>(null);
   const flashKeyRef = useRef(0);
 
@@ -858,15 +858,21 @@ export default function FreshFlowShortsStream({
   function handleTap(short: Short, index: number) {
     const now = Date.now();
     const last = lastTapRef.current;
-    if (last && last.id === short.id && now - last.at < DOUBLE_TAP_MS) {
+    if (last && last.id === short.id && last.count === 2 && now - last.at < DOUBLE_TAP_MS) {
+      // Triple tap = open the More actions panel (Download, Remix, Collection, Sound, Report...).
       lastTapRef.current = null;
+      setAdvancedOpen(true);
+      return;
+    }
+    if (last && last.id === short.id && last.count === 1 && now - last.at < DOUBLE_TAP_MS) {
+      lastTapRef.current = { id: short.id, at: now, count: 2 };
       if (tapTimerRef.current !== null) { window.clearTimeout(tapTimerRef.current); tapTimerRef.current = null; }
       flashKeyRef.current += 1;
       setHeartBurst({ id: short.id, key: flashKeyRef.current });
       if (short.myReaction !== "like") void handleReaction(short.id, "like" as UniversalReactionKind);
       return;
     }
-    lastTapRef.current = { id: short.id, at: now };
+    lastTapRef.current = { id: short.id, at: now, count: 1 };
     if (tapTimerRef.current !== null) window.clearTimeout(tapTimerRef.current);
     tapTimerRef.current = window.setTimeout(() => {
       tapTimerRef.current = null;
@@ -1478,6 +1484,7 @@ export default function FreshFlowShortsStream({
               ))}
             </div>
             <button type="button" onClick={() => { toggleSound(); }}>{soundOn ? "🔊 Mute sound" : "🔇 Turn sound on"}</button>
+            <button type="button" className="shorts-more-from-hold" onClick={() => { setPlaybackFor(null); setAdvancedOpen(true); }}>⋯ More actions</button>
             <p>Captions: this Short has no caption track yet. Auto captions need the video worker connection.</p>
           </div>
         </div>
