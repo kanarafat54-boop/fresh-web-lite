@@ -220,17 +220,20 @@ for (const width of WIDTHS) {
 
   // Tap pauses, tap resumes.
   const first = page.locator(".fresh-flow-item").first().locator(".fresh-flow-tap-layer");
-  await first.click({ position: { x: width / 2, y: 300 } });
+  // Tap in the open upper-middle of the video: the creator row, caption and rail sit lower in the card.
+  const tapLayerBox = await first.boundingBox();
+  const tapAt = { x: Math.round(tapLayerBox.width / 2), y: Math.round(tapLayerBox.height * 0.3) };
+  await first.click({ position: tapAt });
   await page.waitForTimeout(450);
   state = await playing();
   check(!state[0], `${tag} single tap pauses`);
-  await first.click({ position: { x: width / 2, y: 300 } });
+  await first.click({ position: tapAt });
   await page.waitForTimeout(450);
   state = await playing();
   check(state[0], `${tag} tap again resumes`);
 
   // Double tap shows the like burst without pausing.
-  await first.dblclick({ position: { x: width / 2, y: 300 }, delay: 40 });
+  await first.dblclick({ position: tapAt, delay: 40 });
   await page.waitForTimeout(150);
   check((await page.locator(".fresh-flow-heart-burst").count()) >= 1, `${tag} double tap shows the heart burst`);
   await page.waitForTimeout(600);
