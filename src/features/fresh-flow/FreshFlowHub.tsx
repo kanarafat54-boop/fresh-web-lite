@@ -29,6 +29,7 @@ import { parseRequestedShort } from "./core/shortsLinks";
 import { supabase } from "../../lib/supabase";
 import * as ShortsIcons from "./components/shortsIcons";
 import "./components/shortsFullscreen.css";
+import "./components/shortsTargetLayout.css";
 
 type FreshFlowSection = FreshFlowRouteId;
 
@@ -225,8 +226,8 @@ export default function FreshFlowHub() {
       <header className={`fresh-flow-reference-header fresh-flow-unified-header${shortsHeader ? " fresh-shorts-header" : ""}`} data-navigation="top">
           {shortsHeader ? (
             <button type="button" className="fresh-flow-unified-brand fresh-shorts-brand" onClick={() => setActiveRoute("fresh-flow-shorts")} aria-label="Fresh Shorts home">
-              <span className="fresh-flow-unified-mark fresh-shorts-mark" aria-hidden="true">▶</span>
-              <span className="fresh-flow-brand-wordmark"><strong>Fresh Shorts</strong><small>Short videos. Big ideas. Real people.</small></span>
+              <span className="fresh-flow-unified-mark fresh-shorts-mark" aria-hidden="true"><ShortsIcons.BrandPlayIcon size={26} /></span>
+              <span className="fresh-flow-brand-wordmark"><strong>Fresh <span className="fresh-shorts-brand-accent">Shorts</span></strong><small>Short videos. Big ideas. Real people.</small></span>
             </button>
           ) : (
             <button type="button" className="fresh-flow-unified-brand" onClick={() => setActiveRoute("fresh-flow")} aria-label="Fresh Flow home">

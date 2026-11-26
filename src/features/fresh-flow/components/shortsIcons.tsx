@@ -90,3 +90,8 @@ export const NavMailIcon = (p: ShortsIconProps) => svg(p, <><rect x="3" y="5" wi
 export const NavCreateIcon = (p: ShortsIconProps) => svg(p, <path d="M12 5v14M5 12h14" strokeWidth={2.25} />);
 export const DataSaverIcon = (p: ShortsIconProps) => svg(p, <><path d="M12 3c4 4.5 6.5 7.6 6.5 10.5A6.5 6.5 0 0 1 5.5 13.5C5.5 10.6 8 7.5 12 3Z" /><path d="m9.5 14 2 2 3-3.5" /></>);
 export const InfoIcon = (p: ShortsIconProps) => svg(p, <><circle cx="12" cy="12" r="9" /><path d="M12 11v5.5" /><circle cx="12" cy="7.8" r="0.6" fill="currentColor" /></>);
+
+// --- Fresh Shorts target layout (header mark, Trending flame, strip chevron) -----------------------
+export const BrandPlayIcon = (p: ShortsIconProps) => svg(p, <path d="M8 5.3v13.4c0 .8.9 1.3 1.6.9l10.2-6.7c.6-.4.6-1.3 0-1.7L9.6 4.4C8.9 4 8 4.5 8 5.3Z" fill="currentColor" />);
+export const FlameIcon = (p: ShortsIconProps) => svg(p, <path d="M12 2.8c1 3.2 5 5.4 5 10a5 5 0 0 1-10 0c0-2.2 1.1-3.6 2.4-4.8.1 1.4.6 2.3 1.6 2.8C10.5 8.2 10.6 5.300 12 2.800Z" fill={fill(p)} />);
+export const ChevronRightIcon = (p: ShortsIconProps) => svg(p, <path d="m9 6 6 6-6 6" />);
