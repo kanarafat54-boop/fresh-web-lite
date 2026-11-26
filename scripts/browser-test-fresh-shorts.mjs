@@ -170,7 +170,7 @@ for (const width of WIDTHS) {
   await page.locator('[aria-label="Share this Short"] [aria-label="Close"]').click();
   // Report sheet must be a real overlay above the feed (it previously rendered inline, unpositioned).
   await page.locator('.fresh-flow-item button[aria-label="More actions"]').first().click();
-  await page.locator(".fresh-flow-advanced").getByRole("button", { name: /Report/ }).click();
+  await page.locator(".fresh-flow-advanced").getByRole("button", { name: /Report/ }).first().click();
   await page.locator('[aria-label="Report this Short"]').waitFor({ timeout: 5000 });
   const reportBox = await page.locator('[aria-label="Report this Short"]').boundingBox();
   check(Boolean(reportBox) && reportBox.x >= -1 && reportBox.x + reportBox.width <= width + 1, `${tag} Report sheet sits on screen above the feed`);
