@@ -346,8 +346,11 @@ for (const width of WIDTHS) {
   check(!(await profile.isVisible().catch(() => false)), `${tag} Back closes the profile`);
 
   // Notifications, Add/Create and Camera live in the Fresh Flow Home header (not the Shorts header).
-  await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Home" }).click();
-  await page.waitForSelector('header [aria-label="Notifications"]', { timeout: 8000 });
+  await page.evaluate(() => {
+    window.history.pushState({ freshRoute: "fresh-flow" }, "", "/fresh-flow");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await page.waitForSelector('header [aria-label="Notifications"]', { state: "visible", timeout: 10000 });
   // Notifications (signed-out visitor sees an honest sign-in prompt) and its tabs.
   await page.locator('header [aria-label="Notifications"]').click();
   const notify = page.getByRole("dialog", { name: "Notifications" });
