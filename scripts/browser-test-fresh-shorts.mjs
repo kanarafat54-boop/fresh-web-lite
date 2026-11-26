@@ -345,11 +345,13 @@ for (const width of WIDTHS) {
   await profile.getByRole("button", { name: "Back to Shorts" }).click();
   check(!(await profile.isVisible().catch(() => false)), `${tag} Back closes the profile`);
 
+  // Notifications, Add/Create and Camera live in the Fresh Flow Home header (not the Shorts header).
+  await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Home" }).click();
+  await page.waitForSelector('header [aria-label="Notifications"]', { timeout: 8000 });
   // Notifications (signed-out visitor sees an honest sign-in prompt) and its tabs.
-  await openHeaderMenu(page);
   await page.locator('header [aria-label="Notifications"]').click();
   const notify = page.getByRole("dialog", { name: "Notifications" });
-  check(await notify.isVisible(), `${tag} Notifications opens from the Shorts header`);
+  check(await notify.isVisible(), `${tag} Notifications opens from the Home header`);
   const nTabs = (await notify.locator(".shorts-notify-tabs button").allInnerTexts()).map((t) => t.trim());
   check(JSON.stringify(nTabs) === JSON.stringify(["All", "Reactions", "Comments", "Replies", "Mentions", "New followers", "Creator updates"]), `${tag} notification tabs follow the spec: All · Reactions · Comments · Replies · Mentions · New followers · Creator updates`);
   check((await notify.innerText()).includes("Sign in to see likes, comments and follows"), `${tag} signed-out visitor gets a sign-in prompt, not fake activity`);
@@ -357,7 +359,6 @@ for (const width of WIDTHS) {
   check(!(await notify.isVisible().catch(() => false)), `${tag} Notifications closes`);
 
   // Create Short (design screen 5): camera tools, Upload and Templates, close returns to the feed.
-  await openHeaderMenu(page);
   await page.locator('header [aria-label="Add or create a Short"]').click();
   const create = page.getByRole("dialog", { name: "Create Short" });
   await create.waitFor({ state: "visible", timeout: 8000 }).catch(() => undefined);
@@ -369,6 +370,8 @@ for (const width of WIDTHS) {
   check(await create.locator(".shorts-create-record").count() === 1, `${tag} Create Short has the record button`);
   await create.getByRole("button", { name: "Close" }).click();
   check(!(await create.isVisible().catch(() => false)), `${tag} Create Short closes back to the feed`);
+  await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Shorts" }).click();
+  await page.waitForSelector(".fresh-flow-item", { timeout: 8000 });
 
   // Comments sheet: verify viewport geometry, stacking, independent scrolling and keyboard dismissal.
   const commentsTrigger = page.locator('.fresh-flow-stream[data-discovery] [aria-label="Comments"]').first();
