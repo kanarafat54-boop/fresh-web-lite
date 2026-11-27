@@ -171,7 +171,8 @@
     "test:fresh-shorts-discovery-layout": "node scripts/test-fresh-shorts-discovery-layout.mjs",
     "test:fresh-shorts-shared-ui": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-shared-ui.mjs",
     "test:fresh-shorts-download-permission": "node --experimental-strip-types --no-warnings scripts/test-fresh-shorts-download-permission.mjs",
-    "test:fresh-shorts-collections": "node scripts/test-fresh-shorts-collections.mjs"
+    "test:fresh-shorts-collections": "node scripts/test-fresh-shorts-collections.mjs",
+    "test:fresh-comment-rich-content": "node --experimental-strip-types scripts/test-fresh-comment-rich-content.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",

@@ -188,3 +188,14 @@
 .fresh-comments .comment-edit-actions button{min-height:36px;padding:4px 12px;border:1px solid rgba(99,91,255,.3);border-radius:999px;background:rgba(99,91,255,.12);color:inherit;font:inherit;font-size:.78rem;font-weight:700}
 .fresh-comments .comment-edit-actions button:disabled{opacity:.5}
 .fresh-comments .comment-edit-form textarea:focus-visible,.fresh-comments .comment-edit-actions button:focus-visible{outline:2px solid #8d65ff;outline-offset:2px}
+
+/* Stickers, links and the fuller emoji tray. */
+.comment-sticker { margin: 4px 0; font-size: 3.4rem; line-height: 1.1; }
+.comment-link { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 2px 8px; border-radius: 999px; background: rgba(124, 92, 255, 0.18); color: #c9bfff; text-decoration: none; overflow-wrap: anywhere; }
+.comment-link:hover, .comment-link:focus-visible { text-decoration: underline; }
+.comment-emoji-tray, .comment-sticker-tray { display: grid; gap: 8px; max-height: 190px; padding: 8px 12px; overflow-y: auto; }
+.comment-emoji-group > small { display: block; margin-bottom: 4px; opacity: 0.7; font-weight: 700; }
+.comment-emoji-group > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.comment-sticker-tray { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.comment-sticker-pick { min-height: 48px; border: 0; border-radius: 14px; background: rgba(255, 255, 255, 0.07); font-size: 1.8rem; cursor: pointer; }
+.comment-sticker-pick:active { background: rgba(124, 92, 255, 0.35); }

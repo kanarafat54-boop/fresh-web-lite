@@ -10,6 +10,7 @@ import { announceInteraction } from "../../../core/interactions/FreshInteraction
 import { COMMENT_REACTIONS, applyReactionChoice, breakdownChips, emptySummary, isUnappliedReactionError, reactionDef, summarizeReactions, type ReactionSummary } from "../core/commentReactions";
 import type { UniversalCommentAttachment, InteractionMediaKind } from "../../../core/interactions/FreshReactionModel";
 import { rankRootsBySignal } from "../../../core/platform/commentSignalRanking";
+import { COMMENT_EMOJI_GROUPS, COMMENT_STICKERS, parseSticker, splitLinks, stickerToken } from "../core/commentRichContent";
 import { sortCommentRoots, mentionQueryAt, insertMention, splitMentions, type CommentSortMode } from "../core/commentTools";
 import { loadMutedCreators, setCreatorMuted } from "../../fresh-flow/core/shortsSafety";
 import { blockAccount, loadBlockedIds } from "../../fresh-flow/core/userBlocksService";
@@ -155,6 +156,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
   const [reactions, setReactions] = useState<Record<string, ReactionSummary>>({});
   const [pickerFor, setPickerFor] = useState<string | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [stickerOpen, setStickerOpen] = useState(false);
   const dragY = useRef<number | null>(null);
   const dragH = useRef(targetType === "short" ? 66 : SHEET_DEFAULT);
   const recorder = useRef<MediaRecorder | null>(null);
@@ -658,8 +660,9 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
     return { kind: inferKind(file), url: data.publicUrl, mimeType: file.type, altText: file.name };
   }
 
-  async function addComment() {
-    if (!user || isGuest || (!draft.trim() && !recordedBlob && !files.length)) return;
+  async function addComment(stickerId?: string) {
+    const text = stickerId ? stickerToken(stickerId) : draft.trim();
+    if (!user || isGuest || (!text && !recordedBlob && !files.length)) return;
     setPosting(true);
     setError(null);
     const uploadedPaths: string[] = [];
@@ -680,11 +683,13 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
         attachments,
         parent_id: replyingTo?.id ?? null,
         moderation_state: "visible",
+        ...(stickerId ? { content: stickerToken(stickerId) } : {}),
       };
       const { error: insertError } = await supabase.from(table).insert(payload);
       if (insertError) throw insertError;
       announceInteraction(replyingTo ? "Reply posted" : "Comment posted");
-      setDraft("");
+      if (!stickerId) setDraft("");
+      setStickerOpen(false);
       setReplyingTo(null);
       cancelMedia();
       setFiles([]);
@@ -769,7 +774,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
                       <button type="button" className="reply-btn" disabled={savingEdit} onClick={cancelEditComment}>Cancel</button>
                     </div>
                   </div>
-                ) : comment.content && <p className="comment-content">{splitMentions(comment.content).map((part, i) => part.mention ? <button key={i} type="button" className="comment-mention" onClick={() => { const known = mentionIds.get(part.mention!.toLowerCase()); if (known) openProfile(known); }}>{part.text}</button> : <span key={i}>{part.text}</span>)}</p>}
+                ) : parseSticker(comment.content) ? <p className="comment-sticker" role="img" aria-label={`Sticker: ${parseSticker(comment.content)!.label}`}><span aria-hidden="true">{parseSticker(comment.content)!.glyph}</span></p> : comment.content && <p className="comment-content">{splitMentions(comment.content).map((part, i) => part.mention ? <button key={i} type="button" className="comment-mention" onClick={() => { const known = mentionIds.get(part.mention!.toLowerCase()); if (known) openProfile(known); }}>{part.text}</button> : splitLinks(part.text).map((piece, j) => piece.href ? <a key={`${i}-${j}`} className="comment-link" href={piece.href} target="_blank" rel="noopener noreferrer nofollow ugc"><span aria-hidden="true">🔗</span> {piece.text.length > 42 ? `${piece.host}/…` : piece.text}</a> : <span key={`${i}-${j}`}>{piece.text}</span>))}</p>}
                 {comment.attachments.map((attachment, index) => {
                   if (attachment.kind === "video") return <video key={index} controls src={attachment.url} className="comment-video-player" />;
                   if (attachment.kind === "audio") return <audio key={index} controls src={attachment.url} className="comment-audio-player" />;
@@ -896,7 +901,9 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
         </div>}
         {!isGuest && user ? <>
           {mentionHits.length > 0 && <div className="quick-reaction-row" role="listbox" aria-label="Mention suggestions">{mentionHits.map((hit) => <button key={hit.username} type="button" role="option" aria-selected="false" className="quick-reaction-chip" onClick={() => { setDraft((value) => insertMention(value, hit.username)); setMentionHits([]); }}>@{hit.username}</button>)}</div>}
-          {emojiOpen && <div className="quick-reaction-row">{QUICK_REACTIONS.map((reaction) => <button key={reaction} className="quick-reaction-chip" onClick={() => setDraft((value) => value + reaction)} aria-label={`Add ${reaction}`}>{reaction}</button>)}</div>}
+          {emojiOpen && <div className="comment-emoji-tray" role="group" aria-label="Emoji">{COMMENT_EMOJI_GROUPS.map((group) => <div key={group.label} className="comment-emoji-group"><small>{group.label}</small><div>{group.emoji.map((reaction) => <button key={reaction} type="button" className="quick-reaction-chip" onClick={() => setDraft((value) => value + reaction)} aria-label={`Add ${reaction}`}>{reaction}</button>)}</div></div>)}</div>}
+          {stickerOpen && <div className="comment-sticker-tray" role="group" aria-label="Stickers">{COMMENT_STICKERS.map((sticker) => <button key={sticker.id} type="button" className="comment-sticker-pick" disabled={posting} onClick={() => void addComment(sticker.id)} aria-label={`Send sticker: ${sticker.label}`}>{sticker.glyph}</button>)}</div>}
+          {false && <div className="quick-reaction-row">{QUICK_REACTIONS.map((reaction) => <button key={reaction} className="quick-reaction-chip" onClick={() => setDraft((value) => value + reaction)} aria-label={`Add ${reaction}`}>{reaction}</button>)}</div>}
           <div className="comment-composer">
             <div className="comment-input-row">
               <div className="comment-composer-avatar" role="img" aria-label={`${currentUserName}'s avatar`}>
@@ -914,10 +921,11 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
                 onInput={(event) => { const target = event.currentTarget; target.style.height = "72px"; target.style.height = `${Math.min(target.scrollHeight, 120)}px`; }}
                 onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void addComment(); } }}
               />
-              <button type="button" className="icon-only-btn" onClick={() => setEmojiOpen((open) => !open)} aria-label="Emoji" aria-pressed={emojiOpen}>☺</button>
+              <button type="button" className="icon-only-btn" onClick={() => { setEmojiOpen((open) => !open); setStickerOpen(false); }} aria-label="Emoji" aria-pressed={emojiOpen}>☺</button>
               <button type="button" className="comment-send" onClick={() => void addComment()} disabled={posting} aria-label={posting ? "Posting" : "Send comment"}>{posting ? "…" : <SendIcon size={16} />}</button>
             </div>
             <div className="comment-tools-row" role="group" aria-label="Comment attachments and recording">
+              <button type="button" className="icon-only-btn" onClick={() => { setStickerOpen((open) => !open); setEmojiOpen(false); }} aria-label="Stickers" aria-pressed={stickerOpen}>✦</button>
               <button type="button" className="icon-only-btn" onClick={() => void startRecording("audio")} aria-label="Record audio"><MicIcon size={18} /></button>
               <button type="button" className="icon-only-btn" onClick={() => void startRecording("video")} aria-label="Record video"><VideoCameraIcon size={18} /></button>
               <button type="button" className="icon-only-btn" onClick={() => imageInputRef.current?.click()} aria-label="Attach an image">▧</button>
