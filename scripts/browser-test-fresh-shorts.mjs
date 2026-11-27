@@ -221,6 +221,8 @@ for (const width of WIDTHS) {
   check(Boolean(switchBox) && switchBox.x >= 0 && switchBox.x + switchBox.width <= width + 0.5, `${tag} Flow Switch remains reachable from the Shorts More menu`);
   await page.locator('header [aria-label="More Fresh Shorts options"]').click();
   check(await page.locator("header .fresh-flow-header-more-list.open").count() === 0, `${tag} header menu closes again`);
+  // The bar slides away while the feed scrolls and returns 700ms after it stops, so wait for "idle".
+  await page.locator("nav.fresh-flow-bottom-nav").waitFor({ state: "visible", timeout: 4000 }).catch(() => undefined);
   check(await page.locator("nav.fresh-flow-bottom-nav").isVisible(), `${tag} bottom navigation visible on Shorts when idle`);
 
   // Exactly one video playing.
