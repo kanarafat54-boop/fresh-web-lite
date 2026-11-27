@@ -432,3 +432,35 @@
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-meta .fresh-flow-caption-toggle { margin: 0 0 2px; min-height: 0; padding: 0; }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-meta .fresh-flow-tags { gap: 6px; margin: 0; }
 }
+
+/* More actions section headings are toggles (a chevron shows open or closed). */
+.fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-advanced > button.fresh-flow-advanced-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 36px;
+  margin: 8px 0 0;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #a5a1ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+.fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-advanced > button.fresh-flow-advanced-heading::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-right: 4px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+}
+.fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-advanced > button.fresh-flow-advanced-heading[aria-expanded="false"]::after { transform: rotate(-45deg); }
+.fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-advanced > button.fresh-flow-advanced-heading:focus-visible { outline: 2px solid #9b82ff; outline-offset: 1px; }

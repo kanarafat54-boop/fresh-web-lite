@@ -26,7 +26,7 @@ for (const label of labels) assert.ok(menu.includes(label), `menu still offers "
 
 // Headings, in order, with the right controls beneath each.
 const headings = ["Support and explore", "Playback and captions", "About this Short", "Your library and privacy", "Moderation", "Your Short", "Create from this Short", "Your feed and safety"];
-const at = (text) => { const index = menu.indexOf(`fresh-flow-advanced-heading">${text}<`); assert.ok(index >= 0, `heading "${text}" exists`); return index; };
+const at = (text) => { const index = menu.indexOf(`sectionHeading(`) >= 0 ? menu.indexOf(`", "${text}")`) : -1; assert.ok(index >= 0, `heading "${text}" exists`); return index; };
 const positions = headings.map(at);
 assert.deepEqual([...positions].sort((a, b) => a - b), positions, "headings appear in the intended order");
 const under = (heading, label, next) => {
@@ -49,14 +49,14 @@ under("Your feed and safety", "Not interested");
 under("Your feed and safety", "Block @");
 
 // Signed-in-only and reviewer-only headings must not show for people who cannot use the controls beneath them.
-assert.match(menu, /\{user && !isGuest \? <p className="fresh-flow-advanced-heading">Your library and privacy<\/p> : null\}/);
-assert.match(menu, /\{user && !isGuest && isReviewer\(user\.role\) \? <p className="fresh-flow-advanced-heading">Moderation<\/p> : null\}/);
+assert.match(menu, /\{user && !isGuest \? sectionHeading\("library", "Your library and privacy"\) : null\}/);
+assert.match(menu, /\{user && !isGuest && isReviewer\(user\.role\) \? sectionHeading\("moderation", "Moderation"\) : null\}/);
 
 // Headings are labels: styled, and not styled as the button rows.
 assert.match(css, /\.fresh-flow-advanced-heading\s*\{[^}]*text-transform: uppercase/);
 // Quick actions grid (the "More Actions" card in the UI references): six tiles that reuse existing handlers.
 const qStart = menu.indexOf('className="fresh-flow-quick-actions"');
-assert.ok(qStart >= 0 && qStart < menu.indexOf('fresh-flow-advanced-heading">Support and explore<'), "Quick actions sit at the top of the More menu");
+assert.ok(qStart >= 0 && qStart < menu.indexOf('sectionHeading("support", "Support and explore")'), "Quick actions sit at the top of the More menu");
 const quick = menu.slice(qStart, menu.indexOf("</div>", qStart));
 assert.equal((quick.match(/<button/g) ?? []).length, 6, "six Quick action tiles");
 for (const [label, handler] of [["Download", "downloadShort(short)"], ["Remix", 'openAdvanced("remix", short)'], ["Add to Collection", "setCollectionShortId(short.id)"], ["Use Sound", 'setTopicPage({ kind: "sound"'], ["Follow Creator", "handleFollow(short)"], ["Report", "setReportTarget(short)"]]) {
@@ -102,4 +102,15 @@ console.log("Shorts More menu grouping: PASS");
   for (const [name, ok] of checks) {
     if (!ok) { console.error(`FAIL rail: ${name}`); process.exitCode = 1; } else console.log(`ok rail: ${name}`);
   }
+}
+
+// Sections are collapsible: everyday ones open, the long tail collapsed, nothing removed.
+{
+  const stream = (await import("node:fs")).readFileSync("src/features/fresh-flow/components/FreshFlowShortsStream.tsx", "utf8");
+  const checks = [
+    ["collapsed by default: about, library, moderation, create, safety", /new Set\(\["about", "library", "moderation", "create", "safety"\]\)/.test(stream)],
+    ["headings are accessible toggles", /aria-expanded=\{sectionOpen\(id\)\}[\s\S]{0,260}className="fresh-flow-advanced-heading"/.test(stream)],
+    ["every heading is a toggle", (stream.match(/sectionHeading\("/g) ?? []).length === 8],
+  ];
+  for (const [name, ok] of checks) { if (!ok) { console.error(`FAIL sections: ${name}`); process.exitCode = 1; } else console.log(`ok sections: ${name}`); }
 }

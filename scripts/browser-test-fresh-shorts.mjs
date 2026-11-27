@@ -75,13 +75,22 @@ const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gestur
 const WIDTHS = [320, 360, 390, 430];
 // On phones, the Shorts header More menu exposes the Flow Switch; Home-only creator controls stay on Home.
 // More actions opens by pressing and holding the video (the rail has no More button any more).
-async function holdOpenMore(page, itemLocator) {
+async function holdOpenMore(page, itemLocator, expandAll = true) {
   const box = await itemLocator.locator(".fresh-flow-tap-layer").boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.3);
   await page.mouse.down();
   await page.waitForTimeout(750);
   await page.mouse.up();
   await page.locator(".fresh-flow-advanced").first().waitFor({ state: "visible", timeout: 5000 });
+  if (expandAll) await expandMoreSections(page);
+}
+// The long-tail sections start collapsed; open them all so every control can be checked.
+async function expandMoreSections(page) {
+  for (let i = 0; i < 10; i += 1) {
+    const closed = page.locator('.fresh-flow-advanced button.fresh-flow-advanced-heading[aria-expanded="false"]').first();
+    if (!(await closed.count())) break;
+    await closed.click();
+  }
 }
 
 async function openHeaderMenu(page) {
@@ -181,8 +190,11 @@ for (const width of WIDTHS) {
   check(shareText.includes("Fresh Messages") && shareText.includes("Copy link") && /Fresh Mail.*service connection needed/i.test(shareText), `${tag} Share panel offers Messages and Copy link and labels Fresh Mail honestly`);
   await page.locator('[aria-label="Share this Short"] [aria-label="Close"]').click();
   // Report sheet must be a real overlay above the feed (it previously rendered inline, unpositioned).
-  await holdOpenMore(page, page.locator(".fresh-flow-item").first());
+  await holdOpenMore(page, page.locator(".fresh-flow-item").first(), false);
   check(await page.locator(".fresh-flow-advanced").first().isVisible(), `${tag} press-and-hold opens More actions`);
+  check((await page.locator(".fresh-flow-advanced").getByRole("button", { name: /Not interested/ }).count()) === 0, `${tag} More starts compact (feed and safety collapsed)`);
+  await expandMoreSections(page);
+  check((await page.locator(".fresh-flow-advanced").getByRole("button", { name: /Not interested/ }).count()) === 1, `${tag} section headings expand to the full list`);
   check((await page.locator(".fresh-flow-item").first().locator(".fresh-flow-sound-disc").count()) === 1 && (await page.locator(".fresh-flow-item").first().locator('button[aria-label="More actions"]').count()) === 1, `${tag} rail ends with the sound disc and keeps a keyboard-only More button`);
   await page.locator(".fresh-flow-advanced").getByRole("button", { name: /Report/ }).first().click();
   await page.locator('[aria-label="Report this Short"]').waitFor({ timeout: 5000 });
