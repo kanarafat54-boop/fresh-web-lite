@@ -2,9 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import {
   addShortToCollection,
   createShortCollection,
+  loadCollectionCovers,
   loadMyShortCollections,
+  loadSharedCollections,
   type FreshShortPlaylist,
 } from "../core/shortsPlaylists";
+import ShortThumbnail from "./ShortThumbnail";
+import { GlobeIcon, LockIcon } from "./shortsIcons";
 import "./shortsContextPanel.css";
 
 type Props = { userId: string; shortId: string; onClose: () => void };
@@ -18,14 +22,18 @@ export default function ShortsCollectionsSheet({ userId, shortId, onClose }: Pro
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [tab, setTab] = useState<"mine" | "shared">("mine");
+  const [covers, setCovers] = useState<Record<string, string>>({});
+  const [shared, setShared] = useState<{ available: boolean; collections: FreshShortPlaylist[] } | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     closeRef.current?.focus();
     let cancelled = false;
     loadMyShortCollections(userId)
-      .then((rows) => { if (!cancelled) setCollections(rows); })
+      .then((rows) => { if (!cancelled) { setCollections(rows); void loadCollectionCovers(rows).then((found) => { if (!cancelled) setCovers(found); }); } })
       .catch((cause) => { if (!cancelled) setError(cause instanceof Error ? cause.message : "Your collections could not be loaded."); });
+    void loadSharedCollections(userId).then((result) => { if (!cancelled) setShared(result); });
     const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
     return () => { cancelled = true; window.removeEventListener("keydown", onKey); };
@@ -69,7 +77,23 @@ export default function ShortsCollectionsSheet({ userId, shortId, onClose }: Pro
           <button ref={closeRef} type="button" className="shorts-sheet-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
         <p className="shorts-why-note">Organize this Short in a collection you own. Private collections are only visible to you; public collections can appear on your creator profile.</p>
-        <form className="shorts-collection-create" onSubmit={(event) => void createCollection(event)}>
+        <div className="shorts-collection-tabs" role="tablist" aria-label="Collections">
+          <button type="button" role="tab" aria-selected={tab === "mine"} className={tab === "mine" ? "active" : ""} onClick={() => setTab("mine")}>My Collections</button>
+          <button type="button" role="tab" aria-selected={tab === "shared"} className={tab === "shared" ? "active" : ""} onClick={() => setTab("shared")}>Shared with you{shared?.collections.length ? ` (${shared.collections.length})` : ""}</button>
+        </div>
+        {tab === "shared" ? (
+          shared === null ? <p>Loading…</p>
+          : !shared.available ? <p className="shorts-collection-empty">Shared collections are not switched on yet. When they are, collections friends share with you will show here.</p>
+          : shared.collections.length === 0 ? <p className="shorts-collection-empty">Nothing has been shared with you yet.</p>
+          : (
+            <ul className="shorts-collection-list shorts-collection-grid">
+              {shared.collections.map((collection) => (
+                <li key={collection.id}><div><strong>{collection.title}</strong><span>{collection.shortIds.length} {collection.shortIds.length === 1 ? "Short" : "Shorts"}</span></div></li>
+              ))}
+            </ul>
+          )
+        ) : null}
+        <form hidden={tab !== "mine"} className="shorts-collection-create" onSubmit={(event) => void createCollection(event)}>
           <label>Collection name
             <input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={80} required placeholder="e.g. Learn & Grow" />
           </label>
@@ -84,11 +108,11 @@ export default function ShortsCollectionsSheet({ userId, shortId, onClose }: Pro
           </label>
           <button type="submit" disabled={busy || !title.trim()}>{busy ? "Saving…" : "Create collection and add Short"}</button>
         </form>
-        <h4>Your collections</h4>
+        <h4 hidden={tab !== "mine"}>Your collections</h4>
         {error ? <p role="alert">{error}</p> : null}
         {collections === null && !error ? <p>Loading collections…</p> : null}
         {collections?.length === 0 ? <p>You have no collections yet. Create one above.</p> : null}
-        {collections?.length ? (
+        {tab === "mine" && collections?.length ? (
           <div className="shorts-collection-groups">
             {(["public", "private"] as const).map((group) => {
               const groupCollections = collections.filter((collection) => collection.visibility === group);
@@ -103,9 +127,10 @@ export default function ShortsCollectionsSheet({ userId, shortId, onClose }: Pro
                   <ul className="shorts-collection-list">
                     {groupCollections.map((collection) => (
                       <li key={collection.id} data-visibility={collection.visibility}>
+                        {covers[collection.id] ? <ShortThumbnail videoUrl={covers[collection.id]} showDuration={false} className="shorts-collection-cover" /> : <span className="shorts-collection-cover shorts-collection-cover-empty" aria-hidden="true">{collection.visibility === "public" ? <GlobeIcon size={20} /> : <LockIcon size={20} />}</span>}
                         <div>
                           <strong>{collection.title}</strong>
-                          <span>{collection.shortIds.length} {collection.shortIds.length === 1 ? "Short" : "Shorts"}</span>
+                          <span>{collection.visibility === "public" ? <GlobeIcon size={13} /> : <LockIcon size={13} />} {collection.visibility === "public" ? "Public" : "Private"} · {collection.shortIds.length} {collection.shortIds.length === 1 ? "Short" : "Shorts"}</span>
                         </div>
                         <button type="button" disabled={busy || collection.shortIds.includes(shortId)} onClick={() => void addToCollection(collection)}>
                           {collection.shortIds.includes(shortId) ? "Added" : "Add"}
@@ -119,6 +144,7 @@ export default function ShortsCollectionsSheet({ userId, shortId, onClose }: Pro
           </div>
         ) : null}
         {notice ? <p role="status">{notice}</p> : null}
+        <aside className="shorts-collection-promo"><strong>Create. Share. Learn.</strong><span>Group Shorts by topic, keep them private or show them on your profile.</span></aside>
       </section>
     </div>
   );

@@ -147,3 +147,16 @@
 .shorts-history-list .shorts-history-link { display: flex; flex-direction: column; gap: 6px; }
 .shorts-history-list .shorts-history-link .short-thumb { width: 100%; aspect-ratio: 9 / 14; height: auto; border-radius: 14px; }
 .shorts-history-list .shorts-history-row > button[aria-label="Remove from watch history"] { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; border-radius: 50%; background: rgba(0, 0, 0, 0.6); }
+
+/* Collections: tabs, covers, lock/globe, promo card. */
+.shorts-collection-tabs { display: flex; gap: 6px; margin: 10px 0 4px; padding: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.06); }
+.shorts-collection-tabs button { flex: 1; min-height: 38px; border: 0; border-radius: 999px; background: transparent; color: rgba(255, 255, 255, 0.75); font: inherit; font-weight: 700; }
+.shorts-collection-tabs button.active { background: var(--shorts-accent, #7c5cff); color: #fff; }
+.shorts-collection-empty { padding: 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.75); }
+.shorts-collection-list li { align-items: center; }
+.shorts-collection-list li > .shorts-collection-cover { flex: 0 0 56px; width: 56px; height: 72px; border-radius: 12px; }
+.shorts-collection-cover-empty { display: grid; place-items: center; background: rgba(124, 92, 255, 0.2); color: #cfc6ff; }
+.shorts-collection-list li > div { flex: 1 1 auto; }
+.shorts-collection-list li span svg { vertical-align: -2px; }
+.shorts-collection-promo { display: grid; gap: 4px; margin-top: 16px; padding: 14px; border-radius: 16px; background: linear-gradient(120deg, rgba(124, 92, 255, 0.35), rgba(32, 150, 255, 0.2)); }
+.shorts-collection-promo span { font-size: 0.82rem; opacity: 0.85; }

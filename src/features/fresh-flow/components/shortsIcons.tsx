@@ -103,3 +103,5 @@ export const PaperclipIcon = (p: ShortsIconProps) => svg(p, <path d="m20 11.5-8.
 export const GalleryIcon = (p: ShortsIconProps) => svg(p, <><rect x="3" y="4" width="18" height="16" rx="3" /><circle cx="9" cy="10" r="1.6" /><path d="m21 16-5-5-9 9" /></>);
 export const ThumbUpIcon = ({ filled, ...p }: ShortsIconProps) => svg(p, <path d="M7 10v10H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1Zm0 0 4-7a2 2 0 0 1 3 1.7L13.4 9H19a2 2 0 0 1 2 2.4l-1.3 7A2 2 0 0 1 17.7 20H7" fill={filled ? "currentColor" : "none"} />);
 export const ThumbDownIcon = ({ filled, ...p }: ShortsIconProps) => svg(p, <path d="M17 14V4h3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1Zm0 0-4 7a2 2 0 0 1-3-1.7L10.6 15H5a2 2 0 0 1-2-2.4l1.3-7A2 2 0 0 1 6.3 4H17" fill={filled ? "currentColor" : "none"} />);
+export const LockIcon = (p: ShortsIconProps) => svg(p, <><rect x="5" y="11" width="14" height="9" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></>);
+export const GlobeIcon = (p: ShortsIconProps) => svg(p, <><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></>);
