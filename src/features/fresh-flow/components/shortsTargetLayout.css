@@ -26,7 +26,7 @@
     --st-strip-bottom: 14px;
     --st-strip-h: 42px;
     --st-rail-bottom: calc(var(--st-strip-bottom) + var(--st-strip-h) + 10px);
-    --st-pill-bg: rgba(46, 34, 104, 0.66);
+    --st-pill-bg: rgba(18, 12, 48, 0.55);
     --st-pill-border: rgba(155, 130, 255, 0.28);
     background: radial-gradient(120% 55% at 50% 0%, #1b1256 0%, #0a0830 42%, #07071a 100%);
   }
@@ -158,13 +158,23 @@
   }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-tabs-primary .fresh-flow-filter-toggle svg { display: block; }
 
-  /* ---- The player: an inset rounded card between the chips and the bottom navigation ---------- */
+  /* ---- The player: full-bleed video behind the header and chips (TikTok style), above the bottom navigation ---------- */
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-viewport {
-    inset: var(--st-canvas-top) 0 var(--st-canvas-bottom) 0;
-    border-radius: 18px 18px 0 0;
+    inset: 0 0 var(--st-canvas-bottom) 0;
+    border-radius: 0;
     isolation: isolate;
     background: #000;
     box-shadow: none;
+  }
+  /* Header, chips and a soft top scrim float over the video. */
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery]::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: calc(var(--st-canvas-top) + 24px);
+    z-index: 5;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.28) 62%, rgba(0, 0, 0, 0) 100%);
   }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-item { border: 0; border-radius: 0; box-shadow: none; }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-viewport .fresh-flow-empty {

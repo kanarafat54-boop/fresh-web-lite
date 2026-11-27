@@ -141,7 +141,7 @@ for (const width of WIDTHS) {
   check(geo.vpScroll >= geo.vpH * 3 - 2, `${tag} viewport holds three full-height pages (${geo.vpScroll}/${geo.vpH})`);
   check(geo.streamOverflow <= 1, `${tag} outer stream does not scroll (single scroll container)`);
   check(Math.abs(geo.itemH - geo.vpH) <= 1, `${tag} each Short fills the viewport height (${geo.itemH} vs ${geo.vpH})`);
-  check(geo.itemW <= geo.vw + 1 && geo.itemW >= geo.vw - 24, `${tag} each Short fills the width (inset card, at most 24px of margin)`);
+  check(Math.abs(geo.itemW - geo.vw) <= 1, `${tag} each Short is full width`);
   check(geo.radius === "0px" && geo.border === "0px", `${tag} Shorts are full-bleed (no card border/radius)`);
   check(/y\s+mandatory/.test(geo.snap), `${tag} vertical mandatory snap`);
   const rail = await page.evaluate(() => {
