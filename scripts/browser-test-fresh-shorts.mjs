@@ -283,6 +283,11 @@ for (const width of WIDTHS) {
   check(contextCheckRequests === 1, `${tag} viewer action sends exactly one evidence request`);
   const contextLinks = contextPanel.locator(".shorts-context-sources a");
   check((await contextLinks.count()) === 3, `${tag} Context panel renders the three returned HTTP(S) sources`);
+  const fullBtn = contextPanel.getByRole("button", { name: "View full sources" });
+  if (await fullBtn.count()) {
+    await fullBtn.click();
+    check(await contextPanel.getByRole("button", { name: "Hide full sources" }).isVisible(), `${tag} View full sources expands and can be hidden again`);
+  }
   const firstSource = contextLinks.first();
   check((await firstSource.getAttribute("href"))?.startsWith("https://") && (await firstSource.getAttribute("rel"))?.includes("noopener"), `${tag} source links are HTTPS and use safe new-tab rel attributes`);
   await contextPanel.getByRole("button", { name: "Close" }).click();

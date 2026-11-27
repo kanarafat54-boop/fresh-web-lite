@@ -160,3 +160,12 @@
 .shorts-collection-list li span svg { vertical-align: -2px; }
 .shorts-collection-promo { display: grid; gap: 4px; margin-top: 16px; padding: 14px; border-radius: 16px; background: linear-gradient(120deg, rgba(124, 92, 255, 0.35), rgba(32, 150, 255, 0.2)); }
 .shorts-collection-promo span { font-size: 0.82rem; opacity: 0.85; }
+
+/* Sources as pill chips (the host is the link); "View full sources" adds the snippets. */
+.shorts-context-sources.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.shorts-context-sources.chips li { display: inline-flex; }
+.shorts-context-sources.chips a,
+.shorts-context-sources.chips span {
+  display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border-radius: 999px;
+  border: 1px solid rgba(155, 130, 255, 0.35); background: rgba(46, 34, 104, 0.6); color: #fff; font-size: 0.85rem; text-decoration: none;
+}
