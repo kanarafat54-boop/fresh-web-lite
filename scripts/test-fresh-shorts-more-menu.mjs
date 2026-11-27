@@ -59,7 +59,7 @@ const qStart = menu.indexOf('className="fresh-flow-quick-actions"');
 assert.ok(qStart >= 0 && qStart < menu.indexOf('sectionHeading("support", "Support and explore")'), "Quick actions sit at the top of the More menu");
 const quick = menu.slice(qStart, menu.indexOf("</div>", qStart));
 assert.equal((quick.match(/<button/g) ?? []).length, 7, "six Quick action tiles plus the creator-only Your Short tile");
-assert.match(quick, /short\.authorId === user\.id \? \(\s*<button[^>]*setYourShortId\(short\.id\)/, "Your Short tile is creator-only and opens the existing controls sheet");
+assert.match(quick, /short\.authorId === user\.id \? \(\s*<button[\s\S]{0,120}setYourShortId\(short\.id\)/, "Your Short tile is creator-only and opens the existing controls sheet");
 for (const [label, handler] of [["Download", "downloadShort(short)"], ["Remix", 'openAdvanced("remix", short)'], ["Add to Collection", "setCollectionShortId(short.id)"], ["Use Sound", 'setTopicPage({ kind: "sound"'], ["Follow Creator", "handleFollow(short)"], ["Report", "setReportTarget(short)"]]) {
   assert.ok(quick.includes(`<span>${label}</span>`), `Quick action "${label}" exists`);
   assert.ok(quick.includes(handler), `"${label}" reuses the existing handler ${handler}`);
