@@ -598,3 +598,15 @@ This section supersedes the earlier D-grade comment-editing entries above.
 - The connected production `public.short_comments` table still has no `updated_at` column or UPDATE policy because this migration has not been applied.
 - No production schema, row, RLS policy, storage bucket or deployment configuration was changed.
 - Apply this migration only through the normal reviewed migration release, coordinated before exposing the Edit UI in production. PR #326 remains open and unmerged.
+
+## Player interaction update (PR 330)
+
+| Area | State | Grade |
+| --- | --- | --- |
+| More actions: open by press-and-hold or triple tap (keyboard-only More button kept) | Shipped; CI browser test covers hold; not checked by hand on a device | B |
+| More actions sections (Support, Playback open; About, Library, Moderation, Create, Safety collapsed) | Shipped; every control kept; contract + browser tests | B |
+| Rail: Like, Comment, Share, Save, Repost, Remix, sound disc; Download only in More / when creator allows | Shipped; CI-tested | B |
+| Follow as a + badge on the creator photo | Shipped; tap target is small, needs a phone check | C |
+| Fresh Context: sources as chips, View full sources | Shipped; evidence check still runs only on request | B |
+| Watch History (toggle, clear, remove, list) | Already existed; unchanged | B |
+| Your Short tile in Quick actions (own Shorts) | Shipped; opens the existing controls sheet | B |
