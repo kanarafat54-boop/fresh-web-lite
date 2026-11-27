@@ -18,10 +18,10 @@
   .fresh-flow-hub.fresh-flow-shorts-fullscreen {
     --st-safe-top: 0px; /* the page has no viewport-fit=cover, so the browser already keeps content below its own bar; adding env() here left an empty band */
     --st-safe-bottom: env(safe-area-inset-bottom, 0px);
-    --st-header-h: 46px;
-    --st-chip-h: 36px;
+    --st-header-h: 38px;
+    --st-chip-h: 28px;
     --st-chips-top: calc(var(--st-safe-top) + var(--st-header-h));
-    --st-canvas-top: calc(var(--st-chips-top) + (var(--st-chip-h) * 2) + 16px);
+    --st-canvas-top: calc(var(--st-chips-top) + (var(--st-chip-h) * 2) + 12px);
     --st-canvas-bottom: calc(64px + var(--st-safe-bottom));
     --st-strip-bottom: 14px;
     --st-strip-h: 42px;
@@ -49,15 +49,15 @@
     gap: 8px;
     flex: 0 1 auto;
     min-width: 0;
-    min-height: 40px;
+    min-height: 34px;
     pointer-events: auto;
   }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-shorts-brand .fresh-shorts-mark {
     display: grid;
     place-items: center;
-    width: 32px;
-    height: 32px;
-    flex: 0 0 32px;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
     border-radius: 0;
     background: none;
     color: #8466ff;
@@ -72,7 +72,7 @@
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-shorts-brand .fresh-flow-brand-wordmark strong {
     display: block;
     overflow: visible;
-    font-size: 1.4rem;
+    font-size: 1.1rem;
     font-style: italic;
     font-weight: 800;
     letter-spacing: -0.03em;
@@ -93,9 +93,9 @@
     pointer-events: auto;
   }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-shorts-header .fresh-flow-header-actions > .fresh-flow-search-icon-button {
-    width: 40px;
-    height: 40px;
-    flex: 0 0 40px;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
     border: 0;
     border-radius: 50%;
     background: transparent;
@@ -103,7 +103,7 @@
     color: #fff;
   }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-shorts-header .fresh-flow-header-more-list {
-    top: calc(var(--st-safe-top) + 44px);
+    top: calc(var(--st-safe-top) + 38px);
     right: 10px;
   }
 
@@ -127,15 +127,15 @@
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-tabs button {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: 5px;
     min-height: var(--st-chip-h);
     height: var(--st-chip-h);
-    padding: 0 16px;
+    padding: 0 12px;
     border: 1px solid var(--st-pill-border);
     border-radius: 999px;
     background: var(--st-pill-bg);
     color: #fff;
-    font-size: 0.92rem;
+    font-size: 0.8rem;
     font-weight: 700;
     text-shadow: none;
     box-shadow: none;
