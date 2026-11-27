@@ -1,6 +1,6 @@
 -- Fresh Shorts: shared collections.
 -- Additive only: one new table with its own RLS. No existing table, policy or data is changed.
--- NOT applied to the live project until the owner authorizes it.
+-- Applied to the Fresh Web Lite project on 2026-11-27.
 --
 -- Rollback: drop table if exists public.fresh_short_collection_members;
 

@@ -6,6 +6,7 @@ import ShortsWhySheet from "./ShortsWhySheet";
 import ShortsPredictionSheet from "./ShortsPredictionSheet";
 import ShortsHistorySheet from "./ShortsHistorySheet";
 import ShortsInfoStrip from "./ShortsInfoStrip";
+import ShortsYourShortSheet from "./ShortsYourShortSheet";
 import ShortsSavedSheet from "./ShortsSavedSheet";
 import ShortsCollectionsSheet from "./ShortsCollectionsSheet";
 import type { WhyInput } from "../core/shortsWhy";
@@ -186,6 +187,7 @@ export default function FreshFlowShortsStream({
   const [privacy, setPrivacy] = useState<ShortsPrivacySettings>({ ...DEFAULT_PRIVACY });
   const [savedOpen, setSavedOpen] = useState(false);
   const [collectionShortId, setCollectionShortId] = useState<string | null>(null);
+  const [yourShortId, setYourShortId] = useState<string | null>(null);
   const [blockSheet, setBlockSheet] = useState<{ target: { id: string; name: string } | null } | null>(null);
   const quiet = useQuietBreak(privacy, Boolean(user && !isGuest));
   useEffect(() => {
@@ -1117,6 +1119,10 @@ export default function FreshFlowShortsStream({
         </div>
       ) : null}
       {historyOpen && user && !isGuest ? <ShortsHistorySheet userId={user.id} historyEnabled={watchHistoryEnabled} onHistoryEnabledChange={changeWatchHistory} onClose={() => setHistoryOpen(false)} /> : null}
+      {yourShortId && user && !isGuest ? (() => {
+        const mine = shorts.find((item) => item.id === yourShortId && item.authorId === user.id);
+        return mine ? <ShortsYourShortSheet userId={user.id} shortId={mine.id} videoUrl={mine.videoUrl} caption={mine.caption ?? ""} viewCount={mine.viewCount ?? 0} allowDownload={Boolean(mine.allowDownload)} onToggleDownload={() => void changeShortDownloadPermission(mine)} onAddToCollection={() => { setYourShortId(null); setCollectionShortId(mine.id); }} onClose={() => setYourShortId(null)} /> : null;
+      })() : null}
       {collectionShortId && user && !isGuest ? <ShortsCollectionsSheet userId={user.id} shortId={collectionShortId} onClose={() => setCollectionShortId(null)} /> : null}
       {provenanceShortId && shorts.find((item) => item.id === provenanceShortId) ? (() => {
         const target = shorts.find((item) => item.id === provenanceShortId)!;
@@ -1394,6 +1400,9 @@ export default function FreshFlowShortsStream({
                     {user && !isGuest && short.authorId === user.id ? (
                       <>
                         <p className="fresh-flow-advanced-heading">Your Short</p>
+                        <button type="button" onClick={() => { setAdvancedOpen(false); setYourShortId(short.id); }} title="Who can watch, downloads and collections for this Short">
+                          <span className="fresh-flow-menu-icon"><ShortsIcons.ManageIcon size={18} /></span> Your Short controls
+                        </button>
                         <button type="button" onClick={() => { setAdvancedOpen(false); void changeCommentsMode(short.id, "everyone"); }}>
                           <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Comments here: everyone
                         </button>

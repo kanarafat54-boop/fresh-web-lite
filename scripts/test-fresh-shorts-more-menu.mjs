@@ -11,7 +11,7 @@ const end = stream.indexOf("\n                  </div>\n                )}", sta
 const menu = stream.slice(start, end);
 
 // Preservation: all 30 original controls remain, plus Add to collection and the creator download-permission control (32 buttons total).
-assert.equal((menu.match(/<button/g) ?? []).length, 38, "the More menu keeps all 32 original controls and adds 6 Quick action tiles");
+assert.equal((menu.match(/<button/g) ?? []).length, 39, "the More menu keeps all 32 original controls, adds 6 Quick action tiles and the creator-only Your Short controls entry");
 assert.equal((menu.match(/ADVANCED_ACTIONS\.map/g) ?? []).length, 1, "Quote, Remix, Duet, Collaborate, Edit tools, Captions and Effects remain");
 assert.equal((menu.match(/<div/g) ?? []).length, 1, "the only wrapper is the Quick actions grid; every other row stays a direct child of the menu");
 

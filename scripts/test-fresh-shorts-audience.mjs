@@ -1,0 +1,13 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+const sql = fs.readFileSync(new URL("../supabase/migrations/20261127130000_fresh_short_audience.sql", import.meta.url), "utf8");
+assert.match(sql, /default 'public'/, "existing Shorts stay public");
+assert.match(sql, /check \(audience in \('public', 'followers', 'private'\)\)/);
+assert.match(sql, /grant update \(audience\) on public\.shorts to authenticated/, "update grant is column-scoped");
+assert.match(sql, /grant execute on function public\.fresh_viewer_follows\(uuid\) to anon, authenticated/, "anon can evaluate the read policy");
+assert.match(sql, /alter policy shorts_visible/, "read policy enforces the audience");
+const svc = fs.readFileSync(new URL("../src/features/fresh-flow/core/shortsAudienceService.ts", import.meta.url), "utf8");
+assert.match(svc, /\.eq\("author_id", userId\)/, "client update is limited to the author");
+const members = fs.readFileSync(new URL("../supabase/migrations/20261127120000_fresh_short_collection_members.sql", import.meta.url), "utf8");
+assert.match(members, /security definer/, "cross-table policy checks use security-definer helpers");
+console.log("shorts audience ok");
