@@ -2,7 +2,7 @@
  * Fresh Shorts: target layout layer (main screen).
  *
  * Matches the approved reference: the Fresh Shorts brand with Search and More on the first row,
- * pill discovery chips on rows two and three, and the vertical player as an inset rounded card that
+ * pill discovery chips on rows two and three, and the vertical player edge to edge (full width, top corners rounded) that
  * ends above the bottom navigation, with the Fresh Context strip inside the card.
  *
  * Additive on purpose. Nothing is removed from the DOM and no earlier stylesheet is edited, so the
@@ -16,13 +16,13 @@
 
 @media (max-width: 899px) {
   .fresh-flow-hub.fresh-flow-shorts-fullscreen {
-    --st-safe-top: env(safe-area-inset-top, 0px);
+    --st-safe-top: 0px; /* the page has no viewport-fit=cover, so the browser already keeps content below its own bar; adding env() here left an empty band */
     --st-safe-bottom: env(safe-area-inset-bottom, 0px);
-    --st-header-h: 52px;
+    --st-header-h: 46px;
     --st-chip-h: 36px;
     --st-chips-top: calc(var(--st-safe-top) + var(--st-header-h));
-    --st-canvas-top: calc(var(--st-chips-top) + (var(--st-chip-h) * 2) + 18px);
-    --st-canvas-bottom: calc(72px + var(--st-safe-bottom));
+    --st-canvas-top: calc(var(--st-chips-top) + (var(--st-chip-h) * 2) + 16px);
+    --st-canvas-bottom: calc(64px + var(--st-safe-bottom));
     --st-strip-bottom: 14px;
     --st-strip-h: 42px;
     --st-rail-bottom: calc(var(--st-strip-bottom) + var(--st-strip-h) + 10px);
@@ -37,8 +37,12 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: calc(var(--st-safe-top) + 6px) 8px 6px 14px;
+    min-height: 0;
+    height: var(--st-header-h);
+    padding: 0 6px 0 12px;
   }
+  /* A creator profile or topic page is a full-screen dialog: the Shorts header must not draw over its own title bar. */
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen:has(.shorts-profile) .fresh-shorts-header { visibility: hidden; pointer-events: none; }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-shorts-header .fresh-shorts-brand {
     display: flex;
     align-items: center;
@@ -99,7 +103,7 @@
     color: #fff;
   }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-shorts-header .fresh-flow-header-more-list {
-    top: calc(var(--st-safe-top) + 48px);
+    top: calc(var(--st-safe-top) + 44px);
     right: 10px;
   }
 
@@ -156,12 +160,13 @@
 
   /* ---- The player: an inset rounded card between the chips and the bottom navigation ---------- */
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-viewport {
-    inset: var(--st-canvas-top) 10px var(--st-canvas-bottom) 10px;
-    border-radius: 22px;
+    inset: var(--st-canvas-top) 0 var(--st-canvas-bottom) 0;
+    border-radius: 18px 18px 0 0;
     isolation: isolate;
     background: #000;
-    box-shadow: 0 0 0 1px rgba(155, 130, 255, 0.2), 0 18px 40px rgba(0, 0, 0, 0.45);
+    box-shadow: none;
   }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-item { border: 0; border-radius: 0; box-shadow: none; }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-viewport .fresh-flow-empty {
     padding: 24px 20px;
   }
@@ -171,16 +176,18 @@
 
   /* Caption block and rail sit just above the Fresh Context strip, inside the card. */
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-meta {
-    left: 14px;
-    right: 74px;
+    left: 12px;
+    right: 68px;
     bottom: var(--st-rail-bottom);
   }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions {
-    right: 6px;
+    right: 4px;
     bottom: var(--st-rail-bottom);
+    gap: 6px;
+    max-height: calc(100% - var(--st-rail-bottom) - 12px);
   }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-advanced {
-    right: 62px;
+    right: 58px;
     bottom: var(--st-rail-bottom);
     max-height: min(50dvh, 420px);
   }
@@ -276,11 +283,12 @@
 
   /* ---- Fresh Context strip (also carries the "download is available" notice) ------------------- */
   /* Where the overlay strip sits. Its look (colors, type, tap target) is the shared ShortsInfoStrip in shortsInfoStrip.css. */
-  .fresh-flow-context-strip {
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-item .fresh-flow-context-strip {
+    display: flex;
     position: absolute;
     z-index: 3;
     left: 10px;
-    right: 10px;
+    right: 68px;
     bottom: var(--st-strip-bottom);
     width: auto;
     height: var(--st-strip-h);
@@ -290,7 +298,7 @@
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
   }
-  .fresh-flow-context-strip .fresh-flow-context-strip-text {
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-context-strip .fresh-flow-context-strip-text {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
