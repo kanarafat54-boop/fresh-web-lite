@@ -44,6 +44,15 @@ export default function ShortsHistorySheet({ userId, historyEnabled, onHistoryEn
           </button>
         </div>
         <ShortsInfoStrip kind="notice">Shorts you watched at least a quarter of. Removing or clearing also removes them from what your recommendations learn from.</ShortsInfoStrip>
+        {items && items.length > 0 ? (
+          confirmClear ? (
+            <div className="shorts-history-confirm">
+              <span>Clear all watch history?</span>
+              <button type="button" onClick={() => void clearAll()}>Clear</button>
+              <button type="button" onClick={() => setConfirmClear(false)}>Cancel</button>
+            </div>
+          ) : <button type="button" className="shorts-why-controls shorts-history-clear" onClick={() => setConfirmClear(true)}>Clear watch history</button>
+        ) : null}
         {error ? <p role="alert">{error}</p> : null}
         {!error && items === null ? <p>Loading…</p> : null}
         {items && items.length === 0 && !error ? <p>Nothing here yet. Shorts you watch will appear in this list.</p> : null}
@@ -76,15 +85,6 @@ export default function ShortsHistorySheet({ userId, historyEnabled, onHistoryEn
           </ul>
         ) : null}
         {note ? <p role="status">{note}</p> : null}
-        {items && items.length > 0 ? (
-          confirmClear ? (
-            <div className="shorts-history-confirm">
-              <span>Clear all watch history?</span>
-              <button type="button" onClick={() => void clearAll()}>Clear</button>
-              <button type="button" onClick={() => setConfirmClear(false)}>Cancel</button>
-            </div>
-          ) : <button type="button" className="shorts-why-controls" onClick={() => setConfirmClear(true)}>Clear watch history</button>
-        ) : null}
     </ShortsBottomSheet>
   );
 }
