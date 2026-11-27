@@ -205,3 +205,24 @@
 .fresh-comments .comment-like > span { display: inline-grid; place-items: center; }
 .fresh-comments .comment-like.liked { color: #a58bff; }
 .fresh-comments .comment-tools-row .icon-only-btn svg, .fresh-comments .comment-input-row .icon-only-btn svg { color: #cfc6ff; }
+
+/* ---- Comments sheet: cleaner conversation layer ---- */
+.fresh-comments { background: linear-gradient(180deg, #17104a 0%, #0c0a2e 100%); border-radius: 22px 22px 0 0; }
+.fresh-comments .comment-panel-header h3 { font-size: 1.05rem; font-weight: 800; letter-spacing: -0.01em; }
+.fresh-comments .comment-item { gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.fresh-comments .comment-avatar { width: 38px; height: 38px; flex: 0 0 38px; border-radius: 50%; overflow: hidden; border: 0; background: #3a2d8f; color: #fff; font-weight: 800; }
+.fresh-comments .comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.fresh-comments .comment-author-profile { border: 0; background: none; color: #fff; font: inherit; font-weight: 800; font-size: 0.86rem; padding: 0; }
+.fresh-comments .comment-header .post-time { color: #a9a6c9; font-size: 0.72rem; }
+.fresh-comments .comment-creator-badge { padding: 1px 8px; border-radius: 999px; background: rgba(124, 92, 255, 0.28); color: #d9d1ff; font-size: 0.66rem; font-weight: 800; }
+.fresh-comments .comment-content { margin: 3px 0 4px; font-size: 0.92rem; line-height: 1.4; }
+.fresh-comments .comment-image, .fresh-comments .comment-video-player { max-width: 100%; max-height: 260px; margin-top: 6px; border-radius: 14px; }
+.fresh-comments .comment-audio-player { width: 100%; max-width: 280px; margin-top: 6px; }
+.fresh-comments .reply-btn { padding: 2px 14px 2px 0; opacity: 1; color: #b9b3e6; font-weight: 700; }
+.fresh-comments .reply-btn:hover, .fresh-comments .reply-btn:focus-visible { color: #fff; }
+.fresh-comments button.comment-reply-count { padding: 0; border: 0; background: none; color: #a58bff; font: inherit; font-size: 0.78rem; font-weight: 800; cursor: pointer; }
+.fresh-comments .comment-like, .fresh-comments .comment-react { min-width: 40px; min-height: 40px; padding: 0 4px; border: 0; background: none; color: #b9b3e6; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.fresh-comments .comment-like small { font-size: 0.68rem; min-height: 0.8em; }
+.fresh-comments .comment-composer { padding: 8px 12px calc(10px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.fresh-comments .comment-input { border-radius: 22px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(155, 130, 255, 0.22); }
+.fresh-comments .comment-send { background: var(--shorts-accent, #7c5cff); color: #fff; }

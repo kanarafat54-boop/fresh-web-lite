@@ -784,7 +784,7 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
                 })}
                 {editingCommentId !== comment.id && <>
                   <button className="reply-btn" onClick={() => openReplyThread(comment)}>Reply</button>
-                  {comment.replies.length > 0 && <span className="comment-reply-count">{compact(countAll(comment.replies))} {countAll(comment.replies) === 1 ? "reply" : "replies"}</span>}
+                  {comment.replies.length > 0 && <button type="button" className="comment-reply-count" onClick={() => openReplyThread(comment)} aria-label={`View ${compact(countAll(comment.replies))} ${countAll(comment.replies) === 1 ? "reply" : "replies"}`}>View {compact(countAll(comment.replies))} {countAll(comment.replies) === 1 ? "reply" : "replies"}</button>}
                   {targetType === "short" && depth === 0 && user?.id === shortAuthorId && !isGuest && <button className="reply-btn" type="button" disabled={pinningId === comment.id} onClick={() => void togglePinned(comment.id, Boolean(comment.pinned_at))}>{pinningId === comment.id ? "…" : comment.pinned_at ? "Unpin" : "Pin"}</button>}
                   <button className="reply-btn" onClick={() => setMenuFor(menuFor === comment.id ? null : comment.id)} aria-expanded={menuFor === comment.id} aria-label="More comment actions">⋯</button>
                 </>}
