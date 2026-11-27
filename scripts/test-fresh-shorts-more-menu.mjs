@@ -11,15 +11,15 @@ const end = stream.indexOf("\n                  </div>\n                )}", sta
 const menu = stream.slice(start, end);
 
 // Preservation: all 30 original controls remain, plus Add to collection and the creator download-permission control (32 buttons total).
-assert.equal((menu.match(/<button/g) ?? []).length, 39, "the More menu keeps all 32 original controls, adds 6 Quick action tiles and the creator-only Your Short controls entry");
-assert.equal((menu.match(/ADVANCED_ACTIONS\.map/g) ?? []).length, 1, "Quote, Remix, Duet, Collaborate, Edit tools, Captions and Effects remain");
+assert.equal((menu.match(/<button/g) ?? []).length, 37, "the More menu keeps every control; Remix, Add to Collection and Report now live once, in the Quick actions grid");
+assert.equal((menu.match(/ADVANCED_ACTIONS\.filter\(\(a\) => a\.id !== "remix"\)\.map/g) ?? []).length, 1, "Quote, Duet, Duet, Collaborate, Edit tools, Captions and Effects remain");
 assert.equal((menu.match(/<div/g) ?? []).length, 1, "the only wrapper is the Quick actions grid; every other row stays a direct child of the menu");
 
 // Every capability is still reachable by its original label.
 const labels = [
   "Send gift", "Ask Fresh AI", "Mute sound", "Playback speed", "Captions: On", "Write captions", "Upload captions",
   "Context and sources", "Why am I seeing this?", "Predictions", "Origin", "Review queue", "Saved Shorts", "Watch history",
-  "Add to collection", "Privacy and safety", "Comments here: everyone", "Comments here: people I follow", "Comments here: off", "Allow downloads:",
+  "Add to Collection", "Privacy and safety", "Comments here: everyone", "Comments here: people I follow", "Comments here: off", "Allow downloads:",
   "Show more like this", "Show less like this", "Hide topic", "Manage recommendations", "Not interested", "Mute @", "Block @", "Blocked accounts", "Report",
 ];
 for (const label of labels) assert.ok(menu.includes(label), `menu still offers "${label}"`);
@@ -40,15 +40,13 @@ under("Playback and captions", "Playback speed", "About this Short");
 under("About this Short", "Context and sources", "Your library and privacy");
 under("About this Short", "Origin", "Your library and privacy");
 under("Your library and privacy", "Saved Shorts", "Moderation");
-under("Your library and privacy", "Add to collection", "Moderation");
 under("Your library and privacy", "Privacy and safety", "Moderation");
 under("Moderation", "Review queue", "Your Short");
 under("Your Short", "Comments here: off", "Create from this Short");
 under("Your Short", "Allow downloads:", "Create from this Short");
-under("Create from this Short", "ADVANCED_ACTIONS.map", "Your feed and safety");
+under("Create from this Short", "ADVANCED_ACTIONS.filter", "Your feed and safety");
 under("Your feed and safety", "Not interested");
 under("Your feed and safety", "Block @");
-under("Your feed and safety", "Report");
 
 // Signed-in-only and reviewer-only headings must not show for people who cannot use the controls beneath them.
 assert.match(menu, /\{user && !isGuest \? <p className="fresh-flow-advanced-heading">Your library and privacy<\/p> : null\}/);
@@ -72,14 +70,15 @@ assert.match(quick, /short\.authorId !== user\?\.id && !followingAuthors\.has\(s
 assert.match(css, /\.fresh-flow-quick-actions\s*\{[^}]*grid-template-columns: repeat\(3/, "Quick actions are a three-column tile grid");
 console.log("Shorts More menu grouping: PASS");
 
-// Gesture shortcuts into the More actions panel (triple tap). Long-press was removed on purpose..
+// Gesture shortcuts into the More actions panel (triple tap). Press-and-hold also opens it.
 {
   const stream = (await import("node:fs")).readFileSync("src/features/fresh-flow/components/FreshFlowShortsStream.tsx", "utf8");
   const gestureChecks = [
     ["tap tracker counts taps", /lastTapRef = useRef<\{ id: string; at: number; count: number \}/.test(stream)],
     ["double tap still likes", /count === 1 && now - last\.at < DOUBLE_TAP_MS[\s\S]{0,400}handleReaction\(short\.id, "like"/.test(stream)],
     ["triple tap opens More actions", /count === 2 && now - last\.at < DOUBLE_TAP_MS[\s\S]{0,200}setAdvancedOpen\(true\)/.test(stream)],
-    ["long-press is gone", !/LongPress|longPressed|shorts-more-from-hold/.test(stream)],
+    ["press and hold opens More actions", /startHold[\s\S]{0,260}setAdvancedOpen\(true\)/.test(stream) && /onPointerDown=\{startHold\}/.test(stream)],
+    ["a hold does not also toggle playback", /holdFiredRef\.current\) \{ holdFiredRef\.current = false; return; \}/.test(stream)],
     ["playback speed stays reachable from the More menu", /setPlaybackFor\(\{ index, rate[\s\S]{0,200}Playback speed/.test(stream)],
   ];
   for (const [name, ok] of gestureChecks) {
@@ -90,9 +89,12 @@ console.log("Shorts More menu grouping: PASS");
 // Rail: Remix lives on the rail, Download only in More; Follow is a + badge on the creator photo.
 {
   const stream = (await import("node:fs")).readFileSync("src/features/fresh-flow/components/FreshFlowShortsStream.tsx", "utf8");
-  const rail = stream.slice(stream.indexOf('<div className="fresh-flow-actions">'), stream.indexOf('className="fresh-flow-more-button"'));
+  const rail = stream.slice(stream.indexOf('<div className="fresh-flow-actions">'), stream.indexOf('className="fresh-flow-more-button fresh-flow-more-hidden"'));
   const checks = [
     ["rail has Remix", /aria-label="Remix"/.test(rail)],
+    ["More actions stays reachable for keyboards", /fresh-flow-more-hidden[\s\S]{0,200}aria-label="More actions"/.test(stream)],
+    ["rail ends with the sound disc", /fresh-flow-sound-disc/.test(stream)],
+    ["Remix is not repeated in the list", /ADVANCED_ACTIONS\.filter\(\(a\) => a\.id !== "remix"\)/.test(stream)],
     ["rail has no Download button", !/Download Short|downloadShort/.test(rail)],
     ["More still has Download", /<span>Download<\/span>/.test(stream)],
     ["Follow is icon-only (no 'Follow' text)", !/<span>Follow<\/span><\/>/.test(stream)],

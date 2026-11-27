@@ -74,6 +74,16 @@ async function diagnose(page, label) {
 const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"] });
 const WIDTHS = [320, 360, 390, 430];
 // On phones, the Shorts header More menu exposes the Flow Switch; Home-only creator controls stay on Home.
+// More actions opens by pressing and holding the video (the rail has no More button any more).
+async function holdOpenMore(page, itemLocator) {
+  const box = await itemLocator.locator(".fresh-flow-tap-layer").boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.3);
+  await page.mouse.down();
+  await page.waitForTimeout(750);
+  await page.mouse.up();
+  await page.locator(".fresh-flow-advanced").first().waitFor({ state: "visible", timeout: 5000 });
+}
+
 async function openHeaderMenu(page) {
   const list = page.locator("header .fresh-flow-header-more-list");
   if (!(await list.evaluate((el) => el.classList.contains("open")))) await page.locator('header [aria-label="More Fresh Shorts options"]').click();
@@ -171,13 +181,14 @@ for (const width of WIDTHS) {
   check(shareText.includes("Fresh Messages") && shareText.includes("Copy link") && /Fresh Mail.*service connection needed/i.test(shareText), `${tag} Share panel offers Messages and Copy link and labels Fresh Mail honestly`);
   await page.locator('[aria-label="Share this Short"] [aria-label="Close"]').click();
   // Report sheet must be a real overlay above the feed (it previously rendered inline, unpositioned).
-  await page.locator('.fresh-flow-item button[aria-label="More actions"]').first().click();
+  await holdOpenMore(page, page.locator(".fresh-flow-item").first());
+  check(await page.locator(".fresh-flow-advanced").first().isVisible(), `${tag} press-and-hold opens More actions`);
+  check((await page.locator(".fresh-flow-item").first().locator(".fresh-flow-sound-disc").count()) === 1 && (await page.locator(".fresh-flow-item").first().locator('button[aria-label="More actions"]').count()) === 1, `${tag} rail ends with the sound disc and keeps a keyboard-only More button`);
   await page.locator(".fresh-flow-advanced").getByRole("button", { name: /Report/ }).first().click();
   await page.locator('[aria-label="Report this Short"]').waitFor({ timeout: 5000 });
   const reportBox = await page.locator('[aria-label="Report this Short"]').boundingBox();
   check(Boolean(reportBox) && reportBox.x >= -1 && reportBox.x + reportBox.width <= width + 1, `${tag} Report sheet sits on screen above the feed`);
   await page.locator('[aria-label="Report this Short"] [aria-label="Close"]').click();
-  // Press-and-hold is intentionally not a gesture (playback speed lives in the More actions panel).
   const seek = await page.locator('.fresh-flow-item [role="slider"][aria-label="Seek"]').first().boundingBox();
   check(Boolean(seek) && seek.width > width * 0.9, `${tag} progress bar is a full-width seek control`);
   // Shorts is full-screen: the media-world row is kept in the page but folded away so the video fills the screen
@@ -209,7 +220,7 @@ for (const width of WIDTHS) {
   const navTop = await page.locator("nav.fresh-flow-bottom-nav").evaluate((el) => el.getBoundingClientRect().top);
   const actionsBottom = await page.locator(".fresh-flow-item").first().locator(".fresh-flow-actions").evaluate((el) => el.getBoundingClientRect().bottom);
   check(actionsBottom <= navTop + 1, `${tag} action column clears the bottom navigation (${Math.round(actionsBottom)} <= ${Math.round(navTop)})`);
-  for (const label of ["Comments", "Repost", "Save", "Share", "More actions"]) {
+  for (const label of ["Comments", "Repost", "Save", "Share", "Remix"]) {
     const box = await page.locator(".fresh-flow-item").first().locator(`.fresh-flow-actions button[aria-label="${label}"]`).boundingBox();
     check(Boolean(box) && box.x >= 0 && box.x + box.width <= width + 0.5 && box.width >= 44 && box.height >= 44, `${tag} "${label}" is on-screen and at least 44px`);
   }
@@ -242,7 +253,7 @@ for (const width of WIDTHS) {
   check(fill > 0, `${tag} progress bar advances (${fill.toFixed(1)}%)`);
 
   // More panel and Context and Sources interaction.
-  await page.locator(".fresh-flow-item").first().locator('button[aria-label="More actions"]').click();
+  await holdOpenMore(page, page.locator(".fresh-flow-item").first());
   const more = page.locator(".fresh-flow-advanced").first();
   check(await more.isVisible(), `${tag} More panel opens`);
   const moreText = await more.innerText();
@@ -291,7 +302,7 @@ for (const width of WIDTHS) {
   check(state.filter(Boolean).length === 1 && state[1], `${tag} ArrowUp pages back to Short 2 (${state.join(",")})`);
 
   // Not interested removes the Short from the pager.
-  await page.locator(".fresh-flow-item").nth(1).locator('button[aria-label="More actions"]').click();
+  await holdOpenMore(page, page.locator(".fresh-flow-item").nth(1));
   await page.locator(".fresh-flow-advanced").getByRole("button", { name: /Not interested/ }).click();
   await page.waitForTimeout(400);
   check((await page.locator(".fresh-flow-item").count()) === 2, `${tag} Not interested removes the Short`);

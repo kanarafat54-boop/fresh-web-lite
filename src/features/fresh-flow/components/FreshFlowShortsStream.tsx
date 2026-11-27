@@ -280,6 +280,8 @@ export default function FreshFlowShortsStream({
   const [heartBurst, setHeartBurst] = useState<{ id: string; key: number } | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const lastTapRef = useRef<{ id: string; at: number; count: number } | null>(null);
+  const holdTimerRef = useRef<number | null>(null);
+  const holdFiredRef = useRef(false);
   const tapTimerRef = useRef<number | null>(null);
   const flashKeyRef = useRef(0);
 
@@ -856,6 +858,18 @@ export default function FreshFlowShortsStream({
   }
 
   /** Single tap = play/pause, double tap = like (never un-like), like TikTok. */
+  function startHold() {
+    holdFiredRef.current = false;
+    if (holdTimerRef.current !== null) window.clearTimeout(holdTimerRef.current);
+    holdTimerRef.current = window.setTimeout(() => {
+      holdTimerRef.current = null;
+      holdFiredRef.current = true;
+      setAdvancedOpen(true);
+    }, 500);
+  }
+  function cancelHold() {
+    if (holdTimerRef.current !== null) { window.clearTimeout(holdTimerRef.current); holdTimerRef.current = null; }
+  }
   function handleTap(short: Short, index: number) {
     const now = Date.now();
     const last = lastTapRef.current;
@@ -1202,7 +1216,7 @@ export default function FreshFlowShortsStream({
                 preload={preloadFor(index, currentIndex, prefetchRadius)}
                 onError={(e) => retryVideo(e.currentTarget, 0)}
               />
-              <button type="button" className="fresh-flow-tap-layer" onClick={() => handleTap(short, index)} aria-label="Play or pause. Double tap to like. Triple tap for more actions." />
+              <button type="button" className="fresh-flow-tap-layer" onPointerDown={startHold} onPointerUp={cancelHold} onPointerLeave={cancelHold} onPointerCancel={cancelHold} onContextMenu={(event) => event.preventDefault()} onClick={() => { if (holdFiredRef.current) { holdFiredRef.current = false; return; } handleTap(short, index); }} aria-label="Play or pause. Double tap to like. Press and hold, or triple tap, for more actions." />
               {playFlash?.id === short.id && <span key={playFlash.key} className="fresh-flow-play-flash" aria-hidden="true">{playFlash.paused ? "❚❚" : "▶"}</span>}
               {heartBurst?.id === short.id && <span key={heartBurst.key} className="fresh-flow-heart-burst" aria-hidden="true">❤</span>}
               {index === currentIndex && soundBlocked && (
@@ -1257,8 +1271,12 @@ export default function FreshFlowShortsStream({
                     <span><ShortsIcons.RemixIcon size={28} /></span>
                     <span>Remix</span>
                   </button>
-                  <button type="button" className="fresh-flow-more-button" onClick={() => setAdvancedOpen((v) => !v)} aria-label="More actions" title="More actions" aria-expanded={advancedOpen && index === currentIndex}>
-                    <span className="fresh-flow-more-arrow" aria-hidden="true">‹</span>
+                  <button type="button" className="fresh-flow-sound-disc" onClick={() => { if (short.soundName) setTopicPage({ kind: "sound", value: short.soundName }); else setOpenCreatorId(short.authorId); }} aria-label={short.soundName ? `Sound: ${short.soundName}` : `Original sound by @${short.authorUsername}`}>
+                    <span aria-hidden="true">{(short.authorUsername || "F")[0]?.toUpperCase()}</span>
+                    <i aria-hidden="true"><ShortsIcons.SoundNoteIcon size={11} /></i>
+                  </button>
+                  <button type="button" className="fresh-flow-more-button fresh-flow-more-hidden" onClick={() => setAdvancedOpen((v) => !v)} aria-label="More actions" title="More actions (or press and hold the video)" aria-expanded={advancedOpen && index === currentIndex}>
+                    <span aria-hidden="true">⋯</span>
                   </button>
                 </div>
                 {short.allowDownload ? (
@@ -1364,9 +1382,6 @@ export default function FreshFlowShortsStream({
                         <button type="button" onClick={() => { setAdvancedOpen(false); setSavedOpen(true); }} title="Shorts you saved">
                           <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Saved Shorts
                         </button>
-                        <button type="button" onClick={() => { setAdvancedOpen(false); setCollectionShortId(short.id); }} title="Add this Short to one of your public or private collections">
-                          <span className="fresh-flow-menu-icon"><ShortsIcons.RailSaveIcon size={18} /></span> Add to collection
-                        </button>
                       </>
                     ) : null}
                     {user && !isGuest ? (
@@ -1406,7 +1421,7 @@ export default function FreshFlowShortsStream({
                       </>
                     ) : null}
                     <p className="fresh-flow-advanced-heading">Create from this Short</p>
-                    {ADVANCED_ACTIONS.map((a) => (
+                    {ADVANCED_ACTIONS.filter((a) => a.id !== "remix").map((a) => (
                       <button key={a.id} type="button" onClick={() => openAdvanced(a.id, short)} title={a.description}>
                         <span className="fresh-flow-menu-icon">{a.icon}</span> {a.label}
                       </button>
@@ -1443,9 +1458,6 @@ export default function FreshFlowShortsStream({
                         <span className="fresh-flow-menu-icon"><ShortsIcons.MuteCreatorIcon size={18} /></span> Blocked accounts
                       </button>
                     ) : null}
-                    <button type="button" onClick={() => { setAdvancedOpen(false); setReportTarget(short); }}>
-                      <span className="fresh-flow-menu-icon"><FlagIcon size={18} /></span> Report
-                    </button>
                   </div>
                 )}
               </div>
