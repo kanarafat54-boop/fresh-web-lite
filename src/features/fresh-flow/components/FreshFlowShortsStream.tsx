@@ -1217,7 +1217,7 @@ export default function FreshFlowShortsStream({
                       <span className="fresh-flow-author-avatar" aria-hidden="true">{(short.authorUsername || "F")[0]?.toUpperCase()}</span>
                       <strong>@{short.authorUsername}</strong>{short.authorVerified && <span className="fresh-flow-verified" title="Verified" aria-label="Verified creator">✔</span>}
                     </button>
-                    <button type="button" className={`fresh-flow-follow-btn${followingAuthors.has(short.authorId) ? " following" : ""}`} onClick={() => void handleFollow(short)}>{followingAuthors.has(short.authorId) ? "Following" : "Follow"}</button>
+                    <button type="button" className={`fresh-flow-follow-btn${followingAuthors.has(short.authorId) ? " following" : ""}`} onClick={() => void handleFollow(short)} aria-label={followingAuthors.has(short.authorId) ? `Following @${short.authorUsername}` : `Follow @${short.authorUsername}`}>{followingAuthors.has(short.authorId) ? "Following" : (<><ShortsIcons.NavCreateIcon size={14} strokeWidth={3} /><span>Follow</span></>)}</button>
                   </div>
                   <h3 className={expandedCaptions.has(short.id) ? "expanded" : "clamped"}>{short.caption ? splitCaption(short.caption).map((segment, i) => segment.tag
                     ? <button key={i} type="button" className="fresh-flow-hashtag" onClick={() => setTopicPage({ kind: "hashtag", value: segment.tag as string })}>{segment.text}</button>
@@ -1231,16 +1231,6 @@ export default function FreshFlowShortsStream({
                   </div>
                 </div>
                 <div className="fresh-flow-actions">
-                  <div className="fresh-flow-rail-creator">
-                    <button type="button" className="fresh-flow-rail-avatar" onClick={() => setOpenCreatorId(short.authorId)} aria-label={`Open @${short.authorUsername} profile`}>
-                      <span aria-hidden="true">{(short.authorUsername || "F")[0]?.toUpperCase()}</span>
-                    </button>
-                    {!followingAuthors.has(short.authorId) && (
-                      <button type="button" className="fresh-flow-rail-follow" onClick={() => void handleFollow(short)} aria-label={`Follow @${short.authorUsername}`}>
-                        <ShortsIcons.NavCreateIcon size={14} strokeWidth={3} />
-                      </button>
-                    )}
-                  </div>
                   <ReactionPicker
                     myReaction={short.myReaction ?? null}
                     count={Object.values(short.reactionBreakdown).reduce((total, value) => total + value, 0)}

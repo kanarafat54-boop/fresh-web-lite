@@ -193,8 +193,14 @@
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions {
     right: 4px;
     bottom: var(--st-rail-bottom);
-    gap: 6px;
+    gap: 0;
     max-height: calc(100% - var(--st-rail-bottom) - 12px);
+  }
+  /* Tighter rail: icon, count and label stay a comfortable 44px target but sit close together. */
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions button:not(.fresh-flow-more-button) {
+    min-height: 44px;
+    padding: 2px 4px;
+    gap: 0;
   }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-advanced {
     right: 58px;
@@ -224,8 +230,11 @@
     line-height: 1;
   }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-follow-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     min-height: 32px;
-    padding: 4px 16px;
+    padding: 4px 14px 4px 10px;
     border: 0;
     border-radius: 999px;
     background: rgba(124, 92, 255, 0.92);

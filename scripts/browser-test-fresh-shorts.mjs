@@ -158,8 +158,9 @@ for (const width of WIDTHS) {
   });
   const modes = (await page.locator('.fresh-flow-tabs [role="tab"]').allInnerTexts()).map((t) => t.replace(/\s+/g, " ").trim());
   check(JSON.stringify(modes) === JSON.stringify(["Fresh Picks", "Learn", "Relax", "For You", "Trending", "Friends", "Following"]), `${tag} discovery modes are For You · Following · Friends · Trending · Fresh Picks · Learn · Relax (got ${modes.join(" · ")})`);
-  check((await page.locator(".fresh-flow-item").first().locator(".fresh-flow-rail-avatar").count()) === 1, `${tag} rail starts with the creator profile photo`);
-  check(rail.count >= 7, `${tag} action rail has profile, react, comment, repost, save, share and more (${rail.count})`);
+  check((await page.locator(".fresh-flow-item").first().locator(".fresh-flow-rail-avatar, .fresh-flow-rail-follow").count()) === 0, `${tag} rail has no duplicate profile photo or + (Follow lives in the creator row)`);
+  check((await page.locator(".fresh-flow-item").first().locator(".fresh-flow-author-row .fresh-flow-follow-btn").count()) === 1, `${tag} creator row has the single Follow control`);
+  check(rail.count >= 6, `${tag} action rail has react, comment, repost, save, share and more (${rail.count})`);
   check(rail.top >= rail.tabsBottom - 1 && rail.bottom <= rail.itemBottom + 1, `${tag} every action sits inside the visible Short, below the tabs (${Math.round(rail.top)} >= ${Math.round(rail.tabsBottom)})`);
   check(rail.bottom <= rail.navTop - 1, `${tag} action rail stays above bottom navigation (${Math.round(rail.bottom)} <= ${Math.round(rail.navTop)})`);
   check(rail.metaBottom <= rail.navTop - 1, `${tag} creator/caption metadata stays above bottom navigation (${Math.round(rail.metaBottom)} <= ${Math.round(rail.navTop)})`);
