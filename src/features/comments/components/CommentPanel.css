@@ -199,3 +199,9 @@
 .comment-sticker-tray { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .comment-sticker-pick { min-height: 48px; border: 0; border-radius: 14px; background: rgba(255, 255, 255, 0.07); font-size: 1.8rem; cursor: pointer; }
 .comment-sticker-pick:active { background: rgba(124, 92, 255, 0.35); }
+
+/* Comment action icons are drawn with the shared Shorts icon set instead of text glyphs. */
+.fresh-comments .comment-like { display: inline-flex; align-items: center; gap: 4px; }
+.fresh-comments .comment-like > span { display: inline-grid; place-items: center; }
+.fresh-comments .comment-like.liked { color: #a58bff; }
+.fresh-comments .comment-tools-row .icon-only-btn svg, .fresh-comments .comment-input-row .icon-only-btn svg { color: #cfc6ff; }
