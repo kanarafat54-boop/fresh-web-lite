@@ -1217,7 +1217,7 @@ export default function FreshFlowShortsStream({
                       <span className="fresh-flow-author-avatar" aria-hidden="true">{(short.authorUsername || "F")[0]?.toUpperCase()}</span>
                       <strong>@{short.authorUsername}</strong>{short.authorVerified && <span className="fresh-flow-verified" title="Verified" aria-label="Verified creator">✔</span>}
                     </button>
-                    <button type="button" className={`fresh-flow-follow-btn${followingAuthors.has(short.authorId) ? " following" : ""}`} onClick={() => void handleFollow(short)} aria-label={followingAuthors.has(short.authorId) ? `Following @${short.authorUsername}` : `Follow @${short.authorUsername}`}>{followingAuthors.has(short.authorId) ? "Following" : (<><ShortsIcons.NavCreateIcon size={14} strokeWidth={3} /><span>Follow</span></>)}</button>
+                    <button type="button" className={`fresh-flow-follow-btn${followingAuthors.has(short.authorId) ? " following" : ""}`} onClick={() => void handleFollow(short)} aria-label={followingAuthors.has(short.authorId) ? `Following @${short.authorUsername}` : `Follow @${short.authorUsername}`}>{followingAuthors.has(short.authorId) ? <span aria-hidden="true">✓</span> : <ShortsIcons.NavCreateIcon size={12} strokeWidth={3.4} />}</button>
                   </div>
                   <h3 className={expandedCaptions.has(short.id) ? "expanded" : "clamped"}>{short.caption ? splitCaption(short.caption).map((segment, i) => segment.tag
                     ? <button key={i} type="button" className="fresh-flow-hashtag" onClick={() => setTopicPage({ kind: "hashtag", value: segment.tag as string })}>{segment.text}</button>
@@ -1253,12 +1253,10 @@ export default function FreshFlowShortsStream({
                     <span><ShortsIcons.RailRepostIcon size={28} /></span>
                     <span>{short.repostCount || "Repost"}</span>
                   </button>
-                  {short.allowDownload ? (
-                    <button type="button" onClick={() => void downloadShort(short)} aria-label="Download Short">
-                      <span aria-hidden="true">⬇</span>
-                      <span>Download</span>
-                    </button>
-                  ) : null}
+                  <button type="button" onClick={() => openAdvanced("remix", short)} aria-label="Remix">
+                    <span><ShortsIcons.RemixIcon size={28} /></span>
+                    <span>Remix</span>
+                  </button>
                   <button type="button" className="fresh-flow-more-button" onClick={() => setAdvancedOpen((v) => !v)} aria-label="More actions" title="More actions" aria-expanded={advancedOpen && index === currentIndex}>
                     <span className="fresh-flow-more-arrow" aria-hidden="true">‹</span>
                   </button>

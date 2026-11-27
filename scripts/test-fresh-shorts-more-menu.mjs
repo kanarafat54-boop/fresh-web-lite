@@ -86,3 +86,18 @@ console.log("Shorts More menu grouping: PASS");
     if (!ok) { console.error(`FAIL gesture: ${name}`); process.exitCode = 1; } else console.log(`ok gesture: ${name}`);
   }
 }
+
+// Rail: Remix lives on the rail, Download only in More; Follow is a + badge on the creator photo.
+{
+  const stream = (await import("node:fs")).readFileSync("src/features/fresh-flow/components/FreshFlowShortsStream.tsx", "utf8");
+  const rail = stream.slice(stream.indexOf('<div className="fresh-flow-actions">'), stream.indexOf('className="fresh-flow-more-button"'));
+  const checks = [
+    ["rail has Remix", /aria-label="Remix"/.test(rail)],
+    ["rail has no Download button", !/Download Short|downloadShort/.test(rail)],
+    ["More still has Download", /<span>Download<\/span>/.test(stream)],
+    ["Follow is icon-only (no 'Follow' text)", !/<span>Follow<\/span><\/>/.test(stream)],
+  ];
+  for (const [name, ok] of checks) {
+    if (!ok) { console.error(`FAIL rail: ${name}`); process.exitCode = 1; } else console.log(`ok rail: ${name}`);
+  }
+}

@@ -192,9 +192,9 @@
   }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions {
     right: 4px;
-    bottom: var(--st-rail-bottom);
+    bottom: var(--st-strip-bottom);
     gap: 0;
-    max-height: calc(100% - var(--st-rail-bottom) - 12px);
+    max-height: calc(100% - var(--st-strip-bottom) - 12px);
   }
   /* Tighter rail: icon, count and label stay a comfortable 44px target but sit close together. */
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions button:not(.fresh-flow-more-button) {
@@ -370,4 +370,30 @@
     font-size: 0.78rem;
     font-weight: 700;
   }
+}
+
+@media (max-width: 899px) {
+  /* Follow is a small + badge on the creator photo (a check once following), not a text button. */
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-author-row { position: relative; }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-author-row .fresh-flow-follow-btn {
+    position: absolute;
+    left: 20px;
+    bottom: -5px;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    min-width: 20px;
+    height: 20px;
+    min-height: 20px;
+    padding: 0;
+    border: 2px solid #0b0a22;
+    border-radius: 50%;
+    background: var(--shorts-accent, #7c5cff);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-author-row .fresh-flow-follow-btn.following { background: #2d9d6a; border-color: #0b0a22; }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-author-row .fresh-flow-follow-btn::after { content: ""; position: absolute; inset: -8px; }
 }
