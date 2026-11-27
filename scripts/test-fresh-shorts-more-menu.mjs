@@ -11,7 +11,7 @@ const end = stream.indexOf("\n                  </div>\n                )}", sta
 const menu = stream.slice(start, end);
 
 // Preservation: all 30 original controls remain, plus Add to collection and the creator download-permission control (32 buttons total).
-assert.equal((menu.match(/<button/g) ?? []).length, 37, "the More menu keeps every control; Remix, Add to Collection and Report now live once, in the Quick actions grid");
+assert.equal((menu.match(/<button/g) ?? []).length, 38, "the More menu keeps every control; Remix, Add to Collection and Report now live once, in the Quick actions grid");
 assert.equal((menu.match(/ADVANCED_ACTIONS\.filter\(\(a\) => a\.id !== "remix"\)\.map/g) ?? []).length, 1, "Quote, Duet, Duet, Collaborate, Edit tools, Captions and Effects remain");
 assert.equal((menu.match(/<div/g) ?? []).length, 1, "the only wrapper is the Quick actions grid; every other row stays a direct child of the menu");
 
@@ -58,7 +58,8 @@ assert.match(css, /\.fresh-flow-advanced-heading\s*\{[^}]*text-transform: upperc
 const qStart = menu.indexOf('className="fresh-flow-quick-actions"');
 assert.ok(qStart >= 0 && qStart < menu.indexOf('sectionHeading("support", "Support and explore")'), "Quick actions sit at the top of the More menu");
 const quick = menu.slice(qStart, menu.indexOf("</div>", qStart));
-assert.equal((quick.match(/<button/g) ?? []).length, 6, "six Quick action tiles");
+assert.equal((quick.match(/<button/g) ?? []).length, 7, "six Quick action tiles plus the creator-only Your Short tile");
+assert.match(quick, /short\.authorId === user\.id \? \(\s*<button[^>]*setYourShortId\(short\.id\)/, "Your Short tile is creator-only and opens the existing controls sheet");
 for (const [label, handler] of [["Download", "downloadShort(short)"], ["Remix", 'openAdvanced("remix", short)'], ["Add to Collection", "setCollectionShortId(short.id)"], ["Use Sound", 'setTopicPage({ kind: "sound"'], ["Follow Creator", "handleFollow(short)"], ["Report", "setReportTarget(short)"]]) {
   assert.ok(quick.includes(`<span>${label}</span>`), `Quick action "${label}" exists`);
   assert.ok(quick.includes(handler), `"${label}" reuses the existing handler ${handler}`);

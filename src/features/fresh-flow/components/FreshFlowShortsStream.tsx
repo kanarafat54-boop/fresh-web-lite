@@ -1306,6 +1306,11 @@ export default function FreshFlowShortsStream({
                 {advancedOpen && index === currentIndex && (
                   <div className="fresh-flow-advanced" role="group" aria-label="More actions">
                     <div className="fresh-flow-quick-actions" role="group" aria-label="Quick actions">
+                      {user && !isGuest && short.authorId === user.id ? (
+                        <button type="button" onClick={() => { setAdvancedOpen(false); setYourShortId(short.id); }}>
+                          <ShortsIcons.ManageIcon size={22} /><span>Your Short</span>
+                        </button>
+                      ) : null}
                       {short.allowDownload ? (
                         <button type="button" onClick={() => { setAdvancedOpen(false); void downloadShort(short); }}>
                           <ShortsIcons.DownloadIcon size={22} /><span>Download</span>
