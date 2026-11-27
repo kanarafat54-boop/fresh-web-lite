@@ -304,4 +304,51 @@
     -webkit-line-clamp: 2;
     overflow: hidden;
   }
+
+  /* ---- More Actions as a bottom sheet over the player ------------------------------------------ */
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-item .fresh-flow-advanced-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 11;
+    border: 0;
+    padding: 0;
+    background: rgba(3, 2, 18, 0.55);
+    cursor: default;
+  }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-item .fresh-flow-advanced {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 12;
+    width: auto;
+    max-height: 72%;
+    padding: 22px 14px 18px;
+    border: 0;
+    border-top: 1px solid var(--st-pill-border);
+    border-radius: 22px 22px 0 0;
+    background: rgba(14, 10, 44, 0.97);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-item .fresh-flow-advanced::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 38px;
+    height: 4px;
+    margin-left: -19px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.28);
+  }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-item .fresh-flow-advanced .fresh-flow-quick-actions {
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-item .fresh-flow-advanced .fresh-flow-quick-actions button {
+    min-height: 76px;
+    border-radius: 16px;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
 }

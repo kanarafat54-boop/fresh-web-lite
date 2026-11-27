@@ -1283,6 +1283,9 @@ export default function FreshFlowShortsStream({
                   </div>
                 )}
                 {advancedOpen && index === currentIndex && (
+                  <button type="button" className="fresh-flow-advanced-backdrop" tabIndex={-1} aria-label="Close more actions" onClick={() => setAdvancedOpen(false)} />
+                )}
+                {advancedOpen && index === currentIndex && (
                   <div className="fresh-flow-advanced" role="group" aria-label="More actions">
                     <div className="fresh-flow-quick-actions" role="group" aria-label="Quick actions">
                       {short.allowDownload ? (
