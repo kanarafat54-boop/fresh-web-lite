@@ -1226,7 +1226,7 @@ export default function FreshFlowShortsStream({
               {playFlash?.id === short.id && <span key={playFlash.key} className="fresh-flow-play-flash" aria-hidden="true">{playFlash.paused ? "❚❚" : "▶"}</span>}
               {heartBurst?.id === short.id && <span key={heartBurst.key} className="fresh-flow-heart-burst" aria-hidden="true">❤</span>}
               {index === currentIndex && soundBlocked && (
-                <button type="button" className="fresh-flow-sound-pill" onClick={() => enableSound(index)} aria-label="Turn sound on">🔇 Tap for sound</button>
+                <button type="button" className="fresh-flow-sound-pill" onClick={() => enableSound(index)} aria-label="Turn sound on"><ShortsIcons.VolumeOffIcon size={18} /> <span>Tap for sound</span></button>
               )}
               {index === currentIndex && captionsOn && captionText && <div className="fresh-flow-live-captions" role="status" aria-live="off">{captionText}</div>}
               <div className="fresh-flow-progress" role="slider" aria-label="Seek" aria-valuemin={0} aria-valuemax={100} aria-valuenow={0} onPointerDown={(event) => seekFromPointer(event, index)}><i className="fresh-flow-progress-fill" /></div>

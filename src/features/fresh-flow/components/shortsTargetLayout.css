@@ -464,3 +464,83 @@
 }
 .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-advanced > button.fresh-flow-advanced-heading[aria-expanded="false"]::after { transform: rotate(-45deg); }
 .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-advanced > button.fresh-flow-advanced-heading:focus-visible { outline: 2px solid #9b82ff; outline-offset: 1px; }
+
+/* ---- Contrast pass: every control that sits on top of video must stay readable on bright and dark footage ---------- */
+@media (max-width: 899px) {
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen { --st-disc: 46px; }
+
+  /* Header: brand and the two round buttons */
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-shorts-header .fresh-flow-search-icon-button {
+    color: #fff;
+    background: rgba(8, 6, 28, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-shorts-header svg { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7)); }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-shorts-header .fresh-flow-brand-wordmark strong { text-shadow: 0 1px 6px rgba(0, 0, 0, 0.75); }
+
+  /* Chips: more solid, brighter border, readable text */
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-tabs button {
+    background: rgba(8, 6, 28, 0.66);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-tabs button.active,
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-tabs button[aria-selected="true"],
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-tabs button[aria-pressed="true"] {
+    background: var(--shorts-accent, #7c5cff); border-color: rgba(255, 255, 255, 0.55); text-shadow: none;
+  }
+
+  /* Rail: white glyphs on a dark round plate with a thin light ring, counts with a shadow */
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions button:not(.fresh-flow-more-button):not(.fresh-flow-sound-disc) {
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.55);
+  }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions button:not(.fresh-flow-more-button):not(.fresh-flow-sound-disc) svg {
+    box-sizing: content-box;
+    padding: 8px;
+    border-radius: 50%;
+    background: rgba(8, 6, 28, 0.58);
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    color: #fff;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+  }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions button.liked svg,
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions button[aria-pressed="true"] svg { color: #ff4d6d; border-color: rgba(255, 77, 109, 0.7); }
+  /* Saved was violet on grey footage: use warm gold so it reads on any video. */
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions button.saved,
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions button.saved svg { color: #ffd166; }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions button.saved svg { border-color: rgba(255, 209, 102, 0.7); }
+
+  /* Sound disc: sits with the rail, never touches the screen edge */
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-actions .fresh-flow-sound-disc {
+    width: var(--st-disc); height: var(--st-disc); min-width: var(--st-disc); min-height: var(--st-disc);
+    margin: 8px 4px 2px 0;
+    box-shadow: 0 0 0 3px rgba(8, 6, 28, 0.72), 0 2px 10px rgba(0, 0, 0, 0.55);
+  }
+
+  /* "Tap for sound": a real speaker icon, solid plate, centered under the chips */
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-sound-pill {
+    top: calc(var(--st-canvas-top) + 10px);
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 16px 8px 12px;
+    background: rgba(8, 6, 28, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #fff; font-weight: 800;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-sound-pill svg { color: #ffd166; }
+
+  /* More Actions sheet: fully opaque so the caption behind it never ghosts through */
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-item .fresh-flow-advanced[role="group"] {
+    background: #100b38 !important;
+    border: 1px solid rgba(155, 130, 255, 0.45);
+    border-bottom: 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.6);
+  }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-item .fresh-flow-advanced .fresh-flow-quick-actions button {
+    border: 1px solid rgba(155, 130, 255, 0.5); background: rgba(124, 92, 255, 0.14); color: #fff;
+  }
+}
