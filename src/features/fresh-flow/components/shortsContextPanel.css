@@ -175,3 +175,21 @@
 .shorts-collection-invite label { flex: 1; display: grid; gap: 4px; font-size: 0.78rem; opacity: 0.9; }
 .shorts-collection-invite input { min-height: 40px; padding: 0 12px; border: 1.5px solid rgba(155, 130, 255, 0.5); border-radius: 12px; background: #070520; color: #fff; font: inherit; }
 .shorts-collection-invite button { min-height: 40px; padding: 0 16px; border: 0; border-radius: 12px; background: var(--shorts-accent, #7c5cff); color: #fff; font: inherit; font-weight: 800; }
+
+/* Fresh Context as a bottom sheet with clear sections */
+.shorts-context-panel.shorts-bottom-sheet { background: #100b38; }
+.shorts-context-hero { display: flex; align-items: flex-start; gap: 12px; margin: 2px 0 12px; padding: 12px; border: 1px solid rgba(155, 130, 255, 0.4); border-radius: 16px; background: linear-gradient(120deg, rgba(124, 92, 255, 0.3), rgba(32, 150, 255, 0.14)); }
+.shorts-context-hero > span { flex: 0 0 auto; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: rgba(255, 255, 255, 0.14); color: #fff; }
+.shorts-context-hero p { margin: 0; font-size: 0.86rem; line-height: 1.4; color: #f1eeff; }
+.shorts-context-panel > h3 { margin: 16px 0 8px; font-size: 0.78rem; letter-spacing: 0.07em; text-transform: uppercase; color: #cfc6ff; }
+.shorts-context-panel .shorts-context-facts { margin: 0; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 14px; overflow: hidden; }
+.shorts-context-panel .shorts-context-facts > div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; background: rgba(255, 255, 255, 0.05); }
+.shorts-context-panel .shorts-context-facts > div + div { border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.shorts-context-panel .shorts-context-facts dt { color: #b8b2e8; }
+.shorts-context-panel .shorts-context-facts dd { margin: 0; text-align: right; font-weight: 700; }
+.shorts-context-panel .shorts-context-primary { width: 100%; min-height: 48px; border: 0; border-radius: 14px; background: var(--shorts-accent, #7c5cff); color: #fff; font: inherit; font-weight: 800; }
+.shorts-context-panel .shorts-context-secondary { width: 100%; min-height: 44px; margin-top: 10px; border: 1px solid rgba(155, 130, 255, 0.5); border-radius: 14px; background: transparent; color: #fff; font: inherit; font-weight: 700; }
+.shorts-context-panel .shorts-context-result { margin-top: 12px; padding: 12px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 14px; background: rgba(255, 255, 255, 0.06); }
+.shorts-context-panel .shorts-context-sources.chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; list-style: none; }
+.shorts-context-panel .shorts-context-sources.chips a, .shorts-context-panel .shorts-context-sources.chips span { display: inline-block; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(155, 130, 255, 0.5); background: rgba(124, 92, 255, 0.2); color: #fff; text-decoration: none; font-size: 0.8rem; }
+.shorts-context-panel .shorts-sheet-header h3 { margin: 0; font-size: 1.1rem; letter-spacing: 0; text-transform: none; color: #fff; }

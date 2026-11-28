@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { buildContextGoal, buildProvenance, interpretAskResponse, type AskPayload, type ContextResult, type ContextShort } from "../core/shortsContext";
+import ShortsBottomSheet from "./ShortsBottomSheet";
+import { InfoIcon } from "./shortsIcons";
 import "./shortsContextPanel.css";
 
 type Props = { short: ContextShort; onClose: () => void; onOpenInFreshAI: (prompt: string) => void };
@@ -14,14 +16,8 @@ export default function ShortsContextPanel({ short, onClose, onOpenInFreshAI }: 
   const [result, setResult] = useState<ContextResult | null>(null);
   const [fullSources, setFullSources] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
-  const closeRef = useRef<HTMLButtonElement | null>(null);
 
-  useEffect(() => {
-    closeRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => { window.removeEventListener("keydown", onKey); abortRef.current?.abort(); };
-  }, [onClose]);
+  useEffect(() => () => { abortRef.current?.abort(); }, []);
 
   async function runCheck() {
     abortRef.current?.abort();
@@ -53,12 +49,8 @@ export default function ShortsContextPanel({ short, onClose, onOpenInFreshAI }: 
   const provenance = buildProvenance(short);
 
   return (
-    <div className="shorts-context-backdrop" onClick={onClose}>
-      <section className="shorts-context-panel" role="dialog" aria-modal="true" aria-labelledby="shorts-context-title" onClick={(event) => event.stopPropagation()}>
-        <header>
-          <h2 id="shorts-context-title">Context and sources</h2>
-          <button ref={closeRef} type="button" onClick={onClose} aria-label="Close">×</button>
-        </header>
+    <ShortsBottomSheet title="Context and sources" onClose={onClose} className="shorts-context-panel">
+        <div className="shorts-context-hero"><span aria-hidden="true"><InfoIcon size={22} /></span><p>Fresh Context shows what the platform knows about this Short and lets you check its claims against sources.</p></div>
 
         <h3>About this Short</h3>
         <dl className="shorts-context-facts">
@@ -97,7 +89,6 @@ export default function ShortsContextPanel({ short, onClose, onOpenInFreshAI }: 
         )}
 
         <button type="button" className="shorts-context-secondary" onClick={() => onOpenInFreshAI(buildContextGoal(short))}>Continue in Fresh AI</button>
-      </section>
-    </div>
+    </ShortsBottomSheet>
   );
 }
