@@ -4,7 +4,7 @@ import { supabase } from "../../../lib/supabase";
 import { useFreshId } from "../../fresh-id/context/FreshIdContext";
 import { useProfileNav } from "../../profile/context/ProfileNavContext";
 import { CloseIcon, SendIcon, MicIcon, VideoCameraIcon, StopIcon } from "../../../components/Icons";
-import { GalleryIcon, PaperclipIcon, SmileIcon, StickerIcon, ThumbUpIcon } from "../../fresh-flow/components/shortsIcons";
+import { GalleryIcon, PaperclipIcon, SmileIcon, StickerIcon, ThumbDownIcon, ThumbUpIcon } from "../../fresh-flow/components/shortsIcons";
 import type { CommentTargetType } from "../types/comment";
 import { validateInteractionAttachments } from "../../../core/interactions/FreshAttachmentValidation";
 import { announceInteraction } from "../../../core/interactions/FreshInteractionA11y";
@@ -821,6 +821,12 @@ export function CommentPanel({ targetType, targetId, onClose }: CommentPanelProp
             <button type="button" className={`comment-like${like.mine ? " liked" : ""}`} onClick={() => void toggleLike(comment.id)} aria-pressed={like.mine} aria-label={like.mine ? "Unlike comment" : "Like comment"} disabled={isGuest || !user}>
               <span aria-hidden="true"><ThumbUpIcon size={18} filled={like.mine} /></span>
               <small>{like.count ? compact(like.count) : ""}</small>
+            </button>
+          )}
+          {targetType === "short" && !hidden && (
+            <button type="button" className={`comment-like comment-dislike${reactions[comment.id]?.mine === "dislike" ? " liked" : ""}`} onClick={() => void chooseReaction(comment.id, "dislike")} aria-pressed={reactions[comment.id]?.mine === "dislike"} aria-label={reactions[comment.id]?.mine === "dislike" ? "Remove dislike" : "Dislike comment"} disabled={isGuest || !user}>
+              <span aria-hidden="true"><ThumbDownIcon size={18} filled={reactions[comment.id]?.mine === "dislike"} /></span>
+              <small />
             </button>
           )}
           {targetType === "short" && !hidden && (
