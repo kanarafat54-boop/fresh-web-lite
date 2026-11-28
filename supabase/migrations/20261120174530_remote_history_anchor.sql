@@ -1,0 +1,5 @@
+-- Historical migration-history anchor for remote version 20261120174530 ("fresh_intelligence_claim_passage_fk_indexes").
+-- This version is already applied on the production Supabase project, where the auto-assigned timestamp
+-- differs from the repository file that carries the real SQL (or, for 20261120174530, the change was made
+-- remote-only). This file intentionally performs no SQL; it only lets Supabase Preview reconcile the
+-- remote migration history with the repository.

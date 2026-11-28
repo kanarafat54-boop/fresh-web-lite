@@ -90,3 +90,18 @@ export const NavMailIcon = (p: ShortsIconProps) => svg(p, <><rect x="3" y="5" wi
 export const NavCreateIcon = (p: ShortsIconProps) => svg(p, <path d="M12 5v14M5 12h14" strokeWidth={2.25} />);
 export const DataSaverIcon = (p: ShortsIconProps) => svg(p, <><path d="M12 3c4 4.5 6.5 7.6 6.5 10.5A6.5 6.5 0 0 1 5.5 13.5C5.5 10.6 8 7.5 12 3Z" /><path d="m9.5 14 2 2 3-3.5" /></>);
 export const InfoIcon = (p: ShortsIconProps) => svg(p, <><circle cx="12" cy="12" r="9" /><path d="M12 11v5.5" /><circle cx="12" cy="7.8" r="0.6" fill="currentColor" /></>);
+
+// --- Fresh Shorts target layout (header mark, Trending flame, strip chevron) -----------------------
+export const BrandPlayIcon = (p: ShortsIconProps) => svg(p, <path d="M8 5.3v13.4c0 .8.9 1.3 1.6.9l10.2-6.7c.6-.4.6-1.3 0-1.7L9.6 4.4C8.9 4 8 4.5 8 5.3Z" fill="currentColor" />);
+export const FlameIcon = (p: ShortsIconProps) => svg(p, <path d="M12 2.8c1 3.2 5 5.4 5 10a5 5 0 0 1-10 0c0-2.2 1.1-3.6 2.4-4.8.1 1.4.6 2.3 1.6 2.8C10.5 8.2 10.6 5.300 12 2.800Z" fill={fill(p)} />);
+export const ChevronRightIcon = (p: ShortsIconProps) => svg(p, <path d="m9 6 6 6-6 6" />);
+
+/* Comment composer and comment actions. Same grid and stroke as the rest of the set. */
+export const SmileIcon = (p: ShortsIconProps) => svg(p, <><circle cx="12" cy="12" r="9" /><path d="M8.5 14a4 4 0 0 0 7 0" /><path d="M9 9.5h.01M15 9.5h.01" strokeWidth={2.6} /></>);
+export const StickerIcon = (p: ShortsIconProps) => svg(p, <><path d="M20 12.5V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h5.5Z" /><path d="M20 12.5a7.5 7.5 0 0 1-7.5 7.5v-4a3.5 3.5 0 0 1 3.5-3.5Z" /><path d="M9 9.5h.01M14 9.5h.01" strokeWidth={2.6} /></>);
+export const PaperclipIcon = (p: ShortsIconProps) => svg(p, <path d="m20 11.5-8.4 8.4a5 5 0 0 1-7.1-7.1l8.8-8.8a3.3 3.3 0 0 1 4.7 4.7l-8.8 8.8a1.7 1.7 0 0 1-2.4-2.4l8-8" />);
+export const GalleryIcon = (p: ShortsIconProps) => svg(p, <><rect x="3" y="4" width="18" height="16" rx="3" /><circle cx="9" cy="10" r="1.6" /><path d="m21 16-5-5-9 9" /></>);
+export const ThumbUpIcon = ({ filled, ...p }: ShortsIconProps) => svg(p, <path d="M7 10v10H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1Zm0 0 4-7a2 2 0 0 1 3 1.7L13.4 9H19a2 2 0 0 1 2 2.4l-1.3 7A2 2 0 0 1 17.7 20H7" fill={filled ? "currentColor" : "none"} />);
+export const ThumbDownIcon = ({ filled, ...p }: ShortsIconProps) => svg(p, <path d="M17 14V4h3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1Zm0 0-4 7a2 2 0 0 1-3-1.7L10.6 15H5a2 2 0 0 1-2-2.4l1.3-7A2 2 0 0 1 6.3 4H17" fill={filled ? "currentColor" : "none"} />);
+export const LockIcon = (p: ShortsIconProps) => svg(p, <><rect x="5" y="11" width="14" height="9" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></>);
+export const GlobeIcon = (p: ShortsIconProps) => svg(p, <><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></>);

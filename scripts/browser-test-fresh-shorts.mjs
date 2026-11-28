@@ -74,6 +74,25 @@ async function diagnose(page, label) {
 const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"] });
 const WIDTHS = [320, 360, 390, 430];
 // On phones, the Shorts header More menu exposes the Flow Switch; Home-only creator controls stay on Home.
+// More actions opens by pressing and holding the video (the rail has no More button any more).
+async function holdOpenMore(page, itemLocator, expandAll = true) {
+  const box = await itemLocator.locator(".fresh-flow-tap-layer").boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.3);
+  await page.mouse.down();
+  await page.waitForTimeout(750);
+  await page.mouse.up();
+  await page.locator(".fresh-flow-advanced").first().waitFor({ state: "visible", timeout: 5000 });
+  if (expandAll) await expandMoreSections(page);
+}
+// The long-tail sections start collapsed; open them all so every control can be checked.
+async function expandMoreSections(page) {
+  for (let i = 0; i < 10; i += 1) {
+    const closed = page.locator('.fresh-flow-advanced button.fresh-flow-advanced-heading[aria-expanded="false"]').first();
+    if (!(await closed.count())) break;
+    await closed.click();
+  }
+}
+
 async function openHeaderMenu(page) {
   const list = page.locator("header .fresh-flow-header-more-list");
   if (!(await list.evaluate((el) => el.classList.contains("open")))) await page.locator('header [aria-label="More Fresh Shorts options"]').click();
@@ -156,10 +175,12 @@ for (const width of WIDTHS) {
     const boxes = [...item.querySelectorAll(".fresh-flow-actions button")].map((el) => el.getBoundingClientRect());
     return { count: boxes.length, top: Math.min(...boxes.map((r) => r.top)), bottom: Math.max(...boxes.map((r) => r.bottom)), itemBottom: itemBox.bottom, tabsBottom, navTop, metaBottom };
   });
-  const modes = (await page.locator('.fresh-flow-tabs [role="tab"]').allInnerTexts()).map((t) => t.replace(/^\S+\s/, "").trim());
+  const modes = (await page.locator('.fresh-flow-tabs [role="tab"]').allInnerTexts()).map((t) => t.replace(/\s+/g, " ").trim());
   check(JSON.stringify(modes) === JSON.stringify(["Fresh Picks", "Learn", "Relax", "For You", "Trending", "Friends", "Following"]), `${tag} discovery modes are For You · Following · Friends · Trending · Fresh Picks · Learn · Relax (got ${modes.join(" · ")})`);
-  check((await page.locator(".fresh-flow-item").first().locator(".fresh-flow-rail-avatar").count()) === 1, `${tag} rail starts with the creator profile photo`);
-  check(rail.count >= 7, `${tag} action rail has profile, react, comment, repost, save, share and more (${rail.count})`);
+  check((await page.locator(".fresh-flow-item").first().locator(".fresh-flow-rail-avatar, .fresh-flow-rail-follow").count()) === 0, `${tag} rail has no duplicate profile photo or + (Follow lives in the creator row)`);
+  check((await page.locator(".fresh-flow-item").first().locator(".fresh-flow-author-row .fresh-flow-follow-btn").count()) === 1, `${tag} creator row has the single Follow control`);
+  check(rail.count >= 7, `${tag} action rail has react, comment, share, save, repost, remix and more (${rail.count})`);
+  check((await page.locator(`.fresh-flow-item .fresh-flow-actions button[aria-label="Remix"]`).count()) >= 1 && (await page.locator(`.fresh-flow-item .fresh-flow-actions [aria-label="Download Short"]`).count()) === 0, `${tag} rail has Remix and no Download (Download stays in More)`);
   check(rail.top >= rail.tabsBottom - 1 && rail.bottom <= rail.itemBottom + 1, `${tag} every action sits inside the visible Short, below the tabs (${Math.round(rail.top)} >= ${Math.round(rail.tabsBottom)})`);
   check(rail.bottom <= rail.navTop - 1, `${tag} action rail stays above bottom navigation (${Math.round(rail.bottom)} <= ${Math.round(rail.navTop)})`);
   check(rail.metaBottom <= rail.navTop - 1, `${tag} creator/caption metadata stays above bottom navigation (${Math.round(rail.metaBottom)} <= ${Math.round(rail.navTop)})`);
@@ -169,19 +190,17 @@ for (const width of WIDTHS) {
   check(shareText.includes("Fresh Messages") && shareText.includes("Copy link") && /Fresh Mail.*service connection needed/i.test(shareText), `${tag} Share panel offers Messages and Copy link and labels Fresh Mail honestly`);
   await page.locator('[aria-label="Share this Short"] [aria-label="Close"]').click();
   // Report sheet must be a real overlay above the feed (it previously rendered inline, unpositioned).
-  await page.locator('.fresh-flow-item [aria-label="More"]').first().click();
-  await page.locator(".fresh-flow-advanced").getByRole("button", { name: /Report/ }).click();
+  await holdOpenMore(page, page.locator(".fresh-flow-item").first(), false);
+  check(await page.locator(".fresh-flow-advanced").first().isVisible(), `${tag} press-and-hold opens More actions`);
+  check((await page.locator(".fresh-flow-advanced").getByRole("button", { name: /Not interested/ }).count()) === 0, `${tag} More starts compact (feed and safety collapsed)`);
+  await expandMoreSections(page);
+  check((await page.locator(".fresh-flow-advanced").getByRole("button", { name: /Not interested/ }).count()) === 1, `${tag} section headings expand to the full list`);
+  check((await page.locator(".fresh-flow-item").first().locator(".fresh-flow-sound-disc").count()) === 1 && (await page.locator(".fresh-flow-item").first().locator('button[aria-label="More actions"]').count()) === 1, `${tag} rail ends with the sound disc and keeps a keyboard-only More button`);
+  await page.locator(".fresh-flow-advanced").getByRole("button", { name: /Report/ }).first().click();
   await page.locator('[aria-label="Report this Short"]').waitFor({ timeout: 5000 });
   const reportBox = await page.locator('[aria-label="Report this Short"]').boundingBox();
   check(Boolean(reportBox) && reportBox.x >= -1 && reportBox.x + reportBox.width <= width + 1, `${tag} Report sheet sits on screen above the feed`);
   await page.locator('[aria-label="Report this Short"] [aria-label="Close"]').click();
-  // Press-and-hold is intentionally NOT a gesture; playback speed lives in the More actions panel.
-  const tapBox = await page.locator(".fresh-flow-item .fresh-flow-tap-layer").first().boundingBox();
-  await page.mouse.move(tapBox.x + tapBox.width / 2, tapBox.y + tapBox.height * 0.4);
-  await page.mouse.down();
-  await page.waitForTimeout(700);
-  await page.mouse.up();
-  check((await page.locator('[aria-label="Playback options"]').count()) === 0, `${tag} press-and-hold does not open anything`);
   const seek = await page.locator('.fresh-flow-item [role="slider"][aria-label="Seek"]').first().boundingBox();
   check(Boolean(seek) && seek.width > width * 0.9, `${tag} progress bar is a full-width seek control`);
   // Shorts is full-screen: the media-world row is kept in the page but folded away so the video fills the screen
@@ -202,6 +221,8 @@ for (const width of WIDTHS) {
   check(Boolean(switchBox) && switchBox.x >= 0 && switchBox.x + switchBox.width <= width + 0.5, `${tag} Flow Switch remains reachable from the Shorts More menu`);
   await page.locator('header [aria-label="More Fresh Shorts options"]').click();
   check(await page.locator("header .fresh-flow-header-more-list.open").count() === 0, `${tag} header menu closes again`);
+  // The bar slides away while the feed scrolls and returns 700ms after it stops, so wait for "idle".
+  await page.locator("nav.fresh-flow-bottom-nav").waitFor({ state: "visible", timeout: 4000 }).catch(() => undefined);
   check(await page.locator("nav.fresh-flow-bottom-nav").isVisible(), `${tag} bottom navigation visible on Shorts when idle`);
 
   // Exactly one video playing.
@@ -213,24 +234,27 @@ for (const width of WIDTHS) {
   const navTop = await page.locator("nav.fresh-flow-bottom-nav").evaluate((el) => el.getBoundingClientRect().top);
   const actionsBottom = await page.locator(".fresh-flow-item").first().locator(".fresh-flow-actions").evaluate((el) => el.getBoundingClientRect().bottom);
   check(actionsBottom <= navTop + 1, `${tag} action column clears the bottom navigation (${Math.round(actionsBottom)} <= ${Math.round(navTop)})`);
-  for (const label of ["Comments", "Repost", "Save", "Share", "More"]) {
-    const box = await page.locator(".fresh-flow-item").first().locator(`.fresh-flow-actions [aria-label="${label}"]`).boundingBox();
+  for (const label of ["Comments", "Repost", "Save", "Share", "Remix"]) {
+    const box = await page.locator(".fresh-flow-item").first().locator(`.fresh-flow-actions button[aria-label="${label}"]`).boundingBox();
     check(Boolean(box) && box.x >= 0 && box.x + box.width <= width + 0.5 && box.width >= 44 && box.height >= 44, `${tag} "${label}" is on-screen and at least 44px`);
   }
 
   // Tap pauses, tap resumes.
   const first = page.locator(".fresh-flow-item").first().locator(".fresh-flow-tap-layer");
-  await first.click({ position: { x: width / 2, y: 300 } });
+  // Tap in the open upper-middle of the video: the creator row, caption and rail sit lower in the card.
+  const tapLayerBox = await first.boundingBox();
+  const tapAt = { x: Math.round(tapLayerBox.width / 2), y: Math.round(tapLayerBox.height * 0.3) };
+  await first.click({ position: tapAt });
   await page.waitForTimeout(450);
   state = await playing();
   check(!state[0], `${tag} single tap pauses`);
-  await first.click({ position: { x: width / 2, y: 300 } });
+  await first.click({ position: tapAt });
   await page.waitForTimeout(450);
   state = await playing();
   check(state[0], `${tag} tap again resumes`);
 
   // Double tap shows the like burst without pausing.
-  await first.dblclick({ position: { x: width / 2, y: 300 }, delay: 40 });
+  await first.dblclick({ position: tapAt, delay: 40 });
   await page.waitForTimeout(150);
   check((await page.locator(".fresh-flow-heart-burst").count()) >= 1, `${tag} double tap shows the heart burst`);
   await page.waitForTimeout(600);
@@ -243,11 +267,11 @@ for (const width of WIDTHS) {
   check(fill > 0, `${tag} progress bar advances (${fill.toFixed(1)}%)`);
 
   // More panel and Context and Sources interaction.
-  await page.locator(".fresh-flow-item").first().locator('[aria-label="More"]').click();
+  await holdOpenMore(page, page.locator(".fresh-flow-item").first());
   const more = page.locator(".fresh-flow-advanced").first();
   check(await more.isVisible(), `${tag} More panel opens`);
   const moreText = await more.innerText();
-  for (const label of ["Send gift", "Ask Fresh AI", "Show more like this", "Show less like this", "Manage recommendations", "Not interested", "Mute", "Report", "Remix", "Add to collection", "Context and sources"]) check(moreText.includes(label), `${tag} More panel has ${label}`);
+  for (const label of ["Send gift", "Ask Fresh AI", "Show more like this", "Show less like this", "Manage recommendations", "Not interested", "Mute", "Report", "Remix", "Context and sources"]) check(moreText.includes(label), `${tag} More panel has ${label}`);
   check(contextCheckRequests === 0, `${tag} opening More does not automatically run an evidence check`);
   await more.getByRole("button", { name: "Context and sources" }).click();
   const contextPanel = page.getByRole("dialog", { name: "Context and sources" });
@@ -261,6 +285,11 @@ for (const width of WIDTHS) {
   check(contextCheckRequests === 1, `${tag} viewer action sends exactly one evidence request`);
   const contextLinks = contextPanel.locator(".shorts-context-sources a");
   check((await contextLinks.count()) === 3, `${tag} Context panel renders the three returned HTTP(S) sources`);
+  const fullBtn = contextPanel.getByRole("button", { name: "View full sources" });
+  if (await fullBtn.count()) {
+    await fullBtn.click();
+    check(await contextPanel.getByRole("button", { name: "Hide full sources" }).isVisible(), `${tag} View full sources expands and can be hidden again`);
+  }
   const firstSource = contextLinks.first();
   check((await firstSource.getAttribute("href"))?.startsWith("https://") && (await firstSource.getAttribute("rel"))?.includes("noopener"), `${tag} source links are HTTPS and use safe new-tab rel attributes`);
   await contextPanel.getByRole("button", { name: "Close" }).click();
@@ -292,7 +321,7 @@ for (const width of WIDTHS) {
   check(state.filter(Boolean).length === 1 && state[1], `${tag} ArrowUp pages back to Short 2 (${state.join(",")})`);
 
   // Not interested removes the Short from the pager.
-  await page.locator(".fresh-flow-item").nth(1).locator('[aria-label="More"]').click();
+  await holdOpenMore(page, page.locator(".fresh-flow-item").nth(1));
   await page.locator(".fresh-flow-advanced").getByRole("button", { name: /Not interested/ }).click();
   await page.waitForTimeout(400);
   check((await page.locator(".fresh-flow-item").count()) === 2, `${tag} Not interested removes the Short`);
@@ -334,7 +363,7 @@ for (const width of WIDTHS) {
   check(await repostsTab.getAttribute("aria-pressed") === "true", `${tag} Reposts tab opens as an accessible creator section`);
   check(await profile.getByRole("button", { name: "Follow" }).isVisible() && await profile.getByRole("button", { name: "Message" }).isVisible(), `${tag} profile has Follow and Message`);
   await profile.locator(".shorts-profile-tabs button", { hasText: "Playlists" }).click();
-  check(await profile.locator('[aria-label="Creator playlists"]').isVisible(), `${tag} Playlists tab shows the creator playlists section`);
+  check(await profile.locator('[aria-label="Creator collections and playlists"]').isVisible(), `${tag} Playlists tab shows the creator playlists section`);
   await profile.locator(".shorts-profile-tabs button", { hasText: "Shorts" }).click();
   check((await profile.locator(".shorts-profile-grid li").count()) >= 1, `${tag} profile lists the creator's Shorts`);
   const pbox = await profile.boundingBox();
@@ -342,11 +371,16 @@ for (const width of WIDTHS) {
   await profile.getByRole("button", { name: "Back to Shorts" }).click();
   check(!(await profile.isVisible().catch(() => false)), `${tag} Back closes the profile`);
 
+  // Notifications, Add/Create and Camera live in the Fresh Flow Home header (not the Shorts header).
+  await page.evaluate(() => {
+    window.history.pushState({ freshRoute: "fresh-flow" }, "", "/fresh-flow");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await page.waitForSelector('header [aria-label="Notifications"]', { state: "visible", timeout: 10000 });
   // Notifications (signed-out visitor sees an honest sign-in prompt) and its tabs.
-  await openHeaderMenu(page);
   await page.locator('header [aria-label="Notifications"]').click();
   const notify = page.getByRole("dialog", { name: "Notifications" });
-  check(await notify.isVisible(), `${tag} Notifications opens from the Shorts header`);
+  check(await notify.isVisible(), `${tag} Notifications opens from the Home header`);
   const nTabs = (await notify.locator(".shorts-notify-tabs button").allInnerTexts()).map((t) => t.trim());
   check(JSON.stringify(nTabs) === JSON.stringify(["All", "Reactions", "Comments", "Replies", "Mentions", "New followers", "Creator updates"]), `${tag} notification tabs follow the spec: All · Reactions · Comments · Replies · Mentions · New followers · Creator updates`);
   check((await notify.innerText()).includes("Sign in to see likes, comments and follows"), `${tag} signed-out visitor gets a sign-in prompt, not fake activity`);
@@ -354,18 +388,32 @@ for (const width of WIDTHS) {
   check(!(await notify.isVisible().catch(() => false)), `${tag} Notifications closes`);
 
   // Create Short (design screen 5): camera tools, Upload and Templates, close returns to the feed.
-  await openHeaderMenu(page);
+  // Guests are sent to sign-in by the Add button (creating needs an account); signed-in users get the dialog.
   await page.locator('header [aria-label="Add or create a Short"]').click();
   const create = page.getByRole("dialog", { name: "Create Short" });
-  await create.waitFor({ state: "visible", timeout: 8000 }).catch(() => undefined);
-  check(await create.isVisible().catch(() => false), `${tag} Create Short opens from the Add button`);
-  const toolText = (await create.locator(".shorts-create-tools").innerText().catch(() => "")).replace(/\s+/g, " ");
-  for (const tool of ["Flip", "Speed", "Filters", "Beauty", "Timer"]) check(toolText.includes(tool), `${tag} Create Short has the ${tool} tool`);
-  const barText = (await create.locator(".shorts-create-bar").innerText().catch(() => "")).replace(/\s+/g, " ");
-  check(barText.includes("Upload") && barText.includes("Templates"), `${tag} Create Short has Upload and Templates`);
-  check(await create.locator(".shorts-create-record").count() === 1, `${tag} Create Short has the record button`);
-  await create.getByRole("button", { name: "Close" }).click();
-  check(!(await create.isVisible().catch(() => false)), `${tag} Create Short closes back to the feed`);
+  const gateway = page.locator(".fresh-id-gateway");
+  await Promise.race([
+    create.waitFor({ state: "visible", timeout: 8000 }),
+    gateway.waitFor({ state: "visible", timeout: 8000 }),
+  ]).catch(() => undefined);
+  if (await create.isVisible().catch(() => false)) {
+    const toolText = (await create.locator(".shorts-create-tools").innerText().catch(() => "")).replace(/\s+/g, " ");
+    for (const tool of ["Flip", "Speed", "Filters", "Beauty", "Timer"]) check(toolText.includes(tool), `${tag} Create Short has the ${tool} tool`);
+    const barText = (await create.locator(".shorts-create-bar").innerText().catch(() => "")).replace(/\s+/g, " ");
+    check(barText.includes("Upload") && barText.includes("Templates"), `${tag} Create Short has Upload and Templates`);
+    check(await create.locator(".shorts-create-record").count() === 1, `${tag} Create Short has the record button`);
+    await create.getByRole("button", { name: "Close" }).click();
+    check(!(await create.isVisible().catch(() => false)), `${tag} Create Short closes back to the feed`);
+  } else {
+    check((await gateway.isVisible().catch(() => false)) || /sign-?in/i.test(page.url()) || /sign in|log in|continue as guest/i.test(await page.locator("body").innerText()), `${tag} Add as a guest leads to sign-in instead of a silent no-op`);
+    await page.evaluate(() => {
+      window.history.pushState({ freshRoute: "fresh-flow" }, "", "/fresh-flow");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await page.waitForSelector("nav.fresh-flow-bottom-nav", { timeout: 15000 });
+  }
+  await page.locator("nav.fresh-flow-bottom-nav button", { hasText: "Shorts" }).click();
+  await page.waitForSelector(".fresh-flow-item", { timeout: 8000 });
 
   // Comments sheet: verify viewport geometry, stacking, independent scrolling and keyboard dismissal.
   const commentsTrigger = page.locator('.fresh-flow-stream[data-discovery] [aria-label="Comments"]').first();
@@ -375,7 +423,7 @@ for (const width of WIDTHS) {
   await sheet.waitFor({ state: "visible", timeout: 8000 }).catch(() => undefined);
   check(await sheet.isVisible().catch(() => false), `${tag} Comments sheet opens`);
   const sheetBox = await sheet.boundingBox().catch(() => null);
-  check(!!sheetBox && sheetBox.y > 40 && sheetBox.height >= (await page.evaluate(() => window.innerHeight)) * 0.8 && sheetBox.y + sheetBox.height <= (await page.evaluate(() => window.innerHeight)) + 1 && sheetBox.width <= width + 1, `${tag} Comments sheet opens tall (at least 80% of the viewport) inside the viewport`);
+  check(!!sheetBox && sheetBox.y > 40 && sheetBox.height >= (await page.evaluate(() => window.innerHeight)) * 0.6 && sheetBox.y + sheetBox.height <= (await page.evaluate(() => window.innerHeight)) + 1 && sheetBox.width <= width + 1, `${tag} Comments sheet opens tall (at least 60% of the viewport; design target 66%) inside the viewport`);
   check((await sheet.locator("h3").innerText().catch(() => "")).startsWith("Comments"), `${tag} Comments sheet is titled Comments`);
   check(await sheet.getAttribute("aria-modal") === "true" && Boolean(await sheet.getAttribute("aria-labelledby")), `${tag} Comments sheet exposes modal semantics`);
   await page.waitForFunction(() => {

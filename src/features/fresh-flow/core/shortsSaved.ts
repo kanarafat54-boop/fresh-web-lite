@@ -4,13 +4,14 @@
  * so the viewer can remove it, instead of silently disappearing.
  */
 export type SavedRow = { short_id: string; created_at: string };
-export type SavedShortInfo = { id: string; author_id: string; caption: string | null };
+export type SavedShortInfo = { id: string; author_id: string; caption: string | null; video_url?: string | null };
 
 export type SavedItem = {
   shortId: string;
   savedAt: string;
   caption: string | null;
   creator: string | null;
+  videoUrl: string | null;
   available: boolean;
 };
 
@@ -26,6 +27,7 @@ export function buildSavedItems(rows: SavedRow[], shorts: Map<string, SavedShort
       savedAt: row.created_at,
       caption: info?.caption ?? null,
       creator: info ? names.get(info.author_id) ?? "Creator" : null,
+      videoUrl: info?.video_url ?? null,
       available: Boolean(info),
     });
   }

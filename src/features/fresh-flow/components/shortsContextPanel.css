@@ -129,3 +129,67 @@
   .shorts-context-panel { padding-left:12px; padding-right:12px; }
   .shorts-context-facts div { grid-template-columns:76px minmax(0,1fr); }
 }
+
+/* Rows with a first-frame thumbnail (watch history, saved, liked, reposted). */
+.shorts-history-row .shorts-history-link { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.shorts-history-row .shorts-history-text { display: grid; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.shorts-history-row .shorts-history-link .short-thumb { width: 48px; }
+.shorts-history-row .shorts-history-text { font-size: 1rem; opacity: 1; }
+.shorts-history-row .shorts-history-text > span { font-size: 0.82rem; opacity: 0.75; }
+.shorts-history-row .short-thumb, .shorts-history-row .short-thumb span { opacity: 1; font-size: inherit; }
+
+/* Watch history as a thumbnail grid, Clear control at the top (phone and desktop). */
+.shorts-history-clear { width: 100%; margin: 4px 0 10px; border-radius: 999px; font-weight: 800; }
+.shorts-history-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 10px; padding: 0; list-style: none; }
+.shorts-history-list > li { display: contents; }
+.shorts-history-list > li > h4 { grid-column: 1 / -1; margin: 8px 0 0; }
+.shorts-history-list .shorts-history-row { position: relative; display: block; min-width: 0; }
+.shorts-history-list .shorts-history-link { display: flex; flex-direction: column; gap: 6px; }
+.shorts-history-list .shorts-history-link .short-thumb { width: 100%; aspect-ratio: 9 / 14; height: auto; border-radius: 14px; }
+.shorts-history-list .shorts-history-row > button[aria-label="Remove from watch history"] { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; border-radius: 50%; background: rgba(0, 0, 0, 0.6); }
+
+/* Collections: tabs, covers, lock/globe, promo card. */
+.shorts-collection-tabs { display: flex; gap: 6px; margin: 10px 0 4px; padding: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.06); }
+.shorts-collection-tabs button { flex: 1; min-height: 38px; border: 0; border-radius: 999px; background: transparent; color: rgba(255, 255, 255, 0.75); font: inherit; font-weight: 700; }
+.shorts-collection-tabs button.active { background: var(--shorts-accent, #7c5cff); color: #fff; }
+.shorts-collection-empty { padding: 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.75); }
+.shorts-collection-list li { align-items: center; }
+.shorts-collection-list li > .shorts-collection-cover { flex: 0 0 56px; width: 56px; height: 72px; border-radius: 12px; }
+.shorts-collection-cover-empty { display: grid; place-items: center; background: rgba(124, 92, 255, 0.2); color: #cfc6ff; }
+.shorts-collection-list li > div { flex: 1 1 auto; }
+.shorts-collection-list li span svg { vertical-align: -2px; }
+.shorts-collection-promo { display: grid; gap: 4px; margin-top: 16px; padding: 14px; border-radius: 16px; background: linear-gradient(120deg, rgba(124, 92, 255, 0.35), rgba(32, 150, 255, 0.2)); }
+.shorts-collection-promo span { font-size: 0.82rem; opacity: 0.85; }
+
+/* Sources as pill chips (the host is the link); "View full sources" adds the snippets. */
+.shorts-context-sources.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.shorts-context-sources.chips li { display: inline-flex; }
+.shorts-context-sources.chips a,
+.shorts-context-sources.chips span {
+  display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border-radius: 999px;
+  border: 1px solid rgba(155, 130, 255, 0.35); background: rgba(46, 34, 104, 0.6); color: #fff; font-size: 0.85rem; text-decoration: none;
+}
+.shorts-collection-list li { flex-wrap: wrap; }
+.shorts-collection-invite-toggle { min-height: 36px; padding: 0 14px; border: 1px solid rgba(155, 130, 255, 0.45); border-radius: 999px; background: transparent; color: #fff; font: inherit; font-weight: 700; }
+.shorts-collection-invite { flex: 1 0 100%; display: flex; align-items: flex-end; gap: 8px; margin-top: 8px; }
+.shorts-collection-invite label { flex: 1; display: grid; gap: 4px; font-size: 0.78rem; opacity: 0.9; }
+.shorts-collection-invite input { min-height: 40px; padding: 0 12px; border: 1.5px solid rgba(155, 130, 255, 0.5); border-radius: 12px; background: #070520; color: #fff; font: inherit; }
+.shorts-collection-invite button { min-height: 40px; padding: 0 16px; border: 0; border-radius: 12px; background: var(--shorts-accent, #7c5cff); color: #fff; font: inherit; font-weight: 800; }
+
+/* Fresh Context as a bottom sheet with clear sections */
+.shorts-context-panel.shorts-bottom-sheet { background: #100b38; }
+.shorts-context-hero { display: flex; align-items: flex-start; gap: 12px; margin: 2px 0 12px; padding: 12px; border: 1px solid rgba(155, 130, 255, 0.4); border-radius: 16px; background: linear-gradient(120deg, rgba(124, 92, 255, 0.3), rgba(32, 150, 255, 0.14)); }
+.shorts-context-hero > span { flex: 0 0 auto; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: rgba(255, 255, 255, 0.14); color: #fff; }
+.shorts-context-hero p { margin: 0; font-size: 0.86rem; line-height: 1.4; color: #f1eeff; }
+.shorts-context-panel > h3 { margin: 16px 0 8px; font-size: 0.78rem; letter-spacing: 0.07em; text-transform: uppercase; color: #cfc6ff; }
+.shorts-context-panel .shorts-context-facts { margin: 0; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 14px; overflow: hidden; }
+.shorts-context-panel .shorts-context-facts > div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; background: rgba(255, 255, 255, 0.05); }
+.shorts-context-panel .shorts-context-facts > div + div { border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.shorts-context-panel .shorts-context-facts dt { color: #b8b2e8; }
+.shorts-context-panel .shorts-context-facts dd { margin: 0; text-align: right; font-weight: 700; }
+.shorts-context-panel .shorts-context-primary { width: 100%; min-height: 48px; border: 0; border-radius: 14px; background: var(--shorts-accent, #7c5cff); color: #fff; font: inherit; font-weight: 800; }
+.shorts-context-panel .shorts-context-secondary { width: 100%; min-height: 44px; margin-top: 10px; border: 1px solid rgba(155, 130, 255, 0.5); border-radius: 14px; background: transparent; color: #fff; font: inherit; font-weight: 700; }
+.shorts-context-panel .shorts-context-result { margin-top: 12px; padding: 12px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 14px; background: rgba(255, 255, 255, 0.06); }
+.shorts-context-panel .shorts-context-sources.chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; list-style: none; }
+.shorts-context-panel .shorts-context-sources.chips a, .shorts-context-panel .shorts-context-sources.chips span { display: inline-block; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(155, 130, 255, 0.5); background: rgba(124, 92, 255, 0.2); color: #fff; text-decoration: none; font-size: 0.8rem; }
+.shorts-context-panel .shorts-sheet-header h3 { margin: 0; font-size: 1.1rem; letter-spacing: 0; text-transform: none; color: #fff; }

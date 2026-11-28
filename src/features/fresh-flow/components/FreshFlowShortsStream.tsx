@@ -5,6 +5,8 @@ import ShortsContextPanel from "./ShortsContextPanel";
 import ShortsWhySheet from "./ShortsWhySheet";
 import ShortsPredictionSheet from "./ShortsPredictionSheet";
 import ShortsHistorySheet from "./ShortsHistorySheet";
+import ShortsInfoStrip from "./ShortsInfoStrip";
+import ShortsYourShortSheet from "./ShortsYourShortSheet";
 import ShortsSavedSheet from "./ShortsSavedSheet";
 import ShortsCollectionsSheet from "./ShortsCollectionsSheet";
 import type { WhyInput } from "../core/shortsWhy";
@@ -84,7 +86,7 @@ const SUB_TABS: Array<{ id: SubTab; label: string; icon: ReactNode }> = [
   { id: "for-you", label: "For You", icon: <ShortsIcons.ForYouIcon size={16} /> },
   { id: "following", label: "Following", icon: <ShortsIcons.FollowingIcon size={16} /> },
   { id: "friends", label: "Friends", icon: <ShortsIcons.FriendsIcon size={16} /> },
-  { id: "trending", label: "Trending", icon: <ShortsIcons.TrendingIcon size={16} /> },
+  { id: "trending", label: "Trending", icon: <ShortsIcons.FlameIcon size={16} filled /> },
   { id: "more", label: "Fresh Picks", icon: <ShortsIcons.PicksIcon size={16} /> },
   { id: "learn", label: "Learn", icon: <ShortsIcons.LearnTabIcon size={16} /> },
   { id: "relax", label: "Relax", icon: <ShortsIcons.RelaxIcon size={16} /> },
@@ -185,6 +187,7 @@ export default function FreshFlowShortsStream({
   const [privacy, setPrivacy] = useState<ShortsPrivacySettings>({ ...DEFAULT_PRIVACY });
   const [savedOpen, setSavedOpen] = useState(false);
   const [collectionShortId, setCollectionShortId] = useState<string | null>(null);
+  const [yourShortId, setYourShortId] = useState<string | null>(null);
   const [blockSheet, setBlockSheet] = useState<{ target: { id: string; name: string } | null } | null>(null);
   const quiet = useQuietBreak(privacy, Boolean(user && !isGuest));
   useEffect(() => {
@@ -277,6 +280,14 @@ export default function FreshFlowShortsStream({
   const [heartBurst, setHeartBurst] = useState<{ id: string; key: number } | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const lastTapRef = useRef<{ id: string; at: number; count: number } | null>(null);
+  // More actions sections: the everyday ones are open; library, moderation, create, safety and about start collapsed.
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => new Set(["about", "library", "moderation", "create", "safety"]));
+  const sectionOpen = (id: string) => !collapsedSections.has(id);
+  const sectionHeading = (id: string, label: string) => (
+    <button type="button" aria-expanded={sectionOpen(id)} onClick={() => setCollapsedSections((current) => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} className="fresh-flow-advanced-heading">{label}</button>
+  );
+  const holdTimerRef = useRef<number | null>(null);
+  const holdFiredRef = useRef(false);
   const tapTimerRef = useRef<number | null>(null);
   const flashKeyRef = useRef(0);
 
@@ -853,6 +864,18 @@ export default function FreshFlowShortsStream({
   }
 
   /** Single tap = play/pause, double tap = like (never un-like), like TikTok. */
+  function startHold() {
+    holdFiredRef.current = false;
+    if (holdTimerRef.current !== null) window.clearTimeout(holdTimerRef.current);
+    holdTimerRef.current = window.setTimeout(() => {
+      holdTimerRef.current = null;
+      holdFiredRef.current = true;
+      setAdvancedOpen(true);
+    }, 500);
+  }
+  function cancelHold() {
+    if (holdTimerRef.current !== null) { window.clearTimeout(holdTimerRef.current); holdTimerRef.current = null; }
+  }
   function handleTap(short: Short, index: number) {
     const now = Date.now();
     const last = lastTapRef.current;
@@ -1116,6 +1139,10 @@ export default function FreshFlowShortsStream({
         </div>
       ) : null}
       {historyOpen && user && !isGuest ? <ShortsHistorySheet userId={user.id} historyEnabled={watchHistoryEnabled} onHistoryEnabledChange={changeWatchHistory} onClose={() => setHistoryOpen(false)} /> : null}
+      {yourShortId && user && !isGuest ? (() => {
+        const mine = shorts.find((item) => item.id === yourShortId && item.authorId === user.id);
+        return mine ? <ShortsYourShortSheet userId={user.id} shortId={mine.id} videoUrl={mine.videoUrl} caption={mine.caption ?? ""} viewCount={mine.viewCount ?? 0} allowDownload={Boolean(mine.allowDownload)} onToggleDownload={() => void changeShortDownloadPermission(mine)} onAddToCollection={() => { setYourShortId(null); setCollectionShortId(mine.id); }} onClose={() => setYourShortId(null)} /> : null;
+      })() : null}
       {collectionShortId && user && !isGuest ? <ShortsCollectionsSheet userId={user.id} shortId={collectionShortId} onClose={() => setCollectionShortId(null)} /> : null}
       {provenanceShortId && shorts.find((item) => item.id === provenanceShortId) ? (() => {
         const target = shorts.find((item) => item.id === provenanceShortId)!;
@@ -1195,11 +1222,11 @@ export default function FreshFlowShortsStream({
                 preload={preloadFor(index, currentIndex, prefetchRadius)}
                 onError={(e) => retryVideo(e.currentTarget, 0)}
               />
-              <button type="button" className="fresh-flow-tap-layer" onClick={() => handleTap(short, index)} aria-label="Play or pause. Double tap to like. Triple tap for more actions." />
+              <button type="button" className="fresh-flow-tap-layer" onPointerDown={startHold} onPointerUp={cancelHold} onPointerLeave={cancelHold} onPointerCancel={cancelHold} onContextMenu={(event) => event.preventDefault()} onClick={() => { if (holdFiredRef.current) { holdFiredRef.current = false; return; } handleTap(short, index); }} aria-label="Play or pause. Double tap to like. Press and hold, or triple tap, for more actions." />
               {playFlash?.id === short.id && <span key={playFlash.key} className="fresh-flow-play-flash" aria-hidden="true">{playFlash.paused ? "❚❚" : "▶"}</span>}
               {heartBurst?.id === short.id && <span key={heartBurst.key} className="fresh-flow-heart-burst" aria-hidden="true">❤</span>}
               {index === currentIndex && soundBlocked && (
-                <button type="button" className="fresh-flow-sound-pill" onClick={() => enableSound(index)} aria-label="Turn sound on">🔇 Tap for sound</button>
+                <button type="button" className="fresh-flow-sound-pill" onClick={() => enableSound(index)} aria-label="Turn sound on"><ShortsIcons.VolumeOffIcon size={18} /> <span>Tap for sound</span></button>
               )}
               {index === currentIndex && captionsOn && captionText && <div className="fresh-flow-live-captions" role="status" aria-live="off">{captionText}</div>}
               <div className="fresh-flow-progress" role="slider" aria-label="Seek" aria-valuemin={0} aria-valuemax={100} aria-valuenow={0} onPointerDown={(event) => seekFromPointer(event, index)}><i className="fresh-flow-progress-fill" /></div>
@@ -1210,7 +1237,7 @@ export default function FreshFlowShortsStream({
                       <span className="fresh-flow-author-avatar" aria-hidden="true">{(short.authorUsername || "F")[0]?.toUpperCase()}</span>
                       <strong>@{short.authorUsername}</strong>{short.authorVerified && <span className="fresh-flow-verified" title="Verified" aria-label="Verified creator">✔</span>}
                     </button>
-                    <button type="button" className="fresh-flow-follow-btn" onClick={() => void handleFollow(short)}>{followingAuthors.has(short.authorId) ? "Following" : "Follow"}</button>
+                    <button type="button" className={`fresh-flow-follow-btn${followingAuthors.has(short.authorId) ? " following" : ""}`} onClick={() => void handleFollow(short)} aria-label={followingAuthors.has(short.authorId) ? `Following @${short.authorUsername}` : `Follow @${short.authorUsername}`}>{followingAuthors.has(short.authorId) ? <span aria-hidden="true">✓</span> : <ShortsIcons.NavCreateIcon size={12} strokeWidth={3.4} />}</button>
                   </div>
                   <h3 className={expandedCaptions.has(short.id) ? "expanded" : "clamped"}>{short.caption ? splitCaption(short.caption).map((segment, i) => segment.tag
                     ? <button key={i} type="button" className="fresh-flow-hashtag" onClick={() => setTopicPage({ kind: "hashtag", value: segment.tag as string })}>{segment.text}</button>
@@ -1219,21 +1246,11 @@ export default function FreshFlowShortsStream({
                     <button type="button" className="fresh-flow-caption-toggle" aria-expanded={expandedCaptions.has(short.id)} onClick={() => setExpandedCaptions((current) => { const next = new Set(current); if (next.has(short.id)) next.delete(short.id); else next.add(short.id); return next; })}>{expandedCaptions.has(short.id) ? "less" : "more"}</button>
                   )}
                   <div className="fresh-flow-tags">
-                    {short.soundName ? <button type="button" className="fresh-flow-sound-link" onClick={() => setTopicPage({ kind: "sound", value: short.soundName as string })}>♪ {short.soundName}</button> : <span>♪ Original sound</span>}
+                    {short.soundName ? <button type="button" className="fresh-flow-sound-link" onClick={() => setTopicPage({ kind: "sound", value: short.soundName as string })}><ShortsIcons.SoundNoteIcon size={15} /> {short.soundName}</button> : <span><ShortsIcons.SoundNoteIcon size={15} /> Original Sound – {short.authorUsername ? `@${short.authorUsername}` : short.authorName || "Fresh creator"}</span>}
                     {short.isHot ? <span>🔥 Hot</span> : null}
                   </div>
                 </div>
                 <div className="fresh-flow-actions">
-                  <div className="fresh-flow-rail-creator">
-                    <button type="button" className="fresh-flow-rail-avatar" onClick={() => setOpenCreatorId(short.authorId)} aria-label={`Open @${short.authorUsername} profile`}>
-                      <span aria-hidden="true">{(short.authorUsername || "F")[0]?.toUpperCase()}</span>
-                    </button>
-                    {!followingAuthors.has(short.authorId) && (
-                      <button type="button" className="fresh-flow-rail-follow" onClick={() => void handleFollow(short)} aria-label={`Follow @${short.authorUsername}`}>
-                        <ShortsIcons.NavCreateIcon size={14} strokeWidth={3} />
-                      </button>
-                    )}
-                  </div>
                   <ReactionPicker
                     myReaction={short.myReaction ?? null}
                     count={Object.values(short.reactionBreakdown).reduce((total, value) => total + value, 0)}
@@ -1256,16 +1273,23 @@ export default function FreshFlowShortsStream({
                     <span><ShortsIcons.RailRepostIcon size={28} /></span>
                     <span>{short.repostCount || "Repost"}</span>
                   </button>
-                  {short.allowDownload ? (
-                    <button type="button" onClick={() => void downloadShort(short)} aria-label="Download Short">
-                      <span aria-hidden="true">⬇</span>
-                      <span>Download</span>
-                    </button>
-                  ) : null}
-                  <button type="button" onClick={() => setAdvancedOpen((v) => !v)} aria-label="More actions" title="More actions" aria-expanded={advancedOpen && index === currentIndex}>
-                    <span className="fresh-flow-more-arrow" aria-hidden="true">‹</span>
+                  <button type="button" onClick={() => openAdvanced("remix", short)} aria-label="Remix">
+                    <span><ShortsIcons.RemixIcon size={28} /></span>
+                    <span>Remix</span>
+                  </button>
+                  <button type="button" className="fresh-flow-sound-disc" onClick={() => { if (short.soundName) setTopicPage({ kind: "sound", value: short.soundName }); else setOpenCreatorId(short.authorId); }} aria-label={short.soundName ? `Sound: ${short.soundName}` : `Original sound by @${short.authorUsername}`}>
+                    <span aria-hidden="true">{(short.authorUsername || "F")[0]?.toUpperCase()}</span>
+                    <i aria-hidden="true"><ShortsIcons.SoundNoteIcon size={11} /></i>
+                  </button>
+                  <button type="button" className="fresh-flow-more-button fresh-flow-more-hidden" onClick={() => setAdvancedOpen((v) => !v)} aria-label="More actions" title="More actions (or press and hold the video)" aria-expanded={advancedOpen && index === currentIndex}>
+                    <span aria-hidden="true">⋯</span>
                   </button>
                 </div>
+                {short.allowDownload ? (
+                  <ShortsInfoStrip kind="download" placement="overlay" onClick={() => setAdvancedOpen(true)}>Download is available because this creator enabled it.</ShortsInfoStrip>
+                ) : (
+                  <ShortsInfoStrip kind="context" placement="overlay" onClick={() => setContextShortId(short.id)}><strong>Fresh Context:</strong> {short.caption?.trim() ? "Learn more about this topic" : "About this Short"}</ShortsInfoStrip>
+                )}
                 {freshAiPanelOpen && index === currentIndex && (
                   <div className="fresh-flow-ai-panel">
                     <div className="fresh-flow-ai-panel-header"><div><strong>Fresh AI</strong><small>Understand this Short without leaving Flow.</small></div><button type="button" onClick={() => setFreshAiPanelOpen(false)} aria-label="Close Fresh AI">×</button></div>
@@ -1277,8 +1301,16 @@ export default function FreshFlowShortsStream({
                   </div>
                 )}
                 {advancedOpen && index === currentIndex && (
+                  <button type="button" className="fresh-flow-advanced-backdrop" tabIndex={-1} aria-label="Close more actions" onClick={() => setAdvancedOpen(false)} />
+                )}
+                {advancedOpen && index === currentIndex && (
                   <div className="fresh-flow-advanced" role="group" aria-label="More actions">
                     <div className="fresh-flow-quick-actions" role="group" aria-label="Quick actions">
+                      {user && !isGuest && short.authorId === user.id ? (
+                        <button type="button" onClick={() => { setAdvancedOpen(false); setYourShortId(short.id); }}>
+                          <ShortsIcons.ManageIcon size={22} /><span>Your Short</span>
+                        </button>
+                      ) : null}
                       {short.allowDownload ? (
                         <button type="button" onClick={() => { setAdvancedOpen(false); void downloadShort(short); }}>
                           <ShortsIcons.DownloadIcon size={22} /><span>Download</span>
@@ -1306,14 +1338,17 @@ export default function FreshFlowShortsStream({
                         <FlagIcon size={22} /><span>Report</span>
                       </button>
                     </div>
-                    <p className="fresh-flow-advanced-heading">Support and explore</p>
+                    {sectionHeading("support", "Support and explore")}
+                    {sectionOpen("support") && (<>
                     <button type="button" onClick={() => { setAdvancedOpen(false); void handleGift(short, "100"); }} aria-label="Send gift">
                       <span className="fresh-flow-menu-icon"><ShortsIcons.GiftIcon size={18} /></span> Send gift{(giftTotals.get(short.id)?.count ?? 0) > 0 ? ` · ${giftTotals.get(short.id)?.count}` : ""}
                     </button>
                     <button type="button" onClick={() => { setAdvancedOpen(false); setFreshAiPanelOpen(true); }}>
                       <span className="fresh-flow-menu-icon"><ShortsIcons.AskAIIcon size={18} /></span> Ask Fresh AI
                     </button>
-                    <p className="fresh-flow-advanced-heading">Playback and captions</p>
+                    </>)}
+                    {sectionHeading("playback", "Playback and captions")}
+                    {sectionOpen("playback") && (<>
                     <button type="button" onClick={toggleSound}>
                       <span className="fresh-flow-menu-icon">{soundOn ? <ShortsIcons.VolumeOnIcon size={18} /> : <ShortsIcons.VolumeOffIcon size={18} />}</span> {soundOn ? "Mute sound" : "Turn sound on"}
                     </button>
@@ -1342,7 +1377,9 @@ export default function FreshFlowShortsStream({
                     <button type="button" onClick={() => { const next = nextDataSaverMode(dataSaverMode); setDataSaverMode(next); writeDataSaverMode(next); }} title="Stops downloading upcoming Shorts ahead of time. Does not change video quality.">
                       <span className="fresh-flow-menu-icon"><ShortsIcons.DataSaverIcon size={18} /></span> {dataSaverLabel(dataSaverMode, dataSaverActive)}
                     </button>
-                    <p className="fresh-flow-advanced-heading">About this Short</p>
+                    </>)}
+                    {sectionHeading("about", "About this Short")}
+                    {sectionOpen("about") && (<>
                     <button type="button" onClick={() => { setAdvancedOpen(false); setContextShortId(short.id); }} title="Details about this Short and an on-demand evidence check">
                       <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Context and sources
                     </button>
@@ -1355,36 +1392,38 @@ export default function FreshFlowShortsStream({
                     <button type="button" onClick={() => { setAdvancedOpen(false); setProvenanceShortId(short.id); }} title="Where this Short comes from, as declared by its creator">
                       <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Origin
                     </button>
-                    {user && !isGuest ? <p className="fresh-flow-advanced-heading">Your library and privacy</p> : null}
-                    {user && !isGuest ? (
+                    </>)}
+                    {user && !isGuest ? sectionHeading("library", "Your library and privacy") : null}
+                    {user && !isGuest && sectionOpen("library") ? (
                       <>
                         <button type="button" onClick={() => { setAdvancedOpen(false); setSavedOpen(true); }} title="Shorts you saved">
                           <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Saved Shorts
                         </button>
-                        <button type="button" onClick={() => { setAdvancedOpen(false); setCollectionShortId(short.id); }} title="Add this Short to one of your public or private collections">
-                          <span className="fresh-flow-menu-icon"><ShortsIcons.RailSaveIcon size={18} /></span> Add to collection
-                        </button>
                       </>
                     ) : null}
-                    {user && !isGuest ? (
+                    {user && !isGuest && sectionOpen("library") ? (
                       <button type="button" onClick={() => { setAdvancedOpen(false); setHistoryOpen(true); }} title="Shorts you watched, with remove and clear controls">
                         <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Watch history
                       </button>
                     ) : null}
-                    {user && !isGuest ? (
+                    {user && !isGuest && sectionOpen("library") ? (
                       <button type="button" onClick={() => { setAdvancedOpen(false); setPrivacyOpen(true); }} title="Comments, messages, Quiet Mode, restricted and blocked accounts">
                         <span className="fresh-flow-menu-icon"><ShortsIcons.ManageIcon size={18} /></span> Privacy and safety
                       </button>
                     ) : null}
-                    {user && !isGuest && isReviewer(user.role) ? <p className="fresh-flow-advanced-heading">Moderation</p> : null}
-                    {user && !isGuest && isReviewer(user.role) ? (
+                    {user && !isGuest && isReviewer(user.role) ? sectionHeading("moderation", "Moderation") : null}
+                    {user && !isGuest && isReviewer(user.role) && sectionOpen("moderation") ? (
                       <button type="button" onClick={() => { setAdvancedOpen(false); setReviewOpen(true); }} title="Reports and appeals waiting for a reviewer">
                         <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Review queue
                       </button>
                     ) : null}
                     {user && !isGuest && short.authorId === user.id ? (
                       <>
-                        <p className="fresh-flow-advanced-heading">Your Short</p>
+                      {sectionHeading("yourShort", "Your Short")}
+                      {sectionOpen("yourShort") && (<>
+                        <button type="button" onClick={() => { setAdvancedOpen(false); setYourShortId(short.id); }} title="Who can watch, downloads and collections for this Short">
+                          <span className="fresh-flow-menu-icon"><ShortsIcons.ManageIcon size={18} /></span> Your Short controls
+                        </button>
                         <button type="button" onClick={() => { setAdvancedOpen(false); void changeCommentsMode(short.id, "everyone"); }}>
                           <span className="fresh-flow-menu-icon"><ShortsIcons.InfoIcon size={18} /></span> Comments here: everyone
                         </button>
@@ -1397,16 +1436,20 @@ export default function FreshFlowShortsStream({
                         <button type="button" onClick={() => { setAdvancedOpen(false); void changeShortDownloadPermission(short); }} aria-pressed={Boolean(short.allowDownload)} title="Let viewers use Fresh's official download action for this Short.">
                           <span className="fresh-flow-menu-icon">⬇</span> Allow downloads: {short.allowDownload ? "On" : "Off"}
                         </button>
+                      </>)}
                       </>
                     ) : null}
-                    <p className="fresh-flow-advanced-heading">Create from this Short</p>
-                    {ADVANCED_ACTIONS.map((a) => (
+                    {sectionHeading("create", "Create from this Short")}
+                    {sectionOpen("create") && (<>
+                    {ADVANCED_ACTIONS.filter((a) => a.id !== "remix").map((a) => (
                       <button key={a.id} type="button" onClick={() => openAdvanced(a.id, short)} title={a.description}>
                         <span className="fresh-flow-menu-icon">{a.icon}</span> {a.label}
                       </button>
                     ))}
+                    </>)}
                     <hr className="fresh-flow-advanced-divider" aria-hidden="true" />
-                    <p className="fresh-flow-advanced-heading">Your feed and safety</p>
+                    {sectionHeading("safety", "Your feed and safety")}
+                    {sectionOpen("safety") && (<>
                     <button type="button" onClick={() => void updateTopicPrefs(short, "more")}>
                       <span className="fresh-flow-menu-icon"><ShortsIcons.MoreLikeIcon size={18} /></span> Show more like this
                     </button>
@@ -1437,9 +1480,7 @@ export default function FreshFlowShortsStream({
                         <span className="fresh-flow-menu-icon"><ShortsIcons.MuteCreatorIcon size={18} /></span> Blocked accounts
                       </button>
                     ) : null}
-                    <button type="button" onClick={() => { setAdvancedOpen(false); setReportTarget(short); }}>
-                      <span className="fresh-flow-menu-icon"><FlagIcon size={18} /></span> Report
-                    </button>
+                    </>)}
                   </div>
                 )}
               </div>

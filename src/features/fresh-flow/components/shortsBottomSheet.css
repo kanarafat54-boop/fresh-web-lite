@@ -1,0 +1,29 @@
+/* Shared Fresh Shorts bottom sheet: the handle, header actions and rounded top. The rest comes from .shorts-sheet*. */
+.shorts-bottom-sheet {
+  border-radius: 22px 22px 0 0;
+  overflow-y: auto;
+  will-change: transform;
+}
+.shorts-sheet-handle {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  height: 28px;
+  margin: -6px 0 0;
+  cursor: grab;
+  touch-action: none;
+  background: inherit;
+}
+.shorts-sheet-handle:active { cursor: grabbing; }
+.shorts-sheet-handle > span {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+}
+.shorts-sheet-header-actions { display: flex; align-items: center; gap: 6px; }
+@media (prefers-reduced-motion: reduce) {
+  .shorts-bottom-sheet { transition: none !important; }
+}

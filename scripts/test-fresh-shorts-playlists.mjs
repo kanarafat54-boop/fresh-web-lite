@@ -20,7 +20,7 @@ for (const token of ["Private — only me", "Public — visible on my profile", 
   assert.ok(collections.includes(token), `personal collections UI missing ${token}`);
 }
 assert.ok(stream.includes("ShortsCollectionsSheet"), "the player More actions opens the personal collections sheet");
-assert.ok(stream.includes("Add to collection"), "the current Short can be added to a collection");
+assert.ok(stream.includes("Add to Collection"), "the current Short can be added to a collection");
 for (const token of ["pin_short_comment", "Pinned by creator", "togglePinned", "shortAuthorId"]) {
   assert.ok(comments.includes(token), `comment pin UI missing ${token}`);
 }

@@ -128,3 +128,52 @@ export async function loadPlaylistShorts(shortIds: string[]) {
     return row ? [{ id: row.id, caption: row.caption ?? "", videoUrl: row.video_url, viewCount: row.view_count ?? 0, createdAt: row.created_at }] : [];
   });
 }
+
+/** Cover images for collections: the first Short of each. Returns collection id -> video url (first frame is drawn from it). */
+export async function loadCollectionCovers(collections: Pick<FreshShortPlaylist, "id" | "shortIds">[]): Promise<Record<string, string>> {
+  const firstIds = collections.map((c) => c.shortIds[0]).filter((id): id is string => Boolean(id));
+  if (!firstIds.length) return {};
+  const { data, error } = await supabase.from("shorts").select("id,video_url").in("id", firstIds);
+  if (error) return {};
+  const urlById = new Map((data ?? []).map((row: any) => [row.id, row.video_url as string]));
+  const covers: Record<string, string> = {};
+  for (const c of collections) { const url = c.shortIds[0] ? urlById.get(c.shortIds[0]) : undefined; if (url) covers[c.id] = url; }
+  return covers;
+}
+
+/**
+ * Collections other people shared with this viewer. Reads fresh_short_collection_members, which exists only after the
+ * shared-collections migration is applied; before that this returns { available: false } instead of failing.
+ */
+export async function loadSharedCollections(userId: string): Promise<{ available: boolean; collections: FreshShortPlaylist[] }> {
+  const { data, error } = await supabase
+    .from("fresh_short_collection_members")
+    .select("fresh_short_collections(id,title,description,visibility,created_at,fresh_short_collection_items(short_id,position))")
+    .eq("member_id", userId);
+  if (error) return { available: false, collections: [] };
+  const collections = (data ?? []).flatMap((row: any) => {
+    const c = row.fresh_short_collections;
+    return c ? [{
+      id: c.id, title: c.title, description: c.description ?? null, visibility: c.visibility, createdAt: c.created_at,
+      shortIds: (c.fresh_short_collection_items ?? []).sort((a: any, b: any) => a.position - b.position).map((i: any) => i.short_id),
+    } as FreshShortPlaylist] : [];
+  });
+  return { available: true, collections };
+}
+
+/**
+ * Shares one of the viewer's collections with another person, found by their @username. The database only lets the
+ * collection's owner add members, and the invited person can read (not change) the collection.
+ */
+export async function inviteToCollection(collectionId: string, ownerId: string, rawUsername: string): Promise<{ ok: true; name: string } | { ok: false; reason: string }> {
+  const username = rawUsername.trim().replace(/^@/, "");
+  if (!username) return { ok: false, reason: "Type the person's @username." };
+  const { data: person, error: lookupError } = await supabase.from("user_public_profiles").select("id,full_name,username").ilike("username", username).limit(1).maybeSingle();
+  if (lookupError || !person) return { ok: false, reason: `No one on Fresh has the username @${username}.` };
+  if ((person as any).id === ownerId) return { ok: false, reason: "This collection is already yours." };
+  const { error } = await supabase
+    .from("fresh_short_collection_members")
+    .upsert({ collection_id: collectionId, member_id: (person as any).id, invited_by: ownerId, role: "viewer" }, { onConflict: "collection_id,member_id" });
+  if (error) return { ok: false, reason: error.message.includes("fresh_short_collection_members") ? "Sharing is not switched on yet." : error.message };
+  return { ok: true, name: (person as any).full_name || `@${(person as any).username}` };
+}

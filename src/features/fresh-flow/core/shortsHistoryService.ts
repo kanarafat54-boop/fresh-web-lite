@@ -1,7 +1,7 @@
 import { supabase } from "../../../lib/supabase";
 import { buildHistory, type HistoryEntry } from "./shortsHistory";
 
-export type HistoryItem = HistoryEntry & { caption: string | null; creator: string | null; available: boolean };
+export type HistoryItem = HistoryEntry & { caption: string | null; creator: string | null; videoUrl: string | null; available: boolean };
 
 const EVENT_LIMIT = 600;
 const ITEM_LIMIT = 100;
@@ -21,8 +21,8 @@ export async function loadWatchHistory(userId: string): Promise<HistoryItem[]> {
   const entries = buildHistory((data ?? []) as Array<{ media_id: string; event_type: string; created_at: string }>).slice(0, ITEM_LIMIT);
   if (entries.length === 0) return [];
   const ids = entries.map((entry) => entry.mediaId);
-  const { data: shortRows } = await supabase.from("shorts").select("id, author_id, caption").in("id", ids);
-  const shorts = new Map(((shortRows ?? []) as Array<{ id: string; author_id: string; caption: string | null }>).map((row) => [row.id, row]));
+  const { data: shortRows } = await supabase.from("shorts").select("id, author_id, caption, video_url").in("id", ids);
+  const shorts = new Map(((shortRows ?? []) as Array<{ id: string; author_id: string; caption: string | null; video_url: string | null }>).map((row) => [row.id, row]));
   const authorIds = [...new Set([...shorts.values()].map((row) => row.author_id))];
   const names = new Map<string, string>();
   if (authorIds.length) {
@@ -31,7 +31,7 @@ export async function loadWatchHistory(userId: string): Promise<HistoryItem[]> {
   }
   return entries.map((entry) => {
     const row = shorts.get(entry.mediaId);
-    return { ...entry, caption: row?.caption ?? null, creator: row ? names.get(row.author_id) ?? "Creator" : null, available: Boolean(row) };
+    return { ...entry, caption: row?.caption ?? null, creator: row ? names.get(row.author_id) ?? "Creator" : null, videoUrl: row?.video_url ?? null, available: Boolean(row) };
   });
 }
 

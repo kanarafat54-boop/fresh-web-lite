@@ -110,3 +110,13 @@ assert.equal(odd.sources[1].url, "https://www.example.org/a");
 assert.equal(odd.sources[1].host, "example.org");
 assert.equal(odd.sources[2].url, null);
 console.log("Fresh Shorts context tests passed.");
+
+// Sources render as chips; "View full sources" reveals the snippets (never shown as verified facts by themselves).
+{
+  const panel = (await import("node:fs")).readFileSync("src/features/fresh-flow/components/ShortsContextPanel.tsx", "utf8");
+  const assert = (await import("node:assert/strict")).default;
+  assert.match(panel, /shorts-context-sources\$\{fullSources \? " expanded" : " chips"\}/, "sources are chips until expanded");
+  assert.match(panel, /fullSources && source\.snippet/, "snippets only show in the full sources view");
+  assert.match(panel, /View full sources/, "View full sources control exists");
+  console.log("Context sources chips tests passed.");
+}

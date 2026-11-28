@@ -1,0 +1,10 @@
+import assert from "node:assert/strict";
+import { parseSticker, splitLinks, stickerToken, COMMENT_STICKERS } from "../src/features/comments/core/commentRichContent.ts";
+assert.equal(parseSticker(stickerToken("fire"))?.glyph, "🔥");
+assert.equal(parseSticker(":sticker:nope:"), null);
+assert.equal(parseSticker("hello :sticker:fire:"), null);
+assert.equal(new Set(COMMENT_STICKERS.map((s) => s.id)).size, COMMENT_STICKERS.length);
+const p = splitLinks("see https://www.example.com/a?b=1, and javascript:alert(1) ok");
+assert.deepEqual(p.filter((x) => x.href).map((x) => [x.text, x.host]), [["https://www.example.com/a?b=1", "example.com"]]);
+assert.equal(splitLinks("no links").length, 1);
+console.log("comment rich content ok");
