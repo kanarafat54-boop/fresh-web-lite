@@ -22,8 +22,9 @@
     --st-chip-h: 28px;
     --st-chips-top: calc(var(--st-safe-top) + var(--st-header-h));
     --st-canvas-top: calc(var(--st-chips-top) + (var(--st-chip-h) * 2) + 12px);
-    --st-canvas-bottom: calc(64px + var(--st-safe-bottom));
-    --st-strip-bottom: 14px;
+    --st-nav-h: calc(64px + var(--st-safe-bottom));
+    --st-canvas-bottom: 0px; /* the video fills the whole screen; the bottom bar floats over it */
+    --st-strip-bottom: calc(var(--st-nav-h) + 10px);
     --st-strip-h: 42px;
     --st-rail-bottom: calc(var(--st-strip-bottom) + var(--st-strip-h) + 10px);
     --st-pill-bg: rgba(18, 12, 48, 0.55);
@@ -180,7 +181,7 @@
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-viewport .fresh-flow-empty {
     padding: 24px 20px;
   }
-  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-progress { bottom: 0; }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-progress { bottom: var(--st-nav-h); }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-progress::before { height: 12px; }
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-shorts-offline-banner { top: calc(var(--st-canvas-top) + 10px); }
 
@@ -543,4 +544,17 @@
   .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-item .fresh-flow-advanced .fresh-flow-quick-actions button {
     border: 1px solid rgba(155, 130, 255, 0.5); background: rgba(124, 92, 255, 0.14); color: #fff;
   }
+}
+
+/* ---- Full-screen video, TikTok style: the picture runs to the bottom edge and the navigation floats over it ---------- */
+@media (max-width: 899px) {
+  .fresh-bottom-nav.fresh-flow-bottom-nav.fresh-shorts-nav {
+    background: rgba(8, 6, 28, 0.58);
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-item .fresh-flow-advanced[role="group"],
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-item .fresh-flow-advanced-backdrop { bottom: 0; }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-item .fresh-flow-advanced[role="group"] { padding-bottom: calc(var(--st-nav-h) + 8px); }
+  .fresh-flow-hub.fresh-flow-shorts-fullscreen .fresh-flow-stream[data-discovery] .fresh-flow-video { object-fit: cover; }
 }
