@@ -4,6 +4,7 @@ import {
   createShortCollection,
   loadCollectionCovers,
   loadMyShortCollections,
+  inviteToCollection,
   loadSharedCollections,
   type FreshShortPlaylist,
 } from "../core/shortsPlaylists";
@@ -22,6 +23,8 @@ export default function ShortsCollectionsSheet({ userId, shortId, onClose }: Pro
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [inviteFor, setInviteFor] = useState<string | null>(null);
+  const [inviteName, setInviteName] = useState("");
   const [tab, setTab] = useState<"mine" | "shared">("mine");
   const [covers, setCovers] = useState<Record<string, string>>({});
   const [shared, setShared] = useState<{ available: boolean; collections: FreshShortPlaylist[] } | null>(null);
@@ -38,6 +41,15 @@ export default function ShortsCollectionsSheet({ userId, shortId, onClose }: Pro
     window.addEventListener("keydown", onKey);
     return () => { cancelled = true; window.removeEventListener("keydown", onKey); };
   }, [userId, onClose]);
+
+  async function sendInvite(collection: FreshShortPlaylist) {
+    if (busy) return;
+    setBusy(true); setError(null); setNotice(null);
+    const result = await inviteToCollection(collection.id, userId, inviteName);
+    setBusy(false);
+    if (result.ok) { setNotice(`Shared "${collection.title}" with ${result.name}. They can watch it but not change it.`); setInviteFor(null); setInviteName(""); }
+    else setError(result.reason);
+  }
 
   async function addToCollection(collection: FreshShortPlaylist) {
     if (collection.shortIds.includes(shortId)) {
@@ -135,6 +147,13 @@ export default function ShortsCollectionsSheet({ userId, shortId, onClose }: Pro
                         <button type="button" disabled={busy || collection.shortIds.includes(shortId)} onClick={() => void addToCollection(collection)}>
                           {collection.shortIds.includes(shortId) ? "Added" : "Add"}
                         </button>
+                        <button type="button" className="shorts-collection-invite-toggle" aria-expanded={inviteFor === collection.id} onClick={() => { setInviteFor(inviteFor === collection.id ? null : collection.id); setError(null); }}>Share</button>
+                        {inviteFor === collection.id ? (
+                          <form className="shorts-collection-invite" onSubmit={(event) => { event.preventDefault(); void sendInvite(collection); }}>
+                            <label>Share with a person<input value={inviteName} onChange={(event) => setInviteName(event.target.value)} placeholder="@username" autoCapitalize="none" autoCorrect="off" maxLength={40} /></label>
+                            <button type="submit" disabled={busy || !inviteName.trim()}>Send</button>
+                          </form>
+                        ) : null}
                       </li>
                     ))}
                   </ul>

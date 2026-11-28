@@ -160,3 +160,20 @@ export async function loadSharedCollections(userId: string): Promise<{ available
   });
   return { available: true, collections };
 }
+
+/**
+ * Shares one of the viewer's collections with another person, found by their @username. The database only lets the
+ * collection's owner add members, and the invited person can read (not change) the collection.
+ */
+export async function inviteToCollection(collectionId: string, ownerId: string, rawUsername: string): Promise<{ ok: true; name: string } | { ok: false; reason: string }> {
+  const username = rawUsername.trim().replace(/^@/, "");
+  if (!username) return { ok: false, reason: "Type the person's @username." };
+  const { data: person, error: lookupError } = await supabase.from("user_public_profiles").select("id,full_name,username").ilike("username", username).limit(1).maybeSingle();
+  if (lookupError || !person) return { ok: false, reason: `No one on Fresh has the username @${username}.` };
+  if ((person as any).id === ownerId) return { ok: false, reason: "This collection is already yours." };
+  const { error } = await supabase
+    .from("fresh_short_collection_members")
+    .upsert({ collection_id: collectionId, member_id: (person as any).id, invited_by: ownerId, role: "viewer" }, { onConflict: "collection_id,member_id" });
+  if (error) return { ok: false, reason: error.message.includes("fresh_short_collection_members") ? "Sharing is not switched on yet." : error.message };
+  return { ok: true, name: (person as any).full_name || `@${(person as any).username}` };
+}
